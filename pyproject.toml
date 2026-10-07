@@ -1,0 +1,54 @@
+[project]
+name = "adaptive-customer-service-agent"
+version = "0.0.1"
+description = "Cost-aware routing, hybrid retrieval and reliable tool execution for an e-commerce customer-service agent"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.54.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "python-dotenv>=1.0.1",
+    "typer>=0.12.5",
+    "rich>=13.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.7.0",
+]
+
+[project.scripts]
+acs = "acs.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/acs"]
+
+[tool.uv]
+package = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# This fixture file must contain secret-shaped strings on single lines, and each
+# such line also carries an explicit `check_secrets:allow` marker. Keeping the
+# credential and its exemption on one line is the point of the file: a fragment
+# split across lines would no longer match the scanner's patterns and would
+# therefore stop testing anything.
+"tests/test_secret_scanner.py" = ["E501"]
