@@ -6,37 +6,79 @@ prices) lives here so that a run can always be described by its config.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class PriceSpec(BaseSettings):
-    """Per-1M-token prices. Input and output are priced differently.
+    """Per-1M-token USD prices for one model.
 
-    Prices come from the provider's public pricing page and are used only to
-    produce a cost estimate for experiments; they are recorded in the trace so
-    a stale price can always be detected rather than silently trusted.
+    `cached_input_per_1m` is not a nicety. DeepSeek prices a cache-hit input
+    token roughly 50x cheaper than a cache-miss one, and a RAG service resends
+    the same system prompt on every call, so ignoring the cache rate overstates
+    cost. `estimate_cost_cny` therefore needs the cached token count.
+
+    `peak_*` fields exist because DeepSeek halves prices off-peak. Peak is
+    defined in UTC (Mon-Fri 01:00-04:00 and 06:00-10:00); the working assumption
+    here is off-peak, with the peak multiplier reported alongside any estimate.
     """
 
     input_per_1m: Decimal
     output_per_1m: Decimal
     cached_input_per_1m: Decimal | None = None
+    peak_input_per_1m: Decimal | None = None
+    peak_output_per_1m: Decimal | None = None
+    peak_cached_input_per_1m: Decimal | None = None
 
 
-# Update alongside the provider's pricing page. Keep the date in the comment so
-# a stale entry is obvious in review.
+# Source: https://api-docs.deepseek.com/quick_start/pricing  (fetched 2026-10-07)
+#
+# Re-check before quoting any cost figure in the README. The previous table in
+# this file listed `deepseek-chat` / `deepseek-reasoner`, which have since been
+# retired, and the retired name was still being used by .env.example. A stale
+# table is the failure mode this comment exists to prevent.
 PRICING: dict[str, PriceSpec] = {
-    # DeepSeek public pricing, standard (non-discount) tier.
-    "deepseek-chat": PriceSpec(input_per_1m="2.0", output_per_1m="8.0"),
-    "deepseek-reasoner": PriceSpec(input_per_1m="4.0", output_per_1m="16.0"),
-    "deepseek-v3": PriceSpec(input_per_1m="2.0", output_per_1m="8.0"),
+    # DeepSeek-V4.1-Flash. Off-peak / peak, USD per 1M tokens.
+    "deepseek-flash": PriceSpec(
+        input_per_1m="0.15",
+        output_per_1m="0.6",
+        cached_input_per_1m="0.003",
+        peak_input_per_1m="0.3",
+        peak_output_per_1m="1.2",
+        peak_cached_input_per_1m="0.006",
+    ),
+    # DeepSeek-V4-Pro-0813.
+    "deepseek-v4-pro": PriceSpec(
+        input_per_1m="0.66",
+        output_per_1m="1.98",
+        cached_input_per_1m="0.022",
+        peak_input_per_1m="1.32",
+        peak_output_per_1m="3.96",
+        peak_cached_input_per_1m="0.044",
+    ),
 }
+
+# Accumulated usage is cached per data version, so re-embedding is not required
+# unless the corpus changes. Recorded here because it is an experiment variable.
+EMBEDDING_NOTE = (
+    "SiliconFlow hosts Qwen/Qwen3-Embedding-8B and caches accumulated usage; "
+    "the corpus must be re-embedded only when its content changes."
+)
+
+
+def is_peak_now(when: datetime | None = None) -> bool:
+    """True during DeepSeek peak hours: Mon-Fri 01:00-04:00 and 06:00-10:00 UTC."""
+    now = when or datetime.now(UTC)
+    if now.weekday() >= 5:  # Saturday / Sunday are always off-peak
+        return False
+    return (1 <= now.hour < 4) or (6 <= now.hour < 10)
 
 
 class Settings(BaseSettings):
@@ -51,12 +93,14 @@ class Settings(BaseSettings):
     llm_provider: str = "deepseek"
     llm_api_key: str = ""
     llm_base_url: str = "https://api.deepseek.com/v1"
-    llm_model: str = "deepseek-chat"
-    llm_small_model: str = ""
+    llm_model: str = "deepseek-flash"
+    llm_small_model: str | None = None
     llm_temperature: float = 0.0
     llm_max_output_tokens: int = 1024
     llm_timeout_s: float = 60.0
     llm_usd_to_cny: float = Field(default=7.2, description="only used to print cost in CNY")
+    # None = detect from the clock. Pin it to make cost numbers reproducible.
+    llm_assume_peak: bool | None = None
 
     # ---------- Embedding ----------
     embedding_provider: str = "api"
@@ -73,6 +117,20 @@ class Settings(BaseSettings):
     # ---------- Experiment metadata ----------
     experiment_name: str = "default"
     seed: int = 42
+
+    @field_validator("embedding_dim", "llm_small_model", mode="before")
+    @classmethod
+    def _empty_string_means_unset(cls, value: object) -> object:
+        """Treat an empty value in `.env` as unset rather than invalid.
+
+        `ACS_EMBEDDING_DIM=` is the natural way to leave an optional numeric
+        field blank, and `.env.example` ships that way. Without this, pydantic
+        tries to parse '' as an int and the whole config fails to load -- with an
+        error that points at the field rather than at the real cause.
+        """
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
     @model_validator(mode="after")
     def _resolve_paths(self) -> Settings:
@@ -97,17 +155,39 @@ def estimate_cost_cny(
     prompt_tokens: int,
     completion_tokens: int,
     usd_to_cny: float = 7.2,
+    cached_prompt_tokens: int = 0,
+    peak: bool | None = None,
 ) -> Decimal | None:
     """Return estimated cost in CNY, or None when the model has no price entry.
 
     Returning None rather than 0.0 is deliberate: an unknown price must show up
     as "unknown" in a report instead of quietly becoming a free call.
+
+    `peak=None` means "detect from the clock". Pass True/False explicitly to make
+    a result reproducible, since the same run can otherwise cost double purely
+    because of when it was executed.
     """
     price = PRICING.get(model)
     if price is None:
         return None
+
+    at_peak = is_peak_now() if peak is None else peak
+    if at_peak and price.peak_input_per_1m is not None:
+        input_rate = price.peak_input_per_1m
+        output_rate = price.peak_output_per_1m or price.output_per_1m
+        cached_rate = price.peak_cached_input_per_1m or input_rate
+    else:
+        input_rate = price.input_per_1m
+        output_rate = price.output_per_1m
+        cached_rate = price.cached_input_per_1m or input_rate
+
+    cached = max(0, min(cached_prompt_tokens, prompt_tokens))
+    uncached = prompt_tokens - cached
+    million = Decimal(1_000_000)
+
     usd = (
-        Decimal(prompt_tokens) / Decimal(1_000_000) * price.input_per_1m
-        + Decimal(completion_tokens) / Decimal(1_000_000) * price.output_per_1m
+        Decimal(uncached) / million * input_rate
+        + Decimal(cached) / million * cached_rate
+        + Decimal(completion_tokens) / million * output_rate
     )
     return (usd * Decimal(str(usd_to_cny))).quantize(Decimal("0.000001"))

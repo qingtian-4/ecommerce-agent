@@ -142,7 +142,12 @@ class LLMClient:
             total_tokens=total_tokens,
             latency_ms=latency_ms,
             cost_cny=estimate_cost_cny(
-                model, prompt_tokens, completion_tokens, self.settings.llm_usd_to_cny
+                model,
+                prompt_tokens,
+                completion_tokens,
+                self.settings.llm_usd_to_cny,
+                cached_prompt_tokens=cached,
+                peak=self.settings.llm_assume_peak,
             ),
             cached_prompt_tokens=cached,
         )
