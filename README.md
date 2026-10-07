@@ -41,7 +41,7 @@ See `docs/SCOPE.md` for the full out-of-scope list.
 
 | Phase | Deliverable | State |
 |---|---|---|
-| Step 0 | Environment + real LLM call + cost calibration | ✅ done |
+| Step 0 | Environment + real LLM call + cost calibration | 🟡 toolchain done; **LLM call pending API key** |
 | Phase 0 | `docs/REPO_ANALYSIS.md` (6 repos, concepts only) | ⬜ next |
 | Phase 1 | `docs/SCOPE.md` + `docs/ARCHITECTURE.md` | ⬜ |
 | Phase 2 | `data/docs` (18) + `data/db` (200 orders) + `data/eval/dev.jsonl` (40) | ⬜ |
@@ -72,7 +72,15 @@ uv run python scripts/smoke_llm.py
 
 # 5. tests (no API key required)
 uv run pytest
+
+# 6. install the pre-commit secret guard (once)
+bash scripts/install_hooks.sh
 ```
+
+**Python is pinned to 3.13** in `.python-version`, not for the agent but for the
+external benchmark: τ³-bench requires 3.12–3.13 and cannot coexist with
+τ²-bench in one environment. Pinning at Step 0 avoids an environment rebuild
+later.
 
 ## Layout
 
