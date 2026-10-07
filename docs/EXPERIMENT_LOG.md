@@ -89,7 +89,7 @@ uv run ruff check .
 | `uv run ruff check .` | All checks passed |
 | `scripts/check_connectivity.py` | **LLM OK, Embedding OK** |
 
-**Measured LLM calls** (off-peak, temperature 0, `deepseek-flash`):
+**Measured LLM calls** — first run, before thinking mode was pinned:
 
 | stage | tokens in/out | cached | latency | cost CNY | reply |
 |---|---|---|---|---|---|
@@ -97,12 +97,30 @@ uv run ruff check .
 | generate | 95 / 518 | 0 | 3371 ms | 0.002340 | grounded answer citing the 15-day window |
 | extract | 78 / 222 | 0 | 1565 ms | 0.001043 | `{"order_id": "A202600317", "intent": "查询发货状态"}` |
 
-- 3 calls, 1220 tokens total, 7261 ms cumulative
-- **average 0.001464 CNY per LLM call**
-- **projection: a 120-case × 3-pass run ≈ 0.53 CNY** (floor: assumes 1 call/case)
+**Measured LLM calls** — after pinning `thinking: disabled` (the configuration used from here on):
+
+| stage | tokens in/out | reasoning chars | latency | cost CNY |
+|---|---|---|---|---|
+| router | 72 / 17 | 0 | 980 ms | 0.000151 |
+| generate | 69 / 74 | 0 | 889 ms | 0.000394 |
+| extract | 52 / 20 | 0 | 549 ms | 0.000143 |
+
+- 3 calls, 304 tokens total, 2418 ms cumulative
+- **average 0.000229 CNY per LLM call** (was 0.001464 with thinking on — 6.4× cheaper)
+- **projection: a 120-case × 3-pass run ≈ 0.08 CNY** (floor: assumes 1 call/case)
+
+**Direct thinking-mode comparison** (identical router prompt, one call each):
+
+| mode | latency | output tokens | reasoning chars | cost CNY |
+|---|---|---|---|---|
+| disabled | 1096 ms | 17 | 0 | 0.000151 |
+| enabled | 2786 ms | 393 | 1455 | 0.001804 |
+
+→ **2.5× latency, 23× output tokens, ~12× cost** on a call whose entire job is
+emitting ~20 tokens of JSON. Reproducible via `scripts/check_connectivity.py`.
 
 **Embedding:** 2 vectors, **dim = 4096**, cosine similarity between two unrelated
-inputs = 0.5285 (i.e. not a constant vector).
+inputs = 0.528 (i.e. not a constant vector).
 
 ### Findings that changed the plan
 
@@ -120,32 +138,50 @@ inputs = 0.5285 (i.e. not a constant vector).
      an explicit, testable parameter rather than a silent clock read.
 
 3. **Cost is not a meaningful lever at this price point; latency is.**
-   0.001464 CNY per call means a 120-case × 3-pass run costs about **0.5 CNY**.
-   Even a 10× cost regression would be ~5 CNY. Meanwhile a single short router
-   call took **2.3 s**.
+   0.000229 CNY per call means a 120-case × 3-pass run costs about **0.08 CNY**.
+   Even a 10× cost regression would be under 1 CNY. Meanwhile the cheapest
+   possible router call still takes ~1.0 s.
 
    This changes how Research Question A must be stated. The original framing
-   ("reduce Token / Latency / Cost") implies cost is comparable in weight to
-   latency. The measurements say otherwise on this tier. The honest framing is:
+   ("reduce Token / Latency / Cost") implies the three are comparable levers.
+   The measurements say otherwise on this tier. The honest framing is:
    **latency and wasted tool calls are the primary objective; cost is reported
-   but is not the binding constraint.** Reporting a cost delta as a headline
-   result would be misleading at these magnitudes. This will be re-measured if
-   the model tier changes or the run volume grows by orders of magnitude.
+   but is not the binding constraint.** Presenting a cost delta as a headline
+   result would be misleading at these magnitudes. Re-measure if the model tier
+   changes or run volume grows by orders of magnitude.
 
-4. **Router latency is a first-class bottleneck, not a detail.** 2.3 s for
-   98 input tokens on a prompt whose entire job is emitting ~20 output tokens.
-   Any adaptive router adds this to *every* request, including the DIRECT path
-   it is supposed to make cheap. So the DIRECT route's budget cannot assume the
-   router is free, and a cheap rule-first path is not an optimisation nicety —
-   it is the only way DIRECT stays fast. To be re-measured with the real prompt
-   in Phase 3.
+4. **Thinking mode was on by default and silently broke determinism.**
+   DeepSeek enables thinking at `effort=high` by default, and
+   **thinking mode ignores `temperature` entirely** — the API accepts the
+   parameter and does nothing with it. So the first three calls in this entry
+   were *not* temperature-deterministic despite `temperature=0.0`, and the repo
+   would have recorded `temperature: 0.0` in every trace while that was false.
 
-5. **`/v1/embeddings` as a base URL fails.** The OpenAI SDK appends
+   Fixed: `thinking` is now an explicit parameter, **defaulting to OFF**, with
+   the flag recorded in every usage record; `temperature` is omitted rather than
+   sent-and-ignored when thinking is on; and `reasoning_chars` is tracked so a
+   silent spike in chain-of-thought length cannot surface only as an unexplained
+   cost increase. The 2.5×/23× table above is produced by
+   `scripts/check_connectivity.py` on every run, so the claim stays reproducible.
+
+   **This is the single highest-value finding of Step 0.** It would have
+   corrupted every latency and cost number in the project, and — worse — every
+   A/B comparison, because thinking length varies per case and would have looked
+   like route-dependent cost.
+
+5. **Router latency is a first-class bottleneck even with thinking off.** ~1.0 s
+   for a 72-token input whose job is emitting ~17 output tokens. Any adaptive
+   router adds this to *every* request, including the DIRECT path it exists to
+   make cheap. So the DIRECT budget cannot assume the router is free, and a
+   cheap rule-first path is not a nicety — it is the only way DIRECT stays fast.
+   To be re-measured with the real router prompt in Phase 3.
+
+6. **`/v1/embeddings` as a base URL fails.** The OpenAI SDK appends
    `/embeddings` itself, so the configured value produced a doubled path and a
    404. Now guarded in code with an explicit warning rather than silently
    "fixed", because a silent rewrite would hide the misconfiguration.
 
-6. **A config bug surfaced only because `.env` was real.** `ACS_EMBEDDING_DIM=`
+7. **A config bug surfaced only because `.env` was real.** `ACS_EMBEDDING_DIM=`
    (blank) crashed settings loading, because pydantic cannot coerce `''` to
    `int`. Now a validator treats a blank value as unset. This would have hit
    every new contributor, since `.env.example` ships that way.
@@ -160,13 +196,18 @@ inputs = 0.5285 (i.e. not a constant vector).
 - **The smoke prompts are ~100 tokens; real prompts will be larger.** A real RAG
   prompt carries retrieved chunks, so both cost and latency will be higher than
   this projection. Re-measure in Phase 2 with real prompt sizes.
-- **`deepseek-flash` supports a 1M context and thinking mode by default.** The
-  measured calls did not disable thinking. If thinking is being invoked, much of
-  the 2.3 s router latency may be reasoning tokens rather than network overhead.
-  **Phase 3 must confirm whether thinking mode is on and pin it**, since it
-  changes the latency budget and the `max_output_tokens` semantics.
-- Latency here is a single sample per stage. Three samples is not a distribution;
-  the router's P50/P95 must be established over the real dev set in Phase 4.
+- **Latency here is a single sample per stage.** Three samples is not a
+  distribution; the router's P50/P95 must be established over the whole dev set
+  in Phase 4, and grouped by route rather than averaged.
+- **The `thinking` decision is a hypothesis, not a settled result.** Thinking is
+  disabled because it costs 2.5× latency for a JSON-emitting task. But it is
+  plausible that thinking *improves* accuracy on multi-hop policy reasoning.
+  Phase 4 should A/B this on the dev set and keep it only if the accuracy gain
+  justifies the latency — the same standard applied to every other module.
+- **`deepseek-flash` supports a 1M context.** Not exercised here. Long-context
+  behaviour (retrieval stuffing vs. many small calls) is an open design choice
+  for Phase 2, and context caching makes repeated long prompts much cheaper than
+  the naive per-token arithmetic suggests.
 
 ### Next
 
