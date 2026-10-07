@@ -33,6 +33,8 @@ class Usage:
     latency_ms: float = 0.0
     cost_cny: Decimal | None = None
     cached_prompt_tokens: int = 0
+    thinking: bool = False
+    reasoning_chars: int = 0
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -44,6 +46,8 @@ class Usage:
             "cached_prompt_tokens": self.cached_prompt_tokens,
             "latency_ms": round(self.latency_ms, 1),
             "cost_cny": str(self.cost_cny) if self.cost_cny is not None else None,
+            "thinking": self.thinking,
+            "reasoning_chars": self.reasoning_chars,
         }
 
 
@@ -85,8 +89,25 @@ class LLMClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         response_format_json: bool = False,
+        thinking: bool | None = None,
+        reasoning_effort: str | None = None,
     ) -> LLMResponse:
+        """One completion.
+
+        `thinking` is explicit because DeepSeek enables it BY DEFAULT at
+        `effort=high`. Two consequences make the default unacceptable here:
+
+        * thinking mode ignores `temperature` outright (the API accepts it and
+          does nothing), so a run that appears to pin temperature to 0 would not
+          actually be deterministic;
+        * the reasoning tokens are billed as output and dominate latency. A
+          measured trivial router prompt took 2.3 s, and the whole point of a
+          router is to be cheap.
+
+        So the default is OFF, and turning it on is a deliberate, recorded act.
+        """
         model = model or self.settings.llm_model
+        thinking = self.settings.llm_thinking if thinking is None else thinking
         temperature = (
             self.settings.llm_temperature if temperature is None else temperature
         )
@@ -101,17 +122,29 @@ class LLMClient:
         if response_format_json:
             kwargs["response_format"] = {"type": "json_object"}
 
+        if thinking:
+            # `thinking` is not an OpenAI parameter, so it goes in extra_body.
+            kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
+            kwargs["reasoning_effort"] = reasoning_effort or self.settings.llm_reasoning_effort
+            # Sending temperature here would be silently ignored, which would
+            # make a "temperature=0" run look reproducible when it is not. Omit
+            # it so the trace never implies control that does not exist.
+        else:
+            kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+            kwargs["temperature"] = temperature
+
         started = time.perf_counter()
         resp = self._client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=temperature,
             max_tokens=max_tokens,
             **kwargs,
         )
         latency_ms = (time.perf_counter() - started) * 1000
 
-        usage = self._record(resp, model=model, stage=stage, latency_ms=latency_ms)
+        usage = self._record(
+            resp, model=model, stage=stage, latency_ms=latency_ms, thinking=thinking
+        )
         choice = resp.choices[0]
         return LLMResponse(
             text=choice.message.content or "",
@@ -121,7 +154,9 @@ class LLMClient:
         )
 
     # ------------------------------------------------------------------ #
-    def _record(self, resp: Any, *, model: str, stage: str, latency_ms: float) -> Usage:
+    def _record(
+        self, resp: Any, *, model: str, stage: str, latency_ms: float, thinking: bool
+    ) -> Usage:
         u = getattr(resp, "usage", None)
         prompt_tokens = int(getattr(u, "prompt_tokens", 0) or 0)
         completion_tokens = int(getattr(u, "completion_tokens", 0) or 0)
@@ -133,6 +168,16 @@ class LLMClient:
         details = getattr(u, "prompt_tokens_details", None)
         if details is not None:
             cached = int(getattr(details, "cached_tokens", 0) or 0)
+
+        # In thinking mode the CoT arrives as `reasoning_content`, a sibling of
+        # `content`. Track its size: it is billed as output, so a silent spike in
+        # reasoning length would otherwise show up only as an unexplained cost
+        # increase.
+        reasoning = ""
+        try:
+            reasoning = getattr(resp.choices[0].message, "reasoning_content", "") or ""
+        except (AttributeError, IndexError, TypeError):
+            reasoning = ""
 
         usage = Usage(
             model=model,
@@ -150,6 +195,8 @@ class LLMClient:
                 peak=self.settings.llm_assume_peak,
             ),
             cached_prompt_tokens=cached,
+            thinking=thinking,
+            reasoning_chars=len(reasoning),
         )
         self.usages.append(usage)
         return usage

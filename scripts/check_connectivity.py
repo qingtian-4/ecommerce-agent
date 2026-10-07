@@ -56,13 +56,26 @@ def check_llm() -> bool:
         f"[bold]LLM[/bold]  provider={settings.llm_provider}  "
         f"model={settings.llm_model}  base_url={settings.llm_base_url}"
     )
-    console.print(
-        f"      peak hours now: {'[yellow]YES (double price)[/yellow]' if is_peak_now() else 'no'}"
-    )
+    thinking_label = "[yellow]ENABLED[/yellow]" if settings.llm_thinking else "disabled"
+    peak_label = "[yellow]YES (double price)[/yellow]" if is_peak_now() else "no"
+    console.print(f"      thinking mode: {thinking_label}   peak hours now: {peak_label}")
+    if settings.llm_thinking:
+        console.print(
+            "[yellow]      note: thinking mode ignores `temperature`, so this run is not"
+            " temperature-deterministic[/yellow]"
+        )
 
     client = LLMClient(settings=settings)
     table = Table(title="LLM per-call accounting", show_lines=True)
-    for col in ("stage", "tokens in/out", "cached", "latency ms", "cost CNY", "reply (truncated)"):
+    for col in (
+        "stage",
+        "tokens in/out",
+        "cached",
+        "reason chars",
+        "latency ms",
+        "cost CNY",
+        "reply (truncated)",
+    ):
         table.add_column(col)
 
     for stage, prompt in SMOKE_PROMPTS:
@@ -77,9 +90,10 @@ def check_llm() -> bool:
             stage,
             f"{usage.prompt_tokens}/{usage.completion_tokens}",
             str(usage.cached_prompt_tokens),
+            str(usage.reasoning_chars),
             f"{usage.latency_ms:.0f}",
             str(usage.cost_cny) if usage.cost_cny is not None else "n/a",
-            resp.text.replace("\n", " ")[:48],
+            resp.text.replace("\n", " ")[:40],
         )
 
     console.print(table)
@@ -196,10 +210,54 @@ def check_embedding() -> bool:
     return True
 
 
+def compare_thinking(settings) -> None:
+    """Measure what thinking mode actually costs on the cheapest possible call.
+
+    This is not a curiosity. DeepSeek enables thinking by default, so any
+    latency budget written without pinning it is measuring an unrelated system.
+    The router is the right probe: its prompt is ~100 tokens and its job is to
+    emit ~20, so any large difference is reasoning overhead rather than the task.
+    """
+    prompt = SMOKE_PROMPTS[0][1]
+    console.print("[bold]Thinking-mode comparison[/bold] (router prompt, 1 call each)")
+
+    results: dict[str, tuple[float, int, str | None, int]] = {}
+    for label, thinking in (("disabled", False), ("enabled", True)):
+        probe = LLMClient(settings=settings)
+        try:
+            resp = probe.complete(prompt, stage=f"thinking_{label}", thinking=thinking)
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"      {label}: [red]failed[/red] {type(exc).__name__}: {exc}")
+            continue
+        u = resp.usage
+        results[label] = (u.latency_ms, u.completion_tokens, u.cost_cny, u.reasoning_chars)
+        console.print(
+            f"      {label:<9} latency={u.latency_ms:>7.0f} ms  "
+            f"output_tokens={u.completion_tokens:>5}  reasoning_chars={u.reasoning_chars:>5}  "
+            f"cost={u.cost_cny}"
+        )
+
+    if "disabled" in results and "enabled" in results:
+        off_ms, off_tok, _, _ = results["disabled"]
+        on_ms, on_tok, _, _ = results["enabled"]
+        if off_ms > 0:
+            console.print(
+                f"      => thinking multiplies latency by [bold]{on_ms / off_ms:.1f}x[/bold] "
+                f"and output tokens by [bold]{on_tok / max(1, off_tok):.1f}x[/bold]"
+            )
+        console.print(
+            "      => keep thinking disabled for router/extract; if it is ever enabled\n"
+            "         for reasoning, `temperature` stops having any effect."
+        )
+    console.print()
+
+
 def main() -> int:
     console.rule("Step 0 connectivity gate")
     llm_ok = check_llm()
     console.print()
+    settings = get_settings()
+    compare_thinking(settings)
     emb_ok = check_embedding()
     console.print()
     console.rule("summary")

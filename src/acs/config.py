@@ -101,6 +101,12 @@ class Settings(BaseSettings):
     llm_usd_to_cny: float = Field(default=7.2, description="only used to print cost in CNY")
     # None = detect from the clock. Pin it to make cost numbers reproducible.
     llm_assume_peak: bool | None = None
+    # DeepSeek enables thinking mode BY DEFAULT at high effort. It is disabled
+    # here because thinking mode ignores `temperature` entirely (so a run could
+    # not be made deterministic) and because reasoning tokens are billed as
+    # output and dominate latency. Enabling it must be a deliberate, recorded act.
+    llm_thinking: bool = False
+    llm_reasoning_effort: str = "high"
 
     # ---------- Embedding ----------
     embedding_provider: str = "api"
