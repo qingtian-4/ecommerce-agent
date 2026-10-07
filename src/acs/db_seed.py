@@ -86,8 +86,12 @@ ORDER_SEED = [
     ("O10022", "USER001", [("P001", 1, "499.00")], "cancelled", "0.00", 20),
     # Case 2: in transit, has a logistics row
     ("O10023", "USER001", [("P002", 1, "899.00")], "shipped", "899.00", 3),
-    # Case 3: multi-item, delivered yesterday -> inside the 7-day return window
-    ("O10024", "USER001", [("P001", 1, "529.00"), ("P004", 1, "199.00")], "delivered", "728.00", 2),
+    # Case 3: multi-item. Created 3 days ago, so delivered 2 days ago --
+    # deliberately NOT "yesterday", and deliberately not "today": the demo prompt
+    # says the item was received yesterday, and an earlier `days_ago=2` put the
+    # delivery date on today, which made the agent contradict the user. Two days
+    # back is unambiguously inside the 7-day window.
+    ("O10024", "USER001", [("P001", 1, "529.00"), ("P004", 1, "199.00")], "delivered", "728.00", 3),
     # Delivered long ago -> outside the return window, still inside warranty
     ("O10025", "USER001", [("P002", 1, "949.00")], "delivered", "949.00", 60),
     ("O10026", "USER001", [("P003", 1, "129.00")], "pending", "129.00", 1),

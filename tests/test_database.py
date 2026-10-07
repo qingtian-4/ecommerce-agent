@@ -67,7 +67,7 @@ def test_order_without_logistics_row_reports_that(settings) -> None:
 
 
 def test_delivered_order_exposes_derived_return_window(settings) -> None:
-    """O10024 was delivered recently, so it must be inside the 7-day window."""
+    """O10024 was delivered 2 days ago, so it must be inside the 7-day window."""
     db = BusinessDB(settings)
     order = db.get_order("O10024", "USER001")
 

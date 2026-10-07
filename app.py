@@ -34,7 +34,7 @@ SETTINGS = get_settings()
 DEMO_CASES = [
     "无线耳机退货期限多久？",
     "订单 O10023 现在到哪了？",
-    "订单 O10024 是我昨天收到的耳机，现在还能退吗？",
+    "订单 O10024 是我前天收到的耳机，现在还能退吗？",
     "帮我查一下我朋友的订单 O10030。",
     "充电宝能带上飞机吗？",
     "我买的耳机降价了，能退差价吗？",
@@ -208,7 +208,7 @@ def build_app() -> gr.Blocks:
                 )
                 chatbot = gr.Chatbot(label="Customer Chat", height=430)
                 message_box = gr.Textbox(
-                    label="输入消息", placeholder="例如：订单 O10024 是我昨天收到的耳机，现在还能退吗？",
+                    label="输入消息", placeholder="例如：订单 O10024 是我前天收到的耳机，现在还能退吗？",
                     lines=2,
                 )
                 with gr.Row():

@@ -38,7 +38,7 @@ CASES = [
         "id": 3,
         "name": "RAG + Tool 组合（最重要）",
         "user": "USER001",
-        "message": "订单 O10024 是我昨天收到的耳机，现在还能退吗？",
+        "message": "订单 O10024 是我前天收到的耳机，现在还能退吗？",
         "expect": (
             "应调用 get_order（必要时 get_product），再调用 search_knowledge，"
             "结合订单事实与退货政策回答"

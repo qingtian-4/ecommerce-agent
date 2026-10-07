@@ -72,7 +72,7 @@ uv run pytest && uv run ruff check .
 │                               │  stop: answered  steps: 2  tools: 2  │
 │ Customer Chat                 │  决策摘要：检索了知识库，调用了业务工具  │
 │                               │            get_order，共 2 次工具调用  │
-│ user: 订单 O10024 是我昨天      │ ──────────────────────────────────── │
+│ user: 订单 O10024 是我前天      │ ──────────────────────────────────── │
 │       收到的耳机，现在还能退吗？  │ Step 1 · 工具调用 get_order           │
 │                               │   {"order_id": "O10024"}             │
 │ assistant: 可以的，您的订单      │ Step 2 · 工具返回 get_order           │
