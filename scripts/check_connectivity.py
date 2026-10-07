@@ -25,7 +25,7 @@ from decimal import Decimal
 from rich.console import Console
 from rich.table import Table
 
-from acs.config import estimate_cost_cny, get_settings, is_peak_now
+from acs.config import get_settings, is_peak_now
 from acs.llm import LLMClient
 
 console = Console()
