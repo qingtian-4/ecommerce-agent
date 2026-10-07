@@ -1,16 +1,25 @@
-"""Gradio web UI: chat on the left, observable execution trace on the right.
+"""Gradio web UI: an e-commerce CS console with a live execution-trace panel.
 
 One command:
     uv run python app.py
 
-No React, no Vue, no FastAPI, no separate frontend build. Gradio is enough for
-the MVP and keeps the whole thing in one process.
+Layout mirrors a conventional e-commerce customer-service console so the agent
+can be judged in a familiar frame:
 
-The right-hand panel shows only *observable* execution: tool calls, their
-arguments, their results, retrieval queries and scores, latency and token usage.
-It never shows the model's hidden reasoning. The one exception is a `decision
-summary`, which is derived mechanically from which tools ran -- it states what
-the agent did, which the trace already shows, not why the model chose it.
+    header   shop name, model badge, KB/tool counts
+    sidebar  logged-in user, the orders that user can ask about
+    chat     message bubbles
+    trace    tool calls, retrieval hits and scores, latency, tokens, cost
+
+Why the handlers are module-level functions rather than closures: they used to be
+nested inside `build_app`, which made them untestable. That is exactly how a
+`TypeError` (passing `settings` positionally to a keyword-only parameter) reached
+the browser and showed up as a silent gradio 500. They are now importable and
+covered by tests/test_app_handlers.py.
+
+The trace panel shows only *observable* execution. It never shows the model's
+hidden reasoning; the one derived line, `decision_summary`, is computed
+mechanically from which tools ran and states what happened, not why.
 """
 
 from __future__ import annotations
@@ -18,6 +27,7 @@ from __future__ import annotations
 import html
 import json
 import sys
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -26,82 +36,190 @@ import gradio as gr
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from acs.config import get_settings  # noqa: E402
+from acs.cs_tools import ToolRegistry  # noqa: E402
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
 from acs.service_agent import AgentResult, CustomerServiceAgent  # noqa: E402
 
 SETTINGS = get_settings()
 
-DEMO_CASES = [
-    "无线耳机退货期限多久？",
-    "订单 O10023 现在到哪了？",
-    "订单 O10024 是我前天收到的耳机，现在还能退吗？",
-    "帮我查一下我朋友的订单 O10030。",
-    "充电宝能带上飞机吗？",
-    "我买的耳机降价了，能退差价吗？",
+SHOP_NAME = "声阔优选旗舰店"
+SHOP_SUBTITLE = "无线耳机 · 充电配件 · 官方售后"
+
+USERS: list[tuple[str, str]] = [
+    ("USER001", "张伟 · 138****8001"),
+    ("USER002", "李娜 · 139****9002"),
+    ("USER003", "王芳 · 137****7003"),
+]
+USER_IDS = [uid for uid, _ in USERS]
+USER_CHOICES = [f"{uid} · {label}" for uid, label in USERS]
+
+DEMO_CASES: list[tuple[str, str]] = [
+    ("退货政策", "无线耳机退货期限多久？"),
+    ("查物流", "订单 O10023 现在到哪了？"),
+    ("退货判断", "订单 O10024 是我前天收到的耳机，现在还能退吗？"),
+    ("价保咨询", "我买的耳机降价了，能退差价吗？"),
+    ("商品咨询", "充电宝能带上飞机吗？"),
+    ("越权测试", "帮我查一下我朋友的订单 O10030。"),
 ]
 
-USERS = ["USER001", "USER002", "USER003"]
+ORDER_SHORTCUTS: list[tuple[str, str]] = [
+    ("O10023", "运输中 · 头戴式耳机"),
+    ("O10024", "已签收 · 耳机 + 充电宝"),
+    ("O10025", "已签收 60 天 · 超退货期"),
+    ("O10027", "价保场景 · 下单 10 天"),
+    ("O10026", "待发货"),
+]
+
 
 # --------------------------------------------------------------------------- #
-# styling
+# pure helpers (unit-tested without a browser)
 # --------------------------------------------------------------------------- #
-CSS = """
-.trace-panel { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
-.trace-step { border-left: 3px solid #94a3b8; padding: 6px 10px; margin: 8px 0;
-              background: #f8fafc; border-radius: 0 6px 6px 0; }
-.trace-step.call { border-left-color: #2563eb; background: #eff6ff; }
-.trace-step.result { border-left-color: #16a34a; background: #f0fdf4; }
-.trace-step.retrieval { border-left-color: #7c3aed; background: #f5f3ff; }
-.trace-step.error { border-left-color: #dc2626; background: #fef2f2; }
-.trace-step.final { border-left-color: #0f172a; background: #f1f5f9; }
-.trace-head { font-weight: 600; margin-bottom: 3px; }
-.trace-body { white-space: pre-wrap; word-break: break-word; color: #334155; }
-.mono-key { color: #64748b; }
-.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-             gap: 8px; margin-top: 6px; }
-.stat { background: #f1f5f9; border-radius: 6px; padding: 6px 9px; }
-.stat small { display: block; color: #64748b; font-size: 11px; }
-.stat strong { font-size: 14px; }
-.pill { display:inline-block; padding:1px 7px; border-radius:99px; font-size:11px;
-        background:#e2e8f0; color:#334155; margin-right:4px; }
-"""
+def user_id_from_key(user_key: str | None) -> str:
+    """'USER001 · 张伟 · ...' -> 'USER001'."""
+    key = user_key or USER_CHOICES[0]
+    return key.split(" · ")[0].strip()
+
+
+def label_for_id(user_id: str) -> str:
+    if user_id in USER_IDS:
+        return USERS[USER_IDS.index(user_id)][1]
+    return USERS[0][1]
+
+
+def ensure_agent(state_dict: dict, user_key: str) -> CustomerServiceAgent:
+    """Return the session agent, recreating it when the user changes.
+
+    `settings` is keyword-only on CustomerServiceAgent. Passing it positionally
+    raised `TypeError: __init__() takes 1 positional argument but 2 were given`
+    on every single send, so this construction is pinned by a test.
+    """
+    user_id = user_id_from_key(user_key)
+    agent = state_dict.get("agent")
+    if agent is None or state_dict.get("user_id") != user_id:
+        agent = CustomerServiceAgent(settings=SETTINGS, current_user_id=user_id)
+        state_dict["agent"] = agent
+        state_dict["user_id"] = user_id
+    else:
+        agent.set_user(user_id)
+    state_dict["user_key"] = user_key
+    return agent
 
 
 # --------------------------------------------------------------------------- #
 # rendering
 # --------------------------------------------------------------------------- #
-def _truncate(text: Any, limit: int = 900) -> str:
+def _truncate(value: Any, limit: int = 900) -> str:
     rendered = (
-        text if isinstance(text, str) else json.dumps(text, ensure_ascii=False, indent=1)
+        value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, indent=1)
     )
     if len(rendered) <= limit:
         return rendered
     return rendered[:limit] + f"\n… (+{len(rendered) - limit} chars)"
 
 
-def render_trace(result: AgentResult | None) -> str:
+_KB_STATS: dict[str, int] | None = None
+
+
+def _kb_stats() -> dict[str, int]:
+    """Chunk and tool counts for the header, computed once."""
+    global _KB_STATS
+    if _KB_STATS is None:
+        try:
+            chunks = len(KnowledgeBase(SETTINGS).load_documents())
+        except Exception:  # noqa: BLE001 - header must never break the page
+            chunks = 0
+        try:
+            tools = len(ToolRegistry(SETTINGS).names)
+        except Exception:  # noqa: BLE001
+            tools = 0
+        _KB_STATS = {"chunks": chunks, "tools": tools}
+    return _KB_STATS
+
+
+def render_header(user_key: str) -> str:
+    stats = _kb_stats()
+    return (
+        "<div class='cs-header'>"
+        "<div>"
+        f"<div class='shop'>{html.escape(SHOP_NAME)}</div>"
+        f"<div class='sub'>{html.escape(SHOP_SUBTITLE)}</div>"
+        "</div>"
+        "<div class='meta'>"
+        f"在线客服 · 当前用户 <b>{html.escape(user_id_from_key(user_key))}</b>"
+        f"<span class='cs-badge'>{html.escape(SETTINGS.llm_model)}</span>"
+        "<br>"
+        f"知识库 {stats['chunks']} chunks · 可用工具 {stats['tools']} 个 · "
+        f"top_k={SETTINGS.top_k} · max_steps={SETTINGS.max_steps}"
+        "</div>"
+        "</div>"
+    )
+
+
+def render_user_card(user_id: str, user_label: str) -> str:
+    name = user_label.split("·")[0].strip()
+    phone = user_label.split("·")[-1].strip() if "·" in user_label else ""
+    initials = name[0] if name else "客"
+    orders = "".join(
+        f"<div class='cs-order'><b>{html.escape(oid)}</b> "
+        f"<span>{html.escape(desc)}</span></div>"
+        for oid, desc in ORDER_SHORTCUTS
+    )
+    return (
+        "<div class='cs-card'>"
+        "<h4>当前会话</h4>"
+        "<div class='cs-user'>"
+        f"<div class='cs-avatar'>{html.escape(initials)}</div>"
+        "<div>"
+        f"<div class='nm'>{html.escape(name)}</div>"
+        f"<div class='ph'>{html.escape(user_id)} · {html.escape(phone)}</div>"
+        "</div></div>"
+        "<div class='cs-hint' style='margin-top:9px'>"
+        "只能查询该用户本人的订单，权限校验在数据层执行。</div>"
+        "</div>"
+        "<div class='cs-card'>"
+        "<h4>订单列表</h4>"
+        f"<div class='cs-orders'>{orders}</div>"
+        "<div class='cs-hint' style='margin-top:8px'>"
+        "点击左侧示例问题，或直接输入订单号提问。</div>"
+        "</div>"
+    )
+
+
+def render_trace(result: AgentResult | None, error: str | None = None) -> str:
+    if error:
+        return (
+            "<div class='trace-panel'>"
+            "<div class='err-box'>前端调用出错（已捕获，服务未中断）：\n"
+            f"{html.escape(error)}</div></div>"
+        )
     if result is None:
         return (
-            "<div class='trace-panel'><p style='color:#64748b'>"
-            "尚未发送消息。左侧提问后，这里会显示 Agent 的完整执行轨迹："
-            "工具调用、参数、返回结果、知识检索命中文档与分数。</p></div>"
+            "<div class='trace-panel'><div class='trace-empty'>"
+            "尚未发送消息。<br><br>"
+            "左侧提问后，这里会显示 Agent 的完整执行轨迹：<br>"
+            "· 调用了哪些工具、参数是什么<br>"
+            "· 工具返回了什么<br>"
+            "· 知识检索命中了哪些文档、余弦分数多少<br>"
+            "· 每步延迟与 token 消耗<br><br>"
+            "这里展示的是<b>可观测的执行过程</b>，不包含模型的隐藏思维过程。"
+            "</div></div>"
         )
 
+    badge = {"answered": "ok", "max_steps": "warn", "llm_error": "bad"}.get(
+        result.stop_reason, ""
+    )
     parts: list[str] = ["<div class='trace-panel'>"]
     parts.append(
-        f"<div style='margin-bottom:6px'>"
-        f"<span class='pill'>stop: {html.escape(result.stop_reason)}</span>"
+        f"<span class='pill {badge}'>stop: {html.escape(result.stop_reason)}</span>"
         f"<span class='pill'>steps: {result.steps}</span>"
         f"<span class='pill'>tool calls: {result.tool_calls}</span>"
-        f"</div>"
     )
     parts.append(
-        f"<div class='trace-step final'><div class='trace-head'>决策摘要</div>"
+        "<div class='trace-step final'><div class='trace-head'>决策摘要</div>"
         f"<div class='trace-body'>{html.escape(result.decision_summary())}</div></div>"
     )
 
     for step_no, event in enumerate(result.trace, start=1):
-        css_class = event.type.replace("_", "-")
         if event.type == "tool_call":
             title = f"Step {step_no} · 工具调用 <code>{html.escape(event.label)}</code>"
         elif event.type == "tool_result":
@@ -110,8 +228,8 @@ def render_trace(result: AgentResult | None) -> str:
             docs = event.detail.get("documents", [])
             title = (
                 f"Step {step_no} · 知识检索 "
-                f"<code>{html.escape(str(event.detail.get('query', '')))}</code> "
-                f"· {len(docs)} 条命中"
+                f"<code>{html.escape(str(event.detail.get('query', '')))}</code>"
+                f" · {len(docs)} 条命中"
             )
         elif event.type == "error":
             title = f"Step {step_no} · 错误 <code>{html.escape(event.label)}</code>"
@@ -123,12 +241,14 @@ def render_trace(result: AgentResult | None) -> str:
             body = _truncate(detail.get("arguments", ""))
         elif event.type == "retrieval":
             docs = detail.get("documents", [])
-            lines = [
-                f"[{d.get('score', 0):.4f}] {d.get('title', '')} "
-                f"({d.get('chunk_id', '')})\n    {_truncate(d.get('content', ''), 220)}"
-                for d in docs
-            ]
-            body = "\n".join(lines) or "（无命中）"
+            body = (
+                "\n".join(
+                    f"[{d.get('score', 0):.4f}] {d.get('title', '')} "
+                    f"({d.get('chunk_id', '')})\n    {_truncate(d.get('content', ''), 200)}"
+                    for d in docs
+                )
+                or "（无命中）"
+            )
         elif event.type == "final":
             body = _truncate(detail.get("text", ""))
         elif event.type == "error":
@@ -136,6 +256,7 @@ def render_trace(result: AgentResult | None) -> str:
         else:
             body = _truncate(detail.get("result", detail))
 
+        css_class = event.type.replace("_", "-")
         if css_class not in {"call", "result", "retrieval", "error", "final"}:
             css_class = ""
         parts.append(
@@ -146,14 +267,20 @@ def render_trace(result: AgentResult | None) -> str:
 
     if result.retrieved_documents:
         parts.append(
-            "<div style='margin-top:8px'><b>累计命中文档</b>"
+            "<div style='margin-top:9px'><b style='font-size:12.5px'>累计命中文档</b>"
             + "".join(
-                f"<div class='trace-body'>· [{d.get('score', 0):.4f}] "
-                f"{html.escape(str(d.get('title', '')))} "
-                f"<span class='mono-key'>({html.escape(str(d.get('chunk_id', '')))})</span></div>"
+                "<div class='trace-body'>· "
+                f"[{d.get('score', 0):.4f}] {html.escape(str(d.get('title', '')))} "
+                f"<span class='mono-key'>({html.escape(str(d.get('chunk_id', '')))})</span>"
+                "</div>"
                 for d in result.retrieved_documents
             )
             + "</div>"
+        )
+
+    if result.errors:
+        parts.append(
+            f"<div class='err-box'>{html.escape(chr(10).join(result.errors))}</div>"
         )
 
     parts.append("</div>")
@@ -162,138 +289,309 @@ def render_trace(result: AgentResult | None) -> str:
 
 def render_stats(result: AgentResult | None) -> str:
     if result is None:
-        return "<div class='stat-grid'><div class='stat'><small>状态</small><strong>待输入</strong></div></div>"
-
-    totals = result.totals or {}
-    cost = totals.get("cost_cny", "n/a")
-    items = [
-        ("延迟", f"{totals.get('latency_ms', 0) / 1000:.2f} s"),
-        ("输入 token", f"{totals.get('prompt_tokens', 0):,}"),
-        ("输出 token", f"{totals.get('completion_tokens', 0):,}"),
-        ("总 token", f"{totals.get('total_tokens', 0):,}"),
-        ("估算成本", f"¥{cost}"),
-        ("工具调用", str(result.tool_calls)),
-        ("检索次数", str(len(result.retrieval_queries))),
-        ("命中文档", str(len(result.retrieved_documents))),
-    ]
+        cells = [(label, "—") for label in (
+            "延迟", "输入 token", "输出 token", "总 token",
+            "估算成本", "工具调用", "检索次数", "命中文档",
+        )]
+    else:
+        totals = result.totals or {}
+        cells = [
+            ("延迟", f"{totals.get('latency_ms', 0) / 1000:.2f} s"),
+            ("输入 token", f"{totals.get('prompt_tokens', 0):,}"),
+            ("输出 token", f"{totals.get('completion_tokens', 0):,}"),
+            ("总 token", f"{totals.get('total_tokens', 0):,}"),
+            ("估算成本", f"¥{totals.get('cost_cny', 'n/a')}"),
+            ("工具调用", str(result.tool_calls)),
+            ("检索次数", str(len(result.retrieval_queries))),
+            ("命中文档", str(len(result.retrieved_documents))),
+        ]
     cards = "".join(
         f"<div class='stat'><small>{label}</small><strong>{value}</strong></div>"
-        for label, value in items
+        for label, value in cells
     )
     return f"<div class='stat-grid'>{cards}</div>"
 
 
 # --------------------------------------------------------------------------- #
-# app
+# event handlers -- module level so they can be tested
 # --------------------------------------------------------------------------- #
+# Every handler returns the same 6-tuple in this order:
+#   chat, message box, trace, state, stats, sidebar card
+def pack(
+    history: list[dict],
+    trace: str,
+    state_dict: dict,
+    stats: str,
+    card: str,
+    header: str,
+):
+    """Single place that defines the handler return arity.
+
+    Must stay in step with the `outputs` list in `build_app`:
+        chat, message box, trace, state, stats, sidebar card, header
+    """
+    return history, "", trace, state_dict, stats, card, header
+
+
+def _card_for(user_key: str) -> str:
+    user_id = user_id_from_key(user_key)
+    return render_user_card(user_id, label_for_id(user_id))
+
+
+def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key: str):
+    history = list(history or [])
+    card = _card_for(user_key)
+    if not (message or "").strip():
+        return pack(
+            history,
+            render_trace(None),
+            state_dict,
+            render_stats(None),
+            card,
+            render_header(user_key),
+        )
+
+    history.append({"role": "user", "content": message})
+    try:
+        agent = ensure_agent(state_dict, user_key)
+        result = agent.chat(message)
+    except Exception as exc:  # noqa: BLE001 - the UI must never go blank
+        # Surfaced in the panel, not only in the server log. A silent gradio 500
+        # is how the keyword-only-argument bug stayed invisible in the browser.
+        detail = f"{type(exc).__name__}: {exc}\n\n{traceback.format_exc(limit=6)}"
+        history.append(
+            {"role": "assistant", "content": "抱歉，系统出现异常，请稍后重试或联系人工客服。"}
+        )
+        return pack(
+            history,
+            render_trace(None, error=detail),
+            state_dict,
+            render_stats(None),
+            card,
+            render_header(user_key),
+        )
+
+    history.append({"role": "assistant", "content": result.answer})
+    return pack(
+        history,
+        render_trace(result),
+        state_dict,
+        render_stats(result),
+        card,
+        render_header(user_key),
+    )
+
+
+def on_clear(state_dict: dict, user_key: str):
+    agent = state_dict.get("agent")
+    if agent is not None:
+        agent.reset()
+    return pack(
+        [],
+        render_trace(None),
+        state_dict,
+        render_stats(None),
+        _card_for(user_key),
+        render_header(user_key),
+    )
+
+
+def on_user_change(user_key: str, state_dict: dict):
+    # A different user is a different session: history is dropped so one user's
+    # order details can never leak into another user's context.
+    user_id = user_id_from_key(user_key)
+    state_dict["agent"] = CustomerServiceAgent(settings=SETTINGS, current_user_id=user_id)
+    state_dict["user_id"] = user_id
+    state_dict["user_key"] = user_key
+    return pack(
+        [],
+        render_trace(None),
+        state_dict,
+        render_stats(None),
+        _card_for(user_key),
+        render_header(user_key),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# layout
+# --------------------------------------------------------------------------- #
+CSS = """
+.gradio-container { max-width: 1560px !important; }
+
+.cs-header {
+  background: linear-gradient(93deg, #ff6a00 0%, #ee0979 100%);
+  color: #fff; border-radius: 10px; padding: 12px 18px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.cs-header .shop { font-size: 19px; font-weight: 700; letter-spacing: .3px; }
+.cs-header .sub  { font-size: 12px; opacity: .9; margin-top: 2px; }
+.cs-header .meta { font-size: 11.5px; opacity: .95; text-align: right; line-height: 1.7; }
+.cs-badge {
+  display:inline-block; background: rgba(255,255,255,.22);
+  border:1px solid rgba(255,255,255,.35); border-radius: 99px;
+  padding: 1px 9px; margin-left: 6px; font-size: 11px;
+}
+
+.cs-card {
+  background: #fff; border: 1px solid #e8eaed; border-radius: 10px;
+  padding: 12px 13px; margin-bottom: 10px;
+}
+.cs-card h4 { margin: 0 0 8px 0; font-size: 13px; color: #1f2937; font-weight: 700; }
+.cs-user { display:flex; align-items:center; gap:10px; }
+.cs-avatar {
+  width: 38px; height: 38px; border-radius: 50%; background: #ffe4d1; color: #d94f00;
+  display:flex; align-items:center; justify-content:center; font-weight:700;
+  font-size:15px; flex: 0 0 38px;
+}
+.cs-user .nm { font-size: 13.5px; font-weight: 600; color: #111827; }
+.cs-user .ph { font-size: 11.5px; color: #6b7280; }
+.cs-hint { font-size: 11.5px; color: #6b7280; line-height: 1.6; }
+.cs-orders { display:flex; flex-direction:column; gap:6px; }
+.cs-order {
+  border:1px solid #eef0f3; border-radius:8px; padding:6px 9px; background:#fafbfc;
+  font-size:12px; color:#374151; display:flex; justify-content:space-between; gap:8px;
+}
+.cs-order b { color:#111827; }
+.cs-order span { color:#6b7280; font-size:11px; text-align:right; }
+
+.cs-panel-title {
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid #eef0f3; padding:0 2px 8px 2px; margin-bottom:8px;
+}
+.cs-panel-title b { font-size:14px; color:#111827; }
+.cs-panel-title span { font-size:11.5px; color:#6b7280; }
+.cs-online::before { content:"●"; color:#22c55e; margin-right:5px; font-size:10px; }
+
+.trace-panel { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.trace-step { border-left: 3px solid #94a3b8; padding: 7px 10px; margin: 7px 0;
+              background: #f8fafc; border-radius: 0 7px 7px 0; }
+.trace-step.call      { border-left-color: #2563eb; background: #eff6ff; }
+.trace-step.result    { border-left-color: #16a34a; background: #f0fdf4; }
+.trace-step.retrieval { border-left-color: #7c3aed; background: #f5f3ff; }
+.trace-step.error     { border-left-color: #dc2626; background: #fef2f2; }
+.trace-step.final     { border-left-color: #0f172a; background: #f1f5f9; }
+.trace-head { font-weight: 600; margin-bottom: 4px; color:#0f172a; }
+.trace-body { white-space: pre-wrap; word-break: break-word; color: #334155; line-height:1.5; }
+.mono-key { color: #64748b; }
+.trace-empty { color:#6b7280; font-size:12.5px; line-height:1.8; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+             gap: 7px; }
+.stat { background: #f8fafc; border:1px solid #eef0f3; border-radius: 7px; padding: 6px 9px; }
+.stat small { display: block; color: #6b7280; font-size: 10.5px; margin-bottom:1px; }
+.stat strong { font-size: 13.5px; color:#111827; }
+.pill { display:inline-block; padding:1.5px 8px; border-radius:99px; font-size:11px;
+        background:#e2e8f0; color:#334155; margin-right:5px; }
+.pill.ok   { background:#dcfce7; color:#166534; }
+.pill.warn { background:#fef3c7; color:#92400e; }
+.pill.bad  { background:#fee2e2; color:#991b1b; }
+.err-box {
+  background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px;
+  padding:9px 12px; font-size:12.5px; line-height:1.7; margin-top:6px;
+  font-family: ui-monospace, Menlo, monospace; white-space:pre-wrap;
+}
+"""
+
+
 def build_app() -> gr.Blocks:
     # Build the index on first run so `python app.py` is genuinely the only step.
-    index_path = SETTINGS.index_dir / INDEX_FILE
-    if not index_path.exists():
+    if not (SETTINGS.index_dir / INDEX_FILE).exists():
         print("knowledge index missing - building it now (one-off) ...")
         KnowledgeBase(SETTINGS).build()
 
     with gr.Blocks(title="Adaptive Customer Service Agent") as demo:
-        gr.Markdown(
-            "# Adaptive Customer Service Agent\n"
-            "电商客服 Agent · 自主决定是否检索知识库、是否调用业务工具，并展示完整执行轨迹。"
-        )
-
-        state = gr.State({"user_id": "USER001", "agent": None})
+        header = gr.HTML(render_header(USER_CHOICES[0]))
+        state = gr.State({"user_key": USER_CHOICES[0], "agent": None})
 
         with gr.Row():
-            with gr.Column(scale=5):
+            # ---------------- sidebar ---------------- #
+            with gr.Column(scale=2, min_width=240):
                 user_selector = gr.Dropdown(
-                    choices=USERS, value="USER001", label="当前登录用户（用于权限校验）"
+                    choices=USER_CHOICES, value=USER_CHOICES[0], label="切换登录用户"
                 )
-                chatbot = gr.Chatbot(label="Customer Chat", height=430)
-                message_box = gr.Textbox(
-                    label="输入消息", placeholder="例如：订单 O10024 是我前天收到的耳机，现在还能退吗？",
-                    lines=2,
+                user_card = gr.HTML(render_user_card(USER_IDS[0], USERS[0][1]))
+                clear_btn = gr.Button("结束会话 / 清空对话")
+
+            # ---------------- chat ---------------- #
+            with gr.Column(scale=5, min_width=380):
+                gr.HTML(
+                    "<div class='cs-panel-title'><b>在线客服</b>"
+                    "<span class='cs-online'>客服在线 · 通常几秒内回复</span></div>"
+                )
+                chatbot = gr.Chatbot(
+                    height=440,
+                    show_label=False,
+                    placeholder=(
+                        "<div style='text-align:center;color:#9ca3af;padding:26px 10px'>"
+                        "您好，这里是声阔优选旗舰店在线客服。<br>"
+                        "可以咨询商品、订单、物流、退换货与价保问题。<br><br>"
+                        "点击下方示例问题快速体验 →"
+                        "</div>"
+                    ),
                 )
                 with gr.Row():
-                    send_btn = gr.Button("发送", variant="primary")
-                    clear_btn = gr.Button("清空对话")
-                gr.Examples(examples=[[c] for c in DEMO_CASES], inputs=message_box, label="Demo Cases")
+                    message_box = gr.Textbox(
+                        show_label=False,
+                        placeholder="请输入您的问题，例如：订单 O10023 现在到哪了？",
+                        lines=1,
+                        scale=5,
+                        container=False,
+                    )
+                    send_btn = gr.Button("发送", variant="primary", scale=1)
 
-            with gr.Column(scale=6):
-                gr.Markdown("### Agent Execution Trace")
+                gr.Markdown("<small>示例问题（点击填入输入框）</small>")
+                with gr.Row():
+                    for label, text in DEMO_CASES[:3]:
+                        btn = gr.Button(label, size="sm")
+                        btn.click(lambda t=text: t, outputs=message_box)
+                with gr.Row():
+                    for label, text in DEMO_CASES[3:]:
+                        btn = gr.Button(label, size="sm")
+                        btn.click(lambda t=text: t, outputs=message_box)
+
+            # ---------------- trace ---------------- #
+            with gr.Column(scale=5, min_width=380):
+                gr.HTML(
+                    "<div class='cs-panel-title'><b>Agent Execution Trace</b>"
+                    "<span>可观测执行过程</span></div>"
+                )
                 trace_html = gr.HTML(render_trace(None))
-                gr.Markdown("### 运行指标")
+                gr.HTML(
+                    "<div class='cs-panel-title' style='margin-top:6px'>"
+                    "<b>运行指标</b><span>延迟 / token / 成本</span></div>"
+                )
                 stats_html = gr.HTML(render_stats(None))
 
-        # ---------------------------------------------------------------- #
-        def _ensure_agent(state_dict: dict, user_id: str) -> CustomerServiceAgent:
-            agent = state_dict.get("agent")
-            if agent is None or state_dict.get("user_id") != user_id:
-                agent = CustomerServiceAgent(SETTINGS, current_user_id=user_id)
-                state_dict["agent"] = agent
-                state_dict["user_id"] = user_id
-            else:
-                agent.set_user(user_id)
-            return agent
-
-        def on_send(
-            message: str, history: list[dict], state_dict: dict, user_id: str
-        ) -> tuple[list[dict], str, str, dict, str]:
-            history = list(history or [])
-            if not (message or "").strip():
-                return history, "", render_trace(None), state_dict, ""
-
-            history.append({"role": "user", "content": message})
-            agent = _ensure_agent(state_dict, user_id)
-
-            try:
-                result = agent.chat(message)
-                answer = result.answer
-            except Exception as exc:  # noqa: BLE001 - the UI must never go blank
-                answer = f"系统错误：{type(exc).__name__}: {exc}"
-                result = None
-
-            history.append({"role": "assistant", "content": answer})
-            trace = render_trace(result)
-            stats = render_stats(result)
-            return history, "", trace, state_dict, stats
-
-        def on_clear(state_dict: dict):
-            agent = state_dict.get("agent")
-            if agent is not None:
-                agent.reset()
-            return [], render_trace(None), render_stats(None), state_dict
-
-        def on_user_change(user_id: str, state_dict: dict):
-            # A different user means a different session: history is dropped so
-            # one user's order details can never leak into another's context.
-            state_dict["agent"] = CustomerServiceAgent(SETTINGS, current_user_id=user_id)
-            state_dict["user_id"] = user_id
-            return [], render_trace(None), render_stats(None), state_dict
-
+        outputs = [
+            chatbot,
+            message_box,
+            trace_html,
+            state,
+            stats_html,
+            user_card,
+            header,
+        ]
         send_btn.click(
-            on_send,
-            inputs=[message_box, chatbot, state, user_selector],
-            outputs=[chatbot, message_box, trace_html, state, stats_html],
+            on_send, inputs=[message_box, chatbot, state, user_selector], outputs=outputs
         )
         message_box.submit(
-            on_send,
-            inputs=[message_box, chatbot, state, user_selector],
-            outputs=[chatbot, message_box, trace_html, state, stats_html],
+            on_send, inputs=[message_box, chatbot, state, user_selector], outputs=outputs
         )
-        clear_btn.click(
-            on_clear, inputs=[state], outputs=[chatbot, trace_html, stats_html, state]
-        )
+        clear_btn.click(on_clear, inputs=[state, user_selector], outputs=outputs)
         user_selector.change(
-            on_user_change,
-            inputs=[user_selector, state],
-            outputs=[chatbot, trace_html, stats_html, state],
+            on_user_change, inputs=[user_selector, state], outputs=outputs
         )
 
     return demo
 
 
 if __name__ == "__main__":
-    # Gradio 6 moved `css` from the Blocks constructor to launch(), and dropped
-    # `show_api`. Both were verified against the installed signature rather than
-    # guessed.
+    # Gradio 6 moved `css` from Blocks() to launch() and removed `show_api`;
+    # verified against inspect.signature rather than guessed from the docs.
     build_app().launch(
-        server_name="127.0.0.1", server_port=7860, show_error=True, css=CSS
+        server_name="0.0.0.0",
+        server_port=7860,
+        show_error=True,
+        css=CSS,
+        theme=gr.themes.Soft(primary_hue="orange", neutral_hue="slate"),
     )
