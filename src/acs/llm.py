@@ -52,11 +52,31 @@ class Usage:
 
 
 @dataclass
+class ToolCall:
+    """A tool call requested by the model, normalised to plain Python.
+
+    Kept deliberately dumb: id / name / raw JSON arguments string. Parsing the
+    arguments is the tool layer's job, because only it knows the schema, and
+    because a parse failure must be reportable as a tool error rather than
+    crashing the loop.
+    """
+
+    id: str
+    name: str
+    arguments: str
+
+
+@dataclass
 class LLMResponse:
     text: str
     usage: Usage
+    tool_calls: list[ToolCall] = field(default_factory=list)
     raw: Any = None
     finish_reason: str | None = None
+
+    @property
+    def wants_tools(self) -> bool:
+        return bool(self.tool_calls)
 
 
 @dataclass
@@ -92,17 +112,46 @@ class LLMClient:
         thinking: bool | None = None,
         reasoning_effort: str | None = None,
     ) -> LLMResponse:
-        """One completion.
+        """One single-turn completion (no tools). See `chat` for tool calling."""
+        messages: list[dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        return self.chat(
+            messages,
+            stage=stage,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format_json=response_format_json,
+            thinking=thinking,
+            reasoning_effort=reasoning_effort,
+        )
+
+    # ------------------------------------------------------------------ #
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        tools: list[dict[str, Any]] | None = None,
+        stage: str = "unspecified",
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        response_format_json: bool = False,
+        thinking: bool | None = None,
+        reasoning_effort: str | None = None,
+    ) -> LLMResponse:
+        """One chat completion, optionally with tool schemas.
 
         `thinking` is explicit because DeepSeek enables it BY DEFAULT at
-        `effort=high`. Two consequences make the default unacceptable here:
+        `effort=high`. Two consequences make that default unacceptable here:
 
         * thinking mode ignores `temperature` outright (the API accepts it and
           does nothing), so a run that appears to pin temperature to 0 would not
           actually be deterministic;
-        * the reasoning tokens are billed as output and dominate latency. A
-          measured trivial router prompt took 2.3 s, and the whole point of a
-          router is to be cheap.
+        * the reasoning tokens are billed as output and dominate latency.
 
         So the default is OFF, and turning it on is a deliberate, recorded act.
         """
@@ -113,19 +162,18 @@ class LLMClient:
         )
         max_tokens = max_tokens or self.settings.llm_max_output_tokens
 
-        messages: list[dict[str, str]] = []
-        if system:
-            messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": prompt})
-
         kwargs: dict[str, Any] = {}
         if response_format_json:
             kwargs["response_format"] = {"type": "json_object"}
+        if tools:
+            kwargs["tools"] = tools
 
         if thinking:
             # `thinking` is not an OpenAI parameter, so it goes in extra_body.
             kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
-            kwargs["reasoning_effort"] = reasoning_effort or self.settings.llm_reasoning_effort
+            kwargs["reasoning_effort"] = (
+                reasoning_effort or self.settings.llm_reasoning_effort
+            )
             # Sending temperature here would be silently ignored, which would
             # make a "temperature=0" run look reproducible when it is not. Omit
             # it so the trace never implies control that does not exist.
@@ -146,12 +194,69 @@ class LLMClient:
             resp, model=model, stage=stage, latency_ms=latency_ms, thinking=thinking
         )
         choice = resp.choices[0]
+        message = choice.message
+
+        calls: list[ToolCall] = []
+        for call in getattr(message, "tool_calls", None) or []:
+            calls.append(
+                ToolCall(
+                    id=call.id,
+                    name=call.function.name,
+                    arguments=call.function.arguments or "{}",
+                )
+            )
+
         return LLMResponse(
-            text=choice.message.content or "",
+            text=message.content or "",
             usage=usage,
+            tool_calls=calls,
             raw=resp,
             finish_reason=choice.finish_reason,
         )
+
+    # ------------------------------------------------------------------ #
+    def embed(self, texts: list[str], *, stage: str = "embed") -> list[list[float]]:
+        """Embed texts with the configured embedding provider.
+
+        Lives here rather than in a separate client so there is exactly one
+        place that knows about API keys, base URLs and the trailing-slash trap
+        (the SDK appends `/embeddings`, so a base_url already ending in the
+        endpoint path produces a doubled, 404ing URL).
+        """
+        if not texts:
+            return []
+        s = self.settings
+        if not s.embedding_api_key:
+            raise RuntimeError("ACS_EMBEDDING_API_KEY is not set")
+
+        base_url = (s.embedding_base_url or "https://api.siliconflow.cn/v1").rstrip("/")
+        if base_url.endswith("/embeddings"):
+            base_url = base_url[: -len("/embeddings")]
+
+        from openai import OpenAI as _OpenAI
+
+        client = _OpenAI(
+            api_key=s.embedding_api_key, base_url=base_url, timeout=s.llm_timeout_s
+        )
+        started = time.perf_counter()
+        resp = client.embeddings.create(model=s.embedding_model, input=texts)
+        latency_ms = (time.perf_counter() - started) * 1000
+
+        # Embedding calls are priced separately by the provider and are not in
+        # PRICING, so record tokens/latency and leave cost as unknown rather
+        # than inventing a number.
+        u = getattr(resp, "usage", None)
+        self.usages.append(
+            Usage(
+                model=s.embedding_model or "unknown-embedding",
+                stage=stage,
+                prompt_tokens=int(getattr(u, "prompt_tokens", 0) or 0),
+                total_tokens=int(getattr(u, "total_tokens", 0) or 0),
+                latency_ms=latency_ms,
+                cost_cny=None,
+            )
+        )
+        return [d.embedding for d in resp.data]
 
     # ------------------------------------------------------------------ #
     def _record(
@@ -216,3 +321,6 @@ class LLMClient:
             "cost_cny": str(cost.quantize(Decimal("0.000001"))),
             "unpriced_models": sorted(set(unpriced)),
         }
+
+    def reset_usage(self) -> None:
+        self.usages.clear()

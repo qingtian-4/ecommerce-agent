@@ -65,13 +65,6 @@ PRICING: dict[str, PriceSpec] = {
     ),
 }
 
-# Accumulated usage is cached per data version, so re-embedding is not required
-# unless the corpus changes. Recorded here because it is an experiment variable.
-EMBEDDING_NOTE = (
-    "SiliconFlow hosts Qwen/Qwen3-Embedding-8B and caches accumulated usage; "
-    "the corpus must be re-embedded only when its content changes."
-)
-
 
 def is_peak_now(when: datetime | None = None) -> bool:
     """True during DeepSeek peak hours: Mon-Fri 01:00-04:00 and 06:00-10:00 UTC."""
@@ -119,10 +112,17 @@ class Settings(BaseSettings):
     db_path: Path = Path("data/db/business.db")
     index_dir: Path = Path("data/.index")
     trace_dir: Path = Path("results/traces")
+    docs_dir: Path = Path("data/docs")
 
-    # ---------- Experiment metadata ----------
-    experiment_name: str = "default"
-    seed: int = 42
+    # ---------- RAG (MVP: dense retrieval only) ----------
+    # Chunk size is picked once and deliberately NOT tuned in this phase. Tuning
+    # chunks before an evaluation set exists would be fitting to nothing.
+    chunk_size: int = 700
+    chunk_overlap: int = 80
+    top_k: int = 3
+
+    # ---------- Agent ----------
+    max_steps: int = 6
 
     @field_validator("embedding_dim", "llm_small_model", mode="before")
     @classmethod
@@ -140,7 +140,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _resolve_paths(self) -> Settings:
-        for name in ("db_path", "index_dir", "trace_dir"):
+        for name in ("db_path", "index_dir", "trace_dir", "docs_dir"):
             p = getattr(self, name)
             if not p.is_absolute():
                 object.__setattr__(self, name, (PROJECT_ROOT / p).resolve())

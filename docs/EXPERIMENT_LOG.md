@@ -213,3 +213,134 @@ inputs = 0.528 (i.e. not a constant vector).
 
 Phase 0 — repository investigation → `docs/REPO_ANALYSIS.md`.
 No agent code until baseline and evaluation exist.
+
+---
+
+## E001 — MVP validation: agent loop, dense RAG, tool calling
+
+**Date:** 2026-10-07
+**Commit:** the commit that adds this entry
+**Status:** ✅ complete — all four demo cases run end to end, in the UI and in the CLI
+
+### Purpose
+
+Not a benchmark. This entry establishes that the naive unified agent runs at all,
+and records the first observed behaviour so later changes have a baseline to be
+compared against. **It is explicitly not evidence that the agent is good** —
+four hand-written cases cannot support that claim.
+
+### Environment
+
+| Item | Value |
+|---|---|
+| Python | 3.13.13 |
+| LLM | `deepseek-flash`, OpenAI-compatible, `api.deepseek.com` |
+| Embedding | `Qwen/Qwen3-Embedding-8B` via SiliconFlow, dim 4096 |
+| Vector index | FAISS `IndexFlatIP` over normalised vectors (score = cosine) |
+| DB | SQLite `data/db/business.db` — 25 orders / 4 products / 19 logistics rows |
+| UI | Gradio 6.29.1, single process, `127.0.0.1:7860` |
+| Deps | openai 3.26, pydantic 2.13.5, numpy 2.5.3, faiss-cpu 1.15.1 |
+
+### Config
+
+| Field | Value |
+|---|---|
+| llm_thinking | **false** (see E000 — 2.5× latency, 23× output tokens if on) |
+| llm_temperature | 0.0 |
+| llm_max_output_tokens | 1024 |
+| chunk_size / chunk_overlap | 700 / 80 (ceiling only; see chunking note) |
+| top_k | 3 |
+| max_steps | 6 |
+| seed | 42 |
+| prompt_version | v1 (`SYSTEM_PROMPT` in `service_agent.py`) |
+| dataset_version | none — 4 ad-hoc cases in `scripts/run_demo_cases.py` |
+| kb_version | 8 documents, 51 chunks, git-tracked under `data/docs/` |
+
+### Command
+
+```bash
+uv run python scripts/init_db.py
+uv run python scripts/build_index.py
+uv run python scripts/run_demo_cases.py
+uv run python app.py
+uv run pytest && uv run ruff check .
+```
+
+### Result
+
+| Check | Result |
+|---|---|
+| `pytest` | **129 passed** |
+| `ruff check .` | All checks passed |
+| UI | HTTP 200 on `127.0.0.1:7860`; all expected panels render |
+| Demo case 1 (RAG only) | 1 tool call, 1.66 s, 2886 tokens, ¥0.001436 |
+| Demo case 2 (tools only) | 2 tool calls, 2.19 s, 3069 tokens, ¥0.001428 |
+| Demo case 3 (RAG + tools) | 2 tool calls, 2.53 s, 3512 tokens, ¥0.002110 |
+| Demo case 4 (cross-user) | 0 tool calls, 1.08 s, 1177 tokens, ¥0.000462 |
+
+Retrieval hits were on-target for case 1 and 3: `return_policy#2` at 0.715 for
+"无线耳机退货期限", and `return_policy#1` at 0.745 for the combined query.
+
+### Findings that changed the implementation
+
+1. **Chunking was wrong twice, and only inspecting retrieved output revealed it.**
+   - v1 packed sections up to `chunk_size=600` → **15 chunks for 8 documents**,
+     so one vector covered both "7-day returns" and "quality returns".
+   - v2 packed with an overlap prefix that truncated the buffer → **1 chunk per
+     document**. The top hit for a returns question became the *headphone product
+     page*, because the nearest neighbour of a 2400-character vector is whichever
+     topic the document spends most words on.
+   - v3 treats a **section as the chunk** → 51 chunks, and every probe query
+     returned the passage a human would quote.
+
+   This is the single most useful lesson of the phase: **the failure was
+   invisible in the code and obvious in the scores.** Chunk counts (15 → 1 → 51)
+   were the signal.
+
+2. **The agent misreported a date, so date arithmetic moved into SQL.** In an
+   early case-3 run the answer correctly said "within 7 days" but stated the
+   delivery date as 10-08 when the row said 10-07. The cause is structural, not
+   model-specific: the tool returned raw timestamps and a day count, leaving
+   conversion to the model, on a machine whose clock is not the server's.
+   `database.py` now returns `today`, `delivered_date`, `delivered_days_ago`,
+   `within_return_window`, `within_price_protection` and an explicit instruction
+   to use them. **Generalisation: any derived value the model must not
+   recompute should be computed in the data layer.**
+
+3. **A model-supplied identity argument was only blocked by accident.** A
+   scripted test sent `current_user_id` as a tool argument. It did not leak —
+   Python raised `multiple values for keyword argument`. That is safe only
+   because the parameter names happen to collide. `cs_tools.py` now strips
+   `user_id` / `current_user_id` from the model's payload, substitutes the
+   session identity, and emits an `identity_override_rejected` event so the
+   attempt is visible in the trace.
+
+4. **Tool calls grew from 1 to 2 in case 2 once the prompt required both order
+   and logistics.** Before that the agent answered "where is it" using only
+   `get_logistics`. The order status was never fetched. Behaviour worth watching:
+   the *order* of the two calls is not stable across runs.
+
+5. **Gradio 6 moved API surfaces.** `css` moved from `Blocks()` to `launch()`;
+   `Chatbot(type=...)` and `launch(show_api=...)` were removed. Verified against
+   `inspect.signature` rather than guessed from documentation.
+
+### Regression risk carried forward
+
+- **The index is a build artefact and is not committed.** Changing an embedding
+  model without rebuilding is caught by a model check in `KnowledgeBase.load()`,
+  but changing *chunking* is not — `chunk_size` is stored in the metadata yet
+  never compared. Rebuild after any change to `data/docs/` or `rag.py`.
+- **`PRICING` in `config.py` is still hand-maintained** (unchanged from E000).
+- **`max_steps=6` has been reached by nothing so far**, so the ceiling is
+  untested against real traffic — only against a scripted infinite-loop model.
+- **Two `config.py` copies exist conceptually**: the MVP added `docs_dir`,
+  `chunk_size`, `chunk_overlap`, `top_k`, `max_steps`. None of these are in
+  `.env.example` yet, so they are code defaults only.
+
+### Next
+
+Not another module. The observed defects (unstable tool ordering, a title-only
+chunk occupying a top-k slot, weak product-level retrieval, cross-user refusal
+never reaching the SQL guard) are listed in `README.md` under Bad Cases, and the
+proposed order of work is justified there **from those observations** rather than
+from the earlier design documents.

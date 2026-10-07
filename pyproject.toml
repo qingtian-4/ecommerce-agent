@@ -11,6 +11,9 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "typer>=0.12.5",
     "rich>=13.9.0",
+    "numpy>=1.26.0",
+    "faiss-cpu>=1.8.0",
+    "gradio>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -46,6 +49,9 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.per-file-ignores]
+# app.py renders HTML in f-strings; breaking those lines to satisfy a
+# line-length rule makes the markup much harder to read than it is worth.
+"app.py" = ["E501"]
 # This fixture file must contain secret-shaped strings on single lines, and each
 # such line also carries an explicit `check_secrets:allow` marker. Keeping the
 # credential and its exemption on one line is the point of the file: a fragment
