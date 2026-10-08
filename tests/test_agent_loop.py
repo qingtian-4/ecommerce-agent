@@ -131,6 +131,7 @@ def test_agent_stops_at_max_steps_and_does_not_loop_forever(settings, registry) 
     assert result.steps == 3
     assert len(llm.calls) == 3, "must not call the model more than max_steps times"
     assert result.answer, "the user still needs a reply"
+    assert "我帮您转接" not in result.answer, "no transfer tool exists"
     assert any(
         e.type == "error" and e.detail.get("error_type") == "max_steps_exceeded"
         for e in result.trace

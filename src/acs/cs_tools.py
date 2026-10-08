@@ -116,7 +116,7 @@ class ToolRegistry:
                 name="get_order",
                 description=(
                     "查询订单信息：订单状态、下单/发货/签收时间、商品明细、实付金额、"
-                    "购买单价，并返回退货期限与价保期限的判断结果。"
+                    "购买单价、当前售价、差价，以及退货与价保期限判断。"
                     "只能查询当前用户自己的订单。"
                 ),
                 parameters={
@@ -153,7 +153,8 @@ class ToolRegistry:
             ToolSpec(
                 name="get_price_history",
                 description=(
-                    "查询商品的历史价格记录，按时间倒序。用于判断是否降价、降了多少。"
+                    "查询商品的历史价格记录，按时间倒序。仅在需要价格变动时间线时使用；"
+                    "订单价保的当前售价与差价已由 get_order 返回。"
                 ),
                 parameters={
                     "type": "object",
@@ -171,7 +172,7 @@ class ToolRegistry:
                 description=(
                     "检索店铺的知识库文档，包括退换货政策、配送与发货说明、价格保护规则、"
                     "保修与维修政策，以及各商品的详细说明。"
-                    "凡是涉及政策、规则、期限、商品规格参数的问题，都必须先调用本工具。"
+                    "使用涵盖问题全部条件的自然语言 query；已有依据足够时无需重复检索。"
                 ),
                 parameters={
                     "type": "object",
