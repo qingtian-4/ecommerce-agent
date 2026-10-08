@@ -69,6 +69,7 @@ class Observed:
     retrieved_chunk_ids: list[str] = field(default_factory=list)
     retrieved_scores: list[float] = field(default_factory=list)
     retrievals: list[dict[str, Any]] = field(default_factory=list)
+    knowledge_found: list[bool] = field(default_factory=list)
     stop_reason: str = ""
     answer: str = ""
     errors: list[str] = field(default_factory=list)
@@ -123,6 +124,8 @@ def observe(result: AgentResult) -> Observed:
                 observed.retrieved_scores.append(float(doc.get("score", 0.0)))
         elif event.type == "error":
             observed.error_types.append(str(event.detail.get("error_type", "unknown")))
+        elif event.type == "tool_result" and event.label == "search_knowledge":
+            observed.knowledge_found.append(bool(event.detail.get("result", {}).get("found")))
 
     return observed
 
@@ -144,6 +147,7 @@ class Score:
     cumulative_document_hit: bool | None = None  # required docs across all searches
     cumulative_first_relevant_rr: float | None = None  # rank in concatenated hits
     support_section_hit: bool | None = None
+    knowledge_rejection_ok: bool | None = None
     containment_ok: bool | None = None
     forbidden_text_ok: bool | None = None
     stop_reason_ok: bool | None = None
@@ -269,6 +273,13 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
         if not score.support_section_hit:
             reasons.append("missing_support_sections")
 
+    if "expected_knowledge_found" in case:
+        score.knowledge_rejection_ok = bool(observed.knowledge_found) and all(
+            found == case["expected_knowledge_found"] for found in observed.knowledge_found
+        )
+        if not score.knowledge_rejection_ok:
+            reasons.append("knowledge_rejection_mismatch")
+
     # --- answer content ------------------------------------------------- #
     must = list(case.get("must_contain", []))
     alternatives = list(case.get("must_contain_any", []))
@@ -317,6 +328,7 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
         score.args_ok,
         score.cumulative_document_hit,
         score.support_section_hit,
+        score.knowledge_rejection_ok,
         score.containment_ok,
         score.forbidden_text_ok,
         score.stop_reason_ok,
@@ -430,6 +442,7 @@ def summarise(rows: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[s
             "call_order_ok": dim("order_ok"),
             "cumulative_document_hit": dim("cumulative_document_hit"),
             "support_section_hit": dim("support_section_hit"),
+            "knowledge_rejection_ok": dim("knowledge_rejection_ok"),
             "answer_containment": dim("containment_ok"),
             "no_forbidden_text": dim("forbidden_text_ok"),
             "stop_reason_ok": dim("stop_reason_ok"),
@@ -442,12 +455,74 @@ def summarise(rows: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[s
         "cost_is_partial": any(r.get("unpriced_models") for r in rows),
         "api_calls": sum(r.get("api_calls", 0) for r in rows),
         "by_category": by_category,
+        "multi_turn": {
+            "conversations": sum("turns" in r for r in rows),
+            "conversation_success": _rate([
+                r["score"]["success"] for r in rows if "turns" in r
+            ]),
+            "turn_success": _rate([
+                turn["score"]["success"] for r in rows for turn in r.get("turns", [])
+            ]),
+        },
     }
 
 
 # --------------------------------------------------------------------------- #
 # runner
 # --------------------------------------------------------------------------- #
+def _run_attempt(case: dict[str, Any], settings: Settings) -> tuple[Observed, Score, list[dict]]:
+    turns = case.get("turns") or [case]
+    observations, scores, records = [], [], []
+    agent = None
+    for number, turn in enumerate(turns, start=1):
+        try:
+            if agent is None:
+                agent = CustomerServiceAgent(settings=settings, current_user_id=case["user"])
+            observed = observe(agent.chat(turn["query"]))
+        except Exception as exc:  # noqa: BLE001 - a crash is a data point
+            observed = Observed(stop_reason="exception", errors=[f"{type(exc).__name__}: {exc}"])
+        score = score_case(turn, observed)
+        observations.append(observed)
+        scores.append(score)
+        records.append({
+            "turn": number, "query": turn["query"], **asdict(observed), "score": asdict(score),
+            "redundant_calls": max(
+                0, len(observed.tool_sequence) - len(turn.get("required_tools", [])),
+            ),
+        })
+    if len(turns) == 1:
+        return observations[0], scores[0], records
+
+    combined = Observed(stop_reason=observations[-1].stop_reason, answer=observations[-1].answer)
+    for observation in observations:
+        for name in ("tool_sequence", "retrieved_document_ids", "retrieved_chunk_ids",
+                     "retrieved_scores", "retrievals", "knowledge_found", "errors",
+                     "error_types", "usages"):
+            getattr(combined, name).extend(getattr(observation, name))
+        for tool, args in observation.tool_args.items():
+            combined.tool_args.setdefault(tool, []).extend(args)
+        for name in ("latency_ms", "total_tokens", "api_calls"):
+            setattr(combined, name, getattr(combined, name) + getattr(observation, name))
+        combined.cost_cny = str(Decimal(combined.cost_cny) + Decimal(observation.cost_cny))
+        combined.unpriced_models = sorted(set(
+            combined.unpriced_models + observation.unpriced_models,
+        ))
+
+    combined_score = Score()
+    for name in Score.__dataclass_fields__:
+        if name.endswith("failure_reasons"):
+            setattr(combined_score, name, [
+                f"turn_{number}: {reason}" for number, score in enumerate(scores, start=1)
+                for reason in getattr(score, name)
+            ])
+        else:
+            values = [getattr(s, name) for s in scores if getattr(s, name) is not None]
+            value = (statistics.fmean(values) if name == "cumulative_first_relevant_rr"
+                     else all(values)) if values else None
+            setattr(combined_score, name, value)
+    return combined, combined_score, records
+
+
 def run(
     *,
     passes: int = 3,
@@ -482,18 +557,7 @@ def run(
         for attempt in range(1, passes + 1):
             # A fresh agent per attempt: no history bleed between attempts, and
             # `pass^k` must measure the same task from the same starting state.
-            try:
-                agent = CustomerServiceAgent(settings=settings, current_user_id=case["user"])
-                result = agent.chat(case["query"])
-                observed = observe(result)
-            except Exception as exc:  # noqa: BLE001 - a crash is a data point
-                observed = Observed(
-                    stop_reason="exception",
-                    answer="",
-                    errors=[f"{type(exc).__name__}: {exc}"],
-                )
-
-            score = score_case(case, observed)
+            observed, score, turns = _run_attempt(case, settings)
             rows.append(
                 {
                     "case_id": case["id"],
@@ -501,11 +565,9 @@ def run(
                     "attempt": attempt,
                     "query": case["query"],
                     **asdict(observed),
-                    "redundant_calls": max(
-                        0,
-                        len(observed.tool_sequence) - len(set(case.get("required_tools", []))),
-                    ),
+                    "redundant_calls": sum(t["redundant_calls"] for t in turns),
                     "score": asdict(score),
+                    **({"turns": turns} if "turns" in case else {}),
                 }
             )
             done += 1
