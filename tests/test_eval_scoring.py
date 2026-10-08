@@ -73,6 +73,26 @@ def test_undeclared_forbidden_dimension_is_not_counted_as_passed():
     assert score.no_forbidden_tools is None
 
 
+@pytest.mark.parametrize("answer", [
+    "充电器保修18个月，无线耳机保修12个月。",
+    "**充电器**：保修期18个月；**无线耳机**：保修12个月。",
+])
+def test_comparison_accepts_complete_facts_from_the_policy(answer):
+    case = CASES["pr-p003-warranty-vs-headphone"]
+    observed = observed_for(case, answer)
+    assert observed.retrieved_document_ids == ["warranty_policy"]
+    assert score_case(case, observed).strict_success
+
+
+@pytest.mark.parametrize("answer", [
+    "充电器保修12个月，无线耳机保修18个月。",
+    "充电器不保修18个月，耳机保修12个月。",
+])
+def test_comparison_rejects_inverted_or_negated_periods(answer):
+    case = CASES["pr-p003-warranty-vs-headphone"]
+    assert not score_case(case, observed_for(case, answer)).success
+
+
 def test_evaluation_does_not_overwrite_an_existing_result(tmp_path, settings):
     from acs.eval_runner import run
 
@@ -93,4 +113,4 @@ def test_evaluation_records_failed_agent_initialisation(tmp_path, settings, monk
     summary = runner.run(case_id="f-chitchat", passes=1, settings=settings, out_dir=tmp_path)
     assert summary["attempts"] == 1
     assert summary["success_rate"] == 0
-    assert summary["run"]["scoring_version"] == 2
+    assert summary["run"]["scoring_version"] == 3

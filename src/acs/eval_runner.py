@@ -50,7 +50,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # out rather than inlined.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CASES_PATH = PROJECT_ROOT / "data" / "eval" / "cases.yaml"
-SCORING_VERSION = 2
+SCORING_VERSION = 3
 
 from acs.config import Settings, get_settings  # noqa: E402
 from acs.service_agent import SYSTEM_PROMPT, AgentResult, CustomerServiceAgent  # noqa: E402
@@ -252,12 +252,18 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
     # --- answer content ------------------------------------------------- #
     must = list(case.get("must_contain", []))
     alternatives = list(case.get("must_contain_any", []))
-    if must or alternatives:
+    patterns = list(case.get("must_match", []))
+    if must or alternatives or patterns:
         missing = [m for m in must if not _contains_unnegated(observed.answer, m)]
         missing.extend(
             f"one_of={group}"
             for group in alternatives
             if not any(_contains_unnegated(observed.answer, m) for m in group)
+        )
+        missing.extend(
+            f"pattern={pattern}"
+            for pattern in patterns
+            if not re.search(pattern, _normalise_text(observed.answer))
         )
         score.containment_ok = not missing
         if missing:
