@@ -156,7 +156,7 @@ def test_try_evaluation_case_switches_identity_and_resets_session():
     report = {"cases": [{"id": "case", "user": "USER002", "query": "我的订单？"}]}
     state = {"agent": None, "user_id": "USER001", "user_key": app_module.USER_CHOICES[0]}
     result = app_module.on_try_case("case", report, state)
-    history, message, _, state, _, _, _, user_key, tab = result
+    history, message, _, state, _, _, _, _, user_key, tab = result
     assert history == []
     assert message == "我的订单？"
     assert state["user_id"] == "USER002"
@@ -208,18 +208,18 @@ def _stub_agent(monkeypatch, responses: list[ScriptedResponse]) -> ScriptedLLM:
     return llm
 
 
-def test_all_handlers_return_the_same_seven_values(monkeypatch) -> None:
+def test_all_handlers_return_the_same_eight_values(monkeypatch) -> None:
     _stub_agent(monkeypatch, [ScriptedResponse(text="您好。")])
     state: dict = {"user_key": app_module.USER_CHOICES[0], "agent": None}
 
     for value in (
-        app_module.on_send("你好", [], state, app_module.USER_CHOICES[0]),
+        list(app_module.on_send("你好", [], state, app_module.USER_CHOICES[0]))[-1],
         app_module.on_clear(state, app_module.USER_CHOICES[0]),
         app_module.on_user_change(app_module.USER_CHOICES[1], state),
     ):
         assert isinstance(value, tuple)
-        assert len(value) == 7, "handler arity must match the 7 declared outputs"
-        history, box, trace, state_out, stats, card, header = value
+        assert len(value) == 8, "handler arity must match the 8 declared outputs"
+        history, box, trace, state_out, stats, card, header, status = value
         assert isinstance(history, list)
         assert box == ""
         assert isinstance(trace, str) and trace
@@ -227,28 +227,56 @@ def test_all_handlers_return_the_same_seven_values(monkeypatch) -> None:
         assert isinstance(stats, str) and stats
         assert isinstance(card, str) and card
         assert isinstance(header, str) and header
+        assert isinstance(status, str)
 
 
 def test_on_send_returns_history_and_trace(monkeypatch) -> None:
     _stub_agent(monkeypatch, [ScriptedResponse(text="7 天内可退。")])
     state: dict = {"user_key": app_module.USER_CHOICES[0], "agent": None}
 
-    history, box, trace, _, stats, _, _ = app_module.on_send(
+    history, box, trace, _, stats, _, _, status = list(app_module.on_send(
         "退货期限多久？", [], state, app_module.USER_CHOICES[0]
-    )
+    ))[-1]
 
     assert [m["role"] for m in history] == ["user", "assistant"]
     assert history[-1]["content"] == "7 天内可退。"
     assert "工具调用" in trace or "决策摘要" in trace
-    assert "延迟" in stats
+    assert "延迟" not in stats
+    assert "回答完成 · 用时" in status
+    assert "data-reply-state='done'" in status
     assert box == ""
+
+
+def test_send_publishes_the_question_and_tool_steps_before_the_answer(monkeypatch):
+    from .conftest import ScriptedToolCall
+
+    llm = _stub_agent(monkeypatch, [
+        ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall("order", "get_order", '{"order_id":"O10024"}'),
+        ]),
+        ScriptedResponse(text="订单已签收。"),
+    ])
+    state = {"agent": None, "user_key": app_module.USER_CHOICES[0]}
+    stream = app_module.on_send("查 O10024", [], state, app_module.USER_CHOICES[0])
+    initial = next(stream)
+    assert initial[0] == [{"role": "user", "content": "查 O10024"}]
+    assert "正在回答" in initial[-1]
+    assert llm.calls == []
+    updates = list(stream)
+    calling = next(update for update in updates if "Step 1 · 工具调用" in update[2])
+    assert [m["role"] for m in calling[0]] == ["user"]
+    assert "data-reply-state='running'" in calling[-1]
+    final = updates[-1]
+    assert final[0][-1]["content"] == "订单已签收。"
+    assert "回答完成" in final[-1]
+    assert len(initial[0]) == 1, "final replies must not alter previously published history"
 
 
 def test_on_send_with_empty_message_is_a_no_op(monkeypatch) -> None:
     _stub_agent(monkeypatch, [ScriptedResponse(text="不应被调用")])
     state: dict = {"user_key": app_module.USER_CHOICES[0], "agent": None}
 
-    history, _, _, _, _, _, _ = app_module.on_send("   ", [], state, app_module.USER_CHOICES[0])
+    history, *rest = list(app_module.on_send("   ", [], state, app_module.USER_CHOICES[0]))[-1]
     assert history == []
 
 
@@ -257,7 +285,7 @@ def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch) -> None:
     real = app_module.ensure_agent
 
     class _Boom:
-        def chat(self, _message):  # noqa: ANN001
+        def chat_stream(self, _message):  # noqa: ANN001
             raise RuntimeError("simulated backend failure")
 
         def reset(self) -> None:
@@ -273,34 +301,39 @@ def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch) -> None:
     monkeypatch.setattr(app_module, "ensure_agent", patched)
     state: dict = {"user_key": app_module.USER_CHOICES[0], "agent": None}
 
-    history, _, trace, _, stats, _, _ = app_module.on_send(
+    history, _, trace, _, stats, _, _, status = list(app_module.on_send(
         "你好", [], state, app_module.USER_CHOICES[0]
-    )
+    ))[-1]
 
     assert "系统出现异常" in history[-1]["content"]
     assert "simulated backend failure" in trace, "the real cause must be visible"
     assert "err-box" in trace
     assert stats
+    assert "回答失败" in status
+    assert "data-reply-state='done'" in status
 
 
 def test_on_clear_empties_history_and_resets_the_agent(monkeypatch) -> None:
     _stub_agent(monkeypatch, [ScriptedResponse(text="您好。")])
     state: dict = {"user_key": app_module.USER_CHOICES[0], "agent": None}
-    app_module.on_send("你好", [], state, app_module.USER_CHOICES[0])
+    list(app_module.on_send("你好", [], state, app_module.USER_CHOICES[0]))
 
-    history, _, trace, _, _, card, _ = app_module.on_clear(state, app_module.USER_CHOICES[0])
+    history, _, trace, _, _, card, _, status = app_module.on_clear(
+        state, app_module.USER_CHOICES[0]
+    )
 
     assert history == []
     assert "尚未发送消息" in trace
     assert "当前会话" in card
+    assert status == ""
 
 
 def test_on_user_change_switches_identity_and_drops_history(monkeypatch) -> None:
     _stub_agent(monkeypatch, [ScriptedResponse(text="您好。")])
     state: dict = {"user_key": app_module.USER_CHOICES[0], "agent": None}
-    app_module.on_send("你好", [], state, app_module.USER_CHOICES[0])
+    list(app_module.on_send("你好", [], state, app_module.USER_CHOICES[0]))
 
-    history, _, _, state_out, _, card, _ = app_module.on_user_change(
+    history, _, _, state_out, _, card, _, status = app_module.on_user_change(
         app_module.USER_CHOICES[1], state
     )
 
@@ -308,6 +341,7 @@ def test_on_user_change_switches_identity_and_drops_history(monkeypatch) -> None
     assert state_out["user_id"] == "USER002"
     assert state_out["agent"].current_user_id == "USER002"
     assert "USER002" in card
+    assert status == ""
 
 
 # --------------------------------------------------------------------------- #
@@ -367,9 +401,9 @@ def test_on_send_with_the_real_agent_constructor(settings, fake_embedder, monkey
     )
 
     state: dict = {"user_key": app_module.USER_CHOICES[0], "agent": None}
-    history, _, trace, state_out, stats, _, _ = app_module.on_send(
+    history, _, trace, state_out, stats, _, _, _ = list(app_module.on_send(
         "你好", [], state, app_module.USER_CHOICES[0]
-    )
+    ))[-1]
 
     assert state_out["agent"] is not None, "the real agent constructor must be reached"
     assert state_out["user_id"] == "USER001"

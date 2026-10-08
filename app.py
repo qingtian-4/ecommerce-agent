@@ -29,6 +29,7 @@ import json
 import sys
 import traceback
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import gradio as gr
@@ -282,12 +283,13 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             "· 调用了哪些工具、参数是什么<br>"
             "· 工具返回了什么<br>"
             "· 知识检索命中了哪些文档、余弦分数多少<br>"
-            "· 每步延迟与 token 消耗<br><br>"
+            "· 每步实际进展和最终结果<br><br>"
             "这里展示的是<b>可观测的执行过程</b>，不包含模型的隐藏思维过程。"
             "</div></div>"
         )
 
-    badge = {"answered": "ok", "max_steps": "warn", "llm_error": "bad"}.get(
+    running = result.stop_reason == "running"
+    badge = {"running": "warn", "answered": "ok", "max_steps": "warn", "llm_error": "bad"}.get(
         result.stop_reason, ""
     )
     parts: list[str] = ["<div class='trace-panel'>"]
@@ -298,7 +300,7 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
     )
     parts.append(
         "<div class='trace-step final'><div class='trace-head'>决策摘要</div>"
-        f"<div class='trace-body'>{html.escape(result.decision_summary())}</div></div>"
+        f"<div class='trace-body'>{html.escape('执行中，步骤随运行实时更新。' if running else result.decision_summary())}</div></div>"
     )
 
     for step_no, event in enumerate(result.trace, start=1):
@@ -372,14 +374,13 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
 def render_stats(result: AgentResult | None) -> str:
     if result is None:
         cells = [(label, "—") for label in (
-            "延迟", "输入 token", "输出 token", "总 token",
+            "输入 token", "输出 token", "总 token",
             "估算成本", "工具调用", "检索次数", "命中文档",
         )]
     else:
         totals = result.totals or {}
         cost_label = "已定价成本（部分）" if totals.get("unpriced_models") else "估算成本"
         cells = [
-            ("延迟", f"{totals.get('latency_ms', 0) / 1000:.2f} s"),
             ("输入 token", f"{totals.get('prompt_tokens', 0):,}"),
             ("输出 token", f"{totals.get('completion_tokens', 0):,}"),
             ("总 token", f"{totals.get('total_tokens', 0):,}"),
@@ -395,11 +396,52 @@ def render_stats(result: AgentResult | None) -> str:
     return f"<div class='stat-grid'>{cards}</div>"
 
 
+def render_reply_status(elapsed_ms: float, *, running: bool = False, failed: bool = False) -> str:
+    label = "正在回答 · 已用" if running else ("回答失败 · 用时" if failed else "回答完成 · 用时")
+    state = "running" if running else "done"
+    return (
+        f"<div class='cs-hint' data-reply-state='{state}' data-elapsed-ms='{elapsed_ms:.1f}'>"
+        f"{label} {elapsed_ms / 1000:.1f} s</div>"
+    )
+
+
+REPLY_CLOCK_JS = """
+let started = null;
+let timer = null;
+watch('value', () => {
+    clearInterval(timer);
+    const status = element.querySelector('[data-reply-state]');
+    if (!status || status.dataset.replyState !== 'running') {
+        started = null;
+        return;
+    }
+    if (started === null) started = performance.now() - Number(status.dataset.elapsedMs);
+    const update = () => {
+        if (!element.isConnected) { clearInterval(timer); return; }
+        const seconds = ((performance.now() - started) / 1000).toFixed(1);
+        status.textContent = `正在回答 · 已用 ${seconds} s`;
+    };
+    update();
+    timer = setInterval(update, 100);
+});
+"""
+
+
+TRACE_FOLLOW_JS = """
+watch('value', () => {
+    const steps = element.querySelectorAll('.trace-step');
+    const latest = steps[steps.length - 1];
+    if (!latest) return;
+    const panel = element.parentElement;
+    panel.scrollTop += latest.getBoundingClientRect().top - panel.getBoundingClientRect().top;
+});
+"""
+
+
 # --------------------------------------------------------------------------- #
 # event handlers -- module level so they can be tested
 # --------------------------------------------------------------------------- #
-# Every handler returns the same 6-tuple in this order:
-#   chat, message box, trace, state, stats, sidebar card
+# Every update includes chat, input, trace, session, metrics, user card, header, reply status.
 def pack(
     history: list[dict],
     trace: str,
@@ -407,13 +449,14 @@ def pack(
     stats: str,
     card: str,
     header: str,
+    reply_status: str = "",
 ):
     """Single place that defines the handler return arity.
 
     Must stay in step with the `outputs` list in `build_app`:
-        chat, message box, trace, state, stats, sidebar card, header
+        chat, message box, trace, state, stats, sidebar card, header, reply status
     """
-    return history, "", trace, state_dict, stats, card, header
+    return list(history), "", trace, state_dict, stats, card, header, reply_status
 
 
 def _card_for(user_key: str) -> str:
@@ -425,7 +468,7 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
     history = list(history or [])
     card = _card_for(user_key)
     if not (message or "").strip():
-        return pack(
+        yield pack(
             history,
             render_trace(None),
             state_dict,
@@ -433,11 +476,27 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
             card,
             render_header(user_key),
         )
+        return
 
+    started = perf_counter()
     history.append({"role": "user", "content": message})
+    yield pack(
+        history, render_trace(AgentResult(answer="", stop_reason="running")), state_dict,
+        render_stats(None), card, render_header(user_key), render_reply_status(0, running=True),
+    )
     try:
         agent = ensure_agent(state_dict, user_key)
-        result = agent.chat(message)
+        for result in agent.chat_stream(message):
+            running = result.stop_reason == "running"
+            if not running:
+                history.append({"role": "assistant", "content": result.answer})
+            yield pack(
+                history, render_trace(result), state_dict, render_stats(result), card,
+                render_header(user_key), render_reply_status(
+                    (perf_counter() - started) * 1000, running=running,
+                    failed=result.stop_reason in {"llm_error", "max_steps"},
+                ),
+            )
     except Exception as exc:  # noqa: BLE001 - the UI must never go blank
         # Surfaced in the panel, not only in the server log. A silent gradio 500
         # is how the keyword-only-argument bug stayed invisible in the browser.
@@ -445,24 +504,15 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
         history.append(
             {"role": "assistant", "content": "抱歉，系统出现异常，请稍后重试或联系人工客服。"}
         )
-        return pack(
+        yield pack(
             history,
             render_trace(None, error=detail),
             state_dict,
             render_stats(None),
             card,
             render_header(user_key),
+            render_reply_status((perf_counter() - started) * 1000, failed=True),
         )
-
-    history.append({"role": "assistant", "content": result.answer})
-    return pack(
-        history,
-        render_trace(result),
-        state_dict,
-        render_stats(result),
-        card,
-        render_header(user_key),
-    )
 
 
 def on_clear(state_dict: dict, user_key: str):
@@ -501,6 +551,8 @@ def on_user_change(user_key: str, state_dict: dict):
 # --------------------------------------------------------------------------- #
 CSS = """
 .gradio-container { max-width: 1560px !important; }
+#customer-chat { overflow: hidden !important; }
+#customer-chat .bubble-wrap { overscroll-behavior: contain; }
 
 .cs-header {
   background: linear-gradient(93deg, #ff6a00 0%, #ee0979 100%);
@@ -547,7 +599,7 @@ CSS = """
 .cs-online::before { content:"●"; color:#22c55e; margin-right:5px; font-size:10px; }
 
 .trace-panel { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
-               max-height: 500px; overflow-y: auto; padding-right: 6px; }
+               padding-right: 6px; }
 .trace-step { border-left: 3px solid #94a3b8; padding: 7px 10px; margin: 7px 0;
               background: #f8fafc; border-radius: 0 7px 7px 0; }
 .trace-step.call      { border-left-color: #2563eb; background: #eff6ff; }
@@ -606,8 +658,10 @@ def build_app() -> gr.Blocks:
                         "<div class='cs-panel-title'><b>在线客服</b>"
                         "<span class='cs-online'>客服在线 · 可查看查询依据</span></div>"
                     )
+                    reply_status = gr.HTML("", elem_id="reply-status", js_on_load=REPLY_CLOCK_JS)
                     chatbot = gr.Chatbot(
                         height=440,
+                        elem_id="customer-chat",
                         show_label=False,
                         placeholder=(
                             "<div style='text-align:center;color:#9ca3af;padding:26px 10px'>"
@@ -634,24 +688,27 @@ def build_app() -> gr.Blocks:
                     with gr.Row():
                         for label, text in DEMO_CASES[:3]:
                             btn = gr.Button(label, size="sm")
-                            btn.click(lambda t=text: t, outputs=message_box)
+                            btn.click(lambda t=text: t, outputs=message_box, show_progress="hidden")
                     with gr.Row():
                         for label, text in DEMO_CASES[3:]:
                             btn = gr.Button(label, size="sm")
-                            btn.click(lambda t=text: t, outputs=message_box)
+                            btn.click(lambda t=text: t, outputs=message_box, show_progress="hidden")
 
                 # ---------------- trace ---------------- #
                 with gr.Column(scale=5, min_width=380):
                     gr.HTML(
                         "<div class='cs-panel-title'><b>运行指标</b>"
-                        "<span>延迟 / token / 成本</span></div>"
+                        "<span>token / 成本</span></div>"
                     )
                     stats_html = gr.HTML(render_stats(None))
                     gr.HTML(
                         "<div class='cs-panel-title'><b>Agent Execution Trace</b>"
                         "<span>可观测执行过程</span></div>"
                     )
-                    trace_html = gr.HTML(render_trace(None))
+                    trace_html = gr.HTML(
+                        render_trace(None), elem_id="execution-trace", max_height=500,
+                        js_on_load=TRACE_FOLLOW_JS,
+                    )
 
             with gr.Tab("业务数据", id="data"):
                 gr.Markdown("浏览当前 SQLite 合成数据。切换上方用户后，只展示该用户的订单。")
@@ -748,38 +805,56 @@ def build_app() -> gr.Blocks:
             stats_html,
             user_card,
             header,
+            reply_status,
         ]
-        send_btn.click(
-            on_send, inputs=[message_box, chatbot, state, user_selector], outputs=outputs
+        controls = [message_box, send_btn, user_selector, clear_btn]
+        if report:
+            controls.append(try_btn)
+        for submit in (send_btn.click, message_box.submit):
+            submit(
+                lambda: [gr.update(interactive=False) for _ in controls], outputs=controls,
+                queue=False, show_progress="hidden",
+            ).then(
+                on_send, inputs=[message_box, chatbot, state, user_selector], outputs=outputs,
+                show_progress="hidden", stream_every=0.1,
+            ).then(
+                lambda: [gr.update(interactive=True) for _ in controls], outputs=controls,
+                queue=False, show_progress="hidden",
+            )
+        clear_btn.click(
+            on_clear, inputs=[state, user_selector], outputs=outputs, show_progress="hidden",
         )
-        message_box.submit(
-            on_send, inputs=[message_box, chatbot, state, user_selector], outputs=outputs
-        )
-        clear_btn.click(on_clear, inputs=[state, user_selector], outputs=outputs)
         user_selector.input(
-            on_user_change, inputs=[user_selector, state], outputs=outputs
+            on_user_change, inputs=[user_selector, state], outputs=outputs, show_progress="hidden",
         )
         user_selector.change(
-            on_data_user_change, inputs=user_selector, outputs=[orders_table, order_selector]
+            on_data_user_change, inputs=user_selector, outputs=[orders_table, order_selector],
+            show_progress="hidden",
         )
         order_selector.change(
             on_order_change, inputs=[order_selector, user_selector],
             outputs=[order_detail, items_table, logistics_table],
+            show_progress="hidden",
         )
-        product_selector.change(price_rows, inputs=product_selector, outputs=prices_table)
+        product_selector.change(
+            price_rows, inputs=product_selector, outputs=prices_table, show_progress="hidden",
+        )
         if report:
             category_selector.change(
                 on_eval_category, inputs=[category_selector, eval_state],
                 outputs=[cases_table, case_selector],
+                show_progress="hidden",
             )
             for selector in (case_selector, attempt_selector):
                 selector.change(
                     replay_case, inputs=[eval_state, case_selector, attempt_selector],
                     outputs=[replay_html, evidence_json],
+                    show_progress="hidden",
                 )
             try_btn.click(
                 on_try_case, inputs=[case_selector, eval_state, state],
                 outputs=[*outputs, user_selector, tabs],
+                show_progress="hidden",
             )
 
     return demo
