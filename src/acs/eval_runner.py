@@ -37,6 +37,7 @@ import sys
 from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -74,6 +75,9 @@ class Observed:
     total_tokens: int = 0
     cost_cny: str = "0"
     error_types: list[str] = field(default_factory=list)
+    api_calls: int = 0
+    unpriced_models: list[str] = field(default_factory=list)
+    usages: list[dict[str, Any]] = field(default_factory=list)
 
 
 def observe(result: AgentResult) -> Observed:
@@ -91,6 +95,9 @@ def observe(result: AgentResult) -> Observed:
         latency_ms=float(result.totals.get("latency_ms", 0.0) or 0.0),
         total_tokens=int(result.totals.get("total_tokens", 0) or 0),
         cost_cny=str(result.totals.get("cost_cny", "0")),
+        api_calls=int(result.totals.get("calls", 0)),
+        unpriced_models=list(result.totals.get("unpriced_models", [])),
+        usages=list(result.totals.get("usages", [])),
     )
 
     for event in result.trace:
@@ -401,6 +408,9 @@ def summarise(rows: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[s
         "redundant_calls": _numbers([r["redundant_calls"] for r in rows]),
         "latency_ms": _numbers([r["latency_ms"] for r in rows]),
         "total_tokens": _numbers([float(r["total_tokens"]) for r in rows]),
+        "cost_cny": str(sum((Decimal(r["cost_cny"]) for r in rows), Decimal("0"))),
+        "cost_is_partial": any(r.get("unpriced_models") for r in rows),
+        "api_calls": sum(r.get("api_calls", 0) for r in rows),
         "by_category": by_category,
     }
 
@@ -557,6 +567,7 @@ def print_summary(summary: dict[str, Any]) -> None:
     print(f"redundant tool calls : {summary['redundant_calls']}")
     print(f"latency (all)        : {summary['latency_ms']}")
     print(f"tokens (all)         : {summary['total_tokens']}")
+    print(f"priced cost (CNY)    : {summary['cost_cny']} (partial={summary['cost_is_partial']})")
 
 
 if __name__ == "__main__":

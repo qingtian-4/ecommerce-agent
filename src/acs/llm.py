@@ -320,6 +320,8 @@ class LLMClient:
             "latency_ms": round(sum(u.latency_ms for u in self.usages), 1),
             "cost_cny": str(cost.quantize(Decimal("0.000001"))),
             "unpriced_models": sorted(set(unpriced)),
+            "cost_is_partial": bool(unpriced),
+            "usages": [usage.as_dict() for usage in self.usages],
         }
 
     def reset_usage(self) -> None:

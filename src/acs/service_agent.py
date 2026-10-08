@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from time import perf_counter
 from typing import Any
 
 from .config import Settings, get_settings
@@ -115,7 +116,7 @@ class CustomerServiceAgent:
     ) -> None:
         self.settings = settings or get_settings()
         self.llm = llm or LLMClient(settings=self.settings)
-        self.registry = registry or ToolRegistry(self.settings)
+        self.registry = registry or ToolRegistry(self.settings, llm=self.llm)
         self.current_user_id = current_user_id
         self.max_steps = max_steps or self.settings.max_steps
         self.messages: list[dict[str, Any]] = [
@@ -132,6 +133,7 @@ class CustomerServiceAgent:
     # ------------------------------------------------------------------ #
     def chat(self, user_message: str) -> AgentResult:
         """Run one user turn to completion, including any tool-call rounds."""
+        started = perf_counter()
         self.llm.reset_usage()
         self.messages.append({"role": "user", "content": user_message})
 
@@ -219,6 +221,8 @@ class CustomerServiceAgent:
             self.messages.append({"role": "assistant", "content": result.answer})
 
         result.totals = self.llm.totals()
+        result.totals["api_latency_ms"] = result.totals.get("latency_ms", 0.0)
+        result.totals["latency_ms"] = round((perf_counter() - started) * 1000, 1)
         return result
 
     # ------------------------------------------------------------------ #

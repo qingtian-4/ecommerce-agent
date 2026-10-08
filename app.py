@@ -295,12 +295,13 @@ def render_stats(result: AgentResult | None) -> str:
         )]
     else:
         totals = result.totals or {}
+        cost_label = "已定价成本（部分）" if totals.get("unpriced_models") else "估算成本"
         cells = [
             ("延迟", f"{totals.get('latency_ms', 0) / 1000:.2f} s"),
             ("输入 token", f"{totals.get('prompt_tokens', 0):,}"),
             ("输出 token", f"{totals.get('completion_tokens', 0):,}"),
             ("总 token", f"{totals.get('total_tokens', 0):,}"),
-            ("估算成本", f"¥{totals.get('cost_cny', 'n/a')}"),
+            (cost_label, f"¥{totals.get('cost_cny', 'n/a')}"),
             ("工具调用", str(result.tool_calls)),
             ("检索次数", str(len(result.retrieval_queries))),
             ("命中文档", str(len(result.retrieved_documents))),

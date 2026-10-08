@@ -71,10 +71,12 @@ class ToolRegistry:
         *,
         db: BusinessDB | None = None,
         kb: Any | None = None,
+        llm: Any | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self.db = db or BusinessDB(self.settings)
         self.kb = kb
+        self._llm = llm
         self._tools: dict[str, ToolSpec] = {}
         self._register_all()
 
@@ -84,7 +86,7 @@ class ToolRegistry:
         if self.kb is None:
             from .rag import KnowledgeBase
 
-            self.kb = KnowledgeBase(self.settings)
+            self.kb = KnowledgeBase(self.settings, llm=self._llm)
         return self.kb
 
     # ------------------------------------------------------------------ #
