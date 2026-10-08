@@ -546,7 +546,8 @@ CSS = """
 .cs-panel-title span { font-size:11.5px; color:#6b7280; }
 .cs-online::before { content:"●"; color:#22c55e; margin-right:5px; font-size:10px; }
 
-.trace-panel { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.trace-panel { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+               max-height: 500px; overflow-y: auto; padding-right: 6px; }
 .trace-step { border-left: 3px solid #94a3b8; padding: 7px 10px; margin: 7px 0;
               background: #f8fafc; border-radius: 0 7px 7px 0; }
 .trace-step.call      { border-left-color: #2563eb; background: #eff6ff; }
@@ -603,7 +604,7 @@ def build_app() -> gr.Blocks:
                 with gr.Column(scale=5, min_width=380):
                     gr.HTML(
                         "<div class='cs-panel-title'><b>在线客服</b>"
-                        "<span class='cs-online'>客服在线 · 通常几秒内回复</span></div>"
+                        "<span class='cs-online'>客服在线 · 可查看查询依据</span></div>"
                     )
                     chatbot = gr.Chatbot(
                         height=440,
@@ -626,7 +627,10 @@ def build_app() -> gr.Blocks:
                         )
                         send_btn = gr.Button("发送", variant="primary", scale=1)
 
-                    gr.Markdown("<small>示例问题（点击填入输入框）</small>")
+                    gr.Markdown(
+                        "<small>点击示例填入问题；订单示例对应 USER001，"
+                        "其他用户可在业务数据页查看自己的订单号。</small>"
+                    )
                     with gr.Row():
                         for label, text in DEMO_CASES[:3]:
                             btn = gr.Button(label, size="sm")
