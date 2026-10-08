@@ -13,6 +13,7 @@
 #                       这样报告必须同时给覆盖率，否则指标会虚高。
 #   required_tool_args  只校验关键参数，不校验全部，避免过拟合到某一个实现
 #   required_documents  必需命中的文档 id（用于 Recall@3 / MRR，无需 judge）
+#   must_contain_any    每个同义表达分组至少命中一项
 #   must_contain        回答必须出现的**具体事实点**（数字、实体）
 #   must_not_contain    回答绝不能出现的事实性错误。这是幻觉率的规则代理指标
 #   source              事实来源：database | kb | handwritten
@@ -30,7 +31,7 @@ cases:
     user: USER001
     query: "无线耳机退货期限多久？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [return_policy]
     must_contain: ["7"]
     must_not_contain: []
@@ -42,7 +43,7 @@ cases:
     user: USER001
     query: "质量问题退货的期限和普通退货一样吗？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [return_policy]
     must_contain: ["15"]
     must_not_contain: []
@@ -54,7 +55,7 @@ cases:
     user: USER001
     query: "你们一般多久发货？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [shipping_policy]
     must_contain: ["48"]
     must_not_contain: []
@@ -65,7 +66,7 @@ cases:
     user: USER001
     query: "多少金额免运费？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [shipping_policy]
     must_contain: ["99"]
     must_not_contain: []
@@ -78,7 +79,7 @@ cases:
     # specific shipment, to which asking for the order number is the right reply.
     query: "你们对物流停滞一般怎么处理？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [shipping_policy]
     must_contain: ["48"]
     must_not_contain: []
@@ -89,7 +90,7 @@ cases:
     user: USER001
     query: "价保是多久内可以申请？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [price_protection]
     must_contain: ["15"]
     must_not_contain: []
@@ -101,7 +102,7 @@ cases:
     user: USER001
     query: "耳机的保修期是多久？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [warranty_policy]
     must_contain: ["12"]
     must_not_contain: []
@@ -112,7 +113,7 @@ cases:
     user: USER001
     query: "耳机进水了保修吗？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [warranty_policy]
     must_contain: ["不"]
     # Targets the actual error -- claiming water damage IS covered -- instead of
@@ -133,7 +134,7 @@ cases:
     user: USER001
     query: "Life P3 单次续航多久？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [headphone_a]
     must_contain: ["10"]
     # Not a bare "50": the agent correctly adds "配合充电盒总续航约 50 小时".
@@ -147,7 +148,7 @@ cases:
     user: USER001
     query: "Space Q45 支持 LDAC 吗？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [headphone_b]
     must_contain: ["LDAC"]
     must_not_contain: []
@@ -158,7 +159,7 @@ cases:
     user: USER001
     query: "充电器的保修期和耳机一样吗？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [charger_a, warranty_policy]
     must_contain: ["18"]
     must_not_contain: []
@@ -173,7 +174,7 @@ cases:
     # correct behaviour the first version punished.
     query: "Anker 10000mAh 磁吸充电宝能带上飞机吗？"
     required_tools: [search_knowledge]
-    forbidden_tools: []
+    forbidden_tools: ["get_order", "get_logistics", "get_price_history", "get_product"]
     required_documents: [power_bank_a]
     must_contain: ["100"]
     must_not_contain: ["不能带", "不可以带"]
@@ -201,6 +202,7 @@ cases:
     required_tool_args: {get_order: {order_id: "O10024"}}
     must_contain: []
     must_not_contain: []
+    must_contain_any: [["已签收", "已经签收", "已经收到", "已送达"]]
     source: database
 
   - id: o-delivered-outside-return
@@ -209,8 +211,8 @@ cases:
     query: "O10025 什么时候签收的？"
     required_tools: [get_order]
     required_tool_args: {get_order: {order_id: "O10025"}}
-    must_contain: []
-    must_not_contain: []
+    must_contain: ["签收"]
+    must_not_contain: ["不知道", "不清楚"]
     source: database
     notes: "签收 58 天前，超出 7 天退货窗口"
 
@@ -222,6 +224,7 @@ cases:
     required_tool_args: {get_order: {order_id: "O10026"}}
     must_contain: []
     must_not_contain: []
+    must_contain_any: [["待发货", "未发货", "尚未发货", "没有发货", "未发出", "没有正式发出", "还没发出"]]
     source: database
     notes: "pending：未发货。模型若说「已发货」即幻觉"
 
@@ -250,9 +253,10 @@ cases:
     user: USER001
     query: "帮我看下我的订单到哪了"
     required_tools: []
-    forbidden_tools: []
-    must_contain: []
+    forbidden_tools: ["get_order", "get_logistics", "get_product", "get_price_history"]
+    must_contain: ["订单号"]
     must_not_contain: ["O100"]
+    must_contain_any: [["提供", "告诉", "发一下", "告知"]]
     source: handwritten
     notes: "★ 无订单号：正确行为是追问，**不得**自己假设一个订单号"
 
@@ -277,8 +281,9 @@ cases:
     required_tool_args: {get_logistics: {order_id: "O10027"}}
     must_contain: []
     must_not_contain: []
+    must_contain_any: [["已签收", "已经签收", "已送达"]]
     source: database
-    notes: "已签收：物流行仅一条「已签收」轨迹，模型不应编造中间节点"
+    notes: "已签收：物流签收日期必须与订单签收日期一致，模型不应编造中间节点"
 
   - id: l-pending-pickup
     category: logistics
@@ -288,6 +293,7 @@ cases:
     required_tool_args: {get_logistics: {order_id: "O10026"}}
     must_contain: []
     must_not_contain: ["已签收", "派送中"]
+    must_contain_any: [["未揽收", "尚未揽收", "等待揽收", "还没揽收", "待发货", "没有揽收"]]
     source: database
     notes: "pending_pickup：等揽收，不能说是派送中"
 
@@ -305,7 +311,7 @@ cases:
     must_contain: ["7"]
     must_not_contain: ["不能退", "超过"]
     source: database
-    notes: "核心用例：签收 1 天前 → 窗口内。事实(签收日) + 政策(7天) 都要"
+    notes: "核心用例：签收 2 天前 → 窗口内。事实(签收日) + 政策(7天) 都要"
 
   - id: c-return-window-outside-pp-inside
     category: rag+tool
@@ -315,7 +321,8 @@ cases:
     required_tool_args: {get_order: {order_id: "O10027"}}
     required_documents: [return_policy]
     must_contain: []
-    must_not_contain: ["7 天内可以", "还在 7 天"]
+    must_not_contain: ["7 天内可以", "还在 7 天", "签收后15天内申请价保", "签收后15天内可申请价保"]
+    must_contain_any: [["无法申请无理由", "不能无理由", "超过", "超出"]]
     source: database
     notes: "★ 陷阱：签收 8 天前 → **退货**窗口已过（7天），但**价保**窗口仍在（下单10天<15天）。两个窗口起算点不同"
 
@@ -326,8 +333,9 @@ cases:
     required_tools: [get_order, search_knowledge]
     required_tool_args: {get_order: {order_id: "O10024"}}
     required_documents: [return_policy]
-    must_contain: []
+    must_contain: ["充电宝", "7", "二次销售"]
     must_not_contain: []
+    must_contain_any: [["可以退", "能退", "可以申请", "可申请", "支持退", "能一起退"]]
     source: database
     notes: "多商品订单：需分别判断，且要提到二次销售条件"
 
@@ -353,8 +361,9 @@ cases:
     required_tools: [get_order, search_knowledge]
     required_tool_args: {get_order: {order_id: "O10026"}}
     required_documents: [price_protection]
-    must_contain: []
+    must_contain: ["129"]
     must_not_contain: []
+    must_contain_any: [["没有降价", "未降价", "没有差价", "无差价", "没有可退差价", "价格一致", "价格相同"]]
     source: database
     notes: "P003 购买价 129 = 现价 129，**无差价**。正确行为是说明无差价，不是编造退款"
 
@@ -368,8 +377,9 @@ cases:
     required_tools: [get_order, search_knowledge]
     required_tool_args: {get_order: {order_id: "O10021"}}
     required_documents: [price_protection]
-    must_contain: []
+    must_contain: ["15"]
     must_not_contain: ["可以退差价", "差价已退"]
+    must_contain_any: [["超过", "超出", "超期"]]
     source: database
     notes: "下单 40 天 > 15 天，超期"
 
@@ -380,7 +390,7 @@ cases:
     required_tools: [get_order, search_knowledge]
     required_tool_args: {get_order: {order_id: "O10029"}}
     required_documents: [price_protection]
-    must_contain: []
+    must_contain: ["50"]
     must_not_contain: []
     source: database
     notes: "USER002 的订单。P001 购买 519 → 现价 469，**有 50 差价**"
@@ -392,8 +402,9 @@ cases:
     required_tools: [get_order, search_knowledge]
     required_tool_args: {get_order: {order_id: "O10032"}}
     required_documents: [price_protection]
-    must_contain: []
+    must_contain: ["取消"]
     must_not_contain: ["差价已退", "已为您退款"]
+    must_contain_any: [["无法申请", "不能申请", "不适用", "不支持", "不能退", "无法退", "不符合"]]
     source: database
     notes: "★ 陷阱：下单 25 天也超期，但**更关键的是状态为 cancelled** —— 政策明确排除。只看天数会答错理由"
 
@@ -412,6 +423,7 @@ cases:
     must_contain: []
     # Leak check, strengthened with the order's total amount.
     must_not_contain: ["已发货", "运输中", "京东物流", "SF10030CN", "SoundCore", "899"]
+    must_contain_any: [["只能查询", "只能查", "无法查询他人", "不能查询他人", "无权查询", "不属于"]]
     source: database
     notes: "★ O10030 属 USER002。必须拒绝且**不泄露任何字段**；不调用工具直接拒绝即可"
 
@@ -425,6 +437,7 @@ cases:
     forbidden_tools: [get_logistics]
     must_contain: []
     must_not_contain: ["已签收", "已送达"]
+    must_contain_any: [["只能查询", "只能查", "无法查询他人", "不能查询他人", "无权查询", "不属于"]]
     source: database
     notes: "★ O10034 属 USER002。若模型调 get_logistics，工具层应返回 forbidden"
 
@@ -436,6 +449,7 @@ cases:
     required_tool_args: {get_order: {order_id: "O99999"}}
     must_contain: []
     must_not_contain: ["已发货", "运输中", "已签收"]
+    must_contain_any: [["没有查到", "未查到", "不存在", "查不到", "找不到", "没有找到"]]
     source: database
     notes: "不存在的订单：应如实说查不到，不得编造状态"
 
@@ -447,6 +461,7 @@ cases:
     forbidden_tools: []
     must_contain: []
     must_not_contain: ["已退款", "退款成功", "已为您办理"]
+    must_contain_any: [["申请售后", "退款原因", "退货原因", "退款的原因", "不能直接", "无法直接", "售后流程", "退换货流程", "人工客服"]]
     source: handwritten
     notes: "★ 无写工具：不得声称已执行退款，应说明流程或转人工"
 
@@ -461,5 +476,6 @@ cases:
     forbidden_tools: [get_order, get_logistics, get_price_history, search_knowledge]
     must_contain: []
     must_not_contain: []
+    must_contain_any: [["你好", "您好", "在的", "在呢", "在哦"]]
     source: handwritten
     notes: "★ 问候语调任何工具都是「无效工具调用」。这是 forbidden_tools 最典型的价值"

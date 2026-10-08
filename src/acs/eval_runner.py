@@ -28,10 +28,15 @@ already produces.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import statistics
+import subprocess
 import sys
+from collections import Counter
 from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -44,9 +49,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # out rather than inlined.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CASES_PATH = PROJECT_ROOT / "data" / "eval" / "cases.yaml"
+SCORING_VERSION = 2
 
 from acs.config import Settings, get_settings  # noqa: E402
-from acs.service_agent import AgentResult, CustomerServiceAgent  # noqa: E402
+from acs.service_agent import SYSTEM_PROMPT, AgentResult, CustomerServiceAgent  # noqa: E402
 
 
 # --------------------------------------------------------------------------- #
@@ -136,17 +142,20 @@ class Score:
     strict_failure_reasons: list[str] = field(default_factory=list)
 
 
-def _contains(haystack: str, needle: str) -> bool:
-    return needle.lower() in haystack.lower()
+def _normalise_text(text: str) -> str:
+    return re.sub(r"\s+", "", text.lower())
+
+
+def _text_pattern(needle: str) -> str:
+    text = _normalise_text(needle)
+    pattern = re.escape(text)
+    return rf"(?<!\d){pattern}(?!\d)" if text.isdigit() else pattern
 
 
 # Characters that, immediately before a `must_not_contain` phrase, invert its
 # meaning. "不在保修范围内" must not count as "在保修范围内".
 _NEGATIONS = ("不", "非", "未", "无", "没", "别", "勿")
-_NEGATION_WINDOW = 2  # narrow on purpose: see the docstring in
-# scripts/fix_negation.py. A wider window starts swallowing the character
-# before an unrelated verb ('属于' -> '属' read as a negation), which turns a
-# real hallucination into a silent miss.
+_NEGATION_WINDOW = 2  # A local heuristic, not a semantic parser.
 
 
 def _contains_unnegated(haystack: str, needle: str) -> bool:
@@ -156,16 +165,13 @@ def _contains_unnegated(haystack: str, needle: str) -> bool:
     a substring test trips over; it is not a parser. See the module docstring in
     docs/EVAL_PLAN.md for the stated limitation.
     """
-    low, target = haystack.lower(), needle.lower()
-    start = 0
-    while True:
-        idx = low.find(target, start)
-        if idx == -1:
-            return False
+    low = _normalise_text(haystack)
+    for match in re.finditer(_text_pattern(needle), low):
+        idx = match.start()
         window = low[max(0, idx - _NEGATION_WINDOW) : idx]
         if not any(neg in window for neg in _NEGATIONS):
             return True
-        start = idx + 1
+    return False
 
 
 def score_case(case: dict[str, Any], observed: Observed) -> Score:
@@ -182,7 +188,7 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
         reasons.append(f"missing_tools={sorted(required_set - actual_set)}")
 
     extra = [t for t in actual if t not in required_set]
-    score.tools_exact = score.tools_complete and not extra
+    score.tools_exact = Counter(actual) == Counter(required)
     if extra:
         reasons.append(f"extra_tools={sorted(set(extra))}")
 
@@ -238,8 +244,14 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
 
     # --- answer content ------------------------------------------------- #
     must = list(case.get("must_contain", []))
-    if must:
-        missing = [m for m in must if not _contains(observed.answer, m)]
+    alternatives = list(case.get("must_contain_any", []))
+    if must or alternatives:
+        missing = [m for m in must if not _contains_unnegated(observed.answer, m)]
+        missing.extend(
+            f"one_of={group}"
+            for group in alternatives
+            if not any(_contains_unnegated(observed.answer, m) for m in group)
+        )
         score.containment_ok = not missing
         if missing:
             reasons.append(f"missing_text={missing}")
@@ -281,7 +293,7 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
 
     # Strict: the same, plus no redundant calls at all.
     redundant = max(0, len(actual) - len(required))
-    strict_checks = [*checks, redundant == 0]
+    strict_checks = [*checks, score.tools_exact]
     score.strict_success = all(c for c in strict_checks if c is not None)
     score.strict_failure_reasons = list(reasons)
     if redundant:
@@ -405,7 +417,11 @@ def run(
     out_dir: Path | None = None,
 ) -> dict[str, Any]:
     settings = settings or get_settings()
-    out_dir = out_dir or (PROJECT_ROOT / "results" / "baseline")
+    out_dir = out_dir or (
+        PROJECT_ROOT / "results" / "runs" / datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    )
+    if (out_dir / "summary.json").exists():
+        raise FileExistsError(f"evaluation output already exists: {out_dir}; choose a new --out")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     data = yaml.safe_load(CASES_PATH.read_text(encoding="utf-8"))
@@ -425,8 +441,8 @@ def run(
         for attempt in range(1, passes + 1):
             # A fresh agent per attempt: no history bleed between attempts, and
             # `pass^k` must measure the same task from the same starting state.
-            agent = CustomerServiceAgent(settings=settings, current_user_id=case["user"])
             try:
+                agent = CustomerServiceAgent(settings=settings, current_user_id=case["user"])
                 result = agent.chat(case["query"])
                 observed = observe(result)
             except Exception as exc:  # noqa: BLE001 - a crash is a data point
@@ -443,15 +459,7 @@ def run(
                     "category": case["category"],
                     "attempt": attempt,
                     "query": case["query"],
-                    "answer": observed.answer,
-                    "tool_sequence": observed.tool_sequence,
-                    "tool_args": observed.tool_args,
-                    "retrieved_chunk_ids": observed.retrieved_chunk_ids,
-                    "error_types": observed.error_types,
-                    "stop_reason": observed.stop_reason,
-                    "latency_ms": observed.latency_ms,
-                    "total_tokens": observed.total_tokens,
-                    "cost_cny": observed.cost_cny,
+                    **asdict(observed),
                     "redundant_calls": max(
                         0,
                         len(observed.tool_sequence) - len(set(case.get("required_tools", []))),
@@ -469,6 +477,28 @@ def run(
             )
 
     summary = summarise(rows, cases)
+    summary["run"] = {
+        "scoring_version": SCORING_VERSION,
+        "commit": subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, capture_output=True, text=True
+        ).stdout.strip(),
+        "cases_sha256": hashlib.sha256(CASES_PATH.read_bytes()).hexdigest(),
+        "prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
+        "knowledge_sha256": hashlib.sha256(
+            b"".join(
+                path.name.encode() + b"\0" + path.read_bytes()
+                for path in sorted(settings.docs_dir.glob("*.md"))
+            )
+        ).hexdigest(),
+        "settings": {
+            name: getattr(settings, name)
+            for name in (
+                "llm_model", "llm_temperature", "llm_thinking", "llm_max_output_tokens",
+                "llm_assume_peak", "llm_usd_to_cny", "embedding_model", "top_k", "max_steps",
+            )
+        },
+        "reference_date": (settings.reference_date or datetime.now().date()).isoformat(),
+    }
     (out_dir / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -480,6 +510,7 @@ def run(
             if not row["score"]["success"]:
                 fh.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")
 
+    print(f"results: {out_dir}")
     return summary
 
 

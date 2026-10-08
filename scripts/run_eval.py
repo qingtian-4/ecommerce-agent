@@ -29,7 +29,7 @@ def main() -> int:
     parser.add_argument(
         "--out",
         default=None,
-        help="output directory (default results/baseline)",
+        help="new output directory (default results/runs/<timestamp>)",
     )
     args = parser.parse_args()
 
