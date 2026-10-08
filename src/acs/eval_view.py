@@ -61,7 +61,8 @@ def review_run_rows(root: Path = PROJECT_ROOT) -> list[list]:
     sources = [
         ("新增验证 · 首次", "holdout/first", "holdout.yaml"),
         ("开发回归 · 修复前", "review_regression/before", "development.yaml"),
-        ("开发回归 · 修复后", "review_regression/after", "development.yaml"),
+        ("开发回归 · 首版过滤", "review_regression/after", "development.yaml"),
+        ("开发回归 · 修正后", "review_regression/after_v2", "development.yaml"),
     ]
     for label, folder, dataset in sources:
         path = root / "results" / folder / "summary.json"
