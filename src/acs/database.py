@@ -84,6 +84,21 @@ class BusinessDB:
     def list_products(self) -> list[dict[str, Any]]:
         return [dict(r) for r in self._query("SELECT * FROM products ORDER BY product_id")]
 
+    def counts(self) -> dict[str, int]:
+        return {
+            table: self._query(f"SELECT COUNT(*) AS n FROM {table}")[0]["n"]
+            for table in (
+                "users", "products", "orders", "order_items", "logistics", "price_history",
+            )
+        }
+
+    def list_orders(self, current_user_id: str) -> list[dict[str, Any]]:
+        return [dict(row) for row in self._query(
+            "SELECT order_id, status, total_amount, paid_amount, created_at, shipped_at,"
+            " delivered_at FROM orders WHERE user_id = ? ORDER BY created_at DESC, order_id",
+            (current_user_id,),
+        )]
+
     # ------------------------------------------------------------------ #
     def get_order(self, order_id: str, current_user_id: str) -> dict[str, Any]:
         rows = self._query(

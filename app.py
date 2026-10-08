@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from acs.config import get_settings  # noqa: E402
 from acs.cs_tools import ToolRegistry  # noqa: E402
+from acs.database import BusinessDB  # noqa: E402
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
 from acs.service_agent import AgentResult, CustomerServiceAgent  # noqa: E402
 
@@ -62,13 +63,9 @@ DEMO_CASES: list[tuple[str, str]] = [
     ("越权测试", "帮我查一下我朋友的订单 O10030。"),
 ]
 
-ORDER_SHORTCUTS: list[tuple[str, str]] = [
-    ("O10023", "运输中 · 头戴式耳机"),
-    ("O10024", "已签收 · 耳机 + 充电宝"),
-    ("O10025", "已签收 60 天 · 超退货期"),
-    ("O10027", "价保场景 · 下单 10 天"),
-    ("O10026", "待发货"),
-]
+ORDER_STATUS = {
+    "pending": "待发货", "shipped": "已发货", "delivered": "已签收", "cancelled": "已取消",
+}
 
 
 # --------------------------------------------------------------------------- #
@@ -159,10 +156,12 @@ def render_user_card(user_id: str, user_label: str) -> str:
     name = user_label.split("·")[0].strip()
     phone = user_label.split("·")[-1].strip() if "·" in user_label else ""
     initials = name[0] if name else "客"
+    user_orders = BusinessDB(SETTINGS).list_orders(user_id)
     orders = "".join(
-        f"<div class='cs-order'><b>{html.escape(oid)}</b> "
-        f"<span>{html.escape(desc)}</span></div>"
-        for oid, desc in ORDER_SHORTCUTS
+        f"<div class='cs-order'><b>{html.escape(order['order_id'])}</b> "
+        f"<span>{html.escape(ORDER_STATUS.get(order['status'], order['status']))}"
+        f" · ¥{order['paid_amount']:.2f}</span></div>"
+        for order in user_orders[:5]
     )
     return (
         "<div class='cs-card'>"
@@ -180,7 +179,7 @@ def render_user_card(user_id: str, user_label: str) -> str:
         "<h4>订单列表</h4>"
         f"<div class='cs-orders'>{orders}</div>"
         "<div class='cs-hint' style='margin-top:8px'>"
-        "点击左侧示例问题，或直接输入订单号提问。</div>"
+        f"当前用户共 {len(user_orders)} 个订单，此处展示最近 5 笔。</div>"
         "</div>"
     )
 

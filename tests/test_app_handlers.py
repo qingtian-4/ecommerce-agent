@@ -29,6 +29,14 @@ from acs.service_agent import CustomerServiceAgent
 from .conftest import ScriptedLLM, ScriptedResponse
 
 
+@pytest.fixture(autouse=True)
+def isolated_ui_settings(settings, monkeypatch):
+    monkeypatch.setattr(app_module, "SETTINGS", settings.model_copy(
+        update={"llm_api_key": "audit-ui-placeholder"}
+    ))
+    monkeypatch.setattr(app_module, "_KB_STATS", None)
+
+
 # --------------------------------------------------------------------------- #
 # the exact bug that reached the browser
 # --------------------------------------------------------------------------- #
@@ -108,6 +116,15 @@ def test_header_and_user_card_render_for_every_user() -> None:
         card = app_module.render_user_card(app_module.user_id_from_key(key), key)
         assert "当前会话" in card
         assert "订单列表" in card
+
+
+def test_sidebar_lists_only_the_selected_users_orders():
+    first = app_module.render_user_card("USER001", "张伟")
+    second = app_module.render_user_card("USER002", "李娜")
+    assert "O10024" in first
+    assert "O10024" not in second
+    assert "O10029" in second
+    assert "O10029" not in first
 
 
 def test_render_trace_shows_an_error_box_when_given_one() -> None:

@@ -9,6 +9,25 @@ from __future__ import annotations
 from acs.database import BusinessDB
 
 
+def test_order_list_is_scoped_to_the_selected_user(settings) -> None:
+    db = BusinessDB(settings)
+    first = {row["order_id"] for row in db.list_orders("USER001")}
+    second = {row["order_id"] for row in db.list_orders("USER002")}
+    assert "O10024" in first
+    assert "O10030" in second
+    assert first.isdisjoint(second)
+    assert first | second < {row["order_id"] for uid in ("USER001", "USER002", "USER003")
+                             for row in db.list_orders(uid)}
+    assert db.list_orders("USER001' OR 1=1 --") == []
+
+
+def test_database_counts_include_line_items_and_price_records(settings) -> None:
+    assert BusinessDB(settings).counts() == {
+        "users": 3, "products": 4, "orders": 25, "order_items": 26,
+        "logistics": 19, "price_history": 37,
+    }
+
+
 def test_get_order_returns_real_facts(settings) -> None:
     db = BusinessDB(settings)
     order = db.get_order("O10023", "USER001")
