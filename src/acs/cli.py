@@ -28,8 +28,6 @@ def info() -> None:
     table.add_column("value")
 
     rows = [
-        ("experiment_name", s.experiment_name),
-        ("seed", str(s.seed)),
         ("llm_provider", s.llm_provider),
         ("llm_model", s.llm_model),
         ("llm_small_model", s.llm_small_model or "(unset)"),
