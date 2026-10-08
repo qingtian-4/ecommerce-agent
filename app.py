@@ -643,15 +643,15 @@ def build_app() -> gr.Blocks:
                 # ---------------- trace ---------------- #
                 with gr.Column(scale=5, min_width=380):
                     gr.HTML(
+                        "<div class='cs-panel-title'><b>运行指标</b>"
+                        "<span>延迟 / token / 成本</span></div>"
+                    )
+                    stats_html = gr.HTML(render_stats(None))
+                    gr.HTML(
                         "<div class='cs-panel-title'><b>Agent Execution Trace</b>"
                         "<span>可观测执行过程</span></div>"
                     )
                     trace_html = gr.HTML(render_trace(None))
-                    gr.HTML(
-                        "<div class='cs-panel-title' style='margin-top:6px'>"
-                        "<b>运行指标</b><span>延迟 / token / 成本</span></div>"
-                    )
-                    stats_html = gr.HTML(render_stats(None))
 
             with gr.Tab("业务数据", id="data"):
                 gr.Markdown("浏览当前 SQLite 合成数据。切换上方用户后，只展示该用户的订单。")
