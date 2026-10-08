@@ -117,7 +117,11 @@ cases:
     must_contain: ["不"]
     # Targets the actual error -- claiming water damage IS covered -- instead of
     # any mention of 保修, which the correct answer necessarily contains.
-    must_not_contain: ["进水可以保修", "进水属于保修", "在保修范围内", "可以免费保修"]
+    # Phrases chosen so the claim is unambiguous under negation. A bare
+    # "在保修范围内" was rejected: it appears in both the correct answer
+    # ("不在保修范围内") and a wrong one ("属于保修范围内"), so no single substring
+    # test can separate them reliably.
+    must_not_contain: ["进水可以保修", "进水属于保修", "可以免费保修", "进水保修"]
     source: kb
     notes: "IPX5 仅防泼溅，进水**不在**保修范围；可走付费维修"
 

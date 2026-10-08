@@ -125,12 +125,47 @@ class Score:
     forbidden_text_ok: bool | None = None
     stop_reason_ok: bool | None = None
     no_errors: bool | None = None
+    # `success` is the end-to-end answer: right tools, no forbidden calls, right
+    # arguments, retrieved what was needed, said the right things, finished clean.
     success: bool = False
+    # `strict_success` additionally forbids redundant calls. Reported separately
+    # because the headline metric saturates at 1.0 while waste is still
+    # measurable -- and waste is what RQ-A is about.
+    strict_success: bool = False
     failure_reasons: list[str] = field(default_factory=list)
+    strict_failure_reasons: list[str] = field(default_factory=list)
 
 
 def _contains(haystack: str, needle: str) -> bool:
     return needle.lower() in haystack.lower()
+
+
+# Characters that, immediately before a `must_not_contain` phrase, invert its
+# meaning. "不在保修范围内" must not count as "在保修范围内".
+_NEGATIONS = ("不", "非", "未", "无", "没", "别", "勿")
+_NEGATION_WINDOW = 2  # narrow on purpose: see the docstring in
+# scripts/fix_negation.py. A wider window starts swallowing the character
+# before an unrelated verb ('属于' -> '属' read as a negation), which turns a
+# real hallucination into a silent miss.
+
+
+def _contains_unnegated(haystack: str, needle: str) -> bool:
+    """True if `needle` appears WITHOUT an immediately preceding negation.
+
+    A deliberate heuristic. It catches the common Chinese negation patterns that
+    a substring test trips over; it is not a parser. See the module docstring in
+    docs/EVAL_PLAN.md for the stated limitation.
+    """
+    low, target = haystack.lower(), needle.lower()
+    start = 0
+    while True:
+        idx = low.find(target, start)
+        if idx == -1:
+            return False
+        window = low[max(0, idx - _NEGATION_WINDOW) : idx]
+        if not any(neg in window for neg in _NEGATIONS):
+            return True
+        start = idx + 1
 
 
 def score_case(case: dict[str, Any], observed: Observed) -> Score:
@@ -211,7 +246,8 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
 
     must_not = list(case.get("must_not_contain", []))
     if must_not:
-        present = [m for m in must_not if _contains(observed.answer, m)]
+        # Negation-aware: "不在保修范围内" must not trip "在保修范围内".
+        present = [m for m in must_not if _contains_unnegated(observed.answer, m)]
         score.forbidden_text_ok = not present
         if present:
             reasons.append(f"forbidden_text={present}")
@@ -242,6 +278,14 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
     ]
     score.success = all(c for c in checks if c is not None)
     score.failure_reasons = reasons
+
+    # Strict: the same, plus no redundant calls at all.
+    redundant = max(0, len(actual) - len(required))
+    strict_checks = [*checks, redundant == 0]
+    score.strict_success = all(c for c in strict_checks if c is not None)
+    score.strict_failure_reasons = list(reasons)
+    if redundant:
+        score.strict_failure_reasons.append(f"redundant_calls={redundant}")
     return score
 
 
@@ -289,6 +333,11 @@ def summarise(rows: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[s
             )
             if subset
             else None,
+            "strict_success_rate": round(
+                sum(1 for r in subset if r["score"]["strict_success"]) / len(subset), 4
+            )
+            if subset
+            else None,
             "latency_ms": _numbers([r["latency_ms"] for r in subset]),
         }
 
@@ -296,6 +345,11 @@ def summarise(rows: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[s
     per_case: dict[str, list[bool]] = {}
     for row in rows:
         per_case.setdefault(row["case_id"], []).append(row["score"]["success"])
+    per_case_strict: dict[str, list[bool]] = {}
+    for row in rows:
+        per_case_strict.setdefault(row["case_id"], []).append(
+            row["score"]["strict_success"]
+        )
     passes = max((len(v) for v in per_case.values()), default=0)
     all_pass = [all(v) for v in per_case.values() if len(v) == passes]
     flipped = [cid for cid, v in per_case.items() if len(set(v)) > 1]
@@ -306,6 +360,16 @@ def summarise(rows: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[s
         "passes": passes,
         "success_rate": round(sum(1 for r in rows if r["score"]["success"]) / len(rows), 4)
         if rows
+        else None,
+        "strict_success_rate": round(
+            sum(1 for r in rows if r["score"]["strict_success"]) / len(rows), 4
+        )
+        if rows
+        else None,
+        "strict_pass_hat_k": round(
+            sum(1 for v in per_case_strict.values() if v and all(v)) / len(per_case_strict), 4
+        )
+        if per_case_strict
         else None,
         "pass_hat_k": round(sum(1 for v in all_pass if v) / len(all_pass), 4) if all_pass else None,
         "flip_rate": round(len(flipped) / len(per_case), 4) if per_case else None,
@@ -429,6 +493,16 @@ def print_summary(summary: dict[str, Any]) -> None:
         f"pass^{summary['passes']}={summary['pass_hat_k']}  "
         f"flip_rate={summary['flip_rate']}"
     )
+    print(
+        f"strict_success_rate={summary['strict_success_rate']}  "
+        f"strict_pass^{summary['passes']}={summary['strict_pass_hat_k']}"
+        "   <-- strict also forbids redundant tool calls"
+    )
+    if summary["success_rate"] == 1.0 and (summary["strict_success_rate"] or 0) < 1.0:
+        print(
+            "NOTE: the headline metric is saturated. Optimise strict_success_rate;"
+            " the gap is wasted tool calls."
+        )
     if summary["flipped_cases"]:
         print(f"unstable cases: {summary['flipped_cases']}")
     print("-" * 78)
@@ -445,7 +519,8 @@ def print_summary(summary: dict[str, Any]) -> None:
         p50 = lat.get("p50", "n/a")
         print(
             f"  {name:<20} cases={stat['cases']:<3} attempts={stat['attempts']:<4} "
-            f"success={stat['success_rate']} p50={p50}ms"
+            f"success={stat['success_rate']} strict={stat.get('strict_success_rate')} "
+            f"p50={p50}ms"
         )
     print("-" * 78)
     print(f"redundant tool calls : {summary['redundant_calls']}")
