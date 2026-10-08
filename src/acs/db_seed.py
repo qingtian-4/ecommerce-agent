@@ -86,12 +86,8 @@ ORDER_SEED = [
     ("O10022", "USER001", [("P001", 1, "499.00")], "cancelled", "0.00", 20),
     # Case 2: in transit, has a logistics row
     ("O10023", "USER001", [("P002", 1, "899.00")], "shipped", "899.00", 3),
-    # Case 3: multi-item. Created 3 days ago, so delivered 2 days ago --
-    # deliberately NOT "yesterday", and deliberately not "today": the demo prompt
-    # says the item was received yesterday, and an earlier `days_ago=2` put the
-    # delivery date on today, which made the agent contradict the user. Two days
-    # back is unambiguously inside the 7-day window.
-    ("O10024", "USER001", [("P001", 1, "529.00"), ("P004", 1, "199.00")], "delivered", "728.00", 3),
+    # Created 4 days ago and delivered 2 days ago, matching the "前天" query.
+    ("O10024", "USER001", [("P001", 1, "529.00"), ("P004", 1, "199.00")], "delivered", "728.00", 4),
     # Delivered long ago -> outside the return window, still inside warranty
     ("O10025", "USER001", [("P002", 1, "949.00")], "delivered", "949.00", 60),
     ("O10026", "USER001", [("P003", 1, "129.00")], "pending", "129.00", 1),
@@ -126,20 +122,20 @@ CARRIERS = ["顺丰速运", "中通快递", "圆通速递", "京东物流"]
 CITIES = ["上海", "杭州", "苏州", "南京", "北京", "广州"]
 
 # (product_id, price, days_ago). The newest row is the CURRENT price.
-# Every "days_ago" is larger than the age of the newest order for that product,
-# so no order can reference a price that did not exist yet.
+# Order purchase prices add effective price points below. Current prices take
+# effect today, after the seeded purchases, so the price-drop scenarios hold.
 PRICE_HISTORY = [
     ("P001", "499.00", 120),  # list price
     ("P001", "529.00", 25),   # temporary rise
-    ("P001", "469.00", 12),   # current price, dropped before O10027 was placed
+    ("P001", "469.00", 0),
     ("P002", "949.00", 150),
     ("P002", "899.00", 20),
-    ("P002", "879.00", 3),
+    ("P002", "879.00", 0),
     ("P003", "119.00", 140),
-    ("P003", "129.00", 10),
+    ("P003", "129.00", 0),
     ("P004", "189.00", 110),
     ("P004", "199.00", 15),
-    ("P004", "179.00", 4),
+    ("P004", "179.00", 0),
 ]
 
 # order_id -> (last trace index, logistics status)
@@ -240,11 +236,12 @@ CREATE INDEX idx_price_product ON price_history(product_id, changed_at);
 """
 
 
-def _iso(days_ago: int) -> str:
-    return (date.today() - timedelta(days=days_ago)).isoformat()
+def _iso(days_ago: int, today: date) -> str:
+    return (today - timedelta(days=days_ago)).isoformat()
 
 
-def build(db_path: Path) -> dict[str, int]:
+def build(db_path: Path, *, reference_date: date | None = None) -> dict[str, int]:
+    today = reference_date or date.today()
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     try:
@@ -253,10 +250,10 @@ def build(db_path: Path) -> dict[str, int]:
         conn.executemany("INSERT INTO products VALUES (?,?,?,?,?,?,?)", PRODUCTS)
 
         for order_id, user_id, items, status, paid, days_ago in ORDER_SEED:
-            created = _iso(days_ago)
-            shipped = _iso(days_ago - 1) if status in ("shipped", "delivered") else None
-            delivered = _iso(days_ago - 2) if status == "delivered" else None
-            cancelled = _iso(days_ago) if status == "cancelled" else None
+            created = _iso(days_ago, today)
+            shipped = _iso(days_ago - 1, today) if status in ("shipped", "delivered") else None
+            delivered = _iso(days_ago - 2, today) if status == "delivered" else None
+            cancelled = _iso(days_ago, today) if status == "cancelled" else None
             total = sum(float(price) * qty for _, qty, price in items)
 
             conn.execute(
@@ -277,13 +274,18 @@ def build(db_path: Path) -> dict[str, int]:
             carrier = CARRIERS[int(order_id[-2:]) % len(CARRIERS)]
             city = CITIES[int(order_id[-2:]) % len(CITIES)]
 
-            trace = [
-                {
-                    "time": _iso(max(days_ago - 1 - i, 0)),
-                    "text": TRACE_PATTERNS[i].format(city=city, carrier=carrier),
-                }
-                for i in range(last_index + 1)
-            ]
+            if status == "pending_pickup":
+                trace = [{"time": _iso(days_ago, today), "text": "订单待发货，尚未揽收"}]
+            else:
+                # Delivered orders arrive one day after shipping, just as in orders.
+                span = 1 if status == "delivered" else min(last_index, days_ago - 1)
+                trace = [
+                    {
+                        "time": _iso(days_ago - 1 - i * span // last_index, today),
+                        "text": TRACE_PATTERNS[i].format(city=city, carrier=carrier),
+                    }
+                    for i in range(last_index + 1)
+                ]
             conn.execute(
                 "INSERT INTO logistics VALUES (?,?,?,?,?,?,?)",
                 (
@@ -297,10 +299,16 @@ def build(db_path: Path) -> dict[str, int]:
                 ),
             )
 
-        for product_id, price, days_ago in PRICE_HISTORY:
+        price_points = {(pid, days): price for pid, price, days in PRICE_HISTORY}
+        for _, _, items, _, _, days_ago in ORDER_SEED:
+            for product_id, _, price in items:
+                price_points[product_id, days_ago] = price
+        for (product_id, days_ago), price in sorted(
+            price_points.items(), key=lambda point: -point[0][1]
+        ):
             conn.execute(
                 "INSERT INTO price_history (product_id, price, changed_at) VALUES (?,?,?)",
-                (product_id, float(price), _iso(days_ago)),
+                (product_id, float(price), _iso(days_ago, today)),
             )
 
         conn.commit()
@@ -315,7 +323,7 @@ def build(db_path: Path) -> dict[str, int]:
 
 def main() -> int:
     settings = get_settings()
-    counts = build(settings.db_path)
+    counts = build(settings.db_path, reference_date=settings.reference_date)
     print(f"built {settings.db_path}")
     for table, n in counts.items():
         print(f"  {table:<15} {n:>4} rows")

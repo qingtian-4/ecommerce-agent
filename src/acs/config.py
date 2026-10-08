@@ -6,7 +6,7 @@ prices) lives here so that a run can always be described by its config.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -123,6 +123,8 @@ class Settings(BaseSettings):
 
     # ---------- Agent ----------
     max_steps: int = 6
+    # Freeze the business clock for comparable evaluation runs; live queries use today.
+    reference_date: date | None = None
 
     @field_validator("embedding_dim", "llm_small_model", mode="before")
     @classmethod

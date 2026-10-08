@@ -19,7 +19,7 @@ from acs.db_seed import build  # noqa: E402
 
 def main() -> int:
     settings = get_settings()
-    counts = build(settings.db_path)
+    counts = build(settings.db_path, reference_date=settings.reference_date)
     print(f"built {settings.db_path}")
     for table, n in counts.items():
         print(f"  {table:<15} {n:>4} rows")

@@ -174,6 +174,13 @@ def main() -> int:
     # ---------------------------------------------------------------- #
     print("\nverifying the deliberate traps ...")
     o10027 = db.get_order("O10027", "USER001")
+    o10024 = db.get_order("O10024", "USER001")
+    if o10024["delivered_days_ago"] != 2:
+        problems.append("claim check: O10024 must be delivered exactly two days ago")
+    for order in (o10024, o10027):
+        shipment = db.get_logistics(order["order_id"], order["user_id"])
+        if shipment["trace"][-1]["time"] != order["delivered_date"]:
+            problems.append(f"claim check: {order['order_id']} order/logistics dates disagree")
     if o10027["within_return_window"]:
         problems.append(
             "trap check: O10027 was supposed to be OUTSIDE the return window but is inside; "

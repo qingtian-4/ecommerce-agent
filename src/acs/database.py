@@ -42,11 +42,11 @@ def connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
-def _days_since(iso_date: str | None) -> int | None:
+def _days_since(iso_date: str | None, today: date) -> int | None:
     if not iso_date:
         return None
     try:
-        return (date.today() - date.fromisoformat(iso_date[:10])).days
+        return (today - date.fromisoformat(iso_date[:10])).days
     except ValueError:
         return None
 
@@ -129,11 +129,12 @@ class BusinessDB:
         order["found"] = True
 
         # Explicit calendar context: the model must not do date arithmetic.
-        order["today"] = date.today().isoformat()
+        today = self.settings.reference_date or date.today()
+        order["today"] = today.isoformat()
         order["created_date"] = order.get("created_at")
         order["delivered_date"] = order.get("delivered_at")
-        order["created_days_ago"] = _days_since(order.get("created_at"))
-        order["delivered_days_ago"] = _days_since(order.get("delivered_at"))
+        order["created_days_ago"] = _days_since(order.get("created_at"), today)
+        order["delivered_days_ago"] = _days_since(order.get("delivered_at"), today)
 
         order["return_window_days"] = DAYS_IN_RETURN_WINDOW
         order["price_protection_days"] = DAYS_IN_PRICE_PROTECTION
@@ -181,7 +182,7 @@ class BusinessDB:
         data["found"] = True
         data["trace"] = json.loads(data.pop("trace_json") or "[]")
         data["latest"] = data["trace"][-1]["text"] if data["trace"] else None
-        data["today"] = date.today().isoformat()
+        data["today"] = (self.settings.reference_date or date.today()).isoformat()
         return data
 
     # ------------------------------------------------------------------ #
@@ -197,7 +198,7 @@ class BusinessDB:
         return {
             "found": True,
             "product_id": product_id,
-            "today": date.today().isoformat(),
+            "today": (self.settings.reference_date or date.today()).isoformat(),
             "current_price": history[0]["price"],
             "records": history,
             "note": "records[0] 为当前售价；价格按时间倒序排列",
