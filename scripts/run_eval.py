@@ -26,6 +26,7 @@ def main() -> int:
     parser.add_argument("--passes", type=int, default=3, help="attempts per case")
     parser.add_argument("--only", help="restrict to one category")
     parser.add_argument("--case", dest="case_id", help="restrict to one case id")
+    parser.add_argument("--cases", type=Path, help="independent YAML case file")
     parser.add_argument(
         "--out",
         default=None,
@@ -38,6 +39,7 @@ def main() -> int:
         only=args.only,
         case_id=args.case_id,
         out_dir=Path(args.out) if args.out else None,
+        **({"cases_path": args.cases} if args.cases else {}),
     )
     print_summary(summary)
     return 0

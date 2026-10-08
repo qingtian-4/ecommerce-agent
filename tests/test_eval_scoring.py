@@ -126,3 +126,31 @@ def test_evaluation_records_failed_agent_initialisation(tmp_path, settings, monk
     assert summary["attempts"] == 1
     assert summary["success_rate"] == 0
     assert summary["run"]["scoring_version"] == 4
+
+
+def test_runner_uses_and_fingerprints_a_separate_dataset(tmp_path, settings, monkeypatch):
+    import hashlib
+
+    import acs.eval_runner as runner
+
+    cases = tmp_path / "independent.yaml"
+    cases.write_text(yaml.safe_dump({"cases": [{
+        "id": "new", "category": "order", "user": "USER003", "query": "查订单",
+        "required_tools": [], "must_contain": ["等待"],
+    }]}))
+    seen = []
+
+    class Agent:
+        def __init__(self, **kwargs):
+            seen.append(kwargs["current_user_id"])
+
+        def chat(self, query):
+            seen.append(query)
+            return runner.AgentResult(answer="等待发货", stop_reason="answered")
+
+    monkeypatch.setattr(runner, "CustomerServiceAgent", Agent)
+    summary = runner.run(passes=1, settings=settings, cases_path=cases, out_dir=tmp_path / "run")
+    assert summary["success_rate"] == 1
+    assert seen == ["USER003", "查订单"]
+    assert summary["run"]["cases_sha256"] == hashlib.sha256(cases.read_bytes()).hexdigest()
+    assert summary["run"]["cases_file"] == "independent.yaml"

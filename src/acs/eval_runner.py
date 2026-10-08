@@ -431,6 +431,7 @@ def run(
     case_id: str | None = None,
     settings: Settings | None = None,
     out_dir: Path | None = None,
+    cases_path: Path = CASES_PATH,
 ) -> dict[str, Any]:
     settings = settings or get_settings()
     out_dir = out_dir or (
@@ -440,7 +441,7 @@ def run(
         raise FileExistsError(f"evaluation output already exists: {out_dir}; choose a new --out")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    data = yaml.safe_load(CASES_PATH.read_text(encoding="utf-8"))
+    data = yaml.safe_load(cases_path.read_text(encoding="utf-8"))
     cases = data["cases"]
     if only:
         cases = [c for c in cases if c["category"] == only]
@@ -498,8 +499,17 @@ def run(
         "commit": subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, capture_output=True, text=True
         ).stdout.strip(),
-        "cases_sha256": hashlib.sha256(CASES_PATH.read_bytes()).hexdigest(),
+        "cases_file": cases_path.name,
+        "cases_sha256": hashlib.sha256(cases_path.read_bytes()).hexdigest(),
         "prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
+        "source_sha256": {
+            name: hashlib.sha256((PROJECT_ROOT / "src/acs" / name).read_bytes()).hexdigest()
+            for name in ("service_agent.py", "cs_tools.py", "rag.py", "llm.py", "database.py")
+        },
+        "database_sha256": hashlib.sha256(settings.db_path.read_bytes()).hexdigest(),
+        "index_sha256": hashlib.sha256(b"".join(
+            p.read_bytes() for p in sorted(settings.index_dir.glob("kb*"))
+        )).hexdigest(),
         "knowledge_sha256": hashlib.sha256(
             b"".join(
                 path.name.encode() + b"\0" + path.read_bytes()
