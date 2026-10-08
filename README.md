@@ -1,7 +1,7 @@
 # Adaptive Customer Service Agent
 
-**MVP: 一个可以在浏览器里真实对话的电商客服 Agent。**
-它能自主决定是否检索知识库、是否调用业务工具，并把完整执行轨迹展示出来。
+持续演进的电商客服 Agent，支持商品政策咨询、订单物流查询、退换货和价保判断。
+通过执行轨迹定位问题，修复业务事实与评测缺陷，再用对照实验衡量回答质量和调用效率。
 
 ```bash
 uv run python app.py      # 打开 http://127.0.0.1:7860
@@ -9,9 +9,7 @@ uv run python app.py      # 打开 http://127.0.0.1:7860
 
 ---
 
-## 这一版是什么 / 不是什么
-
-**是**（全部已实测跑通）：
+## 当前能力
 
 ```
 User → Gradio UI → Naive Unified Agent (deepseek-flash)
@@ -25,12 +23,10 @@ User → Gradio UI → Naive Unified Agent (deepseek-flash)
 - 5 个只读工具（4 个业务查询 + 1 个知识检索）
 - 左右布局 Web UI：左侧对话，右侧**可观测的执行轨迹**
 - 会话级多轮历史、越权防护、错误兜底
+- 35 条黄金用例、分层评分与重复运行，保存逐条答案、调用、错误和运行条件
 
-**不是**（本阶段明确不做，见文末「下一步」判断依据）：
-
-Adaptive Router、BM25、Hybrid、RRF、Reranker、Query Rewrite、Parent-child
-Chunk、Multi-Agent、Memory、MCP、Langfuse/OTel、Redis/PostgreSQL/Milvus/
-Elasticsearch、Mutating Tool、Golden Eval、外部 benchmark、React/Vue/FastAPI。
+当前业务工具均为只读查询，能够判断条件、解释流程，尚不能实际退款或提交售后申请。
+界面中的用户选择用于模拟会话身份，尚未接入真实登录。
 
 ---
 
@@ -59,6 +55,8 @@ uv run pytest && uv run ruff check .
 ```
 
 `app.py` 会在索引缺失时自动构建，所以第 3 步对启动不是必需的，但对调试有用。
+样例数据库按生成当日计算日期；跨日重演“前天收到”等示例时需重新生成。
+对照评测使用固定参考日期，见问题记录中的运行条件。
 
 ---
 
@@ -84,196 +82,65 @@ uv run pytest && uv run ruff check .
 │ [清空对话]                     │ Step 4 · 最终回答                     │
 │ Demo Cases: 6 个可点击示例       │ 运行指标                              │
 │                               │  延迟 2.53s  输入 3298  输出 214      │
-│                               │  总 token 3512  ¥0.002110  工具调用 2 │
+│                               │  总 token 3512  部分成本估算  工具调用 2 │
 └───────────────────────────────┴──────────────────────────────────────┘
 ```
 
 轨迹只展示**可观测**的执行过程：工具名、参数、返回结果、检索命中文档与
 余弦分数、延迟、token、成本。**不展示模型的隐藏思维链**。那行「决策摘要」
 是从"实际调用了哪些工具"机械推导出来的，说明的是**做了什么**（轨迹里本来
-就能看到），不是模型自称的**为什么**。见 `app.py::decision_summary`。
+就能看到），不是模型自称的**为什么**。见 `AgentResult.decision_summary`。
+图中的数值是早期界面示意，当前测量结果见下文。
 
 ---
 
-## 四个 Demo Case 的实测结果
+## 主要问题与改进
 
-| # | 场景 | 用户 | 实际调用 | 命中 | 延迟 | tokens | 成本 |
-|---|---|---|---|---|---|---|---|
-| 1 | 纯 RAG | USER001 | `search_knowledge` ×1 | return_policy#2 (0.715) | 1.66 s | 2886 | ¥0.001436 |
-| 2 | 纯 Tool | USER001 | `get_logistics` + `get_order` | — | 2.19 s | 3069 | ¥0.001428 |
-| 3 | **RAG + Tool** | USER001 | `get_order` + `search_knowledge` | return_policy#1 (0.745) | 2.53 s | 3512 | ¥0.002110 |
-| 4 | 越权 | USER001 | 无（直接拒绝） | — | 1.08 s | 1177 | ¥0.000462 |
+| 已验证的问题 | 解决方式 | 验证结果 |
+| --- | --- | --- |
+| 订单与物流签收日期矛盾 | 统一业务时间轴，补跨表回归测试 | 一致性从 0/11 到 11/11 |
+| 购买价无法对应下单时价格 | 按订单补生效记录 | 一致性从 9/26 到 26/26 |
+| 工具正确但错误答案也通过评分 | 补结论判据、数字边界与正反例 | 12 个错误反例从全部漏检到全部拒绝 |
+| 检索消耗没进入请求统计 | 共享 usage 账本，记录完整耗时 | 固定探针从漏记到完整记录 3 次请求、247 token |
 
-单轮总成本约 **¥0.0055**。四轮合计 ¥0.0054。
+解决过程、修复提交、指标定义与证据见 [主要问题与解决过程](docs/PROBLEM_SOLVING.md)。
+历史提交审核见 [PROJECT_REVIEW.md](docs/PROJECT_REVIEW.md)。
+这些数据分别说明事实一致性和测量能力的改善，不能混作模型正确率提升。
 
-**Case 1**（政策问答）→ 命中 `return_policy#2`「一、七天无理由退货」，
-答出「7 天 + 不影响二次销售条件 + 运费承担」，未调用任何订单类工具。
+## 工具调用效率对照
 
-**Case 2**（订单+物流）→ 同时调用两个工具，答案给出承运商、运单号、当前
-分拨中心与完整轨迹。
+本轮对照使用 35 条用例各跑 3 次；固定业务参考日期、模型配置、知识索引和定价假设，
+改变工具选择提示与描述。初版出现质量回退后补回必要的政策检查，三组共 315 次在线尝试；
+全部原始答案统一按 v4 规则重新评分。
 
-**Case 3**（RAG + Tool，最重要）→ 先 `get_order` 拿到签收日，再
-`search_knowledge` 拿政策，两者结合得出「还在 7 天内，可以退」，
-并补充二次销售条件与运费说明。
+| 指标 | 优化前 | 修正后 |
+| --- | ---: | ---: |
+| 工具调用总数 | 160 | 122（减少 23.8%） |
+| 超出用例所需次数的调用 | 43 | 5（减少 88.4%） |
+| 严格成功率 | 63.8% | 95.2% |
+| 规则成功率 | 93.3% | 100% |
+| 平均 token / 次 | 3202 | 3338（增加 4.2%） |
+| 端到端耗时 p50 | 2199 ms | 2222 ms |
 
-**Case 4**（越权）→ 拒绝。注意：**这一轮模型没有调用工具就直接拒绝了**，
-所以它走的是「模型自觉遵守规则」而不是「SQL 权限校验」。SQL 层的拦截由
-`tests/test_database.py::test_cross_user_order_read_is_denied` 和
-`tests/test_agent_loop.py::test_cross_user_order_is_denied_through_the_agent`
-覆盖（后者会强制模型去查 O10030 并断言返回 `forbidden`）。
-**这是当前最重要的一个 Bad Case，见下节。**
+原始耗时存在 embedding 服务故障波动。两组均无执行错误的 99 个同一尝试中，
+平均耗时为 3278 → 2773 ms，p50 基本持平。结果主要支持调用效率改善；
+token 与中位延迟尚未改善。100% 仅是本批合成用例的规则通过率。
+证据见 [共同口径对照](results/tool_efficiency/comparison.json) 与
+[完整问题记录](docs/PROBLEM_SOLVING.md)。
 
----
+旧版 [baseline/summary.json](results/baseline/summary.json) 保留为历史记录。
+其 100% 成功率存在答案漏检，成本未包含 embedding，延迟只累加对话 API 耗时；
+因此不能与新口径直接比较。检索指标是多次检索累计的必需文档命中率，不是单次 Recall@3。
 
-## 基线（35 条黄金用例 × 3 遍 = 105 次尝试）
+开发评测默认输出到独立目录；如需指定目录，使用：
 
-`uv run python scripts/run_eval.py --passes 3` → `results/baseline/`
+```bash
+uv run python scripts/run_eval.py --passes 3 --out results/my_run
+```
 
-| 指标 | 值 |
-|---|---|
-| success_rate | **1.000** |
-| pass^3 | 1.000 |
-| **strict_success_rate** | **0.676** |
-| strict_pass^3 | 0.657 |
-| flip_rate（3 次结果不一致） | 0.000 |
-| 延迟 p50 / p95 | 1908 ms / 3352 ms |
-| 平均 token / 次 | 3156 |
-| 总成本（105 次尝试） | **¥0.31** |
-
-### 为什么 success_rate = 1.0 不是好消息
-
-合取判据只要求「该调的工具调了、禁止的工具没调、参数对、检索到、说到要点」，
-**不把"多调工具"算作失败**。所以它已经饱和，无法再区分"高效"与"正确但浪费"。
-一个饱和的指标测不出改进。
-
-因此加了 **`strict_success`**：在同样的判据上额外要求**零冗余调用**。
-差距就是 RQ-A 要优化的东西。
-
-### 分层指标（每个都附适用条数与覆盖率）
-
-| 维度 | 通过/适用 | 比率 | 覆盖率 |
-|---|---|---|---|
-| tools_complete（该调的调了） | 105/105 | 1.000 | 100% |
-| **tools_exact（没有多调）** | **87/105** | **0.829** | 100% |
-| no_forbidden_tools | 57/57 | 1.000 | 54% |
-| args_ok（参数正确） | 54/54 | 1.000 | 51% |
-| call_order_ok（调用次序） | 24/27 | 0.889 | 26% |
-| retrieval_recall（Recall@3） | 60/60 | 1.000 | 57% |
-| answer_containment | 54/54 | 1.000 | 51% |
-| no_forbidden_text | 39/39 | 1.000 | 37% |
-| no_errors | 105/105 | 1.000 | 100% |
-
-`no_forbidden_tools` 覆盖率 54% 是 v1 有意为之：`forbidden_tools` 先只写在关键用例上。
-
-### 浪费归因：157 次工具调用中 40 次是多余的（25.5%）
-
-| 类型 | 次数 | 说明 |
-|---|---|---|
-| **同一工具重复调用** | **21** | 全部是 `search_knowledge` |
-| **调用了不需要的工具** | **19** | `get_logistics` 9、`get_price_history` 5、`get_order` 3、`get_product` 1 |
-
-按用例类型：
-
-| category | 平均冗余/次 | 典型表现 |
-|---|---|---|
-| **price_protection** | **1.00** | 每次尝试都多调 1 次 |
-| rag+tool | 0.53 | 检索两次 |
-| order | 0.43 | 问状态却调了物流 |
-| security / product | 0.33 | |
-| policy | 0.25 | 检索两次 |
-| logistics / fallback | 0.00 | 干净 |
-
-### 三个已定位的浪费模式
-
-1. **`search_knowledge` 被调两次**（21 次，占浪费的一半）。
-   典型：`p-return-quality`「质量问题退货的期限和普通退货一样吗？」
-   模型检索两次（一次"退货期限"、一次"质量问题"），但 `search_knowledge`
-   本身就吃自然语言 query，一次就能覆盖。**这是工具设计问题，不是模型问题。**
-
-2. **订单状态问题却调了 `get_logistics`**（9 次）。
-   如 `o-pending`「O10026 发货了吗？」。系统提示第 8 条写了
-   "用户问『到哪了』『还能退吗』时，通常需要同时调用订单与物流工具" ——
-   这条**为了修 Case 2 而加的规则被过度泛化了**，连不涉及物流的问题也照做。
-
-3. **价保问题调了 `get_price_history`**（5 次）。
-   `get_order` 返回体里已经带了 `current_price` 和 `price_delta`，
-   再调一次价格历史是重复劳动。**工具返回体已经给足了信息，模型没意识到。**
-
-### 评测集自身的可信度
-
-`scripts/validate_cases.py` 在跑任何 LLM 之前，把用例里每条事实断言（价格、
-总价、天数、窗口标志）逐条对 SQL 校验，并断言两个"陷阱用例"仍然成立：
-
-- `O10027`：**退货窗口已过（签收 8 天 > 7 天）但价保窗口仍在（下单 10 天 < 15 天）**
-  —— 两个窗口起算点不同，最容易答错。
-- `O10032`：价保被排除是因为**状态是 cancelled**，不是因为天数。
-
-第一版基线跑出 84.76%，逐条读失败后发现**相当一部分是判据本身的缺陷**，已修正：
-
-| 问题 | 性质 |
-|---|---|
-| `must_not_contain: ["50"]` 命中"配合充电盒总续航 50 小时" | 判据太宽，模型正确 |
-| 价保问题却要求命中 `return_policy` | 判据写错文档 |
-| 「这个充电宝」有歧义，模型要求澄清反被判失败 | 用例问法有歧义 |
-| 越权用例要求必须调工具，而直接拒绝更安全 | 判据把偏好当要求 |
-| `must_not_contain: ["在保修范围内"]` 命中「**不**在保修范围内」 | 子串检查不识别否定 |
-
-最后一条已修：`must_not_contain` 现在是**否定感知**的（见
-`eval_runner._contains_unnegated`）。这是启发式而非解析器，局限写在方案文档里。
-
----
-
-## 当前 Bad Cases（来自基线实测，不再是手工观察）
-
-1. **25.5% 的工具调用是浪费的**（40/157），其中一半是 `search_knowledge` 重复调用。
-2. **价保类问题每次尝试都多调一次**（平均冗余 1.00）。
-3. **`tools_exact` 只有 0.829**，但 `tools_complete` 是 1.000 ——
-   该调的从没漏，多调的很多。
-4. **调用次序不稳定**：`l-in-transit` 三次里有两次先调 `get_logistics`，
-   一次先调 `get_order`（`call_order_ok` = 0.889）。答案都对，但路径不定。
-5. **系统提示第 8 条的措辞被过度泛化**，导致订单状态问题也去调物流工具。
-6. **`forbidden_tools` 只覆盖 54%**，安全维度仍有 16 条未评估。
-
----
-
-## 下一步 Top 3（来自实际运行问题，不是来自早期设计文档）
-
-按「解决上面哪个已观测问题」排序，而不是按「听起来高级」排序：
-
-### 1. 先补一个最小评测集，把「变好」变成可测量（解决缺陷 1/2/3）
-
-上面 6 个 Bad Case 里有 3 个是**无法判断严重程度**的，因为只有单次观测。
-在做任何优化之前，先把 4 条 case 扩到 **30 条左右**，每条记录
-`expected_tools` / `forbidden_tools` / `expected_docs`，然后记录
-pass^k 与 P50/P95。
-
-**为什么排第一**：如果不做这一步，第 2、3 项改完之后**无法证明改好了**——
-只会变成又一次"感觉变好了"。这也正是早期调研里所有仓库的共同教训：
-数据集是真的，指标代码才是漂移的地方。
-
-### 2. 修检索的两个具体缺陷：标题 chunk 与元数据过滤（解决 Bad Case 5/6）
-
-- `return_policy#1` 这类**只有标题没有正文的 chunk** 不应该是独立候选，
-  要么并入下一节，要么在索引时过滤掉。
-- 问「充电器保修」时应能按 `product_type` 过滤，避免召回充电宝的内容。
-
-**为什么排第二**：这是**唯一有直接证据的检索缺陷**（实测 top-1 排错），
-且修起来小、可验证。**不要现在上 BM25/Hybrid/RRF**——没有任何证据表明
-稠密检索本身不够用，问题是切分与过滤，不是召回算法。
-
-### 3. 把越权拒绝从「模型自觉」变成「结构必然」（解决 Bad Case 1）
-
-现在 Case 4 是模型自己拒绝的。应改成：**无论模型是否去查，服务端都记录并
-呈现一次权限判定**；理想形态是让 `get_order` 在返回 `forbidden` 时，由
-框架而不是模型决定最终话术。
-
-**为什么排第三**：它是唯一的安全性问题，但当前有测试覆盖、且模型行为恰好
-偏保守，所以实际风险低于前两项。它更像是 V1 该做的事，不是今天必须做的。
-
-> **明确不做**：Adaptive Router 与 Hybrid Retrieval。目前**没有任何观测
-> 支持"路由是瓶颈"**——4 条 case 里 3 条只调了 1–2 个工具、2–3 步就结束，
-> 连多跳都还没出现过。等第 1 项的评测集跑出来，如果发现有相当比例的问题
-> 走了多余路径、或简单问题被强行塞进复杂链路，再引入路由。
+规则评分用于发现明确的事实和调用错误，尚不能完整判断回答语义。35 条合成用例
+也未覆盖真实登录、写操作和复杂多轮业务，结果应在这个范围内解释。
+后续优先扩充实际失败案例，再判断是否需要改进检索或引入路由。
 
 ---
 
@@ -282,13 +149,14 @@ pass^k 与 P50/P95。
 ```
 app.py                        Gradio UI（单命令启动）
 src/acs/
-  config.py                   配置 + 定价（复用自 Step 0）
+  config.py                   配置 + 定价 + 评测参考日期
   llm.py                      OpenAI 兼容客户端 + 记账 + embed（复用）
   service_agent.py            手写 Function Calling Agent Loop
   cs_tools.py                 工具注册表 + 执行 + 轨迹事件
   rag.py                      Dense RAG（小节切分 + FAISS）
   database.py                 只读数据访问（含权限校验）
   db_seed.py                  SQLite 种子数据
+  eval_runner.py              分层评分 + 运行证据
   obs/trace.py                结构化 trace（复用，本版未启用 JSONL 落盘）
 data/
   docs/*.md                   8 篇知识文档（带 front-matter）
@@ -296,16 +164,11 @@ data/
   .index/                     kb.faiss + kb_meta.json
 scripts/
   init_db.py  build_index.py  run_demo_cases.py
+  run_eval.py  validate_cases.py
   check_connectivity.py  check_secrets.py  smoke_llm.py
-tests/                        129 tests
-docs/                         EXPERIMENT_LOG / REPO_ANALYSIS / TODOS
+tests/                        离线回归测试（无需 API）
+docs/                         PROBLEM_SOLVING / PROJECT_REVIEW / EXPERIMENT_LOG
 ```
-
-**已知的结构债**：`src/acs/` 下同时存在 `agent/`、`tools/`、`retrieval/`、
-`kb/`、`eval/` 这些**空占位包**（早期 Phase 1 的目录规划）。其中 `agent/`
-与 `tools/` 与 MVP 模块重名，导致 MVP 模块被迫命名为 `service_agent.py`
-与 `cs_tools.py`。这些占位包目前无害（`retrieval/` 等未被 import），
-但如果后续真要填充，应先决定是"扁平模块"还是"子包"，不要两者并存。
 
 ---
 
@@ -315,7 +178,7 @@ docs/                         EXPERIMENT_LOG / REPO_ANALYSIS / TODOS
    凭记忆或推算产生。`database.py` 直接返回 `delivered_date`、
    `delivered_days_ago`、`within_return_window`、`price_delta` 等派生值。
 2. **身份由服务端注入**。模型无法传 `user_id`；`cs_tools.py` 会显式剥离
-   并记 `identity_override_rejected`。权限判定在 SQL 的 WHERE 里，不在 prompt 里。
+   并记 `identity_override_rejected`。访问权限由数据层强制校验。
 3. **工具不为可预期情况抛异常**。订单不存在返回 `found: false`，
    让模型能据此追问，而不是让 loop 崩掉。
 4. **thinking 默认关闭**。DeepSeek 默认开启且会忽略 `temperature`，
