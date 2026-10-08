@@ -50,7 +50,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # out rather than inlined.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CASES_PATH = PROJECT_ROOT / "data" / "eval" / "cases.yaml"
-SCORING_VERSION = 3
+SCORING_VERSION = 4
 
 from acs.config import Settings, get_settings  # noqa: E402
 from acs.service_agent import SYSTEM_PROMPT, AgentResult, CustomerServiceAgent  # noqa: E402

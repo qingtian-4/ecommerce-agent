@@ -93,6 +93,18 @@ def test_comparison_rejects_inverted_or_negated_periods(answer):
     assert not score_case(case, observed_for(case, answer)).success
 
 
+@pytest.mark.parametrize("case_id,bad,good", [
+    ("c-return-multi-item", "充电宝一起退也是不可以的，即使7天且不影响二次销售。",
+     "充电宝7天内不影响二次销售，一起退也是可以的。"),
+    ("c-price-protection-not-dropped", "现价129元，已降价，可退差价。",
+     "当前129元，没有可退的差价。"),
+])
+def test_equivalent_conclusions_pass_but_opposite_conclusions_fail(case_id, bad, good):
+    case = CASES[case_id]
+    assert score_case(case, observed_for(case, good)).strict_success
+    assert not score_case(case, observed_for(case, bad)).success
+
+
 def test_evaluation_does_not_overwrite_an_existing_result(tmp_path, settings):
     from acs.eval_runner import run
 
@@ -113,4 +125,4 @@ def test_evaluation_records_failed_agent_initialisation(tmp_path, settings, monk
     summary = runner.run(case_id="f-chitchat", passes=1, settings=settings, out_dir=tmp_path)
     assert summary["attempts"] == 1
     assert summary["success_rate"] == 0
-    assert summary["run"]["scoring_version"] == 3
+    assert summary["run"]["scoring_version"] == 4
