@@ -57,9 +57,9 @@ USER_CHOICES = [f"{uid} · {label}" for uid, label in USERS]
 DEMO_CASES: list[tuple[str, str]] = [
     ("退货政策", "无线耳机退货期限多久？"),
     ("查物流", "订单 O10023 现在到哪了？"),
-    ("退货判断", "订单 O10024 是我前天收到的耳机，现在还能退吗？"),
-    ("价保咨询", "我买的耳机降价了，能退差价吗？"),
-    ("商品咨询", "充电宝能带上飞机吗？"),
+    ("退货判断", "订单 O10024 里的耳机现在还能退吗？"),
+    ("价保咨询", "订单 O10027 的耳机现在能申请价保吗，差价是多少？"),
+    ("商品咨询", "Life P3 耳机单次续航多久？"),
     ("越权测试", "帮我查一下我朋友的订单 O10030。"),
 ]
 
@@ -182,6 +182,69 @@ def render_user_card(user_id: str, user_label: str) -> str:
         f"当前用户共 {len(user_orders)} 个订单，此处展示最近 5 笔。</div>"
         "</div>"
     )
+
+
+def render_database_overview() -> str:
+    labels = {
+        "users": "模拟用户", "products": "商品", "orders": "订单",
+        "order_items": "订单明细", "logistics": "物流记录", "price_history": "价格记录",
+    }
+    cards = "".join(
+        f"<div class='stat'><small>{labels[table]}</small><strong>{count}</strong></div>"
+        for table, count in BusinessDB(SETTINGS).counts().items()
+    )
+    return f"<div class='stats-grid'>{cards}</div>"
+
+
+def on_data_user_change(user_key: str) -> tuple:
+    orders = BusinessDB(SETTINGS).list_orders(user_id_from_key(user_key))
+    rows = [[o["order_id"], ORDER_STATUS.get(o["status"], o["status"]), o["paid_amount"],
+             o["created_at"], o["shipped_at"] or "—", o["delivered_at"] or "—"]
+            for o in orders]
+    ids = [o["order_id"] for o in orders]
+    return rows, gr.update(choices=ids, value=ids[0] if ids else None)
+
+
+def on_order_change(order_id: str | None, user_key: str) -> tuple:
+    db = BusinessDB(SETTINGS)
+    user_id = user_id_from_key(user_key)
+    order = db.get_order(order_id or "", user_id)
+    if not order["found"]:
+        return f"<div class='cs-card'>{html.escape(order['reason'])}</div>", [], []
+    fields = [
+        ("订单", order_id), ("状态", ORDER_STATUS.get(order["status"], order["status"])),
+        ("实付金额", f"¥{order['paid_amount']:.2f}"), ("下单日期", order["created_at"]),
+        ("签收日期", order["delivered_date"] or "尚未签收"), ("查询日期", order["today"]),
+    ]
+    detail = "<div class='stats-grid'>" + "".join(
+        f"<div class='stat'><small>{label}</small>"
+        f"<strong>{html.escape(str(value))}</strong></div>" for label, value in fields
+    ) + "</div>"
+    items = [[i["product_id"], i["product_name"], i["quantity"], i["purchase_price"],
+              i["current_price"], i["price_delta"]] for i in order["items"]]
+    logistics = db.get_logistics(order_id, user_id)
+    if logistics["found"]:
+        detail += (
+            f"<p class='cs-hint'>承运商：{html.escape(logistics['carrier'])} · "
+            f"运单号：{html.escape(logistics['tracking_no'])}</p>"
+        )
+        trace = [[t["time"], t["text"]] for t in logistics["trace"]]
+    else:
+        detail += f"<p class='cs-hint'>{html.escape(logistics['reason'])}</p>"
+        trace = []
+    return detail, items, trace
+
+
+def product_rows() -> list[list]:
+    db = BusinessDB(SETTINGS)
+    products = [db.get_product(p["product_id"]) for p in db.list_products()]
+    return [[p["product_id"], p["name"], p["category"], p["current_price"],
+             p["price_changed_at"]] for p in products]
+
+
+def price_rows(product_id: str) -> list[list]:
+    history = BusinessDB(SETTINGS).get_price_history(product_id)
+    return [[r["changed_at"], r["price"]] for r in history.get("records", [])]
 
 
 def render_trace(result: AgentResult | None, error: str | None = None) -> str:
@@ -503,64 +566,102 @@ def build_app() -> gr.Blocks:
         header = gr.HTML(render_header(USER_CHOICES[0]))
         state = gr.State({"user_key": USER_CHOICES[0], "agent": None})
 
-        with gr.Row():
-            # ---------------- sidebar ---------------- #
-            with gr.Column(scale=2, min_width=240):
-                user_selector = gr.Dropdown(
-                    choices=USER_CHOICES, value=USER_CHOICES[0], label="切换登录用户"
-                )
-                user_card = gr.HTML(render_user_card(USER_IDS[0], USERS[0][1]))
-                clear_btn = gr.Button("结束会话 / 清空对话")
+        user_selector = gr.Dropdown(
+            choices=USER_CHOICES, value=USER_CHOICES[0], label="模拟用户（非真实登录）"
+        )
+        with gr.Tabs(selected="chat", elem_id="project-tabs"):
+            with gr.Tab("客服对话", id="chat"), gr.Row():
+                # ---------------- sidebar ---------------- #
+                with gr.Column(scale=2, min_width=240):
+                    user_card = gr.HTML(render_user_card(USER_IDS[0], USERS[0][1]))
+                    clear_btn = gr.Button("结束会话 / 清空对话")
 
-            # ---------------- chat ---------------- #
-            with gr.Column(scale=5, min_width=380):
-                gr.HTML(
-                    "<div class='cs-panel-title'><b>在线客服</b>"
-                    "<span class='cs-online'>客服在线 · 通常几秒内回复</span></div>"
-                )
-                chatbot = gr.Chatbot(
-                    height=440,
-                    show_label=False,
-                    placeholder=(
-                        "<div style='text-align:center;color:#9ca3af;padding:26px 10px'>"
-                        "您好，这里是声阔优选旗舰店在线客服。<br>"
-                        "可以咨询商品、订单、物流、退换货与价保问题。<br><br>"
-                        "点击下方示例问题快速体验 →"
-                        "</div>"
-                    ),
-                )
-                with gr.Row():
-                    message_box = gr.Textbox(
-                        show_label=False,
-                        placeholder="请输入您的问题，例如：订单 O10023 现在到哪了？",
-                        lines=1,
-                        scale=5,
-                        container=False,
+                # ---------------- chat ---------------- #
+                with gr.Column(scale=5, min_width=380):
+                    gr.HTML(
+                        "<div class='cs-panel-title'><b>在线客服</b>"
+                        "<span class='cs-online'>客服在线 · 通常几秒内回复</span></div>"
                     )
-                    send_btn = gr.Button("发送", variant="primary", scale=1)
+                    chatbot = gr.Chatbot(
+                        height=440,
+                        show_label=False,
+                        placeholder=(
+                            "<div style='text-align:center;color:#9ca3af;padding:26px 10px'>"
+                            "您好，这里是声阔优选旗舰店在线客服。<br>"
+                            "可以咨询商品、订单、物流、退换货与价保问题。<br><br>"
+                            "点击下方示例问题快速体验 →"
+                            "</div>"
+                        ),
+                    )
+                    with gr.Row():
+                        message_box = gr.Textbox(
+                            show_label=False,
+                            placeholder="请输入您的问题，例如：订单 O10023 现在到哪了？",
+                            lines=1,
+                            scale=5,
+                            container=False,
+                        )
+                        send_btn = gr.Button("发送", variant="primary", scale=1)
 
-                gr.Markdown("<small>示例问题（点击填入输入框）</small>")
-                with gr.Row():
-                    for label, text in DEMO_CASES[:3]:
-                        btn = gr.Button(label, size="sm")
-                        btn.click(lambda t=text: t, outputs=message_box)
-                with gr.Row():
-                    for label, text in DEMO_CASES[3:]:
-                        btn = gr.Button(label, size="sm")
-                        btn.click(lambda t=text: t, outputs=message_box)
+                    gr.Markdown("<small>示例问题（点击填入输入框）</small>")
+                    with gr.Row():
+                        for label, text in DEMO_CASES[:3]:
+                            btn = gr.Button(label, size="sm")
+                            btn.click(lambda t=text: t, outputs=message_box)
+                    with gr.Row():
+                        for label, text in DEMO_CASES[3:]:
+                            btn = gr.Button(label, size="sm")
+                            btn.click(lambda t=text: t, outputs=message_box)
 
-            # ---------------- trace ---------------- #
-            with gr.Column(scale=5, min_width=380):
-                gr.HTML(
-                    "<div class='cs-panel-title'><b>Agent Execution Trace</b>"
-                    "<span>可观测执行过程</span></div>"
+                # ---------------- trace ---------------- #
+                with gr.Column(scale=5, min_width=380):
+                    gr.HTML(
+                        "<div class='cs-panel-title'><b>Agent Execution Trace</b>"
+                        "<span>可观测执行过程</span></div>"
+                    )
+                    trace_html = gr.HTML(render_trace(None))
+                    gr.HTML(
+                        "<div class='cs-panel-title' style='margin-top:6px'>"
+                        "<b>运行指标</b><span>延迟 / token / 成本</span></div>"
+                    )
+                    stats_html = gr.HTML(render_stats(None))
+
+            with gr.Tab("业务数据", id="data"):
+                gr.Markdown("浏览当前 SQLite 合成数据。切换上方用户后，只展示该用户的订单。")
+                gr.HTML(render_database_overview())
+                initial_orders, initial_choice = on_data_user_change(USER_CHOICES[0])
+                orders_table = gr.Dataframe(
+                    initial_orders, headers=["订单号", "状态", "实付 / 元", "下单", "发货", "签收"],
+                    interactive=False, max_height=300,
                 )
-                trace_html = gr.HTML(render_trace(None))
-                gr.HTML(
-                    "<div class='cs-panel-title' style='margin-top:6px'>"
-                    "<b>运行指标</b><span>延迟 / token / 成本</span></div>"
+                order_selector = gr.Dropdown(
+                    choices=initial_choice["choices"], value=initial_choice["value"],
+                    label="查看订单详情",
                 )
-                stats_html = gr.HTML(render_stats(None))
+                detail, items, logistics = on_order_change(initial_choice["value"], USER_CHOICES[0])
+                order_detail = gr.HTML(detail)
+                items_table = gr.Dataframe(
+                    items, headers=["商品 ID", "商品", "数量", "购买价", "当前价", "单件价差"],
+                    label="订单明细 · 价差仅为金额事实，能否价保还需核对政策",
+                    interactive=False, wrap=True,
+                )
+                logistics_table = gr.Dataframe(
+                    logistics, headers=["日期", "物流节点"], label="物流时间线",
+                    interactive=False, wrap=True,
+                )
+                products = product_rows()
+                gr.Dataframe(
+                    products, headers=["商品 ID", "商品", "分类", "当前价 / 元", "最近调价"],
+                    label="商品目录", interactive=False, wrap=True,
+                )
+                product_selector = gr.Dropdown(
+                    choices=[(p[1], p[0]) for p in products], value=products[0][0],
+                    label="查看商品价格历史",
+                )
+                prices_table = gr.Dataframe(
+                    price_rows(products[0][0]), headers=["生效日期", "售价 / 元"],
+                    interactive=False, label="价格历史（最新在前）", max_height=250,
+                )
 
         outputs = [
             chatbot,
@@ -578,9 +679,17 @@ def build_app() -> gr.Blocks:
             on_send, inputs=[message_box, chatbot, state, user_selector], outputs=outputs
         )
         clear_btn.click(on_clear, inputs=[state, user_selector], outputs=outputs)
-        user_selector.change(
+        user_selector.input(
             on_user_change, inputs=[user_selector, state], outputs=outputs
         )
+        user_selector.change(
+            on_data_user_change, inputs=user_selector, outputs=[orders_table, order_selector]
+        )
+        order_selector.change(
+            on_order_change, inputs=[order_selector, user_selector],
+            outputs=[order_detail, items_table, logistics_table],
+        )
+        product_selector.change(price_rows, inputs=product_selector, outputs=prices_table)
 
     return demo
 

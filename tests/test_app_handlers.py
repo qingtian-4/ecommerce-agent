@@ -127,6 +127,31 @@ def test_sidebar_lists_only_the_selected_users_orders():
     assert "O10029" not in first
 
 
+def test_data_browser_updates_orders_and_selection_on_user_change():
+    rows, choice = app_module.on_data_user_change(app_module.USER_CHOICES[1])
+    assert "O10030" in choice["choices"]
+    assert "O10024" not in choice["choices"]
+    assert choice["value"] == rows[0][0]
+    assert {r[0] for r in rows} == set(choice["choices"])
+
+
+def test_order_detail_denies_cross_user_reads_and_clears_previous_tables():
+    detail, items, trace = app_module.on_order_change("O10024", app_module.USER_CHOICES[1])
+    assert "无权查询" in detail
+    assert items == trace == []
+    assert "728" not in detail
+
+
+def test_order_detail_exposes_actual_prices_and_logistics():
+    detail, items, trace = app_module.on_order_change("O10024", app_module.USER_CHOICES[0])
+    assert "728.00" in detail
+    assert len(items) == 2
+    assert items[0][3:6] == [529.0, 469.0, 60.0]
+    assert "签收" in trace[-1][1]
+    products = {row[0]: row for row in app_module.product_rows()}
+    assert products["P003"][3] == 129.0
+
+
 def test_render_trace_shows_an_error_box_when_given_one() -> None:
     out = app_module.render_trace(None, error="TypeError: boom")
     assert "err-box" in out
