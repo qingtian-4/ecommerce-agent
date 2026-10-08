@@ -38,6 +38,7 @@ def settings(seeded_db: Path, tmp_path: Path) -> Settings:
         index_dir=tmp_path / "index",
         embedding_model="fake-embedding",
         embedding_dim=8,
+        relevance_calibration_path=None,
     )
 
 

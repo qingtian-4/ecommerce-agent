@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from acs.config import get_settings  # noqa: E402
-from acs.rag import KnowledgeBase  # noqa: E402
+from acs.rag import CHUNKER_VERSION, KnowledgeBase  # noqa: E402
 
 
 def main() -> None:
@@ -25,7 +25,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.out.exists():
         raise FileExistsError(args.out)
-    settings = get_settings()
+    settings = get_settings().model_copy(update={"relevance_calibration_path": None})
     source = ROOT / "data/eval/retrieval_samples.yaml"
     samples = yaml.safe_load(source.read_text())["samples"]
     kb = KnowledgeBase(settings)
@@ -59,6 +59,7 @@ def main() -> None:
             p.name.encode() + b"\0" + p.read_bytes() for p in sorted(settings.docs_dir.glob("*.md"))
         )).hexdigest(),
         "samples_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "chunker_version": CHUNKER_VERSION,
         "threshold": threshold, "counts": counts, "rows": rows,
         "method": "lowest supported calibration top score; validation not used for selection",
         "limitations": "small synthetic sample; score overlap cannot prove topical relevance",

@@ -120,13 +120,16 @@ class Settings(BaseSettings):
     chunk_size: int = 700
     chunk_overlap: int = 80
     top_k: int = 3
+    relevance_calibration_path: Path | None = Path("data/eval/relevance_calibration.json")
 
     # ---------- Agent ----------
     max_steps: int = 6
     # Freeze the business clock for comparable evaluation runs; live queries use today.
     reference_date: date | None = None
 
-    @field_validator("embedding_dim", "llm_small_model", mode="before")
+    @field_validator(
+        "embedding_dim", "llm_small_model", "relevance_calibration_path", mode="before",
+    )
     @classmethod
     def _empty_string_means_unset(cls, value: object) -> object:
         """Treat an empty value in `.env` as unset rather than invalid.
@@ -142,9 +145,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _resolve_paths(self) -> Settings:
-        for name in ("db_path", "index_dir", "trace_dir", "docs_dir"):
+        for name in ("db_path", "index_dir", "trace_dir", "docs_dir", "relevance_calibration_path"):
             p = getattr(self, name)
-            if not p.is_absolute():
+            if p is not None and not p.is_absolute():
                 object.__setattr__(self, name, (PROJECT_ROOT / p).resolve())
         return self
 

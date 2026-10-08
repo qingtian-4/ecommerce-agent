@@ -149,6 +149,7 @@ class KnowledgeBase:
         self._chunks: list[Chunk] = []
         self._dim: int | None = None
         self._fingerprint: str | None = None
+        self._min_score: float | None = None
 
     def _current_fingerprint(self) -> str:
         source = {
@@ -161,6 +162,27 @@ class KnowledgeBase:
             ],
         }
         return hashlib.sha256(json.dumps(source, sort_keys=True).encode()).hexdigest()
+
+    def _load_relevance_calibration(self) -> None:
+        path = self.settings.relevance_calibration_path
+        if path is None:
+            self._min_score = None
+            return
+        calibration = json.loads(path.read_text())
+        knowledge_hash = hashlib.sha256(b"".join(
+            p.name.encode() + b"\0" + p.read_bytes()
+            for p in sorted(self.settings.docs_dir.glob("*.md"))
+        )).hexdigest()
+        if (calibration["model"] != self.settings.embedding_model
+                or calibration["knowledge_sha256"] != knowledge_hash
+                or calibration["chunker_version"] != CHUNKER_VERSION):
+            raise RuntimeError(
+                "相关性标定与当前模型、知识库或切分版本不匹配；请重新采样标定，不能沿用旧阈值"
+            )
+        threshold = float(calibration["threshold"])
+        if not -1 <= threshold <= 1:
+            raise ValueError("相关性阈值必须在 [-1, 1] 范围内")
+        self._min_score = threshold
 
     # ------------------------------------------------------------------ #
     @property
@@ -201,6 +223,7 @@ class KnowledgeBase:
         """Embed all chunks and persist the index next to its metadata."""
         fingerprint = self._current_fingerprint()
         chunks = self.load_documents()
+        self._load_relevance_calibration()
         # Prefix the title so a chunk that never repeats the product name is
         # still findable by it ("保修期多久" -> warranty_policy sections; but
         # "充电器保修" needs the product context to win the ranking).
@@ -229,6 +252,7 @@ class KnowledgeBase:
                     "chunk_overlap": self.settings.chunk_overlap,
                     "fingerprint": fingerprint,
                     "chunker_version": CHUNKER_VERSION,
+                    "relevance_min_score": self._min_score,
                     "chunks": [c.as_dict() for c in chunks],
                 },
                 ensure_ascii=False,
@@ -271,6 +295,7 @@ class KnowledgeBase:
             raise RuntimeError(
                 "知识索引过期：文档或切分配置已变更；rebuild with scripts/build_index.py"
             )
+        self._load_relevance_calibration()
 
         import faiss
 
@@ -297,6 +322,8 @@ class KnowledgeBase:
         results: list[Chunk] = []
         for score, idx in zip(scores[0], indices[0], strict=True):
             if idx < 0:
+                continue
+            if self._min_score is not None and score < self._min_score:
                 continue
             chunk = self._chunks[int(idx)]
             results.append(
