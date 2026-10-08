@@ -55,6 +55,33 @@ def comparison_rows(report: dict) -> list[list]:
     return rows
 
 
+def review_run_rows(root: Path = PROJECT_ROOT) -> list[list]:
+    """Keep first-pass verification and matched development runs visibly separate."""
+    rows = []
+    sources = [
+        ("新增验证 · 首次", "holdout/first", "holdout.yaml"),
+        ("开发回归 · 修复前", "review_regression/before", "development.yaml"),
+        ("开发回归 · 修复后", "review_regression/after", "development.yaml"),
+    ]
+    for label, folder, dataset in sources:
+        path = root / "results" / folder / "summary.json"
+        if not path.exists():
+            continue
+        summary = json.loads(path.read_text())
+        expected = hashlib.sha256((root / "data/eval" / dataset).read_bytes()).hexdigest()
+        if summary["run"]["cases_sha256"] != expected:
+            raise ValueError(f"{label} 与当前用例不匹配")
+        errors = summary["dimensions"]["no_errors"]
+        multi = summary.get("multi_turn", {}).get("conversation_success", {})
+        rows.append([
+            label, summary["cases"], summary["passes"], f"{summary['success_rate']:.1%}",
+            f"{summary['strict_success_rate']:.1%}", errors["applicable"] - errors["passed"],
+            f"{multi['passed']}/{multi['applicable']}" if multi.get("applicable") else "—",
+            f"v{summary['run']['scoring_version']}",
+        ])
+    return rows
+
+
 def case_rows(report: dict, category: str = "all") -> list[list]:
     rows = []
     for case in report["cases"]:

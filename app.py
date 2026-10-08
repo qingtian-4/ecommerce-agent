@@ -45,6 +45,7 @@ from acs.eval_view import (  # noqa: E402
     comparison_rows,
     load_evaluation,
     replay_case,
+    review_run_rows,
 )
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
 from acs.service_agent import AgentResult, CustomerServiceAgent  # noqa: E402
@@ -752,6 +753,22 @@ def build_app() -> gr.Blocks:
                 )
 
             with gr.Tab("评测进展", id="evaluation"):
+                gr.Markdown(
+                    "**新增验证与开发回归** · 首次新增验证集与公开开发集分开报告。"
+                    "多轮用例要求每轮全部通过；单次运行不能判断稳定性。"
+                )
+                try:
+                    review_rows = review_run_rows()
+                except (FileNotFoundError, ValueError) as exc:
+                    gr.Markdown(f"新增评测展示暂不可用：{html.escape(str(exc))}")
+                    review_rows = []
+                if review_rows:
+                    gr.Dataframe(
+                        review_rows,
+                        headers=["阶段", "用例数", "遍数", "规则成功率", "严格成功率",
+                                 "含执行错误的尝试", "多轮会话通过", "评分版本"],
+                        interactive=False, label="新增验证与开发集对照",
+                    )
                 gr.Markdown(
                     "**2026-10-08 评测快照** · 35 条合成用例，每组各跑 3 次，三组共 315 次在线尝试。\n\n"
                     "这里回放已保存的答案，按共同 v5 规则展示，不会调用模型。"

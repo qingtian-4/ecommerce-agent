@@ -5,7 +5,7 @@ from collections import Counter
 
 import pytest
 
-from acs.eval_view import RESULTS_PATH, case_rows, load_evaluation, replay_case
+from acs.eval_view import RESULTS_PATH, case_rows, load_evaluation, replay_case, review_run_rows
 
 
 def test_published_answers_are_rescored_without_changing_original_files():
@@ -52,3 +52,23 @@ def test_replay_preserves_failed_optimization_and_escapes_model_output():
     assert "&lt;script&gt;" in rendered
     assert evidence["历史记录"]["首轮优化"]["score"]["failure_reasons"]
     assert evidence["历史记录"]["修正后"]["score"]["strict_success"] is True
+
+
+def test_new_runs_cannot_be_displayed_against_different_case_inputs(tmp_path):
+    import hashlib
+
+    cases = tmp_path / "data/eval/holdout.yaml"
+    cases.parent.mkdir(parents=True)
+    cases.write_text("frozen")
+    result = tmp_path / "results/holdout/first/summary.json"
+    result.parent.mkdir(parents=True)
+    result.write_text(json.dumps({
+        "cases": 15, "passes": 1, "success_rate": 11/15, "strict_success_rate": 10/15,
+        "dimensions": {"no_errors": {"applicable": 15, "passed": 14}},
+        "run": {"cases_sha256": hashlib.sha256(cases.read_bytes()).hexdigest(),
+                "scoring_version": 4},
+    }))
+    assert review_run_rows(tmp_path)[0][1:4] == [15, 1, "73.3%"]
+    cases.write_text("changed")
+    with pytest.raises(ValueError, match="不匹配"):
+        review_run_rows(tmp_path)
