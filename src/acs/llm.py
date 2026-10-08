@@ -12,6 +12,7 @@ Design constraints that matter for this project:
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
@@ -155,6 +156,93 @@ class LLMClient:
 
         So the default is OFF, and turning it on is a deliberate, recorded act.
         """
+        kwargs = self._chat_kwargs(
+            messages, tools=tools, model=model, temperature=temperature,
+            max_tokens=max_tokens, response_format_json=response_format_json,
+            thinking=thinking, reasoning_effort=reasoning_effort,
+        )
+        started = time.perf_counter()
+        resp = self._client.chat.completions.create(**kwargs)
+        usage = self._record(
+            resp, model=kwargs["model"], stage=stage,
+            latency_ms=(time.perf_counter() - started) * 1000,
+            thinking=kwargs["extra_body"]["thinking"]["type"] == "enabled",
+        )
+        choice = resp.choices[0]
+        message = choice.message
+        calls = [
+            ToolCall(call.id, call.function.name, call.function.arguments or "{}")
+            for call in getattr(message, "tool_calls", None) or []
+        ]
+        return LLMResponse(
+            text=message.content or "", usage=usage, tool_calls=calls,
+            raw=resp, finish_reason=choice.finish_reason,
+        )
+
+    def chat_stream(
+        self, messages: list[dict[str, Any]], *,
+        tools: list[dict[str, Any]] | None = None, stage: str = "unspecified",
+        **options: Any,
+    ) -> Iterator[str | LLMResponse]:
+        """Yield content deltas immediately, then one assembled response.
+
+        Tool arguments stay buffered until complete. Usage is recorded once,
+        including interrupted requests whose provider usage is unavailable.
+        """
+        kwargs = self._chat_kwargs(messages, tools=tools, **options)
+        started = time.perf_counter()
+        stream = None
+        usage_chunk = None
+        text = ""
+        calls: dict[int, ToolCall] = {}
+        finish_reason = None
+        reasoning_chars = 0
+        try:
+            stream = self._client.chat.completions.create(
+                **kwargs, stream=True, stream_options={"include_usage": True},
+            )
+            for chunk in stream:
+                if getattr(chunk, "usage", None) is not None:
+                    usage_chunk = chunk
+                if not chunk.choices:
+                    continue  # The final usage chunk can have no choices.
+                choice = chunk.choices[0]
+                delta = choice.delta
+                reasoning_chars += len(getattr(delta, "reasoning_content", "") or "")
+                for fragment in delta.tool_calls or []:
+                    call = calls.setdefault(fragment.index, ToolCall("", "", ""))
+                    call.id += fragment.id or ""
+                    if fragment.function:
+                        call.name += fragment.function.name or ""
+                        call.arguments += fragment.function.arguments or ""
+                if delta.content:
+                    text += delta.content
+                    yield delta.content
+                if choice.finish_reason:
+                    finish_reason = choice.finish_reason
+            if finish_reason is None:
+                raise RuntimeError("模型响应流中断，未收到完成标记")
+        finally:
+            usage = self._record(
+                usage_chunk, model=kwargs["model"], stage=stage,
+                latency_ms=(time.perf_counter() - started) * 1000,
+                thinking=kwargs["extra_body"]["thinking"]["type"] == "enabled",
+                reasoning_chars=reasoning_chars,
+            )
+            if stream is not None:
+                stream.close()
+        yield LLMResponse(
+            text=text, usage=usage, tool_calls=[calls[i] for i in sorted(calls)],
+            finish_reason=finish_reason,
+        )
+
+    def _chat_kwargs(
+        self, messages: list[dict[str, Any]], *,
+        tools: list[dict[str, Any]] | None = None, model: str | None = None,
+        temperature: float | None = None, max_tokens: int | None = None,
+        response_format_json: bool = False, thinking: bool | None = None,
+        reasoning_effort: str | None = None,
+    ) -> dict[str, Any]:
         model = model or self.settings.llm_model
         thinking = self.settings.llm_thinking if thinking is None else thinking
         temperature = (
@@ -181,38 +269,7 @@ class LLMClient:
             kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
             kwargs["temperature"] = temperature
 
-        started = time.perf_counter()
-        resp = self._client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            **kwargs,
-        )
-        latency_ms = (time.perf_counter() - started) * 1000
-
-        usage = self._record(
-            resp, model=model, stage=stage, latency_ms=latency_ms, thinking=thinking
-        )
-        choice = resp.choices[0]
-        message = choice.message
-
-        calls: list[ToolCall] = []
-        for call in getattr(message, "tool_calls", None) or []:
-            calls.append(
-                ToolCall(
-                    id=call.id,
-                    name=call.function.name,
-                    arguments=call.function.arguments or "{}",
-                )
-            )
-
-        return LLMResponse(
-            text=message.content or "",
-            usage=usage,
-            tool_calls=calls,
-            raw=resp,
-            finish_reason=choice.finish_reason,
-        )
+        return {"model": model, "messages": messages, "max_tokens": max_tokens, **kwargs}
 
     # ------------------------------------------------------------------ #
     def embed(self, texts: list[str], *, stage: str = "embed") -> list[list[float]]:
@@ -260,7 +317,8 @@ class LLMClient:
 
     # ------------------------------------------------------------------ #
     def _record(
-        self, resp: Any, *, model: str, stage: str, latency_ms: float, thinking: bool
+        self, resp: Any, *, model: str, stage: str, latency_ms: float, thinking: bool,
+        reasoning_chars: int | None = None,
     ) -> Usage:
         u = getattr(resp, "usage", None)
         prompt_tokens = int(getattr(u, "prompt_tokens", 0) or 0)
@@ -298,10 +356,10 @@ class LLMClient:
                 self.settings.llm_usd_to_cny,
                 cached_prompt_tokens=cached,
                 peak=self.settings.llm_assume_peak,
-            ),
+            ) if u is not None else None,
             cached_prompt_tokens=cached,
             thinking=thinking,
-            reasoning_chars=len(reasoning),
+            reasoning_chars=len(reasoning) if reasoning_chars is None else reasoning_chars,
         )
         self.usages.append(usage)
         return usage
