@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
+from contextlib import closing
 from dataclasses import dataclass, field, replace
 from time import perf_counter
 from typing import Any
@@ -143,7 +144,7 @@ class CustomerServiceAgent:
     # ------------------------------------------------------------------ #
     def chat(self, user_message: str) -> AgentResult:
         """Run one user turn to completion, including any tool-call rounds."""
-        for _result in self.chat_stream(user_message):
+        for _result in self._run_turn(user_message, stream_text=False):
             pass
         return _result
 
@@ -158,7 +159,10 @@ class CustomerServiceAgent:
         )
 
     def chat_stream(self, user_message: str) -> Iterator[AgentResult]:
-        """Yield execution snapshots before slow calls and after tool results."""
+        """Yield execution progress and answer text as it arrives from the model."""
+        yield from self._run_turn(user_message, stream_text=True)
+
+    def _run_turn(self, user_message: str, *, stream_text: bool) -> Iterator[AgentResult]:
         started = perf_counter()
         self.llm.reset_usage()
         self.messages.append({"role": "user", "content": user_message})
@@ -170,9 +174,23 @@ class CustomerServiceAgent:
             result.steps = step
             yield self._snapshot(result, started)
             try:
-                response = self.llm.chat(
-                    self.messages, tools=schemas, stage=f"agent_step_{step}"
-                )
+                if stream_text:
+                    response = None
+                    with closing(self.llm.chat_stream(
+                        self.messages, tools=schemas, stage=f"agent_step_{step}",
+                    )) as events:
+                        for event in events:
+                            if isinstance(event, str):
+                                result.answer += event
+                                yield self._snapshot(result, started)
+                            else:
+                                response = event
+                    if response is None:
+                        raise RuntimeError("模型未返回完整响应")
+                else:
+                    response = self.llm.chat(
+                        self.messages, tools=schemas, stage=f"agent_step_{step}",
+                    )
             except Exception as exc:  # noqa: BLE001 - must surface, not crash the UI
                 message = f"{type(exc).__name__}: {exc}"
                 result.errors.append(f"llm_error: {message}")
@@ -183,10 +201,13 @@ class CustomerServiceAgent:
                         detail={"error_type": "llm_api_error", "message": message},
                     )
                 )
-                result.answer = (
-                    "抱歉，我这边连接服务时出了点问题，请稍后再试一次。"
-                    "如果反复出现，可以联系人工客服。"
-                )
+                if result.answer:
+                    result.answer += "\n\n⚠️ 回答中断，以上内容尚未完成，请重试。"
+                else:
+                    result.answer = (
+                        "抱歉，我这边连接服务时出了点问题，请稍后再试一次。"
+                        "如果反复出现，可以联系人工客服。"
+                    )
                 result.stop_reason = "llm_error"
                 self.messages.append({"role": "assistant", "content": result.answer})
                 break
@@ -205,6 +226,7 @@ class CustomerServiceAgent:
                 break
 
             # --- tool calls: execute, append results, continue ------------- #
+            result.answer = ""
             self.messages.append(self._assistant_message(response))
             for call in response.tool_calls:
                 result.tool_calls += 1

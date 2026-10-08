@@ -106,6 +106,9 @@ class ScriptedLLM:
 
         return _Response()
 
+    def chat_stream(self, messages, **kwargs):  # noqa: ANN001, ANN003
+        yield self.chat(messages, **kwargs)
+
     def reset_usage(self) -> None:
         pass
 

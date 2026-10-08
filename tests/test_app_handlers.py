@@ -24,7 +24,7 @@ import gradio as gr
 import pytest
 
 from acs.cs_tools import ToolRegistry
-from acs.service_agent import CustomerServiceAgent
+from acs.service_agent import AgentResult, CustomerServiceAgent
 
 from .conftest import ScriptedLLM, ScriptedResponse
 
@@ -280,12 +280,50 @@ def test_on_send_with_empty_message_is_a_no_op(monkeypatch) -> None:
     assert history == []
 
 
-def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch) -> None:
+@pytest.mark.parametrize("interrupted", [False, True])
+def test_send_updates_one_bubble_during_generation_without_mutating_prior_updates(
+    monkeypatch, interrupted,
+):
+    llm = _stub_agent(monkeypatch, [ScriptedResponse(text="7 天内可退。")])
+
+    def text_stream(messages, **kwargs):
+        yield "7 天"
+        if interrupted:
+            raise RuntimeError("断流")
+        yield "内可退。"
+        yield llm.chat(messages, **kwargs)
+
+    monkeypatch.setattr(llm, "chat_stream", text_stream)
+    previous = [{"role": "user", "content": "你好"}, {"role": "assistant", "content": "您好"}]
+    state = {"agent": None, "user_key": app_module.USER_CHOICES[0]}
+    results = list(app_module.on_send("退货期限？", previous, state, app_module.USER_CHOICES[0]))
+    partial = next(r for r in results if len(r[0]) == 4 and r[0][-1]["content"] == "7 天")
+    assert "data-reply-state='running'" in partial[-1]
+    assert partial[1] == ""
+    final = results[-1]
+    assert len(final[0]) == 4, "each reply must keep one bubble across partial and final updates"
+    assert final[0][:2] == previous
+    assert len(previous) == 2
+    assert partial[0][-1]["content"] == "7 天", "published partial text must stay immutable"
+    assert "data-reply-state='done'" in final[-1]
+    if interrupted:
+        assert final[0][-1]["content"].startswith("7 天")
+        assert "回答中断" in final[0][-1]["content"]
+        assert "回答失败" in final[-1]
+    else:
+        assert final[0][-1]["content"] == "7 天内可退。"
+        assert "回答完成" in final[-1]
+
+
+@pytest.mark.parametrize("partial", [False, True])
+def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch, partial) -> None:
     """A failing turn must produce a visible error panel, not a gradio 500."""
     real = app_module.ensure_agent
 
     class _Boom:
         def chat_stream(self, _message):  # noqa: ANN001
+            if partial:
+                yield AgentResult(answer="已生成的内容", stop_reason="running")
             raise RuntimeError("simulated backend failure")
 
         def reset(self) -> None:
@@ -306,6 +344,9 @@ def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch) -> None:
     ))[-1]
 
     assert "系统出现异常" in history[-1]["content"]
+    assert len(history) == 2
+    if partial:
+        assert history[-1]["content"].startswith("已生成的内容")
     assert "simulated backend failure" in trace, "the real cause must be visible"
     assert "err-box" in trace
     assert stats

@@ -480,6 +480,7 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
 
     started = perf_counter()
     history.append({"role": "user", "content": message})
+    reply_index = len(history)
     yield pack(
         history, render_trace(AgentResult(answer="", stop_reason="running")), state_dict,
         render_stats(None), card, render_header(user_key), render_reply_status(0, running=True),
@@ -488,8 +489,9 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
         agent = ensure_agent(state_dict, user_key)
         for result in agent.chat_stream(message):
             running = result.stop_reason == "running"
-            if not running:
-                history.append({"role": "assistant", "content": result.answer})
+            history[reply_index:] = (
+                [{"role": "assistant", "content": result.answer}] if result.answer else []
+            )
             yield pack(
                 history, render_trace(result), state_dict, render_stats(result), card,
                 render_header(user_key), render_reply_status(
@@ -501,9 +503,11 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
         # Surfaced in the panel, not only in the server log. A silent gradio 500
         # is how the keyword-only-argument bug stayed invisible in the browser.
         detail = f"{type(exc).__name__}: {exc}\n\n{traceback.format_exc(limit=6)}"
-        history.append(
-            {"role": "assistant", "content": "抱歉，系统出现异常，请稍后重试或联系人工客服。"}
-        )
+        partial = history[reply_index]["content"] + "\n\n" if len(history) > reply_index else ""
+        history[reply_index:] = [{
+            "role": "assistant",
+            "content": partial + "抱歉，系统出现异常，本次回答未完成，请稍后重试或联系人工客服。",
+        }]
         yield pack(
             history,
             render_trace(None, error=detail),
