@@ -127,7 +127,7 @@ uv run pytest && uv run ruff check .
 
 ## 基线（35 条黄金用例 × 3 遍 = 105 次尝试）
 
-`uv run python scripts/run_eval.py --passes 3` → `results/baseline_v3/`
+`uv run python scripts/run_eval.py --passes 3` → `results/baseline/`
 
 | 指标 | 值 |
 |---|---|
