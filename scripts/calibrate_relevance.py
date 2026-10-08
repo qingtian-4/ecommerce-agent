@@ -16,22 +16,29 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from acs.config import get_settings  # noqa: E402
-from acs.rag import CHUNKER_VERSION, KnowledgeBase  # noqa: E402
+from acs.rag import CHUNKER_VERSION, Chunk, KnowledgeBase  # noqa: E402
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--threshold-from", type=Path, help="verify a fixed deployed calibration")
+    parser.add_argument("--extra-samples", type=Path, help="public regression queries")
     args = parser.parse_args()
     if args.out.exists():
         raise FileExistsError(args.out)
     settings = get_settings().model_copy(update={"relevance_calibration_path": None})
     source = ROOT / "data/eval/retrieval_samples.yaml"
     samples = yaml.safe_load(source.read_text())["samples"]
+    if args.extra_samples:
+        samples += yaml.safe_load(args.extra_samples.read_text())["samples"]
     kb = KnowledgeBase(settings)
     kb.load()
-    vectors = kb.llm.embed([s["query"] for s in samples], stage="relevance_calibration")
+    vectors = []
+    for start in range(0, len(samples), 32):
+        vectors.extend(kb.llm.embed(
+            [s["query"] for s in samples[start:start + 32]], stage="relevance_calibration",
+        ))
     matrix = KnowledgeBase._normalise(np.asarray(vectors, dtype="float32"))
     scores, indices = kb._index.search(matrix, len(kb._chunks))
     rows = []
@@ -42,22 +49,29 @@ def main() -> None:
         rows.append(sample | {"top_score": hits[0]["score"], "hits": hits[:3]})
     # Keep every supported calibration query; reject only below its observed floor.
     threshold = min(r["top_score"] for r in rows
-                    if r["split"] == "calibration" and r["in_scope"]) - 0.000001
+                    if r["split"] != "validation" and r["in_scope"]) - 0.000001
     if args.threshold_from:
         bound = KnowledgeBase(settings.model_copy(update={
             "relevance_calibration_path": args.threshold_from,
-        }))
+        }), llm=kb.llm)
         bound.load()
         threshold = bound._min_score
+        for row in rows:
+            row["accepted"] = bool(bound._filter_evidence(
+                row["query"], [Chunk(**h) for h in row["hits"]],
+            ))
+    else:
+        for row in rows:
+            row["accepted"] = row["top_score"] >= threshold
     counts = {}
-    for split in ("calibration", "validation"):
+    for split in sorted({r["split"] for r in rows}):
         part = [r for r in rows if r["split"] == split]
         counts[split] = {
             "supported": sum(r["in_scope"] for r in part),
-            "supported_rejected": sum(r["in_scope"] and r["top_score"] < threshold for r in part),
+            "supported_rejected": sum(r["in_scope"] and not r["accepted"] for r in part),
             "unsupported": sum(not r["in_scope"] for r in part),
             "unsupported_rejected": sum(
-                not r["in_scope"] and r["top_score"] < threshold for r in part
+                not r["in_scope"] and not r["accepted"] for r in part
             ),
         }
     report = {
@@ -66,11 +80,14 @@ def main() -> None:
             p.name.encode() + b"\0" + p.read_bytes() for p in sorted(settings.docs_dir.glob("*.md"))
         )).hexdigest(),
         "samples_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "extra_samples_sha256": hashlib.sha256(args.extra_samples.read_bytes()).hexdigest()
+        if args.extra_samples else None,
         "chunker_version": CHUNKER_VERSION,
         "threshold": threshold, "counts": counts, "rows": rows,
         "method": ("fixed deployed threshold; no reselection" if args.threshold_from else
                    "lowest supported calibration top score; validation not used for selection"),
         "limitations": "small synthetic sample; score overlap cannot prove topical relevance",
+        "accounting": kb.llm.totals(),
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")

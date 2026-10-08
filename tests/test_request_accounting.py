@@ -76,3 +76,44 @@ def test_ui_labels_partial_cost():
 
     result = AgentResult(answer="", totals={"cost_cny": "0.001", "unpriced_models": ["embed"]})
     assert "部分" in render_stats(result)
+
+
+def test_relevance_verification_shares_the_agent_usage_ledger(settings, monkeypatch, tmp_path):
+    import hashlib
+    import json
+
+    from acs.rag import CHUNKER_VERSION
+
+    settings = settings.model_copy(update={
+        "llm_api_key": "test-key", "embedding_api_key": "test-embedding",
+    })
+    embedder = FakeEmbedder()
+    KnowledgeBase(settings, llm=embedder).build()
+    calibration = tmp_path / "calibration.json"
+    calibration.write_text(json.dumps({
+        "model": settings.embedding_model, "chunker_version": CHUNKER_VERSION,
+        "threshold": -1, "uncertain_until": 1,
+        "knowledge_sha256": hashlib.sha256(b"".join(
+            p.name.encode() + b"\0" + p.read_bytes() for p in sorted(settings.docs_dir.glob("*.md"))
+        )).hexdigest(),
+    }))
+    settings = settings.model_copy(update={"relevance_calibration_path": calibration})
+    llm = LLMClient(settings=settings)
+    llm._client = FakeOpenAI([
+        _Response([_Choice(_Message(tool_calls=[
+            _ToolCall("search", _Function("search_knowledge", '{"query":"退货"}')),
+        ]))]),
+        _Response([_Choice(_Message(content='{"indices":[0]}'))]),
+        _Response([_Choice(_Message(content="7天内可申请退货。"))]),
+    ])
+    provider = SimpleNamespace(embeddings=SimpleNamespace(create=lambda **kwargs: SimpleNamespace(
+        data=[SimpleNamespace(embedding=v) for v in embedder.embed(kwargs["input"])],
+        usage=SimpleNamespace(prompt_tokens=7, total_tokens=7),
+    )))
+    monkeypatch.setattr(openai, "OpenAI", lambda **kwargs: provider)
+    result = CustomerServiceAgent(settings=settings, llm=llm).chat("退货期限多久？")
+    assert result.totals["calls"] == 4
+    assert result.totals["total_tokens"] == 367
+    assert [u["stage"] for u in result.totals["usages"]] == [
+        "agent_step_1", "kb_search", "kb_relevance", "agent_step_2",
+    ]

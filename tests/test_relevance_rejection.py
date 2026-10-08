@@ -30,6 +30,38 @@ class OrthogonalEmbedder:
         return [[0.0, 1.0] if text == "库外问题" else [1.0, 0.0] for text in texts]
 
 
+@pytest.mark.parametrize("indices,expected", [([0], True), ([], False)])
+def test_overlapping_scores_use_evidence_and_record_a_distinct_model_stage(
+    calibrated, indices, expected,
+):
+    from types import SimpleNamespace
+
+    path = calibrated.relevance_calibration_path
+    data = json.loads(path.read_text())
+    data["uncertain_until"] = 0.7
+    path.write_text(json.dumps(data))
+
+    class AmbiguousClient:
+        def __init__(self):
+            self.requests = []
+
+        def embed(self, texts, *, stage):
+            return [[0.6, 0.8] if stage == "kb_search" else [1.0, 0.0] for text in texts]
+
+        def complete(self, prompt, **kwargs):
+            self.requests.append((json.loads(prompt), kwargs))
+            return SimpleNamespace(text=json.dumps({"indices": indices}))
+
+    client = AmbiguousClient()
+    kb = KnowledgeBase(calibrated, llm=client)
+    kb.build()
+    assert bool(kb.search("问题")) is expected
+    assert len(client.requests) == 1
+    assert client.requests[0][1]["stage"] == "kb_relevance"
+    assert client.requests[0][1]["thinking"] is False
+    assert "退货期限7天" in client.requests[0][0]["candidates"][0]["content"]
+
+
 def test_rejected_search_reports_found_false_instead_of_unrelated_documents(calibrated):
     kb = KnowledgeBase(calibrated, llm=OrthogonalEmbedder())
     kb.build()

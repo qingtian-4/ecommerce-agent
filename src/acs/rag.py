@@ -44,7 +44,7 @@ from .config import Settings, get_settings
 
 INDEX_FILE = "kb.faiss"
 META_FILE = "kb_meta.json"
-CHUNKER_VERSION = 4
+CHUNKER_VERSION = 5
 
 _FRONTMATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
@@ -150,6 +150,7 @@ class KnowledgeBase:
         self._dim: int | None = None
         self._fingerprint: str | None = None
         self._min_score: float | None = None
+        self._uncertain_until: float | None = None
 
     def _current_fingerprint(self) -> str:
         source = {
@@ -167,6 +168,7 @@ class KnowledgeBase:
         path = self.settings.relevance_calibration_path
         if path is None:
             self._min_score = None
+            self._uncertain_until = None
             return
         calibration = json.loads(path.read_text())
         knowledge_hash = hashlib.sha256(b"".join(
@@ -180,9 +182,11 @@ class KnowledgeBase:
                 "相关性标定与当前模型、知识库或切分版本不匹配；请重新采样标定，不能沿用旧阈值"
             )
         threshold = float(calibration["threshold"])
-        if not -1 <= threshold <= 1:
-            raise ValueError("相关性阈值必须在 [-1, 1] 范围内")
+        upper = float(calibration.get("uncertain_until", threshold))
+        if not -1 <= threshold <= upper <= 1:
+            raise ValueError("相关性边界必须满足 -1 <= 下界 <= 上界 <= 1")
         self._min_score = threshold
+        self._uncertain_until = upper
 
     # ------------------------------------------------------------------ #
     @property
@@ -204,11 +208,14 @@ class KnowledgeBase:
         chunks: list[Chunk] = []
         for path in sorted(docs_dir.glob("*.md")):
             meta, body = _parse_frontmatter(path.read_text(encoding="utf-8"))
+            title = meta.get("title", path.stem)
+            if meta.get("product_id"):
+                title = f"{title}（{meta['product_id']}）"
             chunks.extend(
                 chunk_text(
                     body,
                     document_id=meta.get("document_id", path.stem),
-                    title=meta.get("title", path.stem),
+                    title=title,
                     category=meta.get("category", "unknown"),
                     chunk_size=self.settings.chunk_size,
                     chunk_overlap=self.settings.chunk_overlap,
@@ -253,6 +260,7 @@ class KnowledgeBase:
                     "fingerprint": fingerprint,
                     "chunker_version": CHUNKER_VERSION,
                     "relevance_min_score": self._min_score,
+                    "relevance_uncertain_until": self._uncertain_until,
                     "chunks": [c.as_dict() for c in chunks],
                 },
                 ensure_ascii=False,
@@ -323,8 +331,6 @@ class KnowledgeBase:
         for score, idx in zip(scores[0], indices[0], strict=True):
             if idx < 0:
                 continue
-            if self._min_score is not None and score < self._min_score:
-                continue
             chunk = self._chunks[int(idx)]
             results.append(
                 Chunk(
@@ -336,7 +342,39 @@ class KnowledgeBase:
                     score=float(score),
                 )
             )
-        return results
+        return self._filter_evidence(query, results)
+
+    def _filter_evidence(self, query: str, results: list[Chunk]) -> list[Chunk]:
+        if self._min_score is None or not results:
+            return results
+        if results[0].score < self._min_score:
+            return []
+        if results[0].score <= self._uncertain_until:
+            return self._verify_evidence(query, results)
+        return [c for c in results if c.score >= self._min_score]
+
+    def _verify_evidence(self, query: str, candidates: list[Chunk]) -> list[Chunk]:
+        """Resolve the measured overlap in scores using the actual candidate text."""
+        response = self.llm.complete(
+            json.dumps({"question": query, "candidates": [
+                {"index": i, "title": c.title, "content": c.content}
+                for i, c in enumerate(candidates)
+            ]}, ensure_ascii=False),
+            system=(
+                "判断给定知识片段能否直接支撑问题的具体事实或规则。"
+                "只根据提供的正文，不用常识补全，不把同一商品、相似主题当作答案依据。"
+                "商品编号须与片段标题对应；未提供的事实不可推断。"
+                '只输出 JSON {"indices": [0]}，索引从0开始；没有依据则输出 {"indices": []}。'
+            ),
+            stage="kb_relevance", temperature=0.0, thinking=False,
+            max_tokens=128, response_format_json=True,
+        )
+        indices = json.loads(response.text).get("indices")
+        if not isinstance(indices, list) or any(
+            type(i) is not int or not 0 <= i < len(candidates) for i in indices
+        ):
+            raise ValueError("相关性核验未返回合法的候选索引")
+        return [chunk for i, chunk in enumerate(candidates) if i in indices]
 
     # ------------------------------------------------------------------ #
     @staticmethod

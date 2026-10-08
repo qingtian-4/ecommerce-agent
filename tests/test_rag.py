@@ -62,6 +62,14 @@ def test_every_document_produces_chunks(settings) -> None:
         assert chunk.title and chunk.document_id and chunk.chunk_id
 
 
+def test_every_product_section_keeps_its_identifier_in_the_embedded_title(settings):
+    chunks = KnowledgeBase(settings).load_documents()
+    for document, sku in [("headphone_a", "P001"), ("headphone_b", "P002"),
+                          ("charger_a", "P003"), ("power_bank_a", "P004")]:
+        sections = [c for c in chunks if c.document_id == document]
+        assert sections and all(sku in c.title for c in sections)
+
+
 # --------------------------------------------------------------------------- #
 # index
 # --------------------------------------------------------------------------- #
