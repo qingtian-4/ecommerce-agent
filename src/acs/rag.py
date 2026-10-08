@@ -32,6 +32,7 @@ uninterpretable to anyone reading the trace.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import asdict, dataclass
@@ -43,6 +44,7 @@ from .config import Settings, get_settings
 
 INDEX_FILE = "kb.faiss"
 META_FILE = "kb_meta.json"
+CHUNKER_VERSION = 4
 
 _FRONTMATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
@@ -128,7 +130,7 @@ def chunk_text(
             content=text.strip(),
         )
         for i, text in enumerate(texts, start=1)
-        if text.strip()
+        if re.sub(r"(?m)^#{1,6}\s.*$", "", text).strip()
     ]
 
 
@@ -146,6 +148,19 @@ class KnowledgeBase:
         self._index: Any = None
         self._chunks: list[Chunk] = []
         self._dim: int | None = None
+        self._fingerprint: str | None = None
+
+    def _current_fingerprint(self) -> str:
+        source = {
+            "chunker_version": CHUNKER_VERSION,
+            "chunk_size": self.settings.chunk_size,
+            "chunk_overlap": self.settings.chunk_overlap,
+            "documents": [
+                (p.name, hashlib.sha256(p.read_bytes()).hexdigest())
+                for p in sorted(self.settings.docs_dir.glob("*.md"))
+            ],
+        }
+        return hashlib.sha256(json.dumps(source, sort_keys=True).encode()).hexdigest()
 
     # ------------------------------------------------------------------ #
     @property
@@ -184,6 +199,7 @@ class KnowledgeBase:
     # ------------------------------------------------------------------ #
     def build(self) -> dict[str, Any]:
         """Embed all chunks and persist the index next to its metadata."""
+        fingerprint = self._current_fingerprint()
         chunks = self.load_documents()
         # Prefix the title so a chunk that never repeats the product name is
         # still findable by it ("保修期多久" -> warranty_policy sections; but
@@ -199,6 +215,9 @@ class KnowledgeBase:
         index = faiss.IndexFlatIP(self._dim)
         index.add(matrix)
 
+        if self._current_fingerprint() != fingerprint:
+            raise RuntimeError("索引构建期间源文档变更，请重新运行 scripts/build_index.py")
+
         self.settings.index_dir.mkdir(parents=True, exist_ok=True)
         faiss.write_index(index, str(self.settings.index_dir / INDEX_FILE))
         (self.settings.index_dir / META_FILE).write_text(
@@ -208,6 +227,8 @@ class KnowledgeBase:
                     "model": self.settings.embedding_model,
                     "chunk_size": self.settings.chunk_size,
                     "chunk_overlap": self.settings.chunk_overlap,
+                    "fingerprint": fingerprint,
+                    "chunker_version": CHUNKER_VERSION,
                     "chunks": [c.as_dict() for c in chunks],
                 },
                 ensure_ascii=False,
@@ -216,6 +237,7 @@ class KnowledgeBase:
             encoding="utf-8",
         )
         self._index, self._chunks = index, chunks
+        self._fingerprint = fingerprint
         return {
             "chunks": len(chunks),
             "dim": self._dim,
@@ -224,7 +246,7 @@ class KnowledgeBase:
 
     # ------------------------------------------------------------------ #
     def load(self) -> None:
-        """Load a previously built index, verifying the embedding model matches.
+        """Load an index only when its model, documents and chunking still match.
 
         The model check matters: loading a 4096-dim index built by one model and
         querying it with another would either raise on shape or, worse, return
@@ -244,18 +266,26 @@ class KnowledgeBase:
                 f"index was built with {built_with!r} but settings use "
                 f"{self.settings.embedding_model!r}; rebuild with scripts/build_index.py"
             )
+        fingerprint = self._current_fingerprint()
+        if meta.get("fingerprint") != fingerprint:
+            raise RuntimeError(
+                "知识索引过期：文档或切分配置已变更；rebuild with scripts/build_index.py"
+            )
 
         import faiss
 
         self._index = faiss.read_index(str(index_path))
         self._dim = int(meta["dim"])
         self._chunks = [Chunk(**c) for c in meta["chunks"]]
+        self._fingerprint = fingerprint
 
     # ------------------------------------------------------------------ #
     def search(self, query: str, top_k: int | None = None) -> list[Chunk]:
         """Return the top-k most similar chunks. Empty list if nothing to search."""
         if self._index is None:
             self.load()
+        elif self._fingerprint != self._current_fingerprint():
+            raise RuntimeError("知识索引过期：源文档已变更；rebuild with scripts/build_index.py")
         k = top_k or self.settings.top_k
         if not self._chunks or not query.strip():
             return []

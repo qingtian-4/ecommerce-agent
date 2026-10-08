@@ -123,3 +123,64 @@ def test_search_without_index_raises_actionable_error(settings, fake_embedder) -
 
 def test_empty_query_returns_nothing(settings, built_kb) -> None:
     assert built_kb.search("   ") == []
+
+
+def test_heading_only_sections_are_not_indexed_and_ids_stay_stable():
+    chunks = chunk_text(
+        "# 价保政策\n\n## 期限\n\n下单后15天内。\n\n## 空标题",
+        document_id="policy", title="政策", category="policy", chunk_size=700, chunk_overlap=0,
+    )
+    assert [c.chunk_id for c in chunks] == ["policy#2"]
+    assert "下单后15天" in chunks[0].content
+
+
+@pytest.mark.parametrize("change", ["content", "add", "delete", "chunk_size", "chunk_overlap"])
+def test_changed_sources_and_chunking_refuse_stale_loads(settings, fake_embedder, tmp_path, change):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    source = docs / "policy.md"
+    source.write_text("# 退货\n\n退货期限为7天。")
+    settings = settings.model_copy(update={"docs_dir": docs})
+    kb = KnowledgeBase(settings, llm=fake_embedder)
+    kb.build()
+    if change == "content":
+        source.write_text("# 退货\n\n退货期限为30天。")
+    elif change == "add":
+        (docs / "new.md").write_text("# 价保\n\n价保15天。")
+    elif change == "delete":
+        source.unlink()
+    else:
+        settings = settings.model_copy(update={change: getattr(settings, change) + 1})
+    with pytest.raises(RuntimeError, match="过期"):
+        KnowledgeBase(settings, llm=fake_embedder).load()
+    if change == "content":
+        with pytest.raises(RuntimeError, match="过期"):
+            kb.search("退货期限")
+
+
+def test_legacy_metadata_without_a_fingerprint_requires_a_rebuild(settings, built_kb):
+    path = settings.index_dir / "kb_meta.json"
+    meta = json.loads(path.read_text())
+    del meta["fingerprint"]
+    path.write_text(json.dumps(meta))
+    with pytest.raises(RuntimeError, match="rebuild"):
+        KnowledgeBase(settings, llm=built_kb.llm).load()
+
+
+def test_documents_changed_during_embedding_do_not_publish_a_mixed_index(
+    settings, fake_embedder, tmp_path,
+):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    source = docs / "policy.md"
+    source.write_text("退货期限7天。")
+    settings = settings.model_copy(update={"docs_dir": docs})
+
+    class ChangingEmbedder:
+        def embed(self, texts, **kwargs):
+            source.write_text("退货期限30天。")
+            return fake_embedder.embed(texts)
+
+    with pytest.raises(RuntimeError, match="构建期间"):
+        KnowledgeBase(settings, llm=ChangingEmbedder()).build()
+    assert not (settings.index_dir / "kb.faiss").exists()
