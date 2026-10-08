@@ -1,7 +1,8 @@
 # 评测集原始方案（Eval Plan）
 
-**状态**：已实现 35 条用例及评测管线。下文保留最初的设计背景与估算，
-实际口径以 `data/eval/cases.yaml`、`src/acs/eval_runner.py` 为准；
+**状态（2026-10-09）**：原 35 条历史用例冻结保留；新增验证集 15 条、公开开发集 70 条，
+其中 10 条多轮会话逐轮评分。下文保留最初的设计背景与估算，
+实际口径以 `data/eval/development.yaml`、`src/acs/eval_runner.py` 为准；
 后续修复与实测结果见 [主要问题与解决过程](PROBLEM_SOLVING.md)。
 
 **目标不是"做一个 benchmark"**，而是把「改进了多少」从主观判断变成可测量的数字。

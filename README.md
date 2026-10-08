@@ -23,7 +23,7 @@ User → Gradio UI → Naive Unified Agent (deepseek-flash)
 - 5 个只读工具（4 个业务查询 + 1 个知识检索）
 - Web UI：客服对话与**可观测执行轨迹**、业务数据浏览、评测对照与逐条回放
 - 会话级多轮历史、越权防护、错误兜底
-- 35 条黄金用例、分层评分与重复运行，保存逐条答案、调用、错误和运行条件
+- 70 条公开开发用例（含 10 条多轮）与 15 条独立文件的新增验证，保存每轮答案、调用、证据、错误和运行条件；原 35 条历史对照保留
 
 当前业务工具均为只读查询，能够判断条件、解释流程，尚不能实际退款或提交售后申请。
 界面中的用户选择用于模拟会话身份，尚未接入真实登录。
@@ -41,7 +41,7 @@ cp .env.example .env        # 填入 ACS_LLM_API_KEY 与 ACS_EMBEDDING_API_KEY
 
 # 3. 建库 + 建索引（各一次）
 uv run python scripts/init_db.py        # 25 订单 / 4 商品 / 19 物流
-uv run python scripts/build_index.py    # 51 chunks / 8 文档
+uv run python scripts/build_index.py    # 48 chunks / 8 文档
 
 # 4. 启动
 uv run python app.py                    # http://127.0.0.1:7860
@@ -55,6 +55,8 @@ uv run pytest && uv run ruff check .
 ```
 
 `app.py` 会在索引缺失时自动构建，所以第 3 步对启动不是必需的，但对调试有用。
+已有索引与文档、切分配置或版本不符时会明确报错，需重新构建；不会继续返回旧政策。
+相关性标定绑定知识库、切分版本与 embedding 模型，不能直接套用到新语料。
 样例数据库按生成当日计算日期；跨日重演“前天收到”等示例时需重新生成。
 对照评测使用固定参考日期，见问题记录中的运行条件。
 
@@ -68,7 +70,7 @@ uv run pytest && uv run ruff check .
 | --- | --- |
 | 客服对话 | 发送问题、多轮追问；逐步查看工具调用、返回事实与知识命中，查看 token 和部分成本 |
 | 业务数据 | 浏览 25 个订单、26 条明细、19 条物流；选择订单查看金额与时间线，选择商品查看价格历史 |
-| 评测进展 | 查看三组共同 v4 对照；筛选 35 条用例，切换尝试次数，对比原始答案和失败原因 |
+| 评测进展 | 查看新增 15 条首次验证与 70 条开发回归的阶段结果；按共同 v5 规则回放原 35 条历史对照 |
 
 建议按下面的顺序体验：
 
@@ -107,8 +109,10 @@ uv run pytest && uv run ruff check .
 
 ## 工具调用效率对照
 
-本轮对照使用 35 条用例各跑 3 次；固定业务参考日期、模型配置、知识索引和定价假设，
-改变工具选择提示与描述。初版出现质量回退后补回必要的政策检查，三组共 315 次在线尝试；
+本轮改变的是工具选择提示与工具描述文案，控制流、工具实现与数据结构未变。
+结果反映提示词引导的效果，不能直接解释为 Agent 架构能力提升。
+对照使用 35 条可见开发用例各跑 3 次；固定业务参考日期、模型配置、知识索引和定价假设。
+初版出现质量回退后补回必要的政策检查，三组共 315 次在线尝试；
 全部原始答案统一按 v4 规则重新评分。
 
 | 指标 | 优化前 | 修正后 |
@@ -123,22 +127,61 @@ uv run pytest && uv run ruff check .
 原始耗时存在 embedding 服务故障波动。两组均无执行错误的 99 个同一尝试中，
 平均耗时为 3278 → 2773 ms，p50 基本持平。结果主要支持调用效率改善；
 token 与中位延迟尚未改善。100% 仅是本批合成用例的规则通过率。
-证据见 [共同口径对照](results/tool_efficiency/comparison.json) 与
+证据见 [历史 v4 对照](results/tool_efficiency/comparison.json)、
+[v5 命名修正后的离线重评分](results/tool_efficiency/comparison_v5.json) 与
 [完整问题记录](docs/PROBLEM_SOLVING.md)。
 
 旧版 [baseline/summary.json](results/baseline/summary.json) 保留为历史记录。
 其 100% 成功率存在答案漏检，成本未包含 embedding，延迟只累加对话 API 耗时；
 因此不能与新口径直接比较。检索指标是多次检索累计的必需文档命中率，不是单次 Recall@3。
 
-开发评测默认输出到独立目录；如需指定目录，使用：
+v5 将工具种类一致、调用总数一致、各工具调用次数一致分别记录为
+`tool_set_exact`、`call_count_exact`、`tool_call_counts_exact`；严格成功要求普通成功且
+各工具调用次数符合用例预算。累计必需文档命中为 `cumulative_document_hit`，
+`cumulative_first_relevant_rr` 是拼接历次检索排名的首个相关文档倒数，均不是单次 Recall@3。
+每次检索独立保存 query 与排名；重要政策检查 `support_section_hit`，库外检查
+`knowledge_rejection_ok`。多轮会话使用同一个 Agent，但每轮分别评分，任一轮失败则会话失败。
+原始历史文件不改写，命名修正没有提高旧对照成绩。
+
+开发评测默认输出到独立目录；指定公开开发集与新目录：
 
 ```bash
-uv run python scripts/run_eval.py --passes 3 --out results/my_run
+uv run python scripts/run_eval.py --cases data/eval/development.yaml --passes 1 --out results/my_run
 ```
 
-规则评分用于发现明确的事实和调用错误，尚不能完整判断回答语义。35 条合成用例
-也未覆盖真实登录、写操作和复杂多轮业务，结果应在这个范围内解释。
-后续优先扩充实际失败案例，再判断是否需要改进检索或引入路由。
+省略 `--cases` 时仍使用冻结的原 35 条用例，便于复现历史实验。
+规则评分用于发现明确的事实和调用错误，尚不能完整判断回答语义；
+合成用例未覆盖真实登录、写操作，结果应在这个范围内解释。
+
+## 新增验证与检索修复（2026-10-09）
+
+改动 Agent 行为前冻结 15 条新问题，首次规则通过 **11/15（73.3%）**，严格通过 10/15，
+含 1 次 embedding 异常。原提示词复跑及四项消融为 11–13/15，样本小且有服务波动，
+不能直接判定是否过拟合。用例作者已读过项目，它不是严格盲测；结果公开后不再是未见集。
+正式提示词和工具描述本轮保持不变。
+
+随后扩充公开开发集并修复过期索引、纯标题段落与库外检索。首版阈值造成三条型号问题
+误拒，保留失败结果，再补齐商品编号元数据、核验分数重叠区间的候选证据。
+
+| 同一 70 条开发用例、v5、各 1 遍 | 修复前 | 首版过滤 | 修正后 |
+| --- | ---: | ---: | ---: |
+| 规则通过 | 53/70 | 58/70 | 58/70 |
+| 严格通过 | 50/70 | 55/70 | 57/70 |
+| 累计必需文档命中 | 32/37 | 30/37 | 33/37 |
+| 库外拒答 | 0/4 | 4/4 | 4/4 |
+| 多轮会话通过 | 7/10 | 8/10 | 7/10 |
+| 端到端耗时 p50 | 2216 ms | 2270 ms | 2487 ms |
+
+最终比基线多通过 5 条，有 6 条改善、1 条回退；单次运行不证明稳定性或显著性。
+修正后额外触发 5 次证据核验、2111 token、已定价小计 0.002870 元，全部纳入请求统计。
+平均 token 基本持平，中位延迟增加，不能宣称性能全面提升。
+P002 快充仍漏检索；部分规格问题多查商品，正确答案也可能触发狭窄规则误判。
+尚未新增实际退款、售后写操作。
+
+证据：[首次新增验证](results/holdout/first/summary.json)、
+[同条件开发回归](results/review_regression/comparison.json)、
+[修正后逐条记录](results/review_regression/after_v2/per_case.jsonl)。
+根因、过程与下一步见 [主要问题记录](docs/PROBLEM_SOLVING.md)。
 
 ---
 
@@ -161,9 +204,11 @@ data/
   docs/*.md                   8 篇知识文档（带 front-matter）
   db/business.db              25 订单 / 4 商品
   .index/                     kb.faiss + kb_meta.json
+  eval/                       冻结历史集 / 新增验证 / 公开开发集 / 检索标定样本
 scripts/
   init_db.py  build_index.py  run_demo_cases.py
   run_eval.py  validate_cases.py
+  run_prompt_ablation.py  calibrate_relevance.py
   check_connectivity.py  check_secrets.py  smoke_llm.py
 tests/                        离线回归测试（无需 API）
 docs/                         PROBLEM_SOLVING / PROJECT_REVIEW / EXPERIMENT_LOG

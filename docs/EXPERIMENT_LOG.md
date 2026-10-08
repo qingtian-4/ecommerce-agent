@@ -402,3 +402,57 @@ uv run python scripts/summarize_tool_efficiency.py
 147 项离线测试、ruff、35 条业务事实校验通过；共同口径对照可由脚本离线复算。
 首轮优化跳过必要政策的失败被保留。后续应扩充独立用例与多轮流程，
 而不是将这批 35 条用例的 100% 当作通用质量结论。
+
+## E003 — 新问题验证、覆盖扩充与检索拒答
+
+**Date:** 2026-10-08 至 2026-10-09；业务参考日固定为 2026-10-08。
+**Status:** 完成首次验证、公开开发回归和检索修复；写操作尚未实现。
+
+| Field | Value |
+| --- | --- |
+| commit | 首次验证 `f8b098b`；开发基线 `f6cd51e`；首版过滤 `e1eb715`；修正检索 `db238d6` |
+| model | deepseek-flash；Qwen/Qwen3-Embedding-8B |
+| prompt_version | 正式提示词 SHA `7ac76014e198d0807d6a07b18f5bef94f51ed0bad44bab026327df962cf2e6d1`，工具描述不变；消融仅隔离进程变化 |
+| dataset_version | holdout.yaml 15 条首次验证；development.yaml 70 条公开开发、含 10 条多轮；具体 SHA 见各 summary.run |
+| kb_version | 正文 SHA `d80b1c841915869422ca059a68100ee67f3ea299ea5ba054f07a36877cad15fc` 不变；51 → 48 小节；切分版本 5，商品标题保留编号 |
+| scoring_version | 新增首次验证 v4；三组开发回归均 v5，未改用例或放宽判据 |
+| temperature / thinking | 0.0 / false |
+| top_k / max_steps | 3 / 6 |
+| seed | 未设置；每阶段单遍，不证明稳定性 |
+| pricing | peak=true，汇率 7.2；embedding 未定价，小计不能当作完整账单 |
+
+冻结 15 条新增问题后才改变行为；首次 11/15、严格 10/15，包含一次 embedding 错误，
+即使最终回答正确也不剔除。原提示词复跑 12/15，四项消融 11–13/15；
+小样本与一次复跑不能按任意分数阈值断言过拟合，也不能据此删除安全规则。
+用例作者已读过代码，此集不是严格盲测；看过结果后不再称为未见集。
+
+公开开发集三阶段规则成功 53 → 58 → 58 /70，严格成功 50 → 55 → 57 /70；
+文档命中 32 → 30 → 33 /37，库外拒答 0 → 4 → 4 /4。首版回退保留后，
+补商品编号并仅对实测分数重叠区间核验证据；没有引入 Judge 作为评测主判据。
+最终多轮仍 7/10，中位耗时 2216 → 2487 ms，平均 token 基本持平，未证明性能改善。
+最终 5 次核验、2111 token、小计 0.002870 元全部记账。
+
+真实检索采样 81 条：有效问题保留 57/58，库外拒绝 23/23；validation 子集 10+6 均通过。
+阈值只用 calibration/regression 选择，不用 validation；其余公开开发 query 参与修复，
+因此开发回归不能充当独立泛化证据。未命中候选与狭窄文本规则误判继续披露。
+
+实际命令（临时合成数据库已冻结在 2026-10-08；重新执行请指定新输出目录）：
+
+```bash
+ACS_DB_PATH=/tmp/acs-review-20261008/business.db ACS_REFERENCE_DATE=2026-10-08 ACS_LLM_ASSUME_PEAK=true uv run python scripts/run_eval.py --cases data/eval/holdout.yaml --passes 1 --out results/holdout/first
+ACS_DB_PATH=/tmp/acs-review-20261008/business.db ACS_REFERENCE_DATE=2026-10-08 ACS_LLM_ASSUME_PEAK=true uv run python scripts/run_prompt_ablation.py --out results/holdout/ablation
+ACS_DB_PATH=/tmp/acs-review-20261008/business.db ACS_REFERENCE_DATE=2026-10-08 ACS_LLM_ASSUME_PEAK=true uv run python scripts/run_eval.py --cases data/eval/development.yaml --passes 1 --out results/review_regression/after_v2
+uv run python scripts/calibrate_relevance.py --extra-samples data/eval/retrieval_regression_samples.yaml --threshold-from data/eval/relevance_calibration.json --out results/relevance/evidence_gate.json
+```
+
+对照条件自动校验了数据集、提示词、数据库、知识正文、核心非检索源码与模型配置，
+原始记录不覆盖，检索和索引版本分别留档。
+证据：[开发对照](../results/review_regression/comparison.json)、
+[首次验证](../results/holdout/first/summary.json)、
+[采样核验](../results/relevance/evidence_gate.json)；原因与逐步纠正见
+[PROBLEM_SOLVING.md](PROBLEM_SOLVING.md#6-旧索引会返回过期政策库外问题也总能命中)。
+
+验证：201 项离线测试与 ruff 通过；新版服务实际浏览器检查通过，评测页显示四阶段与
+历史 v5 回放。发票问题检索为空并拒答，P002 LDAC 命中 `headphone_b#5`；
+两次回答完成前分别观察到 58 / 119 次正文增量更新，输入框可见并恢复，无页面脚本错误。
+证据：[真实浏览器记录](../results/ui_review/browser_check.json)。
