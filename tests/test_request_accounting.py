@@ -31,15 +31,18 @@ def test_retrieval_usage_is_counted_and_cleared_on_the_next_turn(settings, monke
         ]))]),
         _Response([_Choice(_Message(content="7天内可申请退货。"))]),
     ])
-    provider = SimpleNamespace(embeddings=SimpleNamespace(
-        create=lambda **kwargs: SimpleNamespace(
+    clock = [10.0]
+
+    def embedding_response(**kwargs):
+        clock[0] += 0.25
+        return SimpleNamespace(
             data=[SimpleNamespace(embedding=v) for v in embedder.embed(kwargs["input"])],
             usage=SimpleNamespace(prompt_tokens=7, total_tokens=7),
-        ),
-    ))
+        )
+
+    provider = SimpleNamespace(embeddings=SimpleNamespace(create=embedding_response))
     monkeypatch.setattr(openai, "OpenAI", lambda **kwargs: provider)
-    clock = iter([10.0, 10.25, 20.0, 20.1])
-    monkeypatch.setattr("acs.service_agent.perf_counter", lambda: next(clock), raising=False)
+    monkeypatch.setattr("acs.service_agent.perf_counter", lambda: clock[0], raising=False)
     agent = CustomerServiceAgent(settings=settings, llm=llm)
 
     first = agent.chat("退货政策是什么？")

@@ -24,7 +24,8 @@ is measured against.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from collections.abc import Iterator
+from dataclasses import dataclass, field, replace
 from time import perf_counter
 from typing import Any
 
@@ -86,7 +87,7 @@ class AgentResult:
     retrieval_queries: list[str] = field(default_factory=list)
     retrieved_documents: list[dict[str, Any]] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
-    stop_reason: str = "answered"  # answered | max_steps | llm_error
+    stop_reason: str = "answered"  # running | answered | max_steps | llm_error
     totals: dict[str, Any] = field(default_factory=dict)
 
     def decision_summary(self) -> str:
@@ -142,15 +143,32 @@ class CustomerServiceAgent:
     # ------------------------------------------------------------------ #
     def chat(self, user_message: str) -> AgentResult:
         """Run one user turn to completion, including any tool-call rounds."""
+        for _result in self.chat_stream(user_message):
+            pass
+        return _result
+
+    def _snapshot(self, result: AgentResult, started: float) -> AgentResult:
+        totals = self.llm.totals()
+        totals["api_latency_ms"] = totals.get("latency_ms", 0.0)
+        totals["latency_ms"] = round((perf_counter() - started) * 1000, 1)
+        return replace(
+            result, trace=list(result.trace), errors=list(result.errors), totals=totals,
+            retrieval_queries=list(result.retrieval_queries),
+            retrieved_documents=list(result.retrieved_documents),
+        )
+
+    def chat_stream(self, user_message: str) -> Iterator[AgentResult]:
+        """Yield execution snapshots before slow calls and after tool results."""
         started = perf_counter()
         self.llm.reset_usage()
         self.messages.append({"role": "user", "content": user_message})
 
-        result = AgentResult(answer="")
+        result = AgentResult(answer="", stop_reason="running")
         schemas = self.registry.schemas()
 
         for step in range(1, self.max_steps + 1):
             result.steps = step
+            yield self._snapshot(result, started)
             try:
                 response = self.llm.chat(
                     self.messages, tools=schemas, stage=f"agent_step_{step}"
@@ -190,10 +208,15 @@ class CustomerServiceAgent:
             self.messages.append(self._assistant_message(response))
             for call in response.tool_calls:
                 result.tool_calls += 1
+                result.trace.append(TraceEvent(
+                    type="tool_call", label=call.name, detail={"arguments": call.arguments},
+                ))
+                yield self._snapshot(result, started)
                 payload, events, error = self.registry.run(
                     call.name, call.arguments, current_user_id=self.current_user_id
                 )
-                result.trace.extend(events)
+                # The registry's first event is the call already published above.
+                result.trace.extend(events[1:])
                 if error:
                     result.errors.append(error)
                 for event in events:
@@ -209,6 +232,7 @@ class CustomerServiceAgent:
                         "content": json.dumps(payload, ensure_ascii=False, default=str),
                     }
                 )
+                yield self._snapshot(result, started)
         else:
             # Loop exhausted without a final answer.
             result.stop_reason = "max_steps"
@@ -229,10 +253,7 @@ class CustomerServiceAgent:
             )
             self.messages.append({"role": "assistant", "content": result.answer})
 
-        result.totals = self.llm.totals()
-        result.totals["api_latency_ms"] = result.totals.get("latency_ms", 0.0)
-        result.totals["latency_ms"] = round((perf_counter() - started) * 1000, 1)
-        return result
+        yield self._snapshot(result, started)
 
     # ------------------------------------------------------------------ #
     @staticmethod

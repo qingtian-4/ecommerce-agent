@@ -43,6 +43,59 @@ def agent(settings, llm, registry, user: str = "USER001", max_steps: int | None 
 # --------------------------------------------------------------------------- #
 # tool execution inside the loop
 # --------------------------------------------------------------------------- #
+def test_stream_publishes_call_before_execution_and_result_before_next_model_request(
+    settings, registry, monkeypatch,
+):
+    llm = ScriptedLLM([
+        ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall("order", "get_order", '{"order_id": "O10024"}'),
+        ]),
+        ScriptedResponse(text="已签收。"),
+    ])
+    executed = []
+    original = registry.run
+
+    def run(*args, **kwargs):
+        executed.append(args[0])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(registry, "run", run)
+    stream = agent(settings, llm, registry).chat_stream("查 O10024")
+    waiting = next(stream)
+    assert waiting.stop_reason == "running"
+    assert llm.calls == []
+    calling = next(stream)
+    assert [e.type for e in calling.trace] == ["tool_call"]
+    assert executed == [], "the browser must see the call before the tool blocks"
+    returned = next(stream)
+    assert [e.type for e in returned.trace] == ["tool_call", "tool_result"]
+    assert executed == ["get_order"]
+    assert len(llm.calls) == 1
+    assert returned.answer == ""
+    final = list(stream)[-1]
+    assert final.answer == "已签收。"
+    assert final.stop_reason == "answered"
+    assert [e.type for e in final.trace] == ["tool_call", "tool_result", "final"]
+    assert len(calling.trace) == 1, "later updates must not mutate earlier snapshots"
+    assert returned.answer == ""
+
+
+def test_stream_reports_tool_errors_before_the_final_answer(settings, registry):
+    llm = ScriptedLLM([
+        ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall("bad", "unknown_tool", "{}"),
+        ]),
+        ScriptedResponse(text="无法执行。"),
+    ])
+    snapshots = list(agent(settings, llm, registry).chat_stream("查订单"))
+    failed = next(s for s in snapshots if s.errors)
+    assert failed.stop_reason == "running"
+    assert failed.answer == ""
+    assert failed.trace[-1].type == "error"
+    assert snapshots[-1].stop_reason == "answered"
+    assert snapshots[-1].errors == failed.errors
+
+
 def test_agent_executes_a_tool_then_answers(settings, registry) -> None:
     llm = ScriptedLLM(
         [
