@@ -270,7 +270,7 @@ uv run pytest && uv run ruff check .
 
 | Check | Result |
 |---|---|
-| `pytest` | **129 passed** |
+| `pytest` | 原记录 129 未获证据支持；审核用当前依赖回放对应源码为 98，见 PROJECT_REVIEW.md |
 | `ruff check .` | All checks passed |
 | UI | HTTP 200 on `127.0.0.1:7860`; all expected panels render |
 | Demo case 1 (RAG only) | 1 tool call, 1.66 s, 2886 tokens, ¥0.001436 |
@@ -344,3 +344,61 @@ chunk occupying a top-k slot, weak product-level retrieval, cross-user refusal
 never reaching the SQL guard) are listed in `README.md` under Bad Cases, and the
 proposed order of work is justified there **from those observations** rather than
 from the earlier design documents.
+
+---
+
+## E002 — 事实与测量修复后的工具调用对照
+
+**Date:** 2026-10-08
+**Commit:** before `b74eced` / initial `9c633de` / after `4724792`
+**Status:** complete — 315 次在线尝试已完成，原始结果保留并统一按 v4 离线重评分。
+
+本轮先修复数据、评分和统计范围，再比较工具选择提示与描述。
+原始 105 次 baseline 保留为历史证据，其旧评分与耗时口径不参与本次性能对照。
+
+| 字段 | 固定条件或版本 |
+| --- | --- |
+| model | deepseek-flash |
+| embedding | Qwen/Qwen3-Embedding-8B |
+| prompt_version | 两组 summary.run.prompt_sha256；工具描述版本见 conditions.json |
+| dataset_version | 三组相同的 35 个问题与用户，各 3 遍；判据统一使用 v4 重新评分 |
+| kb_version | 相同的 knowledge_sha256 与 index_sha256 |
+| temperature / thinking | 0.0 / false |
+| top_k / max_steps | 3 / 6 |
+| seed | 未设置；温度 0 不代表服务输出完全确定 |
+| reference_date | 2026-10-08 |
+| pricing | 固定 peak=true，USD/CNY=7.2；embedding 未定价，成本为 LLM 估算小计 |
+
+实际运行命令，两组共用同一个临时合成数据库：
+
+```bash
+ACS_DB_PATH=/tmp/acs-tool-efficiency-m9bx40sj/business.db ACS_REFERENCE_DATE=2026-10-08 ACS_LLM_ASSUME_PEAK=true uv run python scripts/run_eval.py --passes 3 --out results/tool_efficiency/before
+ACS_DB_PATH=/tmp/acs-tool-efficiency-m9bx40sj/business.db ACS_REFERENCE_DATE=2026-10-08 ACS_LLM_ASSUME_PEAK=true uv run python scripts/run_eval.py --passes 3 --out results/tool_efficiency/after
+```
+
+初版在 `9c633de` 运行时也使用 `after` 目录，完成后移至 `initial` 保留。
+三组在线运行共 315 次；用以下命令按当前评分规则生成共同口径的对照，原始文件不变：
+
+```bash
+uv run python scripts/summarize_tool_efficiency.py
+```
+
+重新实验时，使用本节指定的源码版本，以固定参考日期重新生成数据库，分别选择新输出目录；
+原文件拒绝覆盖。运行条件和 hash 见 [conditions.json](../results/tool_efficiency/conditions.json)，
+主要问题与结果解读见 [PROBLEM_SOLVING.md](PROBLEM_SOLVING.md)。
+
+### Result
+
+共同 v4 判据下，before / initial / after 的规则成功率为 93.3% / 89.5% / 100%，
+严格成功率为 63.8% / 86.7% / 95.2%，工具调用数为 160 / 123 / 122。
+最终比基线减少 23.8% 工具调用；平均 token 增加 4.2%，p50 延迟基本持平。
+原始报告的版本为 v2 / v2 / v3，最终两条规则误判有成对正反例验证，详见问题记录。
+
+保留全量接口错误，并另报两组均无执行错误的 99 个同一尝试；未按任务是否成功筛选。
+该子集平均耗时 3278 → 2773 ms，但网络与缓存波动仍未完全控制。
+成本仅为固定费率下的 LLM 小计，依据 [供应商价目](https://api-docs.deepseek.com/quick_start/pricing/)
+核对费率，不代表实际完整扣费。
+
+147 项离线测试、ruff、35 条业务事实校验通过；共同口径对照可由脚本离线复算。
+首轮优化跳过必要政策的失败被保留。后续应扩充独立用例与多轮流程，
+而不是将这批 35 条用例的 100% 当作通用质量结论。
