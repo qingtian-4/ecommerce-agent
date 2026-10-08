@@ -38,6 +38,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from acs.config import get_settings  # noqa: E402
 from acs.cs_tools import ToolRegistry  # noqa: E402
 from acs.database import BusinessDB  # noqa: E402
+from acs.eval_view import (  # noqa: E402
+    CATEGORY_LABELS,
+    case_rows,
+    comparison_rows,
+    load_evaluation,
+    replay_case,
+)
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
 from acs.service_agent import AgentResult, CustomerServiceAgent  # noqa: E402
 
@@ -245,6 +252,19 @@ def product_rows() -> list[list]:
 def price_rows(product_id: str) -> list[list]:
     history = BusinessDB(SETTINGS).get_price_history(product_id)
     return [[r["changed_at"], r["price"]] for r in history.get("records", [])]
+
+
+def on_eval_category(category: str, report: dict) -> tuple:
+    rows = case_rows(report, category)
+    return rows, gr.update(choices=[r[0] for r in rows], value=rows[0][0])
+
+
+def on_try_case(case_id: str, report: dict, state_dict: dict) -> tuple:
+    case = next(c for c in report["cases"] if c["id"] == case_id)
+    user_key = USER_CHOICES[USER_IDS.index(case["user"])]
+    packed = list(on_user_change(user_key, state_dict))
+    packed[1] = case["query"]
+    return (*packed, user_key, gr.update(selected="chat"))
 
 
 def render_trace(result: AgentResult | None, error: str | None = None) -> str:
@@ -553,6 +573,9 @@ CSS = """
   padding:9px 12px; font-size:12.5px; line-height:1.7; margin-top:6px;
   font-family: ui-monospace, Menlo, monospace; white-space:pre-wrap;
 }
+.replay-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.replay-answer { font-size:13px; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; }
+@media (max-width:900px) { .replay-grid { grid-template-columns:1fr; } }
 """
 
 
@@ -569,7 +592,7 @@ def build_app() -> gr.Blocks:
         user_selector = gr.Dropdown(
             choices=USER_CHOICES, value=USER_CHOICES[0], label="模拟用户（非真实登录）"
         )
-        with gr.Tabs(selected="chat", elem_id="project-tabs"):
+        with gr.Tabs(selected="chat", elem_id="project-tabs") as tabs:
             with gr.Tab("客服对话", id="chat"), gr.Row():
                 # ---------------- sidebar ---------------- #
                 with gr.Column(scale=2, min_width=240):
@@ -663,6 +686,56 @@ def build_app() -> gr.Blocks:
                     interactive=False, label="价格历史（最新在前）", max_height=250,
                 )
 
+            with gr.Tab("评测进展", id="evaluation"):
+                gr.Markdown(
+                    "**2026-10-08 评测快照** · 35 条合成用例，每组各跑 3 次，三组共 315 次在线尝试。\n\n"
+                    "这里回放已保存的答案，按共同 v4 规则展示，不会调用模型。"
+                )
+                try:
+                    report = load_evaluation()
+                except (FileNotFoundError, ValueError) as exc:
+                    gr.Markdown(f"评测展示暂不可用：{html.escape(str(exc))}")
+                    report = None
+                if report:
+                    eval_state = gr.State(report)
+                    gr.Dataframe(
+                        comparison_rows(report),
+                        headers=["阶段", "尝试数", "规则成功率", "严格成功率", "工具调用",
+                                 "多余调用", "平均 token", "耗时 p50 / ms"],
+                        interactive=False, label="三组共同口径对照",
+                    )
+                    gr.Markdown(
+                        "严格成功还要求调用次数符合用例预期。最终调用数与多余调用减少，"
+                        "平均 token 增加，耗时中位数基本持平。\n\n"
+                        "首轮优化省略了必要政策检查，出现质量回退；修正后补回。"
+                        "100% 是这批用例的规则通过率。网络故障保留在记录中；成本仅计已定价部分。"
+                    )
+                    category_selector = gr.Dropdown(
+                        choices=[("全部（35 条）", "all"), *[
+                            (label, key) for key, label in CATEGORY_LABELS.items()
+                        ]], value="all", label="筛选用例类型",
+                    )
+                    cases_table = gr.Dataframe(
+                        case_rows(report),
+                        headers=["用例 ID", "类型", "用户", "问题", "优化前", "首轮优化", "修正后"],
+                        interactive=False, wrap=True, max_height=320,
+                        label="完整评测集 · 最后三列为该用例通过次数 / 3",
+                    )
+                    with gr.Row():
+                        case_selector = gr.Dropdown(
+                            choices=[c["id"] for c in report["cases"]],
+                            value="pp-no-difference", label="回放用例",
+                        )
+                        attempt_selector = gr.Dropdown(
+                            choices=[1, 2, 3], value=1, label="第几次尝试",
+                        )
+                    answers, evidence = replay_case(report, "pp-no-difference", 1)
+                    replay_html = gr.HTML(answers)
+                    with gr.Accordion("查看用例判据、参数、命中文档与失败原因", open=False):
+                        evidence_json = gr.JSON(evidence)
+                    try_btn = gr.Button("体验此用例 → 客服对话", variant="primary")
+                    gr.Markdown("体验按钮会切换到用例对应的模拟用户并填入问题；点击发送后运行当前 Agent。")
+
         outputs = [
             chatbot,
             message_box,
@@ -690,6 +763,20 @@ def build_app() -> gr.Blocks:
             outputs=[order_detail, items_table, logistics_table],
         )
         product_selector.change(price_rows, inputs=product_selector, outputs=prices_table)
+        if report:
+            category_selector.change(
+                on_eval_category, inputs=[category_selector, eval_state],
+                outputs=[cases_table, case_selector],
+            )
+            for selector in (case_selector, attempt_selector):
+                selector.change(
+                    replay_case, inputs=[eval_state, case_selector, attempt_selector],
+                    outputs=[replay_html, evidence_json],
+                )
+            try_btn.click(
+                on_try_case, inputs=[case_selector, eval_state, state],
+                outputs=[*outputs, user_selector, tabs],
+            )
 
     return demo
 

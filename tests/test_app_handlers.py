@@ -152,6 +152,20 @@ def test_order_detail_exposes_actual_prices_and_logistics():
     assert products["P003"][3] == 129.0
 
 
+def test_try_evaluation_case_switches_identity_and_resets_session():
+    report = {"cases": [{"id": "case", "user": "USER002", "query": "我的订单？"}]}
+    state = {"agent": None, "user_id": "USER001", "user_key": app_module.USER_CHOICES[0]}
+    result = app_module.on_try_case("case", report, state)
+    history, message, _, state, _, _, _, user_key, tab = result
+    assert history == []
+    assert message == "我的订单？"
+    assert state["user_id"] == "USER002"
+    assert state["agent"].current_user_id == "USER002"
+    assert [m["role"] for m in state["agent"].messages] == ["system"]
+    assert user_key == app_module.USER_CHOICES[1]
+    assert tab["selected"] == "chat"
+
+
 def test_render_trace_shows_an_error_box_when_given_one() -> None:
     out = app_module.render_trace(None, error="TypeError: boom")
     assert "err-box" in out
