@@ -430,7 +430,7 @@ def summarise(rows: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[s
         if per_case_strict
         else None,
         "pass_hat_k": round(sum(1 for v in all_pass if v) / len(all_pass), 4) if all_pass else None,
-        "flip_rate": round(len(flipped) / len(per_case), 4) if per_case else None,
+        "flip_rate": round(len(flipped) / len(per_case), 4) if per_case and passes > 1 else None,
         "flipped_cases": sorted(flipped),
         "dimensions": {
             "tools_complete": dim("tools_complete"),
@@ -590,8 +590,13 @@ def run(
         "prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
         "source_sha256": {
             name: hashlib.sha256((PROJECT_ROOT / "src/acs" / name).read_bytes()).hexdigest()
-            for name in ("service_agent.py", "cs_tools.py", "rag.py", "llm.py", "database.py")
+            for name in ("service_agent.py", "cs_tools.py", "rag.py", "llm.py", "database.py",
+                         "config.py", "db_seed.py")
         },
+        "relevance_calibration_sha256": hashlib.sha256(
+            settings.relevance_calibration_path.read_bytes()
+        ).hexdigest() if (settings.relevance_calibration_path is not None
+                         and settings.relevance_calibration_path.is_file()) else None,
         "database_sha256": hashlib.sha256(settings.db_path.read_bytes()).hexdigest(),
         "index_sha256": hashlib.sha256(b"".join(
             p.read_bytes() for p in sorted(settings.index_dir.glob("kb*"))
@@ -608,7 +613,7 @@ def run(
                 "llm_model", "llm_temperature", "llm_thinking", "llm_max_output_tokens",
                 "llm_assume_peak", "llm_usd_to_cny", "embedding_model", "top_k", "max_steps",
             )
-        },
+        } | {"relevance_filter_enabled": settings.relevance_calibration_path is not None},
         "reference_date": (settings.reference_date or datetime.now().date()).isoformat(),
     }
     (out_dir / "summary.json").write_text(

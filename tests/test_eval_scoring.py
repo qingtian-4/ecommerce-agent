@@ -177,3 +177,5 @@ def test_runner_uses_and_fingerprints_a_separate_dataset(tmp_path, settings, mon
     assert seen == ["USER003", "查订单"]
     assert summary["run"]["cases_sha256"] == hashlib.sha256(cases.read_bytes()).hexdigest()
     assert summary["run"]["cases_file"] == "independent.yaml"
+    assert summary["flip_rate"] is None, "one pass cannot establish stability"
+    assert summary["run"]["settings"]["relevance_filter_enabled"] is False
