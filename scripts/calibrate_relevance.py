@@ -22,6 +22,7 @@ from acs.rag import CHUNKER_VERSION, KnowledgeBase  # noqa: E402
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--threshold-from", type=Path, help="verify a fixed deployed calibration")
     args = parser.parse_args()
     if args.out.exists():
         raise FileExistsError(args.out)
@@ -42,6 +43,12 @@ def main() -> None:
     # Keep every supported calibration query; reject only below its observed floor.
     threshold = min(r["top_score"] for r in rows
                     if r["split"] == "calibration" and r["in_scope"]) - 0.000001
+    if args.threshold_from:
+        bound = KnowledgeBase(settings.model_copy(update={
+            "relevance_calibration_path": args.threshold_from,
+        }))
+        bound.load()
+        threshold = bound._min_score
     counts = {}
     for split in ("calibration", "validation"):
         part = [r for r in rows if r["split"] == split]
@@ -61,7 +68,8 @@ def main() -> None:
         "samples_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "chunker_version": CHUNKER_VERSION,
         "threshold": threshold, "counts": counts, "rows": rows,
-        "method": "lowest supported calibration top score; validation not used for selection",
+        "method": ("fixed deployed threshold; no reselection" if args.threshold_from else
+                   "lowest supported calibration top score; validation not used for selection"),
         "limitations": "small synthetic sample; score overlap cannot prove topical relevance",
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
