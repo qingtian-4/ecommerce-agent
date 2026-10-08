@@ -22,7 +22,7 @@ RESULTS_PATH = PROJECT_ROOT / "results" / "tool_efficiency"
 
 
 def load_evaluation(base: Path = RESULTS_PATH, cases_path: Path = CASES_PATH) -> dict:
-    comparison = json.loads((base / "comparison.json").read_text())
+    comparison = json.loads((base / "comparison_v5.json").read_text())
     if (comparison["scoring_version"] != SCORING_VERSION
             or comparison["cases_sha256"] != hashlib.sha256(cases_path.read_bytes()).hexdigest()):
         raise ValueError("评测快照与当前用例或评分规则不一致，请重新生成对照结果")

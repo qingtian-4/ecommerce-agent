@@ -50,7 +50,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # out rather than inlined.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CASES_PATH = PROJECT_ROOT / "data" / "eval" / "cases.yaml"
-SCORING_VERSION = 4
+SCORING_VERSION = 5
 
 from acs.config import Settings, get_settings  # noqa: E402
 from acs.service_agent import SYSTEM_PROMPT, AgentResult, CustomerServiceAgent  # noqa: E402
@@ -68,6 +68,7 @@ class Observed:
     retrieved_document_ids: list[str] = field(default_factory=list)
     retrieved_chunk_ids: list[str] = field(default_factory=list)
     retrieved_scores: list[float] = field(default_factory=list)
+    retrievals: list[dict[str, Any]] = field(default_factory=list)
     stop_reason: str = ""
     answer: str = ""
     errors: list[str] = field(default_factory=list)
@@ -110,6 +111,12 @@ def observe(result: AgentResult) -> Observed:
                 parsed = {"__unparsable__": raw}
             observed.tool_args.setdefault(event.label, []).append(parsed)
         elif event.type == "retrieval":
+            observed.retrievals.append({
+                "query": event.detail.get("query", ""),
+                "documents": [dict(doc, rank=rank) for rank, doc in enumerate(
+                    event.detail.get("documents", []), start=1,
+                )],
+            })
             for doc in event.detail.get("documents", []):
                 observed.retrieved_document_ids.append(str(doc.get("document_id", "")))
                 observed.retrieved_chunk_ids.append(str(doc.get("chunk_id", "")))
@@ -128,12 +135,15 @@ class Score:
     """Per-dimension results. `None` means not applicable for this case."""
 
     tools_complete: bool | None = None       # required_tools subset of observed
-    tools_exact: bool | None = None          # no extra and no missing calls
+    tool_set_exact: bool | None = None       # same tool kinds, ignores repetition
+    call_count_exact: bool | None = None     # same total number of calls
+    tool_call_counts_exact: bool | None = None  # same count for each tool kind
     no_forbidden_tools: bool | None = None   # None when the case does not declare
     args_ok: bool | None = None
     order_ok: bool | None = None             # observed order matches required order
-    retrieval_recall: bool | None = None     # all required docs retrieved
-    retrieval_mrr: float | None = None
+    cumulative_document_hit: bool | None = None  # required docs across all searches
+    cumulative_first_relevant_rr: float | None = None  # rank in concatenated hits
+    support_section_hit: bool | None = None
     containment_ok: bool | None = None
     forbidden_text_ok: bool | None = None
     stop_reason_ok: bool | None = None
@@ -195,7 +205,9 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
         reasons.append(f"missing_tools={sorted(required_set - actual_set)}")
 
     extra = [t for t in actual if t not in required_set]
-    score.tools_exact = Counter(actual) == Counter(required)
+    score.tool_set_exact = actual_set == required_set
+    score.call_count_exact = len(actual) == len(required)
+    score.tool_call_counts_exact = Counter(actual) == Counter(required)
     if extra:
         reasons.append(f"extra_tools={sorted(set(extra))}")
 
@@ -229,7 +241,7 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
     # --- call order ----------------------------------------------------- #
     if len(required) >= 2:
         # Only the relative order of required tools is checked; extra calls are
-        # ignored here so this dimension stays independent of tools_exact.
+        # ignored here so order stays independent of call counts.
         filtered = [t for t in actual if t in required_set]
         deduped: list[str] = []
         for t in filtered:
@@ -243,11 +255,19 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
     required_docs = list(case.get("required_documents", []))
     if required_docs:
         hit_ids = observed.retrieved_document_ids
-        score.retrieval_recall = all(d in hit_ids for d in required_docs)
-        if not score.retrieval_recall:
+        score.cumulative_document_hit = all(d in hit_ids for d in required_docs)
+        if not score.cumulative_document_hit:
             reasons.append(f"missing_docs={[d for d in required_docs if d not in hit_ids]}")
         ranks = [hit_ids.index(d) + 1 for d in required_docs if d in hit_ids]
-        score.retrieval_mrr = round(1.0 / min(ranks), 4) if ranks else 0.0
+        score.cumulative_first_relevant_rr = round(1.0 / min(ranks), 4) if ranks else 0.0
+
+    groups = case.get("required_chunk_groups", [])
+    if groups:
+        score.support_section_hit = all(
+            any(chunk in observed.retrieved_chunk_ids for chunk in group) for group in groups
+        )
+        if not score.support_section_hit:
+            reasons.append("missing_support_sections")
 
     # --- answer content ------------------------------------------------- #
     must = list(case.get("must_contain", []))
@@ -295,7 +315,8 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
         score.tools_complete,
         score.no_forbidden_tools,
         score.args_ok,
-        score.retrieval_recall,
+        score.cumulative_document_hit,
+        score.support_section_hit,
         score.containment_ok,
         score.forbidden_text_ok,
         score.stop_reason_ok,
@@ -306,7 +327,7 @@ def score_case(case: dict[str, Any], observed: Observed) -> Score:
 
     # Strict: the same, plus no redundant calls at all.
     redundant = max(0, len(actual) - len(required))
-    strict_checks = [*checks, score.tools_exact]
+    strict_checks = [*checks, score.tool_call_counts_exact]
     score.strict_success = all(c for c in strict_checks if c is not None)
     score.strict_failure_reasons = list(reasons)
     if redundant:
@@ -401,11 +422,14 @@ def summarise(rows: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[s
         "flipped_cases": sorted(flipped),
         "dimensions": {
             "tools_complete": dim("tools_complete"),
-            "tools_exact": dim("tools_exact"),
+            "tool_set_exact": dim("tool_set_exact"),
+            "call_count_exact": dim("call_count_exact"),
+            "tool_call_counts_exact": dim("tool_call_counts_exact"),
             "no_forbidden_tools": dim("no_forbidden_tools"),
             "args_ok": dim("args_ok"),
             "call_order_ok": dim("order_ok"),
-            "retrieval_recall": dim("retrieval_recall"),
+            "cumulative_document_hit": dim("cumulative_document_hit"),
+            "support_section_hit": dim("support_section_hit"),
             "answer_containment": dim("containment_ok"),
             "no_forbidden_text": dim("forbidden_text_ok"),
             "stop_reason_ok": dim("stop_reason_ok"),

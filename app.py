@@ -754,7 +754,7 @@ def build_app() -> gr.Blocks:
             with gr.Tab("评测进展", id="evaluation"):
                 gr.Markdown(
                     "**2026-10-08 评测快照** · 35 条合成用例，每组各跑 3 次，三组共 315 次在线尝试。\n\n"
-                    "这里回放已保存的答案，按共同 v4 规则展示，不会调用模型。"
+                    "这里回放已保存的答案，按共同 v5 规则展示，不会调用模型。"
                 )
                 try:
                     report = load_evaluation()

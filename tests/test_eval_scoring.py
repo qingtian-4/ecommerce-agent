@@ -56,7 +56,9 @@ def test_duplicate_required_tool_is_not_an_exact_match():
     observed.tool_sequence.append("search_knowledge")
     score = score_case(case, observed)
     assert score.success
-    assert not score.tools_exact
+    assert score.tool_set_exact
+    assert not score.call_count_exact
+    assert not score.tool_call_counts_exact
     assert not score.strict_success
 
 
@@ -125,7 +127,28 @@ def test_evaluation_records_failed_agent_initialisation(tmp_path, settings, monk
     summary = runner.run(case_id="f-chitchat", passes=1, settings=settings, out_dir=tmp_path)
     assert summary["attempts"] == 1
     assert summary["success_rate"] == 0
-    assert summary["run"]["scoring_version"] == 4
+    assert summary["run"]["scoring_version"] == 5
+
+
+def test_equal_total_calls_do_not_hide_wrong_counts_per_tool():
+    case = {"required_tools": ["get_order", "get_order", "get_logistics"]}
+    observed = Observed(tool_sequence=["get_order", "get_logistics", "get_logistics"])
+    score = score_case(case, observed)
+    assert score.tool_set_exact
+    assert score.call_count_exact
+    assert not score.tool_call_counts_exact
+    assert not score.strict_success
+
+
+def test_a_document_title_hit_cannot_replace_required_policy_evidence():
+    case = {"required_tools": [], "required_documents": ["price_protection"],
+            "required_chunk_groups": [["price_protection#2", "price_protection#7"]]}
+    title = Observed(retrieved_document_ids=["price_protection"],
+                     retrieved_chunk_ids=["price_protection#1"])
+    assert score_case(case, title).cumulative_document_hit
+    assert not score_case(case, title).success
+    title.retrieved_chunk_ids = ["price_protection#7"]
+    assert score_case(case, title).success
 
 
 def test_runner_uses_and_fingerprints_a_separate_dataset(tmp_path, settings, monkeypatch):

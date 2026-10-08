@@ -30,7 +30,9 @@ def test_stale_case_definitions_cannot_be_presented_as_current_results(tmp_path)
 
 
 def test_modified_source_records_are_rejected(tmp_path):
-    (tmp_path / "comparison.json").write_bytes((RESULTS_PATH / "comparison.json").read_bytes())
+    (tmp_path / "comparison_v5.json").write_bytes(
+        (RESULTS_PATH / "comparison_v5.json").read_bytes()
+    )
     (tmp_path / "before").mkdir()
     (tmp_path / "before" / "per_case.jsonl").write_bytes(
         (RESULTS_PATH / "before" / "per_case.jsonl").read_bytes() + b"\n"
