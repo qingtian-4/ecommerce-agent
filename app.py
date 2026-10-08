@@ -193,7 +193,7 @@ def render_database_overview() -> str:
         f"<div class='stat'><small>{labels[table]}</small><strong>{count}</strong></div>"
         for table, count in BusinessDB(SETTINGS).counts().items()
     )
-    return f"<div class='stats-grid'>{cards}</div>"
+    return f"<div class='stat-grid'>{cards}</div>"
 
 
 def on_data_user_change(user_key: str) -> tuple:
@@ -216,7 +216,7 @@ def on_order_change(order_id: str | None, user_key: str) -> tuple:
         ("实付金额", f"¥{order['paid_amount']:.2f}"), ("下单日期", order["created_at"]),
         ("签收日期", order["delivered_date"] or "尚未签收"), ("查询日期", order["today"]),
     ]
-    detail = "<div class='stats-grid'>" + "".join(
+    detail = "<div class='stat-grid'>" + "".join(
         f"<div class='stat'><small>{label}</small>"
         f"<strong>{html.escape(str(value))}</strong></div>" for label, value in fields
     ) + "</div>"
