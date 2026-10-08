@@ -1,0 +1,370 @@
+# 新增单次验证集：编写后冻结，先运行再改生产行为。
+# 作者已看过项目及旧评测，不宣称严格盲测；运行后不可继续作为未见集。
+# 数据事实固定在 2026-10-08；不参与开发扩集或提示词调优。
+cases:
+- id: h-arrival
+  category: logistics
+  user: USER001
+  query: O10028 是不是快到了？现在包裹走到哪一步了？
+  required_tools:
+  - get_order
+  - get_logistics
+  forbidden_tools:
+  - get_price_history
+  - get_product
+  - search_knowledge
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10028
+    get_logistics:
+      order_id: O10028
+  must_contain:
+  - 北京
+  must_contain_any:
+  - - 运输
+    - 在途
+    - 途中
+    - 揽收
+- id: h-paid-versus-now
+  category: order
+  user: USER002
+  query: O10031 的充电器我付了多少？和现在比，我当时是不是买贵了？
+  required_tools:
+  - get_order
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  - search_knowledge
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10031
+  must_contain:
+  - '119'
+  - '129'
+  order_facts:
+    order_id: O10031
+    paid_amount: 119.0
+  must_contain_any:
+  - - 便宜
+    - 更低
+    - 低于
+    - 没买贵
+    - 没有买贵
+- id: h-warehouse
+  category: order
+  user: USER002
+  query: O10033 没收到货，究竟是还没出库还是已经寄出了？
+  required_tools:
+  - get_order
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  - search_knowledge
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10033
+  must_contain_any:
+  - - 待发货
+    - 尚未发货
+    - 还未发货
+    - 未发货
+    - 未寄出
+  order_facts:
+    order_id: O10033
+    status: pending
+- id: h-quantity-total
+  category: order
+  user: USER003
+  query: O10035 的充电器为什么扣了 258 元？核对一下数量和单价。
+  required_tools:
+  - get_order
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  - search_knowledge
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10035
+  must_contain:
+  - '258'
+  - '129'
+  must_contain_any:
+  - - '2'
+    - 两
+  order_facts:
+    order_id: O10035
+    paid_amount: 258.0
+- id: h-cheaper-purchase
+  category: price_protection
+  user: USER003
+  query: 有人说 O10036 的耳机降价了。我是 459 元买的，能拿补偿吗？
+  required_tools:
+  - get_order
+  - search_knowledge
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10036
+  required_documents:
+  - price_protection
+  must_contain:
+  - '459'
+  - '469'
+  must_contain_any:
+  - - 没有差价
+    - 无差价
+    - 不符合
+    - 不支持
+    - 无法申请
+    - 不能申请
+    - 无可退
+    - 没有可退
+- id: h-old-return
+  category: rag+tool
+  user: USER003
+  query: O10037 充电宝已经收了很久，现在不用了，能走无理由退货吗？
+  required_tools:
+  - get_order
+  - search_knowledge
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10037
+  required_documents:
+  - return_policy
+  must_contain:
+  - '7'
+  must_contain_any:
+  - - 超过
+    - 超出
+    - 不支持
+    - 不能
+    - 无法
+  order_facts:
+    order_id: O10037
+    delivered_days_ago: 68
+- id: h-old-price
+  category: price_protection
+  user: USER003
+  query: O10038 买完 22 天了，看到价格有变化，有什么价保可以用吗？
+  required_tools:
+  - get_order
+  - search_knowledge
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10038
+  required_documents:
+  - price_protection
+  must_contain:
+  - '15'
+  must_contain_any:
+  - - 超过
+    - 超出
+    - 不符合
+    - 不支持
+    - 不能
+    - 无法
+  order_facts:
+    order_id: O10038
+    created_days_ago: 22
+- id: h-cancelled-compensation
+  category: price_protection
+  user: USER003
+  query: O10039 我已经取消了，现在同款便宜了还给我补差价吗？
+  required_tools:
+  - get_order
+  - search_knowledge
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10039
+  required_documents:
+  - price_protection
+  must_contain_any:
+  - - 已取消
+    - 取消订单
+    - 订单取消
+  - - 不适用
+    - 不支持
+    - 不能
+    - 无法
+    - 不符合
+  order_facts:
+    order_id: O10039
+    status: cancelled
+- id: h-missing-waybill
+  category: logistics
+  user: USER003
+  query: O10040 有运单号和快递公司了吗？
+  required_tools:
+  - get_logistics
+  forbidden_tools:
+  - get_order
+  - get_price_history
+  - get_product
+  - search_knowledge
+  source: database
+  required_tool_args:
+    get_logistics:
+      order_id: O10040
+  must_contain_any:
+  - - 暂无物流
+    - 没有物流
+    - 还没有物流
+    - 尚未发货
+    - 未发货
+- id: h-last-scan
+  category: logistics
+  user: USER001
+  query: 帮我看 O10041 包裹最后一条扫描记录，别只告诉我订单状态。
+  required_tools:
+  - get_logistics
+  forbidden_tools:
+  - get_order
+  - get_price_history
+  - get_product
+  - search_knowledge
+  source: database
+  required_tool_args:
+    get_logistics:
+      order_id: O10041
+  must_contain:
+  - 广州
+  must_contain_any:
+  - - 揽收
+- id: h-warranty-after-months
+  category: rag+tool
+  user: USER001
+  query: O10042 的充电器用了三个多月坏了，凭这单还能保修吗？
+  required_tools:
+  - get_order
+  - search_knowledge
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10042
+  required_documents:
+  - warranty_policy
+  must_contain:
+  - '18'
+  must_contain_any:
+  - - 保修
+    - 质保
+- id: h-purchase-cost
+  category: order
+  user: USER002
+  query: O10043 那个充电宝最终扣了我多少钱？
+  required_tools:
+  - get_order
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  - search_knowledge
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10043
+  must_contain:
+  - '199'
+  order_facts:
+    order_id: O10043
+    paid_amount: 199.0
+- id: h-recent-return
+  category: rag+tool
+  user: USER002
+  query: O10044 的头戴耳机收到了但还没拆封，我改变主意了能退吗？
+  required_tools:
+  - get_order
+  - search_knowledge
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10044
+  required_documents:
+  - return_policy
+  must_contain:
+  - '7'
+  must_contain_any:
+  - - 可以
+    - 可申请
+    - 支持
+  order_facts:
+    order_id: O10044
+    delivered_days_ago: 3
+- id: h-sent-yet
+  category: order
+  user: USER003
+  query: O10045 到底寄出来没有？
+  required_tools:
+  - get_order
+  forbidden_tools:
+  - get_logistics
+  - get_price_history
+  - get_product
+  - search_knowledge
+  source: database
+  required_tool_args:
+    get_order:
+      order_id: O10045
+  must_contain_any:
+  - - 待发货
+    - 未发货
+    - 尚未发货
+    - 还没发货
+    - 还未发货
+  order_facts:
+    order_id: O10045
+    status: pending
+- id: h-q45-dead-battery
+  category: product
+  user: USER002
+  query: Space Q45 耳机没电后还能通过音频线听吗？用什么接口？
+  required_tools:
+  - search_knowledge
+  forbidden_tools:
+  - get_order
+  - get_logistics
+  - get_price_history
+  - get_product
+  source: kb
+  required_documents:
+  - headphone_b
+  must_contain:
+  - '3.5'
+  must_contain_any:
+  - - 可以
+    - 支持
+    - 能使用
