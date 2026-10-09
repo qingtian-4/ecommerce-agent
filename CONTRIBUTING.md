@@ -19,8 +19,9 @@ binding.
    work.** If the tree is dirty, ask before touching the affected files.
 3. This repository has **no remote**. Do not push, rebase, or rewrite shared
    history. Rewriting local history requires an explicit request (see §5).
-4. For anything larger than a single small change, post an atomic plan first:
-   which commits, in what order, and what each one contains.
+4. For anything larger than a single small change, state a brief plan and how
+   the finished behaviour will be verified. Group commits around complete
+   deliverables, not individual implementation steps.
 
 ## 2. Environment and verification
 
@@ -91,27 +92,36 @@ useful: `config`, `llm`, `rag`, `db`, `tools`, `agent`, `ui`, `eval`, `scripts`,
 
 ### Atomicity
 
-1. **One commit, one logical change.** Do not mix a fix with a refactor, or code
-   with its documentation, unless the documentation *is* the change.
-2. Each commit must build, pass tests, and be independently revertable.
-3. Commit as soon as one unit is done and verified. Do not accumulate several
-   unrelated changes into one large commit.
+1. **One commit, one complete, runnable change.** Keep a feature or fix together
+   with its necessary corrections, regression tests, related documentation and
+   evaluation evidence. Choose the commit type by its primary purpose; do not
+   split related work into separate `feat`, `fix` and `test` commits.
+2. Each commit must build, pass the relevant tests and be independently
+   revertable. Verify affected application behaviour before committing. Keep
+   code, data/index versions and evaluation views consistent; do not commit an
+   intermediate state that needs a later patch to become runnable.
+3. Prefer one commit for one completed request. Group related small steps and
+   commit after verifying the complete result. Split only when the changes are
+   independently useful, runnable and revertable; unrelated work still belongs
+   in separate commits.
 4. If you notice an unrelated problem, report it and fix it in a **separate**
    commit. Do not fix it in passing.
-5. Mechanical changes (formatting, renames, moves) belong in their own commit,
-   separate from behaviour changes.
+5. Do not mix unrelated mechanical cleanup into behaviour changes. A rename or
+   move required by the same change may stay with that change.
 
 **Why this matters here specifically:** an earlier commit in this repository's
-history bundled a documentation change with a source cleanup. Reverting the
-documentation would have silently removed the source change too. Atomicity is
-about reversibility, not tidiness.
+history bundled an unrelated documentation change with a source cleanup.
+Reverting the documentation would have silently removed the source change too.
+Related documentation and tests belong with their implementation; unrelated
+cleanup does not. Atomicity is about complete behaviour and reversibility.
 
 ### Size
 
-Aim for **under 50 changed lines**. Up to 200–400 is acceptable for a single
-coherent unit. Above 400, split it. Exceptions, which should be named in the
-title or scope: generated files (`uv.lock`), large data files (`data/docs/*.md`,
-`data/eval/cases.yaml`), and `results/**`.
+Keep the diff focused and reviewable. Line count is a review signal, not a target
+or an automatic reason to split a complete change. Split large changes only at
+boundaries that leave each commit runnable; do not separate required tests or
+fixes merely to make commits smaller. Generated files, datasets and `results/**`
+may be large when they provide the evidence for the same change.
 
 ### Message/scope accuracy
 
