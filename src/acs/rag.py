@@ -30,7 +30,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
 import numpy as np
@@ -316,8 +316,39 @@ class KnowledgeBase:
     def search(self, query: str, top_k: int | None = None) -> list[Chunk]:
         """Return at most top-k verified pieces of evidence."""
         k = top_k or self.settings.top_k
-        results = self.retrieve(query, top_k=k)
-        return self._filter_evidence(query, results)
+        expanded = self.settings.evidence_backfill or self.settings.reranker_enabled
+        results = self.retrieve(
+            query, top_k=max(k, self.settings.retrieval_candidate_k) if expanded else k,
+        )
+        if self.settings.reranker_enabled:
+            results = self.rerank(query, results)
+        return self.select_evidence(query, results, top_k=k)
+
+    def rerank(self, query: str, candidates: list[Chunk]) -> list[Chunk]:
+        """Rerank an unchanged pool, retaining upstream scores and ranks."""
+        ranking = self.llm.rerank(query, [f"{c.title}\n{c.content}" for c in candidates])
+        result = []
+        for rank, item in enumerate(ranking, start=1):
+            i = item["index"]
+            c = candidates[i]
+            upstream = {"cosine": "dense", "rrf": "rrf", "bm25": "bm25"}[c.score_type]
+            provenance = c.retrieval | {
+                upstream: {"rank": i + 1, "score": c.score},
+                "reranker": {"rank": rank, "score": item["relevance_score"],
+                             "model": self.settings.reranker_model},
+            }
+            result.append(replace(c, score=float(item["relevance_score"]),
+                                  score_type="reranker", retrieval=provenance))
+        return result
+
+    def select_evidence(self, query: str, candidates: list[Chunk], *,
+                        top_k: int | None = None, backfill: bool | None = None) -> list[Chunk]:
+        """Verify the bounded pool before capping context when backfill is enabled."""
+        k = top_k or self.settings.top_k
+        backfill = self.settings.evidence_backfill if backfill is None else backfill
+        limit = max(k, self.settings.retrieval_candidate_k) if backfill else k
+        pool = candidates[:limit]
+        return self._filter_evidence(query, pool)[:k]
 
     def retrieve(
         self, query: str, *, mode: str | None = None, top_k: int | None = None,

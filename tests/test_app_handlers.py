@@ -123,6 +123,14 @@ def test_retrieval_trace_distinguishes_fusion_scores_and_channel_ranks():
     assert "headphone_b#2" in rendered
 
 
+def test_reranker_score_label_and_incomplete_usage_are_visible():
+    document = {"score_type": "reranker", "score": .95,
+                "retrieval": {"rrf": {"rank": 4}, "reranker": {"rank": 1}}}
+    assert app_module.format_retrieval_score(document) == "Reranker 0.9500；rrf #4 / reranker #1"
+    stats = app_module.render_stats(AgentResult(answer="", totals={"tokens_are_partial": True}))
+    assert "总 token（部分）" in stats
+
+
 def test_header_and_user_card_render_for_every_user() -> None:
     for key in app_module.USER_CHOICES:
         header = app_module.render_header(key)

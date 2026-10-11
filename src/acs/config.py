@@ -124,6 +124,13 @@ class Settings(BaseSettings):
     # Selected on frozen development evidence; dense/hybrid remain comparison modes.
     retrieval_mode: Literal["dense", "bm25", "hybrid"] = "bm25"
     retrieval_candidate_k: int = Field(default=10, ge=1)
+    evidence_backfill: bool = False
+    reranker_enabled: bool = False
+    reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    reranker_base_url: str = "https://api.siliconflow.cn/v1"
+    # Empty reuses the embedding key only when both base URLs are identical.
+    reranker_api_key: str = ""
+    reranker_timeout_s: float = Field(default=15.0, gt=0)
     relevance_calibration_path: Path | None = Path("data/eval/relevance_calibration.json")
 
     # ---------- Agent ----------

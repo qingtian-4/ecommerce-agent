@@ -46,6 +46,11 @@ self-consistent while preserving real user phrasing.
 `scripts/run_retrieval_eval.py`。52 条问题先冻结，再比较 Dense、BM25 和 RRF；
 失败问题保留，不据检索结果改写标签。这不代表上述自动自然化生成器已经实现。
 
+重排与核验后补位已加入 `search_knowledge` 内部，使用同一候选池独立消融：
+`scripts/run_rerank_eval.py`。原 52 条问题全部转为开发证据，新 20 条验证另行冻结。
+默认部署依据开发集选择，API 可用不等于需要默认启用。后续应先扩充真实业务章节和
+含指代的多轮用例，再验证独立 query rewrite；不能把当前小知识库的满分当作泛化证据。
+
 ---
 
 ## T2 — Mutation safety must be a framework-level two-phase commit

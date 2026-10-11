@@ -326,6 +326,8 @@ class ToolRegistry:
                     detail={
                         "query": arguments.get("query", ""),
                         "retrieval_mode": result.get("retrieval_mode", "dense"),
+                        "reranker_model": result.get("reranker_model"),
+                        "evidence_backfill": result.get("evidence_backfill", False),
                         "documents": result.get("documents", []),
                     },
                 )
@@ -350,17 +352,21 @@ class ToolRegistry:
 
     def _search_knowledge(self, *, current_user_id: str, query: str) -> dict[str, Any]:
         chunks = self.knowledge.search(query)
+        pipeline = {"retrieval_mode": self.settings.retrieval_mode,
+                    "reranker_model": self.settings.reranker_model
+                    if self.settings.reranker_enabled else None,
+                    "evidence_backfill": self.settings.evidence_backfill}
         if not chunks:
             return {
+                **pipeline,
                 "found": False,
                 "query": query,
-                "retrieval_mode": self.settings.retrieval_mode,
                 "reason": "知识库中没有找到相关内容",
                 "documents": [],
             }
         return {
+            **pipeline,
             "found": True,
             "query": query,
-            "retrieval_mode": self.settings.retrieval_mode,
             "documents": [c.as_dict() for c in chunks],
         }

@@ -44,8 +44,11 @@ from acs.eval_view import (  # noqa: E402
     case_rows,
     comparison_rows,
     load_evaluation,
+    load_rerank_evaluation,
     load_retrieval_evaluation,
     replay_case,
+    rerank_case_view,
+    rerank_comparison_rows,
     retrieval_case_view,
     retrieval_comparison_rows,
     review_run_rows,
@@ -273,7 +276,7 @@ def on_try_case(case_id: str, report: dict, state_dict: dict) -> tuple:
 
 
 def format_retrieval_score(document: dict) -> str:
-    kind = {"cosine": "Dense", "bm25": "BM25", "rrf": "RRF"}.get(
+    kind = {"cosine": "Dense", "bm25": "BM25", "rrf": "RRF", "reranker": "Reranker"}.get(
         document.get("score_type", "cosine"), "score",
     )
     ranks = " / ".join(f"{name} #{data['rank']}"
@@ -396,7 +399,8 @@ def render_stats(result: AgentResult | None) -> str:
         cells = [
             ("输入 token", f"{totals.get('prompt_tokens', 0):,}"),
             ("输出 token", f"{totals.get('completion_tokens', 0):,}"),
-            ("总 token", f"{totals.get('total_tokens', 0):,}"),
+            ("总 token（部分）" if totals.get("tokens_are_partial") else "总 token",
+             f"{totals.get('total_tokens', 0):,}"),
             (cost_label, f"¥{totals.get('cost_cny', 'n/a')}"),
             ("工具调用", str(result.tool_calls)),
             ("检索次数", str(len(result.retrieval_queries))),
@@ -765,6 +769,42 @@ def build_app() -> gr.Blocks:
                 )
 
             with gr.Tab("评测进展", id="evaluation"):
+                gr.Markdown("**重排与核验后补位** · 分开比较排序、证据覆盖和新增消耗。")
+                try:
+                    rerank_report = load_rerank_evaluation()
+                except (FileNotFoundError, ValueError) as exc:
+                    gr.Markdown(f"重排评测展示暂不可用：{html.escape(str(exc))}")
+                else:
+                    gr.Dataframe(
+                        rerank_comparison_rows(rerank_report),
+                        headers=["数据分组", "方案", "问题数", "排序 Recall@3",
+                                 "核验后 Recall@3", "全部证据组覆盖", "库外问题接受",
+                                 "配对检索 p50 / ms", "核验 token / 问题",
+                                 "重排 token / 问题", "执行错误"],
+                        interactive=False, label="重排与补位消融对照",
+                    )
+                    gr.Markdown(
+                        "原 52 条已公开问题用于开发，另加 20 条冻结验证。"
+                        "补位最多核验 10 个候选，最终交给客服的片段仍最多 3 个。"
+                        "同一问题复用 embedding 与重排结果，耗时不含回答生成；"
+                        "embedding 和重排未定价，成本统计不完整。"
+                        "按冻结章节标签统计，标签可能遗漏充分替代章节，"
+                        "未命中不能直接判作回答错误。"
+                    )
+                    rerank_available = [c["id"] for c in rerank_report["cases"]
+                                        if c["split"] in rerank_report["runs"]]
+                    rerank_state = gr.State(rerank_report)
+                    rerank_selector = gr.Dropdown(
+                        choices=rerank_available, value=rerank_available[0], label="回放重排与补位问题",
+                    )
+                    rerank_replay = gr.JSON(
+                        rerank_case_view(rerank_report, rerank_available[0]),
+                        label="原始候选、重排排名、核验池与最终证据（历史记录）",
+                    )
+                    rerank_selector.change(
+                        rerank_case_view, inputs=[rerank_state, rerank_selector],
+                        outputs=[rerank_replay],
+                    )
                 gr.Markdown(
                     "**章节级检索对照** · 使用相同问题与知识库，每次提供最多 3 个片段。"
                     "分别检查候选召回、前三名排序和证据核验后的结果。"

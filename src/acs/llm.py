@@ -11,6 +11,7 @@ Design constraints that matter for this project:
 
 from __future__ import annotations
 
+import math
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -36,6 +37,7 @@ class Usage:
     cached_prompt_tokens: int = 0
     thinking: bool = False
     reasoning_chars: int = 0
+    usage_missing: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -49,6 +51,7 @@ class Usage:
             "cost_cny": str(self.cost_cny) if self.cost_cny is not None else None,
             "thinking": self.thinking,
             "reasoning_chars": self.reasoning_chars,
+            "usage_missing": self.usage_missing,
         }
 
 
@@ -316,6 +319,57 @@ class LLMClient:
         return [d.embedding for d in resp.data]
 
     # ------------------------------------------------------------------ #
+    def rerank(self, query: str, documents: list[str]) -> list[dict[str, Any]]:
+        """SiliconFlow-compatible rerank API; return a validated full permutation.
+
+        Scores rank evidence; they do not establish that the text answers a question.
+        No retries or silent fallback: failures remain visible and accounted for.
+        """
+        if not documents:
+            return []
+        import httpx
+
+        s = self.settings
+        base = s.reranker_base_url.rstrip("/")
+        key = s.reranker_api_key
+        if not key and base == s.embedding_base_url.rstrip("/"):
+            key = s.embedding_api_key
+        if not key:
+            raise RuntimeError("ACS_RERANKER_API_KEY is not set for this service")
+        started = time.perf_counter()
+        usage = Usage(model=s.reranker_model, stage="kb_rerank", usage_missing=True)
+        try:
+            response = httpx.post(
+                base + "/rerank", headers={"Authorization": "Bearer " + key},
+                json={"model": s.reranker_model, "query": query, "documents": documents,
+                      "top_n": len(documents), "return_documents": False},
+                timeout=s.reranker_timeout_s,
+            )
+            if not response.is_success:
+                raise RuntimeError(f"rerank API failed (HTTP {response.status_code})")
+            body = response.json()
+            tokens = body.get("meta", {}).get("tokens") or body.get("tokens")
+            if isinstance(tokens, dict):
+                usage.prompt_tokens = int(tokens.get("input_tokens", 0))
+                usage.completion_tokens = int(tokens.get("output_tokens", 0))
+                usage.total_tokens = usage.prompt_tokens + usage.completion_tokens
+                usage.usage_missing = "input_tokens" not in tokens
+            results = body.get("results")
+            if not isinstance(results, list) or len(results) != len(documents):
+                raise ValueError("rerank API returned an incomplete ranking")
+            indices = [r.get("index") for r in results]
+            if (any(type(i) is not int for i in indices)
+                    or set(indices) != set(range(len(documents)))):
+                raise ValueError("rerank API returned invalid or duplicate indices")
+            if any(type(r.get("relevance_score")) not in {int, float}
+                   or not math.isfinite(r["relevance_score"]) for r in results):
+                raise ValueError("rerank API returned invalid scores")
+            return sorted(results, key=lambda r: (-r["relevance_score"], r["index"]))
+        finally:
+            usage.latency_ms = (time.perf_counter() - started) * 1000
+            self.usages.append(usage)
+
+    # ------------------------------------------------------------------ #
     def _record(
         self, resp: Any, *, model: str, stage: str, latency_ms: float, thinking: bool,
         reasoning_chars: int | None = None,
@@ -379,6 +433,7 @@ class LLMClient:
             "cost_cny": str(cost.quantize(Decimal("0.000001"))),
             "unpriced_models": sorted(set(unpriced)),
             "cost_is_partial": bool(unpriced),
+            "tokens_are_partial": any(u.usage_missing for u in self.usages),
             "usages": [usage.as_dict() for usage in self.usages],
         }
 

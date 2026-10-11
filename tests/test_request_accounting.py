@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 import openai
+import pytest
 
 from acs.llm import LLMClient, Usage
 from acs.rag import KnowledgeBase
@@ -78,7 +79,10 @@ def test_ui_labels_partial_cost():
     assert "部分" in render_stats(result)
 
 
-def test_relevance_verification_shares_the_agent_usage_ledger(settings, monkeypatch, tmp_path):
+@pytest.mark.parametrize("reranker", [False, True])
+def test_relevance_verification_shares_the_agent_usage_ledger(
+    settings, monkeypatch, tmp_path, reranker,
+):
     import hashlib
     import json
 
@@ -86,6 +90,7 @@ def test_relevance_verification_shares_the_agent_usage_ledger(settings, monkeypa
 
     settings = settings.model_copy(update={
         "llm_api_key": "test-key", "embedding_api_key": "test-embedding",
+        "reranker_enabled": reranker, "reranker_api_key": "test-reranker",
     })
     embedder = FakeEmbedder()
     KnowledgeBase(settings, llm=embedder).build()
@@ -111,9 +116,18 @@ def test_relevance_verification_shares_the_agent_usage_ledger(settings, monkeypa
         usage=SimpleNamespace(prompt_tokens=7, total_tokens=7),
     )))
     monkeypatch.setattr(openai, "OpenAI", lambda **kwargs: provider)
+    if reranker:
+        import httpx
+
+        monkeypatch.setattr(httpx, "post", lambda *args, **kwargs: httpx.Response(200, json={
+            "results": [{"index": i, "relevance_score": 1 / (i + 1)}
+                        for i in range(len(kwargs["json"]["documents"]))],
+            "meta": {"tokens": {"input_tokens": 42, "output_tokens": 0}},
+        }))
     result = CustomerServiceAgent(settings=settings, llm=llm).chat("退货期限多久？")
-    assert result.totals["calls"] == 4
-    assert result.totals["total_tokens"] == 367
+    assert result.totals["calls"] == 4 + int(reranker)
+    assert result.totals["total_tokens"] == 367 + (42 if reranker else 0)
     assert [u["stage"] for u in result.totals["usages"]] == [
-        "agent_step_1", "kb_search", "kb_relevance", "agent_step_2",
+        "agent_step_1", "kb_search", *(["kb_rerank"] if reranker else []),
+        "kb_relevance", "agent_step_2",
     ]

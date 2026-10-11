@@ -43,9 +43,9 @@ def load_cases(path: Path, kb: KnowledgeBase) -> dict:
     return dataset
 
 
-def summarize(rows: list[dict]) -> dict:
+def summarize(rows: list[dict], modes: tuple[str, ...] = MODES) -> dict:
     summary = {}
-    for mode in MODES:
+    for mode in modes:
         part = [r for r in rows if r["mode"] == mode]
         supported = [r for r in part if r["evidence_groups"]]
         unsupported = [r for r in part if not r["evidence_groups"]]
@@ -75,6 +75,16 @@ def summarize(rows: list[dict]) -> dict:
         usage = [u for r in part for u in r["verification_usage"]]
         metrics["verification_calls"] = len(usage)
         metrics["verification_tokens"] = sum(u["total_tokens"] for u in usage)
+        if modes != MODES:
+            rerank_usage = [u for r in part for u in r["rerank_usage"]]
+            metrics["rerank_calls"] = len(rerank_usage)
+            metrics["rerank_tokens"] = sum(u["total_tokens"] for u in rerank_usage)
+            metrics["incomplete_usage_calls"] = sum(
+                u.get("usage_missing", False) for u in usage + rerank_usage
+            )
+            values = [r["rerank_ms"] for r in part]
+            metrics["rerank_ms"] = {"p50": float(np.median(values)),
+                                    "p95": float(np.percentile(values, 95))} if values else {}
         summary[mode] = metrics
     return summary
 

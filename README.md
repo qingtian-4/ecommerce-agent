@@ -20,7 +20,7 @@ User → Gradio UI → Naive Unified Agent (deepseek-flash)
 
 - 手写 Function Calling Agent Loop（**没有用 LangGraph**）
 - RAG：共用 Markdown 小节，支持 BM25、Qwen embedding＋FAISS、Dense＋BM25＋RRF；
-  当前按开发对照选择 BM25 默认，候选正文经证据核验后再交给 Agent
+  支持可选 API 重排与核验后补位；候选正文经证据核验后再交给 Agent
 - 5 个只读工具（4 个业务查询 + 1 个知识检索）
 - Web UI：客服对话与**可观测执行轨迹**、业务数据浏览、评测对照与逐条回放
 - 会话级多轮历史、越权防护、错误兜底
@@ -71,7 +71,7 @@ uv run pytest && uv run ruff check .
 | --- | --- |
 | 客服对话 | 发送问题、多轮追问；逐步查看工具调用、返回事实与知识命中，查看 token 和部分成本 |
 | 业务数据 | 浏览 25 个订单、26 条明细、19 条物流；选择订单查看金额与时间线，选择商品查看价格历史 |
-| 评测进展 | 查看新增 15 条首次验证与 70 条开发回归的阶段结果；按共同 v5 规则回放原 35 条历史对照 |
+| 评测进展 | 查看检索、重排与补位的消融结果及候选回放；查看端到端开发回归与历史对照 |
 
 建议按下面的顺序体验：
 
@@ -90,8 +90,8 @@ uv run pytest && uv run ruff check .
 工具参数接收完整后才执行。
 耗时只在客服回复上方显示实际已用时间与完成用时，不展示预测完成时间。
 轨迹只展示可观测的工具调用、检索结果与统计，不包含模型的隐藏思维过程。
-“决策摘要”由实际调用机械生成，说明做了什么。检索 embedding 尚未配置价格，
-涉及检索的对话会标明“已定价成本（部分）”。
+“决策摘要”由实际调用机械生成，说明做了什么。检索 embedding 和 reranker 尚未配置价格，
+发生 embedding 或重排调用的对话会标明“已定价成本（部分）”。
 
 ---
 
@@ -226,18 +226,71 @@ uv run python scripts/run_retrieval_eval.py --split validation --out results/ret
 [问题解决过程](docs/PROBLEM_SOLVING.md)、[实验条件](docs/EXPERIMENT_LOG.md)。
 独立 query rewrite、reranker 和售后写操作仍属于后续工作。
 
+## API 重排与核验后补位（2026-10-11）
+
+一般退货问题的 RRF 前三名包含保修和政策简介，正文核验后只剩七天条款，
+排第四的期限对照表没有补位。新增两项可独立验证的改进：
+
+- 核验后补位：先核验最多 10 个候选，再取最多 3 个有效片段。
+- API 重排：用问题与章节正文的配对分数重新排序，同样保留正文证据核验。
+  重排分数与原始 Dense、BM25、RRF 分数分别记录，不能套用旧 cosine 阈值。
+
+原 52 条已公开问题全部归入开发证据，另冻结 20 条新验证；标签不按命中结果筛选。
+开发集 38 条有效问题，RRF 核验后 Recall@3 从 **98.68% → 100%**，
+所需事实全部覆盖从 **37/38 → 38/38**；补位和重排分别达到这一结果。
+五种方案均拒绝 14 条库外问题，无执行错误。重排将 RRF 首个有效章节的平均排名倒数
+从 **0.877 → 1.000**，但没有超过 BM25 的最终证据覆盖率。
+
+补位的核验 token 从 24143 增至 66683（约 2.76 倍）；重排新增 52 次请求、61632 token，
+自身 API 耗时 p50 为 302 ms。开发配对检索 p50：BM25 576 ms、RRF 1606 ms、
+RRF＋重排 1977 ms，含服务波动，不包含回答生成。embedding 与重排未定价，
+不能将已定价小计当作完整成本。根据开发结果，在新增验证运行前冻结选择，保留 BM25 默认。
+
+新增验证（14 条有效、6 条库外）的核验后 Recall@3：BM25 **85.71%**、RRF **75%**、
+RRF＋补位 **100%**、RRF＋重排 **85.71%**、重排＋补位 **100%**；库外接受均为 0/6。
+所有 360 个正式检索尝试无执行错误。多事实问题仍可能被多个相似章节占满前三名，
+重排让相关章节更靠前，但不保证覆盖第二项事实。本轮保留预先冻结的默认选择；
+这些新增问题之后归入开发，后续部署变化需再用新冻结问题验证。
+标签审计发现一条质保问题遗漏了“质保卡”替代片段，原标签和分数保留；
+这里是冻结参考章节的覆盖率，不能等同于穷尽所有有效证据或判断生成回答错误。
+
+配置已列在 `.env.example`。当前接口使用
+[硅基流动 rerank API](https://docs.siliconflow.cn/docs/api/rerank-post)：
+
+```dotenv
+ACS_RERANKER_BASE_URL=https://api.siliconflow.cn/v1
+ACS_RERANKER_MODEL=BAAI/bge-reranker-v2-m3
+ACS_RERANKER_API_KEY=
+ACS_RERANKER_TIMEOUT_S=15
+# 实时体验 RRF＋重排；正常默认仍为 bm25 / false
+ACS_RETRIEVAL_MODE=hybrid
+ACS_RERANKER_ENABLED=true
+# 独立启用核验后补位，会增加核验 token
+ACS_EVIDENCE_BACKFILL=false
+```
+
+空 reranker 密钥仅在其地址与 embedding 地址完全相同时复用 embedding 密钥；
+不同服务需单独填写。修改 `.env` 后重启服务。API 的不完整排名、重复或越界索引、
+非法分数与请求错误会明确失败，不静默回退；请求耗时与可用 token 进入共享账本，
+缺少用量时界面标为部分统计。重排是 `search_knowledge` 内部阶段。
+
+前端「评测进展」提供五方案对照与逐条回放，区分原始候选、重排排名、核验池和最终证据。
+这一轮测量的是检索覆盖，不是生成回答正确率；公开过的验证问题之后也只作为开发证据。
+复现命令与条件见 [EXPERIMENT_LOG.md](docs/EXPERIMENT_LOG.md#e005--api-重排与核验后补位)。
+
 ## 目录结构
 
 ```
 app.py                        Gradio UI（单命令启动）
 src/acs/
   config.py                   配置 + 定价 + 评测参考日期
-  llm.py                      OpenAI 兼容客户端 + 记账 + embed（复用）
+  llm.py                      对话 / embedding / rerank API + 共享记账
   service_agent.py            手写 Function Calling Agent Loop
   cs_tools.py                 工具注册表 + 执行 + 轨迹事件
   rag.py                      共用小节检索 + 证据核验
   retrieval.py                中文分词 + BM25 + RRF
   retrieval_eval.py           冻结章节级检索对照
+  rerank_eval.py              固定候选池的重排 / 补位消融
   database.py                 只读数据访问（含权限校验）
   db_seed.py                  SQLite 种子数据
   eval_runner.py              分层评分 + 运行证据
@@ -251,7 +304,8 @@ data/
 scripts/
   init_db.py  build_index.py  run_demo_cases.py
   run_eval.py  validate_cases.py
-  run_prompt_ablation.py  calibrate_relevance.py  run_retrieval_eval.py
+  run_prompt_ablation.py  calibrate_relevance.py  run_retrieval_eval.py  run_rerank_eval.py
+  summarize_rerank.py          从原始记录离线复算检索覆盖与共享账本
   check_connectivity.py  check_secrets.py  smoke_llm.py
 tests/                        离线回归测试（无需 API）
 docs/                         PROBLEM_SOLVING / PROJECT_REVIEW / EXPERIMENT_LOG

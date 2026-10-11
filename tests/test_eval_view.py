@@ -40,6 +40,35 @@ def test_retrieval_snapshot_rejects_modified_raw_evidence(tmp_path):
         load_retrieval_evaluation(tmp_path)
 
 
+def test_rerank_replay_distinguishes_original_context_verification_pool_and_final_evidence():
+    from acs.eval_view import load_rerank_evaluation, rerank_case_view, rerank_comparison_rows
+
+    report = load_rerank_evaluation()
+    assert len(rerank_comparison_rows(report)) == 10
+    case = rerank_case_view(report, "return-general")["重排与补位对照"]
+    assert case["hybrid"]["metrics"]["accepted"]["recall"] == .5
+    assert case["hybrid_backfill"]["metrics"]["accepted"]["recall"] == 1
+    assert case["hybrid_rerank"]["metrics"]["accepted"]["recall"] == 1
+    assert len(case["hybrid_backfill"]["verification_pool"]) == 10
+    assert len(case["hybrid_backfill"]["accepted"]) <= 3
+    assert case["hybrid_rerank"]["ranked"][0]["score_type"] == "reranker"
+
+
+def test_rerank_snapshot_rejects_modified_raw_evidence(tmp_path):
+    import shutil
+
+    from acs.config import PROJECT_ROOT
+    from acs.eval_view import load_rerank_evaluation
+
+    shutil.copytree(PROJECT_ROOT / "data/docs", tmp_path / "data/docs")
+    shutil.copytree(PROJECT_ROOT / "data/eval", tmp_path / "data/eval")
+    shutil.copytree(PROJECT_ROOT / "results/rerank", tmp_path / "results/rerank")
+    path = tmp_path / "results/rerank/development/per_case.jsonl"
+    path.write_bytes(path.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="原始记录"):
+        load_rerank_evaluation(tmp_path)
+
+
 def test_published_answers_are_rescored_without_changing_original_files():
     path = RESULTS_PATH / "after" / "per_case.jsonl"
     original = path.read_bytes()

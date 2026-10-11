@@ -13,6 +13,8 @@ import yaml
 from .config import get_settings
 from .eval_runner import CASES_PATH, PROJECT_ROOT, SCORING_VERSION, Observed, score_case
 from .rag import KnowledgeBase
+from .rerank_eval import METRIC_VERSION as RERANK_METRIC_VERSION
+from .rerank_eval import VARIANTS
 from .retrieval_eval import METRIC_VERSION, MODES
 
 GROUP_LABELS = {"before": "优化前", "initial": "首轮优化", "after": "修正后"}
@@ -77,6 +79,67 @@ def retrieval_case_view(report: dict, case_id: str) -> dict:
         row["mode"]: {key: row[key] for key in (
             "candidates", "context", "accepted", "metrics", "error",
             "ranking_ms", "verification_ms",
+        )} for row in records if row["id"] == case_id
+    }}
+
+
+def load_rerank_evaluation(root: Path = PROJECT_ROOT) -> dict:
+    """Keep the new ablation separate from the published three-mode baseline."""
+    base = root / "results/rerank"
+    source = root / "data/eval/rerank_cases.json"
+    manifest = json.loads((base / "frozen_manifest.json").read_text())
+    if manifest["cases_sha256"] != hashlib.sha256(source.read_bytes()).hexdigest():
+        raise ValueError("重排用例与冻结清单不匹配")
+    settings = get_settings().model_copy(update={"docs_dir": root / "data/docs"})
+    if KnowledgeBase(settings)._current_fingerprint() != manifest["knowledge_fingerprint"]:
+        raise ValueError("重排快照与当前知识库或切分配置不匹配")
+    runs = {}
+    for split in ("development", "validation"):
+        path = base / split / "summary.json"
+        if not path.exists():
+            continue
+        report = json.loads(path.read_text())
+        raw = (path.parent / "per_case.jsonl").read_bytes()
+        if (report["metric_version"] != RERANK_METRIC_VERSION
+                or report["experiment"] != "rerank_backfill"
+                or any(report["inputs"][key] != manifest[key] for key in report["inputs"])
+                or report["conditions"] != manifest["conditions"]
+                or set(report["summary"]) != set(VARIANTS)
+                or report["records_sha256"] != hashlib.sha256(raw).hexdigest()):
+            raise ValueError(f"{split} 重排快照与用例、条件或原始记录不匹配")
+        runs[split] = {"report": report,
+                       "records": [json.loads(line) for line in raw.splitlines()]}
+    if not runs:
+        raise FileNotFoundError("尚未生成重排对照结果")
+    return {"cases": json.loads(source.read_text())["cases"], "runs": runs}
+
+
+def rerank_comparison_rows(report: dict) -> list[list]:
+    labels = {"bm25": "BM25", "hybrid": "RRF", "hybrid_backfill": "RRF＋补位",
+              "hybrid_rerank": "RRF＋重排", "hybrid_rerank_backfill": "RRF＋重排＋补位"}
+    rows = []
+    for split, run in report["runs"].items():
+        for variant in VARIANTS:
+            m = run["report"]["summary"][variant]
+            rows.append([
+                "已见问题 · 开发" if split == "development" else "新增验证 · 首次",
+                labels[variant], m["queries"], f"{m['context_recall']:.1%}",
+                f"{m['accepted_recall']:.1%}", f"{m['accepted_all_evidence']}/{m['supported']}",
+                f"{m['unsupported_accepted']}/{m['unsupported']}",
+                round(m["paired_retrieval_ms"]["p50"]),
+                round(m["verification_tokens"] / m["queries"]),
+                round(m["rerank_tokens"] / m["queries"]), m["errors"],
+            ])
+    return rows
+
+
+def rerank_case_view(report: dict, case_id: str) -> dict:
+    case = next(c for c in report["cases"] if c["id"] == case_id)
+    records = report["runs"][case["split"]]["records"]
+    return {"问题与所需证据章节": case, "重排与补位对照": {
+        row["mode"]: {key: row[key] for key in (
+            "candidates", "ranked", "context", "verification_pool", "accepted", "metrics",
+            "error", "rerank_ms", "rerank_usage", "verification_ms", "verification_usage",
         )} for row in records if row["id"] == case_id
     }}
 
