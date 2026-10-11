@@ -13,13 +13,14 @@ uv run python app.py      # 打开 http://127.0.0.1:7860
 
 ```
 User → Gradio UI → Naive Unified Agent (deepseek-flash)
-                        ├─ search_knowledge → Dense RAG (FAISS)
+                        ├─ search_knowledge → RAG（BM25 / Dense / RRF）
                         └─ 业务工具 → SQLite
                    → 回答 + 执行轨迹 + 延迟/token/成本
 ```
 
 - 手写 Function Calling Agent Loop（**没有用 LangGraph**）
-- Dense RAG：Markdown → 小节切分 → Qwen3-Embedding-8B → FAISS
+- RAG：共用 Markdown 小节，支持 BM25、Qwen embedding＋FAISS、Dense＋BM25＋RRF；
+  当前按开发对照选择 BM25 默认，候选正文经证据核验后再交给 Agent
 - 5 个只读工具（4 个业务查询 + 1 个知识检索）
 - Web UI：客服对话与**可观测执行轨迹**、业务数据浏览、评测对照与逐条回放
 - 会话级多轮历史、越权防护、错误兜底
@@ -185,6 +186,46 @@ P002 快充仍漏检索；部分规格问题多查商品，正确答案也可能
 
 ---
 
+## 章节级检索对照（2026-10-11）
+
+先冻结 52 条问题与所需证据章节，再用相同语料、单路候选 10 条、最终最多 3 个片段
+比较 Dense、BM25 与 RRF。32 条开发问题用于选择方案，20 条验证在选择后首次运行；
+作者已读过语料，不是严格盲测，结果公开后不再称为未见集。
+
+| 指标 | Dense | BM25 | Dense＋BM25＋RRF |
+| --- | ---: | ---: | ---: |
+| 开发集排序 Recall@3（24 条有效问题） | 81.2% | 100% | 97.9% |
+| 开发集核验后 Recall@3 | 77.1% | 100% | 97.9% |
+| 开发集库外问题接受 | 0/8 | 0/8 | 0/8 |
+| 验证集核验后 Recall@3（14 条有效问题） | 92.9% | 100% | 100% |
+| 验证集库外问题接受 | 1/6 | 0/6 | 0/6 |
+| 开发集配对检索耗时 p50 / ms | 930 | 527 | 1312 |
+
+Recall 按问题所需事实的证据组计算：同组可接受任一充分章节，多个事实都需要覆盖。
+P002 快充正确章节原本排第 9，BM25 排第 1、RRF 排第 2；这说明原先的检索失败发生在
+前三名排序。BM25 在当前小知识库的覆盖和耗时更好，因此在看到验证结果前选为默认。
+
+耗时包含证据核验，并对 Dense/RRF 复用同一次 embedding 的实测用时；不含 Agent 的
+回答生成，不是独立端到端性能对照。BM25/RRF 对每次候选做正文核验，开发集各新增
+32 次核验，分别使用 16765 / 15044 token；Dense 仅灰区核验 4 次、1840 token。
+因此覆盖提升同时增加了核验消耗。检索成功不能代替回答正确性，也不证明真实用户泛化。
+
+页面“评测进展”可以比较六行结果，按问题回放原始候选、核验结果和目标章节。
+实时轨迹区分 Dense、BM25 与 RRF 分数；RRF 额外显示各路排名。
+通过 `ACS_RETRIEVAL_MODE=dense|bm25|hybrid` 选择方案，重启应用生效。
+BM25/RRF 分数不会套用旧 cosine 阈值；保留原 Dense 规则作为对照。
+语料与 embedding 输入未改动，本轮沿用已验证的 v5 索引。
+
+```bash
+uv run python scripts/run_retrieval_eval.py --split development --out results/retrieval_new_dev
+uv run python scripts/run_retrieval_eval.py --split validation --out results/retrieval_new_validation
+```
+
+脚本校验冻结输入并拒绝覆盖结果；复跑已看过的验证问题属于回归。
+完整记录见 [对照证据](results/hybrid_retrieval/comparison.json)、
+[问题解决过程](docs/PROBLEM_SOLVING.md)、[实验条件](docs/EXPERIMENT_LOG.md)。
+独立 query rewrite、reranker 和售后写操作仍属于后续工作。
+
 ## 目录结构
 
 ```
@@ -194,7 +235,9 @@ src/acs/
   llm.py                      OpenAI 兼容客户端 + 记账 + embed（复用）
   service_agent.py            手写 Function Calling Agent Loop
   cs_tools.py                 工具注册表 + 执行 + 轨迹事件
-  rag.py                      Dense RAG（小节切分 + FAISS）
+  rag.py                      共用小节检索 + 证据核验
+  retrieval.py                中文分词 + BM25 + RRF
+  retrieval_eval.py           冻结章节级检索对照
   database.py                 只读数据访问（含权限校验）
   db_seed.py                  SQLite 种子数据
   eval_runner.py              分层评分 + 运行证据
@@ -208,7 +251,7 @@ data/
 scripts/
   init_db.py  build_index.py  run_demo_cases.py
   run_eval.py  validate_cases.py
-  run_prompt_ablation.py  calibrate_relevance.py
+  run_prompt_ablation.py  calibrate_relevance.py  run_retrieval_eval.py
   check_connectivity.py  check_secrets.py  smoke_llm.py
 tests/                        离线回归测试（无需 API）
 docs/                         PROBLEM_SOLVING / PROJECT_REVIEW / EXPERIMENT_LOG

@@ -8,6 +8,38 @@ import pytest
 from acs.eval_view import RESULTS_PATH, case_rows, load_evaluation, replay_case, review_run_rows
 
 
+def test_retrieval_replay_uses_verified_records_and_preserves_failed_baseline():
+    from acs.eval_view import (
+        load_retrieval_evaluation,
+        retrieval_case_view,
+        retrieval_comparison_rows,
+    )
+
+    report = load_retrieval_evaluation()
+    rows = retrieval_comparison_rows(report)
+    assert len(rows) == 6
+    case = retrieval_case_view(report, "q45-quickcharge")["检索对照"]
+    assert case["dense"]["metrics"]["context"]["recall"] == 0
+    assert case["bm25"]["metrics"]["context"]["recall"] == 1
+    assert case["hybrid"]["metrics"]["context"]["recall"] == 1
+
+
+def test_retrieval_snapshot_rejects_modified_raw_evidence(tmp_path):
+    import shutil
+
+    from acs.config import PROJECT_ROOT
+    from acs.eval_view import load_retrieval_evaluation
+
+    shutil.copytree(PROJECT_ROOT / "data/docs", tmp_path / "data/docs")
+    shutil.copytree(PROJECT_ROOT / "data/eval", tmp_path / "data/eval")
+    shutil.copytree(PROJECT_ROOT / "results/hybrid_retrieval",
+                    tmp_path / "results/hybrid_retrieval")
+    path = tmp_path / "results/hybrid_retrieval/development/per_case.jsonl"
+    path.write_bytes(path.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="原始记录"):
+        load_retrieval_evaluation(tmp_path)
+
+
 def test_published_answers_are_rescored_without_changing_original_files():
     path = RESULTS_PATH / "after" / "per_case.jsonl"
     original = path.read_bytes()

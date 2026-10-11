@@ -10,7 +10,10 @@ from pathlib import Path
 
 import yaml
 
+from .config import get_settings
 from .eval_runner import CASES_PATH, PROJECT_ROOT, SCORING_VERSION, Observed, score_case
+from .rag import KnowledgeBase
+from .retrieval_eval import METRIC_VERSION, MODES
 
 GROUP_LABELS = {"before": "优化前", "initial": "首轮优化", "after": "修正后"}
 CATEGORY_LABELS = {
@@ -19,6 +22,63 @@ CATEGORY_LABELS = {
     "price_protection": "价保", "security": "安全边界", "fallback": "闲聊兜底",
 }
 RESULTS_PATH = PROJECT_ROOT / "results" / "tool_efficiency"
+
+
+def load_retrieval_evaluation(root: Path = PROJECT_ROOT) -> dict:
+    """Validate frozen retrieval snapshots before showing comparisons or replay."""
+    base = root / "results/hybrid_retrieval"
+    source = root / "data/eval/retrieval_cases.json"
+    expected = hashlib.sha256(source.read_bytes()).hexdigest()
+    manifest = json.loads((base / "frozen_manifest.json").read_text())
+    if manifest["cases_sha256"] != expected:
+        raise ValueError("检索用例与冻结清单不匹配")
+    settings = get_settings().model_copy(update={"docs_dir": root / "data/docs"})
+    if KnowledgeBase(settings)._current_fingerprint() != manifest["knowledge_fingerprint"]:
+        raise ValueError("检索快照与当前知识库或切分配置不匹配")
+    runs = {}
+    for split in ("development", "validation"):
+        path = base / split / "summary.json"
+        if not path.exists():
+            continue
+        summary = json.loads(path.read_text())
+        raw = (path.parent / "per_case.jsonl").read_bytes()
+        if (summary["metric_version"] != METRIC_VERSION
+                or any(summary["inputs"][key] != manifest[key] for key in summary["inputs"])
+                or summary["conditions"] != manifest["conditions"]
+                or summary["records_sha256"] != hashlib.sha256(raw).hexdigest()):
+            raise ValueError(f"{split} 检索快照与用例、条件或原始记录不匹配")
+        runs[split] = {"report": summary,
+                       "records": [json.loads(line) for line in raw.splitlines()]}
+    if not runs:
+        raise FileNotFoundError("尚未生成检索对照结果")
+    return {"cases": json.loads(source.read_text())["cases"], "runs": runs}
+
+
+def retrieval_comparison_rows(report: dict) -> list[list]:
+    rows = []
+    for split, run in report["runs"].items():
+        for mode in MODES:
+            m = run["report"]["summary"][mode]
+            rows.append([
+                "开发对照" if split == "development" else "冻结验证 · 首次",
+                {"dense": "Dense", "bm25": "BM25", "hybrid": "Dense＋BM25＋RRF"}[mode],
+                m["queries"], f"{m['candidate_recall']:.1%}", f"{m['context_recall']:.1%}",
+                f"{m['accepted_recall']:.1%}", f"{m['supported_rejected']}/{m['supported']}",
+                f"{m['unsupported_accepted']}/{m['unsupported']}",
+                round(m["paired_retrieval_ms"]["p50"]), m["errors"],
+            ])
+    return rows
+
+
+def retrieval_case_view(report: dict, case_id: str) -> dict:
+    case = next(c for c in report["cases"] if c["id"] == case_id)
+    records = report["runs"][case["split"]]["records"]
+    return {"问题与所需证据章节": case, "检索对照": {
+        row["mode"]: {key: row[key] for key in (
+            "candidates", "context", "accepted", "metrics", "error",
+            "ranking_ms", "verification_ms",
+        )} for row in records if row["id"] == case_id
+    }}
 
 
 def load_evaluation(base: Path = RESULTS_PATH, cases_path: Path = CASES_PATH) -> dict:

@@ -24,26 +24,27 @@ or the wrong policy number, and human spot-checking 40 rows will not catch it.
 Deriving the facts and paraphrasing only the surface form keeps ground truth
 self-consistent while preserving real user phrasing.
 
-### Two guards that must ship with T1
+### Guards that must ship with T1
 
 1. **No-new-entity guard.** After paraphrase, verify the query introduces no
    entity or number absent from the structured case (order id, amount, date,
    product name, platform name). A paraphrase that adds a new one is dropped.
-2. **Answer-invariance guard.** Re-run retrieval on the paraphrased query and
-   require that `expected_docs` are still in top-k. Otherwise drop the
-   paraphrase.
-
-   Why this matters: a paraphrase can add a *distractor domain word*. E.g.
-   `"耳机降价了能退差价吗"` → `"我买的耳机昨天在京东降价了，能补差价吗"` — the
-   word 京东 sends retrieval toward platform policy, which this KB has no
-   dimension for. The agent then answers "wrongly" for a data-construction
-   reason, and the failure gets mis-attributed to the agent.
+2. **Answer-invariance guard.** Check that the paraphrase preserves the case's
+   entities, conditions, negation and requested facts. Reject a change of meaning,
+   such as introducing another shop or platform. Do not use retrieval success as
+   an admission rule: a valid paraphrase that misses its expected section must
+   remain in the dataset as a retrieval failure. Filtering those failures would
+   inflate the reported score.
 
 3. **Provenance in the trace.** Every case records
    `query_source: template | paraphrase` and `paraphrase_model`. A paraphrase
    batch is itself an experimental variable.
 
 **Status:** not implemented. Needed at Phase 2.
+
+章节级检索对照已单独实现：`data/eval/retrieval_cases.json` 与
+`scripts/run_retrieval_eval.py`。52 条问题先冻结，再比较 Dense、BM25 和 RRF；
+失败问题保留，不据检索结果改写标签。这不代表上述自动自然化生成器已经实现。
 
 ---
 

@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -114,12 +115,15 @@ class Settings(BaseSettings):
     trace_dir: Path = Path("results/traces")
     docs_dir: Path = Path("data/docs")
 
-    # ---------- RAG (MVP: dense retrieval only) ----------
+    # ---------- RAG ----------
     # Chunk size is picked once and deliberately NOT tuned in this phase. Tuning
     # chunks before an evaluation set exists would be fitting to nothing.
     chunk_size: int = 700
     chunk_overlap: int = 80
     top_k: int = 3
+    # Selected on frozen development evidence; dense/hybrid remain comparison modes.
+    retrieval_mode: Literal["dense", "bm25", "hybrid"] = "bm25"
+    retrieval_candidate_k: int = Field(default=10, ge=1)
     relevance_calibration_path: Path | None = Path("data/eval/relevance_calibration.json")
 
     # ---------- Agent ----------

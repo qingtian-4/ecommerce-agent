@@ -1,0 +1,542 @@
+{
+  "version": 1,
+  "description": "章节级检索评测；标签由当前知识库正文人工核对。development 含已知失败；validation 在首次运行前冻结，作者已读过语料，不是严格盲测，公开结果后不再是未见集。",
+  "conditions": {
+    "candidate_k": 10,
+    "context_k": 3,
+    "rrf_k": 60,
+    "bm25_k1": 1.5,
+    "bm25_b": 0.75
+  },
+  "cases": [
+    {
+      "id": "return-general",
+      "split": "development",
+      "category": "policy",
+      "query": "无线耳机退货期限多久？",
+      "evidence_groups": [
+        [
+          "return_policy#2",
+          "return_policy#4"
+        ],
+        [
+          "return_policy#3",
+          "return_policy#4"
+        ]
+      ]
+    },
+    {
+      "id": "return-quality",
+      "split": "development",
+      "category": "policy",
+      "query": "非人为质量故障签收后几天能退换？",
+      "evidence_groups": [
+        [
+          "return_policy#3",
+          "return_policy#4"
+        ]
+      ]
+    },
+    {
+      "id": "return-opened",
+      "split": "development",
+      "category": "policy",
+      "query": "耳塞拆封使用后还能无理由退货吗？",
+      "evidence_groups": [
+        [
+          "return_policy#2",
+          "headphone_a#5"
+        ]
+      ]
+    },
+    {
+      "id": "return-refund",
+      "split": "development",
+      "category": "policy",
+      "query": "退货后退款多久到账？",
+      "evidence_groups": [
+        [
+          "return_policy#7"
+        ]
+      ]
+    },
+    {
+      "id": "warranty-charger",
+      "split": "development",
+      "category": "policy",
+      "query": "充电器质保期限和起算点",
+      "evidence_groups": [
+        [
+          "warranty_policy#2",
+          "charger_a#6"
+        ]
+      ]
+    },
+    {
+      "id": "warranty-battery",
+      "split": "development",
+      "category": "policy",
+      "query": "电池容量衰减到多少可保修？",
+      "evidence_groups": [
+        [
+          "warranty_policy#3"
+        ]
+      ]
+    },
+    {
+      "id": "warranty-water",
+      "split": "development",
+      "category": "policy",
+      "query": "进水坏了的耳机还保修吗？",
+      "evidence_groups": [
+        [
+          "warranty_policy#3"
+        ]
+      ]
+    },
+    {
+      "id": "shipping-dispatch",
+      "split": "development",
+      "category": "policy",
+      "query": "付款后现货发货时限",
+      "evidence_groups": [
+        [
+          "shipping_policy#2"
+        ]
+      ]
+    },
+    {
+      "id": "shipping-fee",
+      "split": "development",
+      "category": "policy",
+      "query": "免运费包邮的金额门槛是多少？",
+      "evidence_groups": [
+        [
+          "shipping_policy#5"
+        ]
+      ]
+    },
+    {
+      "id": "shipping-stalled",
+      "split": "development",
+      "category": "policy",
+      "query": "物流长时间没有更新怎么办？",
+      "evidence_groups": [
+        [
+          "shipping_policy#7"
+        ]
+      ]
+    },
+    {
+      "id": "price-start",
+      "split": "development",
+      "category": "policy",
+      "query": "申请价保从哪一天起算？",
+      "evidence_groups": [
+        [
+          "price_protection#2",
+          "price_protection#7"
+        ]
+      ]
+    },
+    {
+      "id": "price-cancelled",
+      "split": "development",
+      "category": "policy",
+      "query": "已取消的订单能申请价保吗？",
+      "evidence_groups": [
+        [
+          "price_protection#4"
+        ]
+      ]
+    },
+    {
+      "id": "q45-quickcharge",
+      "split": "development",
+      "category": "sku",
+      "query": "P002 充电5分钟 续航 快充 听歌时长",
+      "evidence_groups": [
+        [
+          "headphone_b#2"
+        ]
+      ]
+    },
+    {
+      "id": "q45-ldac",
+      "split": "development",
+      "category": "sku",
+      "query": "P002 LDAC 开启方式 默认是否开启 高清音频设置",
+      "evidence_groups": [
+        [
+          "headphone_b#5"
+        ]
+      ]
+    },
+    {
+      "id": "q45-comfort",
+      "split": "development",
+      "category": "sku",
+      "query": "P002 佩戴夹头 头梁调节方式 佩戴舒适度",
+      "evidence_groups": [
+        [
+          "headphone_b#5"
+        ]
+      ]
+    },
+    {
+      "id": "charger-dual",
+      "split": "development",
+      "category": "sku",
+      "query": "P003 双 USB-C 同时使用 功率分配",
+      "evidence_groups": [
+        [
+          "charger_a#3"
+        ]
+      ]
+    },
+    {
+      "id": "charger-voltage",
+      "split": "development",
+      "category": "sku",
+      "query": "P003 充电器 输入电压范围 规格参数",
+      "evidence_groups": [
+        [
+          "charger_a#2"
+        ]
+      ]
+    },
+    {
+      "id": "charger-temperature",
+      "split": "development",
+      "category": "sku",
+      "query": "P003 满功率使用时外壳温度 45-50度是否正常 能否盖在被子里使用",
+      "evidence_groups": [
+        [
+          "charger_a#6"
+        ]
+      ]
+    },
+    {
+      "id": "bank-capacity",
+      "split": "development",
+      "category": "sku",
+      "query": "P004 电池容量多少 Wh？",
+      "evidence_groups": [
+        [
+          "power_bank_a#2",
+          "power_bank_a#6"
+        ]
+      ]
+    },
+    {
+      "id": "bank-metal",
+      "split": "development",
+      "category": "sku",
+      "query": "P004 手机背后银行卡金属支架 是否需要取下？",
+      "evidence_groups": [
+        [
+          "power_bank_a#3"
+        ]
+      ]
+    },
+    {
+      "id": "bank-swollen",
+      "split": "development",
+      "category": "sku",
+      "query": "充电宝鼓包了能继续用吗，可以寄普通快递吗？",
+      "evidence_groups": [
+        [
+          "power_bank_a#6"
+        ]
+      ]
+    },
+    {
+      "id": "bank-android",
+      "split": "development",
+      "category": "semantic",
+      "query": "安卓手机如何吸附磁吸充电宝？",
+      "evidence_groups": [
+        [
+          "power_bank_a#3"
+        ]
+      ]
+    },
+    {
+      "id": "p3-reset",
+      "split": "development",
+      "category": "semantic",
+      "query": "Life P3 单边不出声如何重置？",
+      "evidence_groups": [
+        [
+          "headphone_a#5"
+        ]
+      ]
+    },
+    {
+      "id": "charger-three",
+      "split": "development",
+      "category": "semantic",
+      "query": "氮化镓充电器三口同时使用输出功率",
+      "evidence_groups": [
+        [
+          "charger_a#3"
+        ]
+      ]
+    },
+    {
+      "id": "unknown-points",
+      "split": "development",
+      "category": "unsupported",
+      "query": "店铺会员积分何时到期？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-invoice",
+      "split": "development",
+      "category": "unsupported",
+      "query": "P003 企业采购开专票需要多久？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-instalments",
+      "split": "development",
+      "category": "unsupported",
+      "query": "P002 用花呗分六期有手续费吗？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-customs",
+      "split": "development",
+      "category": "unsupported",
+      "query": "跨境订单的进口税率多少？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-custom",
+      "split": "development",
+      "category": "unsupported",
+      "query": "P001 能定制刻字吗？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-birthday",
+      "split": "development",
+      "category": "unsupported",
+      "query": "P004 会员生日有没有折扣？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-bank-frequency",
+      "split": "development",
+      "category": "unsupported",
+      "query": "P004 无线充电的工作频率是多少 kHz？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-q45-multipoint-limit",
+      "split": "development",
+      "category": "unsupported",
+      "query": "P002 的出厂蓝牙配对 PIN 码是多少？",
+      "evidence_groups": []
+    },
+    {
+      "id": "quality-day-ten",
+      "split": "validation",
+      "category": "condition",
+      "query": "耳机签收第十天出现非人为功能故障，还能退换吗？",
+      "evidence_groups": [
+        [
+          "return_policy#3",
+          "return_policy#4"
+        ]
+      ]
+    },
+    {
+      "id": "return-freight",
+      "split": "validation",
+      "category": "condition",
+      "query": "质量问题退货的往返运费由谁付？",
+      "evidence_groups": [
+        [
+          "return_policy#3",
+          "return_policy#4"
+        ]
+      ]
+    },
+    {
+      "id": "warranty-replacement",
+      "split": "validation",
+      "category": "policy",
+      "query": "购买后多少天内功能性故障可以直接换新？",
+      "evidence_groups": [
+        [
+          "warranty_policy#4"
+        ]
+      ]
+    },
+    {
+      "id": "shipping-xinjiang",
+      "split": "validation",
+      "category": "policy",
+      "query": "发往新疆一般运输多久？",
+      "evidence_groups": [
+        [
+          "shipping_policy#3"
+        ]
+      ]
+    },
+    {
+      "id": "price-refund",
+      "split": "validation",
+      "category": "policy",
+      "query": "价保差价审核通过后多久退回？",
+      "evidence_groups": [
+        [
+          "price_protection#6"
+        ]
+      ]
+    },
+    {
+      "id": "q45-5min",
+      "split": "validation",
+      "category": "sku",
+      "query": "Space Q45 充电五分钟大概能听几小时？",
+      "evidence_groups": [
+        [
+          "headphone_b#2"
+        ]
+      ]
+    },
+    {
+      "id": "q45-wired",
+      "split": "validation",
+      "category": "semantic",
+      "query": "Space Q45 没电时还能插音频线听吗？",
+      "evidence_groups": [
+        [
+          "headphone_b#3"
+        ]
+      ]
+    },
+    {
+      "id": "charger-c1",
+      "split": "validation",
+      "category": "sku",
+      "query": "P003 单独使用 USB-C1 最大输出多少瓦？",
+      "evidence_groups": [
+        [
+          "charger_a#3"
+        ]
+      ]
+    },
+    {
+      "id": "charger-macbook",
+      "split": "validation",
+      "category": "sku",
+      "query": "P003 能给 16 寸 MacBook Pro 满速充电吗？",
+      "evidence_groups": [
+        [
+          "charger_a#6"
+        ]
+      ]
+    },
+    {
+      "id": "bank-case",
+      "split": "validation",
+      "category": "sku",
+      "query": "P004 套着超过3毫米厚的手机壳，充电断断续续怎么办？",
+      "evidence_groups": [
+        [
+          "power_bank_a#6"
+        ]
+      ]
+    },
+    {
+      "id": "bank-iphone11",
+      "split": "validation",
+      "category": "sku",
+      "query": "P004 配 iPhone 11 需要额外磁吸配件吗？",
+      "evidence_groups": [
+        [
+          "power_bank_a#3"
+        ]
+      ]
+    },
+    {
+      "id": "bank-real-capacity",
+      "split": "validation",
+      "category": "semantic",
+      "query": "一万毫安充电宝的实际可用容量大概是标称的多少？",
+      "evidence_groups": [
+        [
+          "power_bank_a#4"
+        ]
+      ]
+    },
+    {
+      "id": "p3-game",
+      "split": "validation",
+      "category": "sku",
+      "query": "P001 游戏模式的延迟大约多少毫秒？",
+      "evidence_groups": [
+        [
+          "headphone_a#3"
+        ]
+      ]
+    },
+    {
+      "id": "p3-swimming",
+      "split": "validation",
+      "category": "semantic",
+      "query": "Life P3 可以戴着游泳吗？",
+      "evidence_groups": [
+        [
+          "headphone_a#2",
+          "headphone_a#5"
+        ]
+      ]
+    },
+    {
+      "id": "unknown-student",
+      "split": "validation",
+      "category": "unsupported",
+      "query": "学生认证有什么专属优惠？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-invoice-refund",
+      "split": "validation",
+      "category": "unsupported",
+      "query": "订单退款后电子发票多久红冲？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-price-platform",
+      "split": "validation",
+      "category": "unsupported",
+      "query": "P003 企业大批量采购满100件折扣是多少？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-q45-colors",
+      "split": "validation",
+      "category": "unsupported",
+      "query": "P002 有哪些颜色可以购买？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-bank-passport",
+      "split": "validation",
+      "category": "unsupported",
+      "query": "P004 能否作为公司资产申请出口报关？",
+      "evidence_groups": []
+    },
+    {
+      "id": "unknown-charger-cert",
+      "split": "validation",
+      "category": "unsupported",
+      "query": "P003 的 UL 认证编号是什么？",
+      "evidence_groups": []
+    }
+  ]
+}

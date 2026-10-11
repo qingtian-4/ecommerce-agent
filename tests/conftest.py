@@ -39,6 +39,7 @@ def settings(seeded_db: Path, tmp_path: Path) -> Settings:
         embedding_model="fake-embedding",
         embedding_dim=8,
         relevance_calibration_path=None,
+        retrieval_mode="dense",
     )
 
 

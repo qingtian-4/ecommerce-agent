@@ -107,6 +107,22 @@ def test_renderers_handle_the_empty_state() -> None:
     assert "—" in app_module.render_stats(None)
 
 
+def test_retrieval_trace_distinguishes_fusion_scores_and_channel_ranks():
+    from acs.cs_tools import TraceEvent
+
+    document = {"chunk_id": "headphone_b#2", "title": "Q45", "content": "快充4小时",
+                "score": 0.0325, "score_type": "rrf",
+                "retrieval": {"dense": {"rank": 4}, "bm25": {"rank": 1}}}
+    result = AgentResult(answer="", trace=[TraceEvent(
+        type="retrieval", label="search_knowledge",
+        detail={"query": "P002 快充", "documents": [document]},
+    )])
+    rendered = app_module.render_trace(result)
+    assert "RRF 0.0325" in rendered
+    assert "dense #4 / bm25 #1" in rendered
+    assert "headphone_b#2" in rendered
+
+
 def test_header_and_user_card_render_for_every_user() -> None:
     for key in app_module.USER_CHOICES:
         header = app_module.render_header(key)

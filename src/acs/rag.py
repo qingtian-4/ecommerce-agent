@@ -1,12 +1,7 @@
-"""Dense retrieval over the Markdown knowledge base.
+"""Section retrieval over Markdown: dense, BM25, or RRF hybrid.
 
-MVP scope, deliberately minimal:
-
-    Markdown -> section-level chunk -> Qwen3 embedding -> FAISS IndexFlatIP -> top-k
-
-Explicitly NOT here (each is a later phase, and adding one now would mean
-tuning it against nothing):
-    BM25, hybrid fusion, RRF, reranker, query rewrite, parent-child chunks.
+All modes share the same chunks. Hybrid candidates are verified against their
+text; the existing cosine calibration applies only to dense scores.
 
 Chunking was revised twice after looking at actual retrieval output, and the
 reasoning is recorded because the failure mode is invisible without inspecting
@@ -35,7 +30,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 import numpy as np
@@ -59,6 +54,8 @@ class Chunk:
     category: str
     content: str
     score: float = 0.0
+    score_type: str = "cosine"
+    retrieval: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -151,6 +148,7 @@ class KnowledgeBase:
         self._fingerprint: str | None = None
         self._min_score: float | None = None
         self._uncertain_until: float | None = None
+        self._lexical: Any = None
 
     def _current_fingerprint(self) -> str:
         source = {
@@ -269,6 +267,7 @@ class KnowledgeBase:
             encoding="utf-8",
         )
         self._index, self._chunks = index, chunks
+        self._lexical = None
         self._fingerprint = fingerprint
         return {
             "chunks": len(chunks),
@@ -310,22 +309,48 @@ class KnowledgeBase:
         self._index = faiss.read_index(str(index_path))
         self._dim = int(meta["dim"])
         self._chunks = [Chunk(**c) for c in meta["chunks"]]
+        self._lexical = None
         self._fingerprint = fingerprint
 
     # ------------------------------------------------------------------ #
     def search(self, query: str, top_k: int | None = None) -> list[Chunk]:
-        """Return the top-k most similar chunks. Empty list if nothing to search."""
+        """Return at most top-k verified pieces of evidence."""
+        k = top_k or self.settings.top_k
+        results = self.retrieve(query, top_k=k)
+        return self._filter_evidence(query, results)
+
+    def retrieve(
+        self, query: str, *, mode: str | None = None, top_k: int | None = None,
+        query_vector: list[float] | None = None,
+    ) -> list[Chunk]:
+        """Rank candidates before rejection; a frozen vector supports paired evaluation."""
         if self._index is None:
             self.load()
         elif self._fingerprint != self._current_fingerprint():
             raise RuntimeError("知识索引过期：源文档已变更；rebuild with scripts/build_index.py")
+        mode = mode or self.settings.retrieval_mode
+        if mode not in {"dense", "bm25", "hybrid"}:
+            raise ValueError(f"unknown retrieval mode: {mode}")
         k = top_k or self.settings.top_k
         if not self._chunks or not query.strip():
             return []
 
-        vector = self.llm.embed([query], stage="kb_search")
+        from .retrieval import LexicalIndex, reciprocal_rank_fusion
+
+        candidate_k = max(k, self.settings.retrieval_candidate_k) if mode == "hybrid" else k
+        lexical = []
+        if mode != "dense":
+            if self._lexical is None:
+                self._lexical = LexicalIndex(self._chunks)
+            lexical = self._lexical.search(query, candidate_k)
+        if mode == "bm25":
+            return lexical
+
+        vector = [query_vector] if query_vector is not None else self.llm.embed(
+            [query], stage="kb_search",
+        )
         matrix = self._normalise(np.asarray(vector, dtype="float32"))
-        scores, indices = self._index.search(matrix, min(k, len(self._chunks)))
+        scores, indices = self._index.search(matrix, min(candidate_k, len(self._chunks)))
 
         results: list[Chunk] = []
         for score, idx in zip(scores[0], indices[0], strict=True):
@@ -342,11 +367,16 @@ class KnowledgeBase:
                     score=float(score),
                 )
             )
-        return self._filter_evidence(query, results)
+        if mode == "hybrid":
+            return reciprocal_rank_fusion(results, lexical)[:k]
+        return results
 
     def _filter_evidence(self, query: str, results: list[Chunk]) -> list[Chunk]:
         if self._min_score is None or not results:
             return results
+        if results[0].score_type != "cosine":
+            # RRF and BM25 scores cannot use the measured cosine boundaries.
+            return self._verify_evidence(query, results)
         if results[0].score < self._min_score:
             return []
         if results[0].score <= self._uncertain_until:

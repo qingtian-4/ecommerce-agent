@@ -44,7 +44,10 @@ from acs.eval_view import (  # noqa: E402
     case_rows,
     comparison_rows,
     load_evaluation,
+    load_retrieval_evaluation,
     replay_case,
+    retrieval_case_view,
+    retrieval_comparison_rows,
     review_run_rows,
 )
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
@@ -269,6 +272,15 @@ def on_try_case(case_id: str, report: dict, state_dict: dict) -> tuple:
     return (*packed, user_key, gr.update(selected="chat"))
 
 
+def format_retrieval_score(document: dict) -> str:
+    kind = {"cosine": "Dense", "bm25": "BM25", "rrf": "RRF"}.get(
+        document.get("score_type", "cosine"), "score",
+    )
+    ranks = " / ".join(f"{name} #{data['rank']}"
+                       for name, data in document.get("retrieval", {}).items())
+    return f"{kind} {document.get('score', 0):.4f}" + (f"；{ranks}" if ranks else "")
+
+
 def render_trace(result: AgentResult | None, error: str | None = None) -> str:
     if error:
         return (
@@ -283,7 +295,7 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             "左侧提问后，这里会显示 Agent 的完整执行轨迹：<br>"
             "· 调用了哪些工具、参数是什么<br>"
             "· 工具返回了什么<br>"
-            "· 知识检索命中了哪些文档、余弦分数多少<br>"
+            "· 知识检索命中了哪些章节、各路排名和分数<br>"
             "· 每步实际进展和最终结果<br><br>"
             "这里展示的是<b>可观测的执行过程</b>，不包含模型的隐藏思维过程。"
             "</div></div>"
@@ -328,7 +340,7 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             docs = detail.get("documents", [])
             body = (
                 "\n".join(
-                    f"[{d.get('score', 0):.4f}] {d.get('title', '')} "
+                    f"[{format_retrieval_score(d)}] {d.get('title', '')} "
                     f"({d.get('chunk_id', '')})\n    {_truncate(d.get('content', ''), 200)}"
                     for d in docs
                 )
@@ -355,7 +367,7 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             "<div style='margin-top:9px'><b style='font-size:12.5px'>累计命中文档</b>"
             + "".join(
                 "<div class='trace-body'>· "
-                f"[{d.get('score', 0):.4f}] {html.escape(str(d.get('title', '')))} "
+                f"[{html.escape(format_retrieval_score(d))}] {html.escape(str(d.get('title', '')))} "
                 f"<span class='mono-key'>({html.escape(str(d.get('chunk_id', '')))})</span>"
                 "</div>"
                 for d in result.retrieved_documents
@@ -753,6 +765,41 @@ def build_app() -> gr.Blocks:
                 )
 
             with gr.Tab("评测进展", id="evaluation"):
+                gr.Markdown(
+                    "**章节级检索对照** · 使用相同问题与知识库，每次提供最多 3 个片段。"
+                    "分别检查候选召回、前三名排序和证据核验后的结果。"
+                )
+                try:
+                    retrieval_report = load_retrieval_evaluation()
+                except (FileNotFoundError, ValueError) as exc:
+                    gr.Markdown(f"检索评测展示暂不可用：{html.escape(str(exc))}")
+                else:
+                    gr.Dataframe(
+                        retrieval_comparison_rows(retrieval_report),
+                        headers=["数据分组", "方案", "问题数", "候选 Recall@10", "排序 Recall@3",
+                                 "核验后 Recall@3", "有依据问题误拒", "库外问题接受",
+                                 "配对检索 p50 / ms", "执行错误"],
+                        interactive=False, label="Dense / BM25 / RRF 对照",
+                    )
+                    gr.Markdown(
+                        "耗时复用同一次 embedding 的实测用时，包含证据核验，"
+                        "未包含 Agent 回答生成；片段 token 长度可能不同。"
+                        "本表衡量检索，不能直接当作回答正确率。验证结果公开后归入开发证据。"
+                    )
+                    available = [c["id"] for c in retrieval_report["cases"]
+                                 if c["split"] in retrieval_report["runs"]]
+                    retrieval_state = gr.State(retrieval_report)
+                    retrieval_selector = gr.Dropdown(
+                        choices=available, value=available[0], label="回放检索问题",
+                    )
+                    retrieval_replay = gr.JSON(
+                        retrieval_case_view(retrieval_report, available[0]),
+                        label="所需章节、各路候选与核验结果（历史记录）",
+                    )
+                    retrieval_selector.change(
+                        retrieval_case_view, inputs=[retrieval_state, retrieval_selector],
+                        outputs=[retrieval_replay],
+                    )
                 gr.Markdown(
                     "**新增验证与开发回归** · 首次新增验证集与公开开发集分开报告。"
                     "多轮用例要求每轮全部通过；单次运行不能判断稳定性。"

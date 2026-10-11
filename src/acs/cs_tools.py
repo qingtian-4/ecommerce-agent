@@ -325,6 +325,7 @@ class ToolRegistry:
                     label="search_knowledge",
                     detail={
                         "query": arguments.get("query", ""),
+                        "retrieval_mode": result.get("retrieval_mode", "dense"),
                         "documents": result.get("documents", []),
                     },
                 )
@@ -353,11 +354,13 @@ class ToolRegistry:
             return {
                 "found": False,
                 "query": query,
+                "retrieval_mode": self.settings.retrieval_mode,
                 "reason": "知识库中没有找到相关内容",
                 "documents": [],
             }
         return {
             "found": True,
             "query": query,
+            "retrieval_mode": self.settings.retrieval_mode,
             "documents": [c.as_dict() for c in chunks],
         }

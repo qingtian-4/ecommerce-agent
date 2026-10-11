@@ -456,3 +456,65 @@ uv run python scripts/calibrate_relevance.py --extra-samples data/eval/retrieval
 历史 v5 回放。发票问题检索为空并拒答，P002 LDAC 命中 `headphone_b#5`；
 两次回答完成前分别观察到 58 / 119 次正文增量更新，输入框可见并恢复，无页面脚本错误。
 证据：[真实浏览器记录](../results/ui_review/browser_check.json)。
+
+## E004 — 章节排序对照：Dense、BM25 与 RRF
+
+**Date:** 2026-10-11（Asia/Shanghai）。
+**Status:** 开发选择与冻结验证完成；不含独立 query rewrite、reranker 或售后写操作。
+
+| 条件 | 固定值 |
+| --- | --- |
+| 起点 | `b1128fb`；主提示词不改 |
+| 数据 | `retrieval_cases.json`，先冻结；32 条开发（24 有依据、8 库外），20 条验证（14/6） |
+| 语料 / 索引 | 相同 8 文档、48 小节；v5 指纹与 FAISS SHA 见 frozen_manifest |
+| 模型 | Qwen/Qwen3-Embedding-8B；正文核验 deepseek-flash，temperature=0、thinking=false |
+| 检索参数 | 每路候选 10，融合后最多 10；上下文最多 3；BM25 k1=1.5、b=0.75，RRF k=60 |
+| 中文处理 | jieba 搜索分词、HMM=false；统一大小写，保留 SKU、接口、协议与数字单位 |
+| 门控 | Dense 使用既有 cosine 标定；BM25/RRF 对前三个候选做正文证据核验 |
+| 统计口径 | 逐问题证据组 Recall；任一充分章节覆盖同组事实，多组事实分别要求 |
+
+先写 [冻结清单](../results/hybrid_retrieval/frozen_manifest.json)，再运行开发对照：
+
+```bash
+uv run python scripts/run_retrieval_eval.py --split development --out results/hybrid_retrieval/development
+```
+
+Dense / BM25 / RRF 的开发排序 Recall@3 为 **81.2% / 100% / 97.9%**，
+核验后为 **77.1% / 100% / 97.9%**，库外拒绝均 8/8。候选 Recall@10 均 100%，
+说明当前主要缺口在排序与门控。BM25 开发所需证据全部保留 24/24，RRF 23/24；
+RRF 的失败是一般退货问题遗漏质量条件，并没有因融合自动获得全面规则。
+
+将 BM25 选为默认，写入 [部署选择](../results/hybrid_retrieval/deployment_decision.json)，
+再执行验证；不根据验证结果调标签、分词、融合或门控：
+
+```bash
+uv run python scripts/run_retrieval_eval.py --split validation --out results/hybrid_retrieval/validation
+```
+
+冻结验证的核验后 Recall@3 为 **92.9% / 100% / 100%**，库外拒绝 **5/6 / 6/6 / 6/6**。
+Dense 对 P001 游戏延迟误拒，对 P002 颜色问题误接受。三方案共 156 个检索尝试均无
+执行错误；全部原始记录保留。20 条验证由读过语料的作者编写，不是严格盲测，公开后
+不能继续用作未见集。单遍与小样本不足以证明泛化和稳定性。
+
+开发配对检索 p50 为 **930 / 527 / 1312 ms**，验证为 **1402 / 730 / 2174 ms**。
+同一 query vector 供 Dense/RRF 复用，执行顺序轮换；耗时按共享 embedding 的实测值
+加排名与核验用时计算，不是三组独立 Agent 请求，也未控制服务缓存与网络波动。
+最多三个片段是相同上下文数量预算，片段 token 长度可不同，不能当作严格等 token 对照。
+
+开发正文核验调用为 **4 / 32 / 32**，token 为 **1840 / 16765 / 15044**；
+验证为 **4 / 20 / 20**、**1531 / 9990 / 9099**。实际请求账本含共享 embedding 与
+全部核验，embedding 未定价；不据此宣称完整成本下降。
+检索评测不生成回答，覆盖改善不能直接表述为回答正确率提升。
+
+复现文件 hash、依赖版本、逐条候选与所有失败见
+[完整对照](../results/hybrid_retrieval/comparison.json)、
+[开发记录](../results/hybrid_retrieval/development/per_case.jsonl)、
+[验证记录](../results/hybrid_retrieval/validation/per_case.jsonl)。
+前端新增对照与只读回放；RRF 分数、各路排名与 Dense cosine 分开标示。
+
+验证：216 项离线测试、ruff、156 条记录的指标离线复算通过，现有 v5 索引与冻结语料
+一致。真实浏览器确认六行对照与回放切换，无页面脚本错误；一般退货回答同时提到
+7 天无理由与 15 天质量条件，P002 快充回答约 4 小时，会员积分问题无命中并说明缺少
+规则。三次回答分别观察到 90 / 74 / 81 次聊天正文变化，输入框可见且完成后可再次输入。
+这些是三条功能检查，不能当作端到端评测成功率。
+证据：[浏览器记录](../results/hybrid_retrieval/browser_check.json)。
