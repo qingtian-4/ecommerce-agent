@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from contextlib import closing
 from datetime import UTC, datetime
@@ -11,6 +12,10 @@ from uuid import uuid4
 
 
 class ConversationBusy(RuntimeError):
+    pass
+
+
+class TaskValidationError(ValueError):
     pass
 
 
@@ -58,7 +63,7 @@ class SessionStore:
             conn.execute("CREATE TABLE IF NOT EXISTS acs_migrations "
                          "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
             version = conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] or 0
-            if version > 1:
+            if version > 2:
                 raise RuntimeError("数据库迁移版本比当前程序新，不能自动降级")
             conn.execute("CREATE TABLE IF NOT EXISTS conversations ("
                          "session_id TEXT PRIMARY KEY,"
@@ -76,6 +81,10 @@ class SessionStore:
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS conversation_one_running "
                          "ON conversation_turns(session_id) WHERE status='running'")
             conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(1, ?)", (_now(),))
+            conn.execute("CREATE TABLE IF NOT EXISTS return_tasks ("
+                         "session_id TEXT PRIMARY KEY REFERENCES conversations(session_id),"
+                         "data_json TEXT NOT NULL, updated_at TEXT NOT NULL)")
+            conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(2, ?)", (_now(),))
 
     @staticmethod
     def _require_owner(conn, sid: str, user_id: str) -> sqlite3.Row:
@@ -176,3 +185,119 @@ class SessionStore:
         for row in rows:
             self.interrupt_turn(row["session_id"], row["user_id"], row["turn_id"])
         return len(rows)
+
+    @staticmethod
+    def _task(conn, sid: str) -> dict | None:
+        row = conn.execute("SELECT data_json FROM return_tasks WHERE session_id=?",
+                           (sid,)).fetchone()
+        return json.loads(row[0]) if row else None
+
+    @staticmethod
+    def _task_view(conn, task: dict | None, user_id: str) -> dict:
+        order, missing = None, []
+        if task and task["status"] != "cancelled":
+            missing = [f for f in ("order_id", "item_id", "quantity", "reason") if task[f] is None]
+            if task["reason"] == "no_reason" and task["condition"] is None:
+                missing.append("condition")
+            if task["reason"] == "quality":
+                if not task["problem_description"]:
+                    missing.append("problem_description")
+                missing.append("quality_evidence")
+            if task["order_id"]:
+                row = conn.execute("SELECT order_id,status,delivered_at FROM orders "
+                                   "WHERE order_id=? AND user_id=?",
+                                   (task["order_id"], user_id)).fetchone()
+                if row:
+                    order = dict(row)
+                    order["items"] = [dict(r) for r in conn.execute(
+                        "SELECT i.id,i.product_id,i.quantity,p.name AS product_name "
+                        "FROM order_items i JOIN products p USING(product_id) WHERE order_id=?",
+                        (task["order_id"],),
+                    )]
+        return {"task": task, "order": order, "missing_fields": missing, "can_submit": False,
+                "note": "仅保存退货草稿，用户自述未经审核；尚未创建售后单或退款。",
+                "queried_at": _now()}
+
+    def get_return_task(self, sid: str, user_id: str) -> dict:
+        with closing(self._connect()) as conn:
+            self._require_owner(conn, sid, user_id)
+            return self._task_view(conn, self._task(conn, sid), user_id)
+
+    def update_return_task(self, sid: str, user_id: str, tid: str, patch: dict,
+                           *, cancel: bool = False) -> dict:
+        """Save model-extracted claims with their original user turn, not verified eligibility."""
+        fields = ("order_id", "item_id", "quantity", "reason", "condition", "problem_description")
+        if set(patch) - set(fields) or (not patch and not cancel):
+            raise TaskValidationError("草稿字段无效或为空")
+        with closing(self._connect()) as conn, conn:
+            conn.execute("BEGIN IMMEDIATE")
+            self._require_owner(conn, sid, user_id)
+            turn = conn.execute("SELECT user_text FROM conversation_turns WHERE session_id=? "
+                                "AND turn_id=? AND status='running'", (sid, tid)).fetchone()
+            if turn is None:
+                raise TaskValidationError("草稿只能由当前进行中的会话轮次更新")
+            if cancel:
+                text = turn["user_text"]
+                target = r"(退货(?:草稿|申请)?|草稿)"
+                action = r"(取消|中止|清空|放弃)(当前|这个|这份|我的)?" + target
+                if not re.search(action, text) or re.search(r"(不要|别|不用|无需)" + action, text):
+                    raise TaskValidationError(
+                        "暂停话题不清空草稿。确需中止请明确说“中止退货草稿”。"
+                    )
+            previous = self._task(conn, sid)
+            task = previous if previous and previous["status"] != "cancelled" else {
+                **dict.fromkeys(fields), "sources": {},
+                "revision": previous["revision"] if previous else 0,
+            }
+            task["status"] = "cancelled" if cancel else "draft"
+            clear = set(fields) if cancel else set()
+            if "order_id" in patch and patch["order_id"] != task["order_id"]:
+                clear.update(set(fields) - {"order_id"})
+            elif "item_id" in patch and patch["item_id"] != task["item_id"]:
+                clear.update({"quantity", "condition", "problem_description"})
+            if "reason" in patch and patch["reason"] != task["reason"]:
+                clear.update({"condition", "problem_description"})
+            for field in clear:
+                task[field] = None
+                task["sources"].pop(field, None)
+            for field, value in patch.items():
+                task[field] = value
+                if value is None:
+                    task["sources"].pop(field, None)
+                else:
+                    task["sources"][field] = {"turn_id": tid, "user_text": turn["user_text"],
+                                              "type": "user_claim", "updated_at": _now()}
+            if task["order_id"] is not None and (not isinstance(task["order_id"], str)
+                    or not conn.execute("SELECT 1 FROM orders WHERE order_id=? AND user_id=?",
+                                        (task["order_id"], user_id)).fetchone()):
+                raise TaskValidationError("订单不存在或不属于当前用户")
+            item = None
+            if task["item_id"] is not None:
+                if type(task["item_id"]) is not int:
+                    raise TaskValidationError("商品明细编号必须为整数")
+                item = conn.execute("SELECT quantity FROM order_items WHERE id=? AND order_id=?",
+                                    (task["item_id"], task["order_id"])).fetchone()
+                if item is None:
+                    raise TaskValidationError("商品明细不属于已选择订单，请先确认订单和商品")
+            if task["quantity"] is not None and (
+                type(task["quantity"]) is not int or task["quantity"] <= 0
+                or item is None or task["quantity"] > item["quantity"]
+            ):
+                raise TaskValidationError("退货数量必须为正整数，先选择商品且不能超过购买数量")
+            if task["reason"] not in (None, "no_reason", "quality"):
+                raise TaskValidationError("退货原因须为no_reason或quality")
+            if task["condition"] not in (None, "sealed", "opened"):
+                raise TaskValidationError("商品状况须为sealed或opened；不清楚时留空")
+            description = task["problem_description"]
+            if description is not None and (not isinstance(description, str)
+                                            or not description.strip() or len(description) > 1000):
+                raise TaskValidationError("问题描述须为1到1000字的文本")
+            task["revision"] += 1
+            conn.execute("INSERT INTO return_tasks VALUES(?,?,?) ON CONFLICT(session_id) "
+                         "DO UPDATE SET data_json=excluded.data_json,"
+                         "updated_at=excluded.updated_at",
+                         (sid, json.dumps(task, ensure_ascii=False), _now()))
+            return self._task_view(conn, task, user_id)
+
+    def cancel_return_task(self, sid: str, user_id: str, tid: str) -> dict:
+        return self.update_return_task(sid, user_id, tid, {}, cancel=True)

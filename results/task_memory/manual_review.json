@@ -1,0 +1,60 @@
+{
+  "raw_sha256": "fb173a574838fa13ae452f30a0e9a69b7762456d89531cf00e25146e1325e66c",
+  "review_method": "逐条复核发布代码的11轮输入、回答、轨迹与状态；原版本人工复核另存，非模型裁判。",
+  "cases": [
+    {
+      "id": "ambiguous-order",
+      "criterion": "调用list_orders；未创建指定订单草稿；候选包含多笔Life P3且澄清",
+      "state_check_passed": true,
+      "manual_behavior_passed": true,
+      "observation": "列出O10024/O10027/O10022三个真实Life P3候选并询问选择；未选定草稿订单。"
+    },
+    {
+      "id": "ambiguous-item",
+      "criterion": "order_id=O10024；item_id为空；澄清商品，不猜明细",
+      "state_check_passed": true,
+      "manual_behavior_passed": true,
+      "observation": "只记O10024及无理由原因，商品/数量/状况待确定；没有替用户选择明细。"
+    },
+    {
+      "id": "remember-after-digression",
+      "criterion": "订单/明细/数量/原因/状况正确保存；无关轮次不修改；最后不重复索要已知字段",
+      "state_check_passed": true,
+      "manual_behavior_passed": true,
+      "observation": "暂停轮保留草稿；回顾准确包含O10024、Life P3、1个、无理由、未拆封，未再次索要这些字段。"
+    },
+    {
+      "id": "correct-order",
+      "criterion": "只保留O10027；旧明细数量原因状况为空；版本增加",
+      "state_check_passed": true,
+      "manual_behavior_passed": true,
+      "observation": "更正到O10027并清除旧明细/数量/原因/状况；明确等待重新提供。"
+    },
+    {
+      "id": "invalid-quantity",
+      "criterion": "数量仍为1；工具拒绝超购买量；不承诺已提交",
+      "state_check_passed": true,
+      "manual_behavior_passed": true,
+      "observation": "后台拒绝2个，回复说明只买1个，原草稿数量保留1；不声称更改或提交成功。"
+    },
+    {
+      "id": "cancel-draft",
+      "criterion": "草稿cancelled并清空字段；业务订单不变",
+      "state_check_passed": true,
+      "manual_behavior_passed": true,
+      "observation": "明确中止后清空草稿，回答订单不受影响，未宣称取消业务订单。"
+    }
+  ],
+  "known_field_reask_check": {
+    "case_id": "remember-after-digression",
+    "judged_turn_index": 2,
+    "reasks": 0,
+    "scope": "仅这1轮人工标注，不报告整体记忆准确率"
+  },
+  "limitations": [
+    "6段开发对话单次运行，已看过的用例不再是未见测试集",
+    "未覆盖长对话预算、所有中止表达、质量凭证上传、提交/审核和线上多实例",
+    "结构检查及人工检查不等于完整业务成功率"
+  ],
+  "raw_file": "online_release/per_case.jsonl"
+}

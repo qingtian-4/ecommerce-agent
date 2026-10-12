@@ -1,9 +1,9 @@
-"""Business tools: read-only SQL lookups plus knowledge search.
+"""Business lookups, knowledge search and session-scoped return drafts.
 
 Two rules that shape this file:
 
 1. **Identity is injected, not generated.** The LLM never supplies `user_id`.
-   The registry receives the authenticated user and passes it to every tool, so
+   The registry receives the application's current user and passes it to every tool, so
    a prompt-injected "user_id=USER002" argument simply has no field to land in.
    Cross-user reads are blocked by the SQL layer, not by instruction-following.
 
@@ -26,6 +26,7 @@ from typing import Any
 
 from .config import Settings, get_settings
 from .database import BusinessDB
+from .sessions import SessionStore, TaskValidationError
 
 
 @dataclass
@@ -63,7 +64,7 @@ class ToolSpec:
 
 
 class ToolRegistry:
-    """Holds the read-only tools and executes them with trace events."""
+    """Executes tools with application-supplied identity and trace events."""
 
     def __init__(
         self,
@@ -91,6 +92,13 @@ class ToolRegistry:
 
     # ------------------------------------------------------------------ #
     def _register_all(self) -> None:
+        self.register(ToolSpec(
+            name="list_orders",
+            description=("列出当前用户的订单候选及商品明细，按下单时间倒序。用户不记得订单号时"
+                         "先列候选；存在多个匹配订单时询问用户选择，不能猜选。"),
+            parameters={"type": "object", "properties": {}, "required": []},
+            func=self._list_orders,
+        ))
         self.register(
             ToolSpec(
                 name="get_product",
@@ -190,6 +198,43 @@ class ToolRegistry:
 
     def register(self, spec: ToolSpec) -> None:
         self._tools[spec.name] = spec
+
+    def bind_return_task(self, store: SessionStore, sid: str, tid: str) -> None:
+        """Bind application context for one turn; model arguments cannot choose a session."""
+        def read(*, current_user_id: str) -> dict:
+            return store.get_return_task(sid, current_user_id)
+
+        def update(*, current_user_id: str, **fields) -> dict:
+            return store.update_return_task(sid, current_user_id, tid, fields)
+
+        def cancel(*, current_user_id: str) -> dict:
+            return store.cancel_return_task(sid, current_user_id, tid)
+
+        empty = {"type": "object", "properties": {}, "required": []}
+        self.register(ToolSpec(
+            "get_return_task", "读取当前会话退货草稿及待补信息；不代表资格或已提交。", empty, read,
+        ))
+        self.register(ToolSpec(
+            "update_return_task",
+            "记录用户明确提供或更正的退货草稿字段，不创建售后单。只传本轮明确提供的字段；"
+            "null表示清除。订单号和明细编号从业务查询取得，多候选须澄清后选择。"
+            "换订单会清空旧商品、数量、原因和状况；换商品清空数量和状况。"
+            "不猜数量或商品状况；缺失字段继续询问，不重复问已知信息。",
+            {"type": "object", "properties": {
+                "order_id": {"type": ["string", "null"]},
+                "item_id": {"type": ["integer", "null"], "description": "order_items明细id"},
+                "quantity": {"type": ["integer", "null"]},
+                "reason": {"enum": ["no_reason", "quality", None]},
+                "condition": {"enum": ["sealed", "opened", None],
+                              "description": "用户自述未拆封/已拆封，未知留空"},
+                "problem_description": {"type": ["string", "null"], "description": "用户自述故障"},
+            }, "required": [], "additionalProperties": False}, update,
+        ))
+        self.register(ToolSpec(
+            "cancel_return_task",
+            "仅在用户明确说中止/取消/清空退货草稿时清空；不取消订单。"
+            "先不用继续、暂停、闲聊均保留草稿，不能调用本工具。", empty, cancel,
+        ))
 
     def schemas(self) -> list[dict[str, Any]]:
         return [spec.schema() for spec in self._tools.values()]
@@ -298,6 +343,12 @@ class ToolRegistry:
                 events,
                 f"invalid_arguments: {exc}",
             )
+        except TaskValidationError as exc:
+            events.append(TraceEvent(
+                type="error", label=name,
+                detail={"error_type": "invalid_arguments", "message": str(exc)},
+            ))
+            return {"error": str(exc)}, events, f"invalid_arguments: {exc}"
         except Exception as exc:  # noqa: BLE001 - must not kill the loop
             events.append(
                 TraceEvent(
@@ -338,6 +389,13 @@ class ToolRegistry:
     # ------------------------------------------------------------------ #
     # tool implementations
     # ------------------------------------------------------------------ #
+    def _list_orders(self, *, current_user_id: str) -> dict[str, Any]:
+        orders = self.db.list_orders(current_user_id)
+        for order in orders:
+            order["items"] = self.db.get_order(order["order_id"], current_user_id)["items"]
+        return {"orders": orders, "count": len(orders),
+                "instruction": "候选不等于用户选择。多个匹配订单或明细时必须澄清。"}
+
     def _get_product(self, *, current_user_id: str, product_id: str) -> dict[str, Any]:
         return self.db.get_product(product_id)
 
