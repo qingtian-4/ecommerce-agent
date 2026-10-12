@@ -97,6 +97,8 @@ class AgentResult:
         Derived purely from which tools ran -- it says what the agent did, which
         is already visible in the trace, never why in the model's own words.
         """
+        if self.stop_reason == "interrupted":
+            return "上次请求已中断，未完成回答；可重新提问。"
         if self.stop_reason == "max_steps":
             return f"达到最大步数 {self.steps}，已停止并给出兜底回复。"
         if self.stop_reason == "llm_error":

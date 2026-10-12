@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "阶段1结构性验收，使用固定脚本模型和合成数据；不将恢复完整历史当作真实模型记忆准确率。新增用例先冻结。",
+  "cases": [
+    {
+      "id": "refresh-history",
+      "expected": "刷新后先列出本人会话，显式选择后恢复原始对话"
+    },
+    {
+      "id": "login-again",
+      "expected": "退出再登录后同一用户可选择恢复；另一用户不能读取"
+    },
+    {
+      "id": "process-restart",
+      "expected": "服务重启后完整轮次与工具调用结果配对可恢复"
+    },
+    {
+      "id": "new-session",
+      "expected": "新会话没有继承另一个会话的订单或消息"
+    },
+    {
+      "id": "cross-owner",
+      "expected": "伪造或复用他人的会话ID不能加载、写入或续聊"
+    },
+    {
+      "id": "forged-identity",
+      "expected": "客户端状态、订单号和历史内容不能替换已认证身份"
+    },
+    {
+      "id": "two-windows",
+      "expected": "同一会话同时最多一个进行中的请求，第二个请求不调用模型"
+    },
+    {
+      "id": "interrupted-turn",
+      "expected": "断流保留已完成结构；硬重启未完成请求标为中断，不自动重放"
+    },
+    {
+      "id": "migration-preserves-business",
+      "expected": "迁移重复运行保留已有会话与所有业务事实"
+    },
+    {
+      "id": "seed-protection",
+      "expected": "存在持久会话时，旧建库脚本拒绝重建"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ the model behaving differently.
 
 from __future__ import annotations
 
+import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,9 +32,11 @@ def seeded_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 @pytest.fixture()
 def settings(seeded_db: Path, tmp_path: Path) -> Settings:
+    db_path = tmp_path / "business.db"
+    shutil.copyfile(seeded_db, db_path)
     return Settings(
         _env_file=None,  # ignore the developer's .env
-        db_path=seeded_db,
+        db_path=db_path,
         docs_dir=ROOT / "data" / "docs",
         index_dir=tmp_path / "index",
         embedding_model="fake-embedding",

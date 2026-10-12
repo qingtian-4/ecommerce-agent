@@ -245,6 +245,11 @@ def build(db_path: Path, *, reference_date: date | None = None) -> dict[str, int
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     try:
+        has_sessions = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='conversations'",
+        ).fetchone()
+        if has_sessions and conn.execute("SELECT 1 FROM conversations LIMIT 1").fetchone():
+            raise RuntimeError("数据库已有持久会话，拒绝重建；正常升级请使用非破坏式迁移")
         conn.executescript(SCHEMA)
         conn.executemany("INSERT INTO users VALUES (?,?,?)", USERS)
         conn.executemany("INSERT INTO products VALUES (?,?,?,?,?,?,?)", PRODUCTS)

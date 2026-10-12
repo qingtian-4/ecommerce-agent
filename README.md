@@ -23,11 +23,12 @@ User → Gradio UI → Naive Unified Agent (deepseek-flash)
   支持可选 API 重排与核验后补位；候选正文经证据核验后再交给 Agent
 - 5 个只读工具（4 个业务查询 + 1 个知识检索）
 - Web UI：客服对话与**可观测执行轨迹**、业务数据浏览、评测对照与逐条回放
-- 会话级多轮历史、越权防护、错误兜底
+- 演示账户登录、SQLite 持久会话、历史选择与重启恢复；会话与订单按用户隔离
 - 70 条公开开发用例（含 10 条多轮）与 15 条独立文件的新增验证，保存每轮答案、调用、证据、错误和运行条件；原 35 条历史对照保留
 
 当前业务工具均为只读查询，能够判断条件、解释流程，尚不能实际退款或提交售后申请。
-界面中的用户选择用于模拟会话身份，尚未接入真实登录。
+演示账户通过 Gradio 登录映射到合成业务用户，身份来自服务端请求，界面不能切换用户身份。
+尚未接入真实电商账户或管理员审核。
 
 ---
 
@@ -39,6 +40,7 @@ uv sync --extra dev
 
 # 2. 配置
 cp .env.example .env        # 填入 ACS_LLM_API_KEY 与 ACS_EMBEDDING_API_KEY
+uv run python scripts/configure_demo_accounts.py  # 首次生成独立演示密码，保存在 .env
 
 # 3. 建库 + 建索引（各一次）
 uv run python scripts/init_db.py        # 25 订单 / 4 商品 / 19 物流
@@ -57,6 +59,8 @@ uv run pytest && uv run ruff check .
 
 `app.py` 会在索引缺失时自动构建，所以第 3 步对启动不是必需的，但对调试有用。
 已有索引与文档、切分配置或版本不符时会明确报错，需重新构建；不会继续返回旧政策。
+已有数据库直接启动应用即可追加会话迁移；`init_db.py` 是种子重建入口，不用于升级。
+它发现已有会话时会拒绝重建，避免丢失历史与业务数据。
 相关性标定绑定知识库、切分版本与 embedding 模型，不能直接套用到新语料。
 样例数据库按生成当日计算日期；跨日重演“前天收到”等示例时需重新生成。
 对照评测使用固定参考日期，见问题记录中的运行条件。
@@ -65,20 +69,23 @@ uv run pytest && uv run ruff check .
 
 ## 页面
 
-页面顶部可切换 3 个模拟用户；切换后会清空对话，并同步该用户的订单列表与详情。
+首次运行账户配置脚本后，在本机 `.env` 的 `ACS_AUTH_ACCOUNTS` 查看登录名与密码。
+`demo1 / demo2 / demo3` 分别映射 `USER001 / USER002 / USER003`，密码各不相同。
+刷新或重新登录后先选择自己的历史会话；“新建会话”保留旧历史，但不会继承它的上下文。
+退出登录后可使用另一账户，订单与历史始终按服务端认证身份查询。
 
 | 页面 | 可交互内容 |
 | --- | --- |
-| 客服对话 | 发送问题、多轮追问；逐步查看工具调用、返回事实与知识命中，查看 token 和部分成本 |
+| 客服对话 | 选择历史或新建会话、发送问题、多轮追问；逐步查看调用、证据、token 和部分成本 |
 | 业务数据 | 浏览 25 个订单、26 条明细、19 条物流；选择订单查看金额与时间线，选择商品查看价格历史 |
 | 评测进展 | 查看检索、重排与补位的消融结果及候选回放；查看端到端开发回归与历史对照 |
 
 建议按下面的顺序体验：
 
-1. 选择 `USER001`，在业务数据页查看 `O10024`：实付 728 元、两件商品、订单与物流签收日期一致。
+1. 登录 `demo1`，在业务数据页查看 `O10024`：实付 728 元、两件商品、订单与物流签收日期一致。
 2. 回到客服对话，点击“价保咨询”并发送：查询 `O10027`，观察订单事实与政策检索如何共同支持 30 元差价判断。
 3. 打开评测进展，回放默认用例 `pp-no-difference`：首轮优化漏查政策、错误使用签收日起算；修正后按下单日判断。
-4. 点击“体验此用例”，页面自动切换为 `USER002` 并填入问题；发送后运行当前 Agent。
+4. 退出并登录 `demo2` 后体验该用户用例。体验按钮只填入问题，不能改变当前账户身份。
 
 评测回放读取保存的历史答案，不会调用模型；发送消息才会触发实时模型请求。
 页面校验用例、原始记录的 hash 和评分版本，避免把不匹配的快照展示为当前结果。
@@ -224,7 +231,7 @@ uv run python scripts/run_retrieval_eval.py --split validation --out results/ret
 脚本校验冻结输入并拒绝覆盖结果；复跑已看过的验证问题属于回归。
 完整记录见 [对照证据](results/hybrid_retrieval/comparison.json)、
 [问题解决过程](docs/PROBLEM_SOLVING.md)、[实验条件](docs/EXPERIMENT_LOG.md)。
-独立 query rewrite、reranker 和售后写操作仍属于后续工作。
+独立 query rewrite 和售后写操作仍属于后续工作。
 
 ## API 重排与核验后补位（2026-10-11）
 
@@ -278,12 +285,33 @@ ACS_EVIDENCE_BACKFILL=false
 这一轮测量的是检索覆盖，不是生成回答正确率；公开过的验证问题之后也只作为开发证据。
 复现命令与条件见 [EXPERIMENT_LOG.md](docs/EXPERIMENT_LOG.md#e005--api-重排与核验后补位)。
 
+## 会话记忆与登录（2026-10-12）
+
+按照 [NEXT_ITERATION.md](docs/NEXT_ITERATION.md) 先交付阶段 1：客户演示账户登录、
+持久对话、历史选择与用户隔离。原消息、完整工具调用与结果、回复、停止原因和运行统计
+保存在 SQLite。浏览器传来的聊天历史只用于显示，模型上下文从已授权会话的存储记录恢复。
+
+请求开始即保存用户输入，回复完成后原子保存完整轮次；同一会话同时只允许一个请求。
+断流或取消保留中断标记，硬重启时未完成轮次不作为成功回答、不自动执行重试。
+历史业务事实可能过期，恢复后提示重新查询；后续退货提交还须后台强制重校验。
+
+正常启动追加版本迁移，不重建现有业务表。数据库已有会话时，旧建库脚本会拒绝重建。
+当前只支持单进程应用；多实例部署需先补运行实例与存活检查。
+本期尚未实现结构化退货任务、确认提交、售后单或管理员审核。
+
+登录与恢复验收包括刷新、退出再登录、重启、工具配对、跨用户拒绝、并发与种子保护。
+这些是持久化和权限约束的验证，不能当作真实模型任务成功率或当前完整 Agent 的评测成绩。
+代表性真实浏览器记录见 [browser_check.json](results/session_memory/browser_check.json)，
+根因与边界见 [PROBLEM_SOLVING.md](docs/PROBLEM_SOLVING.md#9-刷新后丢失对话同一用户无法继续原会话)。
+
 ## 目录结构
 
 ```
 app.py                        Gradio UI（单命令启动）
 src/acs/
   config.py                   配置 + 定价 + 评测参考日期
+  auth.py                     演示登录校验 + 服务端身份映射
+  sessions.py                 SQLite 迁移、会话与完整轮次存储
   llm.py                      对话 / embedding / rerank API + 共享记账
   service_agent.py            手写 Function Calling Agent Loop
   cs_tools.py                 工具注册表 + 执行 + 轨迹事件
@@ -303,6 +331,7 @@ data/
   eval/                       冻结历史集 / 新增验证 / 公开开发集 / 检索标定样本
 scripts/
   init_db.py  build_index.py  run_demo_cases.py
+  configure_demo_accounts.py  首次配置独立演示账户密码（保存在 .env）
   run_eval.py  validate_cases.py
   run_prompt_ablation.py  calibrate_relevance.py  run_retrieval_eval.py  run_rerank_eval.py
   summarize_rerank.py          从原始记录离线复算检索覆盖与共享账本

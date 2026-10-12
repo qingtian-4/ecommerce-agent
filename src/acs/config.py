@@ -12,7 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -75,6 +75,11 @@ def is_peak_now(when: datetime | None = None) -> bool:
     return (1 <= now.hour < 4) or (6 <= now.hour < 10)
 
 
+class DemoAccount(BaseModel):
+    user_id: str
+    password: SecretStr = Field(min_length=1)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="ACS_",
@@ -110,6 +115,7 @@ class Settings(BaseSettings):
     embedding_dim: int | None = None
 
     # ---------- Storage ----------
+    auth_accounts: dict[str, DemoAccount] = Field(default_factory=dict)
     db_path: Path = Path("data/db/business.db")
     index_dir: Path = Path("data/.index")
     trace_dir: Path = Path("results/traces")

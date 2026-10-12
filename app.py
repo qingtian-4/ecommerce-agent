@@ -28,16 +28,21 @@ import html
 import json
 import sys
 import traceback
+from contextlib import closing
+from dataclasses import asdict
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import gradio as gr
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
+from acs.auth import authenticate, user_id_for  # noqa: E402
 from acs.config import get_settings  # noqa: E402
-from acs.cs_tools import ToolRegistry  # noqa: E402
+from acs.cs_tools import ToolRegistry, TraceEvent  # noqa: E402
 from acs.database import BusinessDB  # noqa: E402
 from acs.eval_view import (  # noqa: E402
     CATEGORY_LABELS,
@@ -54,9 +59,23 @@ from acs.eval_view import (  # noqa: E402
     review_run_rows,
 )
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
-from acs.service_agent import AgentResult, CustomerServiceAgent  # noqa: E402
+from acs.service_agent import SYSTEM_PROMPT, AgentResult, CustomerServiceAgent  # noqa: E402
+from acs.sessions import ConversationBusy, SessionStore  # noqa: E402
 
 SETTINGS = get_settings()
+_SESSION_STORE: SessionStore | None = None
+
+
+def session_store() -> SessionStore:
+    global _SESSION_STORE
+    if _SESSION_STORE is None or _SESSION_STORE.db_path != SETTINGS.db_path:
+        _SESSION_STORE = SessionStore(SETTINGS.db_path)
+    return _SESSION_STORE
+
+
+def authenticated_key(request: gr.Request) -> str:
+    user_id = user_id_for(SETTINGS, request)
+    return f"{user_id} · {label_for_id(user_id)}"
 
 SHOP_NAME = "声阔优选旗舰店"
 SHOP_SUBTITLE = "无线耳机 · 充电配件 · 官方售后"
@@ -211,7 +230,8 @@ def render_database_overview() -> str:
     return f"<div class='stat-grid'>{cards}</div>"
 
 
-def on_data_user_change(user_key: str) -> tuple:
+def on_data_user_change(request: gr.Request) -> tuple:
+    user_key = authenticated_key(request)
     orders = BusinessDB(SETTINGS).list_orders(user_id_from_key(user_key))
     rows = [[o["order_id"], ORDER_STATUS.get(o["status"], o["status"]), o["paid_amount"],
              o["created_at"], o["shipped_at"] or "—", o["delivered_at"] or "—"]
@@ -220,7 +240,8 @@ def on_data_user_change(user_key: str) -> tuple:
     return rows, gr.update(choices=ids, value=ids[0] if ids else None)
 
 
-def on_order_change(order_id: str | None, user_key: str) -> tuple:
+def on_order_change(order_id: str | None, request: gr.Request) -> tuple:
+    user_key = authenticated_key(request)
     db = BusinessDB(SETTINGS)
     user_id = user_id_from_key(user_key)
     order = db.get_order(order_id or "", user_id)
@@ -267,12 +288,11 @@ def on_eval_category(category: str, report: dict) -> tuple:
     return rows, gr.update(choices=[r[0] for r in rows], value=rows[0][0])
 
 
-def on_try_case(case_id: str, report: dict, state_dict: dict) -> tuple:
+def on_try_case(case_id: str, report: dict, state_dict: dict, request: gr.Request) -> tuple:
     case = next(c for c in report["cases"] if c["id"] == case_id)
-    user_key = USER_CHOICES[USER_IDS.index(case["user"])]
-    packed = list(on_user_change(user_key, state_dict))
+    packed = list(on_clear(state_dict, request))
     packed[1] = case["query"]
-    return (*packed, user_key, gr.update(selected="chat"))
+    return (*packed, gr.update(selected="chat"))
 
 
 def format_retrieval_score(document: dict) -> str:
@@ -481,10 +501,17 @@ def _card_for(user_key: str) -> str:
     return render_user_card(user_id, label_for_id(user_id))
 
 
-def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key: str):
-    history = list(history or [])
+def on_send(message: str, history: list[dict] | None, state_dict: dict, request: gr.Request):
+    user_key = authenticated_key(request)
+    user_id = user_id_from_key(user_key)
+    store = session_store()
+    sid = state_dict.get("session_id")
+    # Browser history is display data, never trusted model context.
+    history = []
     card = _card_for(user_key)
     if not (message or "").strip():
+        if sid:
+            history = store.load(sid, user_id)["history"]
         yield pack(
             history,
             render_trace(None),
@@ -496,26 +523,53 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
         return
 
     started = perf_counter()
-    history.append({"role": "user", "content": message})
-    reply_index = len(history)
-    yield pack(
-        history, render_trace(AgentResult(answer="", stop_reason="running")), state_dict,
-        render_stats(None), card, render_header(user_key), render_reply_status(0, running=True),
-    )
+    tid, finished, result = None, False, None
+    reply_index = 0
     try:
+        if not sid:
+            sid = store.create(user_id)
+            state_dict["session_id"] = sid
+        tid = store.begin_turn(sid, user_id, message)
+        snapshot = store.load(sid, user_id)
+        history = snapshot["history"]
+        reply_index = len(history)
+        yield pack(
+            history, render_trace(AgentResult(answer="", stop_reason="running")), state_dict,
+            render_stats(None), card, render_header(user_key), render_reply_status(0, running=True),
+        )
         agent = ensure_agent(state_dict, user_key)
-        for result in agent.chat_stream(message):
-            running = result.stop_reason == "running"
-            history[reply_index:] = (
-                [{"role": "assistant", "content": result.answer}] if result.answer else []
-            )
-            yield pack(
-                history, render_trace(result), state_dict, render_stats(result), card,
-                render_header(user_key), render_reply_status(
-                    (perf_counter() - started) * 1000, running=running,
-                    failed=result.stop_reason in {"llm_error", "max_steps"},
-                ),
-            )
+        agent.messages = [{"role": "system", "content": SYSTEM_PROMPT}] + snapshot["messages"]
+        if snapshot["messages"]:
+            agent.messages.append({"role": "system", "content": (
+                "以下继续已有会话。历史订单、物流、价格和政策结果可能已经变化；"
+                "涉及当前业务状态或资格时须重新调用工具核查，不能沿用历史资格判断。"
+            )})
+        offset = len(agent.messages)
+        with closing(agent.chat_stream(message)) as stream:
+            for result in stream:
+                running = result.stop_reason == "running"
+                history[reply_index:] = (
+                    [{"role": "assistant", "content": result.answer}] if result.answer else []
+                )
+                if not running:
+                    store.finish_turn(sid, user_id, tid, agent.messages[offset:], asdict(result))
+                    finished = True
+                yield pack(
+                    history, render_trace(result), state_dict, render_stats(result), card,
+                    render_header(user_key), render_reply_status(
+                        (perf_counter() - started) * 1000, running=running,
+                        failed=result.stop_reason in {"llm_error", "max_steps"},
+                    ),
+                )
+        if not finished:
+            raise RuntimeError("模型未返回完整轮次")
+    except (PermissionError, ConversationBusy) as exc:
+        if isinstance(exc, ConversationBusy):
+            history = store.load(sid, user_id)["history"]
+        else:
+            state_dict.clear()
+        yield pack(history, render_trace(None, error=str(exc)), state_dict, render_stats(None),
+                   card, render_header(user_key), render_reply_status(0, failed=True))
     except Exception as exc:  # noqa: BLE001 - the UI must never go blank
         # Surfaced in the panel, not only in the server log. A silent gradio 500
         # is how the keyword-only-argument bug stayed invisible in the browser.
@@ -534,12 +588,16 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
             render_header(user_key),
             render_reply_status((perf_counter() - started) * 1000, failed=True),
         )
+    finally:
+        if tid and not finished:
+            partial = result.answer if result else ""
+            store.interrupt_turn(sid, user_id, tid, partial + "\n\n本次回答中断，尚未完成，请重新提问。")
 
 
-def on_clear(state_dict: dict, user_key: str):
-    agent = state_dict.get("agent")
-    if agent is not None:
-        agent.reset()
+def on_clear(state_dict: dict, request: gr.Request):
+    user_key = authenticated_key(request)
+    state_dict.clear()
+    state_dict["session_id"] = session_store().create(user_id_from_key(user_key))
     return pack(
         [],
         render_trace(None),
@@ -550,21 +608,39 @@ def on_clear(state_dict: dict, user_key: str):
     )
 
 
-def on_user_change(user_key: str, state_dict: dict):
-    # A different user is a different session: history is dropped so one user's
-    # order details can never leak into another user's context.
-    user_id = user_id_from_key(user_key)
-    state_dict["agent"] = CustomerServiceAgent(settings=SETTINGS, current_user_id=user_id)
-    state_dict["user_id"] = user_id
-    state_dict["user_key"] = user_key
-    return pack(
-        [],
-        render_trace(None),
-        state_dict,
-        render_stats(None),
-        _card_for(user_key),
-        render_header(user_key),
-    )
+def on_history_choices(state_dict: dict, request: gr.Request):
+    user_id = user_id_for(SETTINGS, request)
+    sessions = session_store().list(user_id)
+    ids = {s["session_id"] for s in sessions}
+    choices = [(f"{s['title']} · " + datetime.fromisoformat(s["updated_at"]).astimezone(
+        ZoneInfo("Asia/Shanghai"),
+    ).strftime("%m-%d %H:%M"), s["session_id"]) for s in sessions]
+    return gr.update(choices=choices,
+                     value=state_dict.get("session_id") if state_dict.get("session_id") in ids else None)
+
+
+def on_restore(sid: str | None, state_dict: dict, request: gr.Request):
+    user_key = authenticated_key(request)
+    if sid is None:
+        state_dict.clear()
+        return pack([], render_trace(None), state_dict, render_stats(None), _card_for(user_key),
+                    render_header(user_key), "可选择历史会话，或开始新会话。")
+    snapshot = session_store().load(sid, user_id_from_key(user_key))
+    state_dict.clear()
+    state_dict["session_id"] = sid
+    record = snapshot["last_result"]
+    result = AgentResult(**(record | {"trace": [TraceEvent(**e) for e in record.get("trace", [])]})) if record else None
+    status = "会话已恢复，可继续提问。" if not snapshot["running"] else "此会话仍在处理，请稍后重新载入。"
+    return pack(snapshot["history"], render_trace(result), state_dict, render_stats(result),
+                _card_for(user_key), render_header(user_key), status)
+
+
+def on_load(request: gr.Request):
+    user_key = authenticated_key(request)
+    state = {}
+    return (*pack([], render_trace(None), state, render_stats(None), _card_for(user_key),
+                  render_header(user_key), "选择历史会话可继续，或直接发送以开始新会话。"),
+            *on_data_user_change(request), on_history_choices(state, request))
 
 
 # --------------------------------------------------------------------------- #
@@ -654,24 +730,27 @@ CSS = """
 
 
 def build_app() -> gr.Blocks:
+    if not SETTINGS.auth_accounts:
+        raise RuntimeError("请先运行 uv run python scripts/configure_demo_accounts.py 配置演示账户")
+    if any(account.user_id not in USER_IDS for account in SETTINGS.auth_accounts.values()):
+        raise RuntimeError("演示账户必须映射当前业务用户 USER001 / USER002 / USER003")
+    session_store().recover_interrupted()
     # Build the index on first run so `python app.py` is genuinely the only step.
     if not (SETTINGS.index_dir / INDEX_FILE).exists():
         print("knowledge index missing - building it now (one-off) ...")
         KnowledgeBase(SETTINGS).build()
 
     with gr.Blocks(title="Adaptive Customer Service Agent") as demo:
-        header = gr.HTML(render_header(USER_CHOICES[0]))
-        state = gr.State({"user_key": USER_CHOICES[0], "agent": None})
-
-        user_selector = gr.Dropdown(
-            choices=USER_CHOICES, value=USER_CHOICES[0], label="模拟用户（非真实登录）"
-        )
+        header = gr.HTML()
+        state = gr.State({})
+        gr.Button("退出登录", link="/logout")
         with gr.Tabs(selected="chat", elem_id="project-tabs") as tabs:
             with gr.Tab("客服对话", id="chat"), gr.Row():
                 # ---------------- sidebar ---------------- #
                 with gr.Column(scale=2, min_width=240):
-                    user_card = gr.HTML(render_user_card(USER_IDS[0], USERS[0][1]))
-                    clear_btn = gr.Button("结束会话 / 清空对话")
+                    user_card = gr.HTML()
+                    history_selector = gr.Dropdown(choices=[], label="历史会话 · 选择后继续", value=None)
+                    clear_btn = gr.Button("新建会话")
 
                 # ---------------- chat ---------------- #
                 with gr.Column(scale=5, min_width=380):
@@ -732,26 +811,24 @@ def build_app() -> gr.Blocks:
                     )
 
             with gr.Tab("业务数据", id="data"):
-                gr.Markdown("浏览当前 SQLite 合成数据。切换上方用户后，只展示该用户的订单。")
+                gr.Markdown("浏览当前 SQLite 合成数据，只展示登录账户本人的订单。")
                 gr.HTML(render_database_overview())
-                initial_orders, initial_choice = on_data_user_change(USER_CHOICES[0])
                 orders_table = gr.Dataframe(
-                    initial_orders, headers=["订单号", "状态", "实付 / 元", "下单", "发货", "签收"],
+                    [], headers=["订单号", "状态", "实付 / 元", "下单", "发货", "签收"],
                     interactive=False, max_height=300,
                 )
                 order_selector = gr.Dropdown(
-                    choices=initial_choice["choices"], value=initial_choice["value"],
+                    choices=[], value=None,
                     label="查看订单详情",
                 )
-                detail, items, logistics = on_order_change(initial_choice["value"], USER_CHOICES[0])
-                order_detail = gr.HTML(detail)
+                order_detail = gr.HTML()
                 items_table = gr.Dataframe(
-                    items, headers=["商品 ID", "商品", "数量", "购买价", "当前价", "单件价差"],
+                    [], headers=["商品 ID", "商品", "数量", "购买价", "当前价", "单件价差"],
                     label="订单明细 · 价差仅为金额事实，能否价保还需核对政策",
                     interactive=False, wrap=True,
                 )
                 logistics_table = gr.Dataframe(
-                    logistics, headers=["日期", "物流节点"], label="物流时间线",
+                    [], headers=["日期", "物流节点"], label="物流时间线",
                     interactive=False, wrap=True,
                 )
                 products = product_rows()
@@ -903,7 +980,7 @@ def build_app() -> gr.Blocks:
                     with gr.Accordion("查看用例判据、参数、命中文档与失败原因", open=False):
                         evidence_json = gr.JSON(evidence)
                     try_btn = gr.Button("体验此用例 → 客服对话", variant="primary")
-                    gr.Markdown("体验按钮会切换到用例对应的模拟用户并填入问题；点击发送后运行当前 Agent。")
+                    gr.Markdown("体验按钮仅填入问题，身份保持为登录账户；其他账户的订单会被拒绝。")
 
         outputs = [
             chatbot,
@@ -915,7 +992,7 @@ def build_app() -> gr.Blocks:
             header,
             reply_status,
         ]
-        controls = [message_box, send_btn, user_selector, clear_btn]
+        controls = [message_box, send_btn, history_selector, clear_btn]
         if report:
             controls.append(try_btn)
         for submit in (send_btn.click, message_box.submit):
@@ -923,24 +1000,21 @@ def build_app() -> gr.Blocks:
                 lambda: [gr.update(interactive=False) for _ in controls], outputs=controls,
                 queue=False, show_progress="hidden",
             ).then(
-                on_send, inputs=[message_box, chatbot, state, user_selector], outputs=outputs,
+                on_send, inputs=[message_box, chatbot, state], outputs=outputs,
                 show_progress="hidden", stream_every=0.1,
             ).then(
                 lambda: [gr.update(interactive=True) for _ in controls], outputs=controls,
                 queue=False, show_progress="hidden",
-            )
+            ).then(on_history_choices, inputs=state, outputs=history_selector, show_progress="hidden")
         clear_btn.click(
-            on_clear, inputs=[state, user_selector], outputs=outputs, show_progress="hidden",
-        )
-        user_selector.input(
-            on_user_change, inputs=[user_selector, state], outputs=outputs, show_progress="hidden",
-        )
-        user_selector.change(
-            on_data_user_change, inputs=user_selector, outputs=[orders_table, order_selector],
-            show_progress="hidden",
-        )
+            on_clear, inputs=state, outputs=outputs, show_progress="hidden",
+        ).then(on_history_choices, inputs=state, outputs=history_selector, show_progress="hidden")
+        history_selector.input(on_restore, inputs=[history_selector, state], outputs=outputs,
+                               show_progress="hidden")
+        demo.load(on_load, outputs=[*outputs, orders_table, order_selector, history_selector],
+                  show_progress="hidden")
         order_selector.change(
-            on_order_change, inputs=[order_selector, user_selector],
+            on_order_change, inputs=order_selector,
             outputs=[order_detail, items_table, logistics_table],
             show_progress="hidden",
         )
@@ -961,7 +1035,7 @@ def build_app() -> gr.Blocks:
                 )
             try_btn.click(
                 on_try_case, inputs=[case_selector, eval_state, state],
-                outputs=[*outputs, user_selector, tabs],
+                outputs=[*outputs, tabs],
                 show_progress="hidden",
             )
 
@@ -975,6 +1049,7 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         server_port=7860,
         show_error=True,
+        auth=lambda username, password: authenticate(SETTINGS, username, password),
         css=CSS,
         theme=gr.themes.Soft(primary_hue="orange", neutral_hue="slate"),
     )
