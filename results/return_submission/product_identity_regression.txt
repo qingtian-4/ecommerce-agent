@@ -1,0 +1,19 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_changed_product_in_business_data_requires_new_preview __________
+
+flow = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...re object at 0x713dc7f1cd70>, <acs.returns.ReturnService object at 0x713dc7f1eba0>, '07a83ddceeca4516b18297cdada9fd58')
+
+    def test_changed_product_in_business_data_requires_new_preview(flow):
+        settings, _, service, sid = flow
+        preview = service.preview(sid, "USER001")
+        with closing(sqlite3.connect(settings.db_path)) as conn, conn:
+            conn.execute("UPDATE order_items SET product_id='P004' WHERE id=4")
+>       with pytest.raises(TaskValidationError, match="更改"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE TaskValidationError
+
+tests/test_return_submission.py:137: Failed
+=========================== short test summary info ============================
+FAILED tests/test_return_submission.py::test_changed_product_in_business_data_requires_new_preview
+1 failed, 31 deselected in 4.11s

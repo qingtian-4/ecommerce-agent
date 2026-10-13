@@ -1,0 +1,148 @@
+{
+  "method": "Codex逐条阅读答案、工具返回与操作记录，政策事实对照原文件和数据库；不是关键词自动评分，也未由外部人工独立复核",
+  "boundary": "回答错误数是本组开发用例的诊断，不是新增未见验证集的成功率；英文问题保留，未对原答案做后处理",
+  "reviews": [
+    {
+      "attempt": "online_network_allowed",
+      "raw_sha256": "776a0bd7426ea22bbcea397fc930b82959ff5d8c8e1528c67c12fd64b74487f7",
+      "cases": [
+        {
+          "id": "no-reason-confirm",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [
+            "增加知识政策未规定的赠品条件"
+          ],
+          "quote": "包装、配件、赠品是否齐全完好"
+        },
+        {
+          "id": "chat-is-not-confirmation",
+          "state_check_passed": true,
+          "reviewed_turns": 2,
+          "policy_errors": [
+            "两轮均增加知识政策未规定的赠品、发票条件"
+          ],
+          "quote": "包装、配件、赠品、发票等"
+        },
+        {
+          "id": "quality-missing-proof",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [
+            "质量原因误用无理由7天窗口，未解释实际15天窗口"
+          ],
+          "quote": "已超出 7 天退货窗口"
+        },
+        {
+          "id": "quality-with-upload",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [
+            "质量原因误用无理由7天窗口，未解释实际15天窗口"
+          ],
+          "quote": "已超出 7 天退货窗口"
+        },
+        {
+          "id": "cancelled-order",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [
+            "增加赠品条件",
+            "已取消订单仍引导补充并生成预览后提交"
+          ],
+          "quote": "需要的话你可以在页面上补充信息并生成预览，最终由你点击确认提交"
+        }
+      ]
+    },
+    {
+      "attempt": "online_policy_grounded",
+      "raw_sha256": "6e9da93e1ebc5890bbcd685d69672b3bbc60c9dfcf9bd039caa846544011eb76",
+      "cases": [
+        {
+          "id": "no-reason-confirm",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": []
+        },
+        {
+          "id": "chat-is-not-confirmation",
+          "state_check_passed": true,
+          "reviewed_turns": 2,
+          "policy_errors": []
+        },
+        {
+          "id": "quality-missing-proof",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [
+            "把无理由二次销售条件作为质量问题退货条件"
+          ],
+          "quote": "质量问题退货还需满足二次销售条件"
+        },
+        {
+          "id": "quality-with-upload",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": []
+        },
+        {
+          "id": "cancelled-order",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [],
+          "style_errors": [
+            "英文开场白"
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": "online_final",
+      "raw_sha256": "6396511b52ced07c48d51a1c57089b5daed3638a5d693b8fa8494d18ff42ac93",
+      "cases": [
+        {
+          "id": "no-reason-confirm",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [],
+          "finding": "原政策3项条件、实际签收日期与7天无理由窗口一致；预览和确认前后行数正确"
+        },
+        {
+          "id": "chat-is-not-confirmation",
+          "state_check_passed": true,
+          "reviewed_turns": 2,
+          "policy_errors": [],
+          "finding": "两轮均无赠品/发票新增条件；拒绝聊天直接提交或退款，未创建申请"
+        },
+        {
+          "id": "quality-missing-proof",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [],
+          "finding": "13天未超15天质量窗口，不要求耳塞未使用；缺上传凭证不能生成可提交预览"
+        },
+        {
+          "id": "quality-with-upload",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [],
+          "finding": "质量15天政策和未审核说明正确；合成图片仅格式测试，按钮创建1条待审核单，重试仍1条"
+        },
+        {
+          "id": "cancelled-order",
+          "state_check_passed": true,
+          "reviewed_turns": 1,
+          "policy_errors": [],
+          "style_errors": [
+            "英文开场白"
+          ],
+          "quote": "I need to let you know about this order before recording anything.",
+          "finding": "已取消、无签收、实付0均符合数据库；拒绝提交并询问其他订单，无单据"
+        }
+      ]
+    }
+  ],
+  "unresolved": [
+    "online_final的已取消订单回复含英文开场白；不能宣称完整回复规范全部通过"
+  ]
+}

@@ -490,7 +490,7 @@ def test_task_updates_are_visible_and_restore_into_model_context(monkeypatch):
     ])
     state = {}
     updates = list(app_module.on_send("O10024耳机退1个，无理由，未拆封", [], state, MOCK_USERS[0]))
-    assert any("未拆封" in u[5] and "草稿版本 1" in u[5] for u in updates)
+    assert any("未拆封" in u[5] and "用户自述待审核" in u[5] for u in updates)
     fresh = {}
     restored = app_module.on_restore(state["session_id"], fresh, MOCK_USERS[0])
     assert "O10024" in restored[5] and "尚未提交" in restored[5]

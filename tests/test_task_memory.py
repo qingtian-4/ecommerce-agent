@@ -82,7 +82,7 @@ def test_unrelated_completed_turn_keeps_task_and_known_fields(task_context):
         store.finish_turn(sid, "USER001", other, [{"role": "user", "content": text},
                           {"role": "assistant", "content": "好的"}], {"answer": "好的"})
     assert store.get_return_task(sid, "USER001")["task"] == before["task"]
-    assert store.get_return_task(sid, "USER001")["missing_fields"] == []
+    assert store.get_return_task(sid, "USER001")["missing_fields"] == ["secondary_sale_ok"]
 
 
 def test_order_correction_clears_dependent_fields(task_context):
@@ -184,5 +184,5 @@ def test_migration_preserves_v1_history_and_business_tables(task_context):
     migrated = SessionStore(store.db_path)
     assert migrated.load(sid, "USER001") == before
     with closing(migrated._connect()) as conn:
-        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 2
+        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 3
         assert conn.execute("SELECT COUNT(*) FROM order_items").fetchone()[0] == counts

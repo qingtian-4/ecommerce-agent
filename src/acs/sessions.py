@@ -63,7 +63,7 @@ class SessionStore:
             conn.execute("CREATE TABLE IF NOT EXISTS acs_migrations "
                          "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
             version = conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] or 0
-            if version > 2:
+            if version > 3:
                 raise RuntimeError("数据库迁移版本比当前程序新，不能自动降级")
             conn.execute("CREATE TABLE IF NOT EXISTS conversations ("
                          "session_id TEXT PRIMARY KEY,"
@@ -85,6 +85,47 @@ class SessionStore:
                          "session_id TEXT PRIMARY KEY REFERENCES conversations(session_id),"
                          "data_json TEXT NOT NULL, updated_at TEXT NOT NULL)")
             conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(2, ?)", (_now(),))
+            conn.execute("CREATE TABLE IF NOT EXISTS return_evidence ("
+                         "evidence_id TEXT PRIMARY KEY, session_id TEXT NOT NULL "
+                         "REFERENCES conversations(session_id), media_type TEXT NOT NULL,"
+                         "data BLOB NOT NULL, sha256 TEXT NOT NULL, created_at TEXT NOT NULL)")
+            conn.execute("CREATE TABLE IF NOT EXISTS return_previews ("
+                         "preview_id TEXT PRIMARY KEY, session_id TEXT NOT NULL "
+                         "REFERENCES conversations(session_id), revision INTEGER NOT NULL,"
+                         "content_json TEXT NOT NULL, policy_hash TEXT NOT NULL,"
+                         "expires_at TEXT NOT NULL, created_at TEXT NOT NULL)")
+            conn.execute("CREATE TABLE IF NOT EXISTS return_confirmations ("
+                         "preview_id TEXT PRIMARY KEY REFERENCES return_previews(preview_id),"
+                         "user_id TEXT NOT NULL REFERENCES users(user_id),"
+                         "confirmed_at TEXT NOT NULL, consumed_at TEXT NOT NULL)")
+            conn.execute("CREATE TABLE IF NOT EXISTS return_requests ("
+                         "request_id TEXT PRIMARY KEY, preview_id TEXT NOT NULL UNIQUE "
+                         "REFERENCES return_previews(preview_id), session_id TEXT NOT NULL "
+                         "REFERENCES conversations(session_id), user_id TEXT NOT NULL "
+                         "REFERENCES users(user_id), order_id TEXT NOT NULL "
+                         "REFERENCES orders(order_id),"
+                         "item_id INTEGER NOT NULL REFERENCES order_items(id),"
+                         "quantity INTEGER NOT NULL "
+                         "CHECK(typeof(quantity)='integer' AND quantity>0),"
+                         "status TEXT NOT NULL "
+                         "CHECK(status IN ('pending_review','approved','rejected')),"
+                         "content_json TEXT NOT NULL, created_at TEXT NOT NULL)")
+            conn.execute("CREATE TABLE IF NOT EXISTS return_audit ("
+                         "audit_id TEXT PRIMARY KEY, request_id TEXT NOT NULL "
+                         "REFERENCES return_requests(request_id), action TEXT NOT NULL,"
+                         "actor TEXT NOT NULL, detail_json TEXT NOT NULL,"
+                         "created_at TEXT NOT NULL)")
+            for operation in ("INSERT", "UPDATE"):
+                conn.execute(f"CREATE TRIGGER IF NOT EXISTS return_quantity_{operation.lower()} "
+                             f"BEFORE {operation} ON return_requests "
+                             "WHEN NEW.status IN ('pending_review','approved') BEGIN "
+                             "SELECT CASE WHEN NEW.quantity + COALESCE((SELECT SUM(quantity) "
+                             "FROM return_requests WHERE item_id=NEW.item_id "
+                             "AND status IN ('pending_review','approved') "
+                             "AND request_id<>NEW.request_id),0) > "
+                             "(SELECT quantity FROM order_items WHERE id=NEW.item_id) "
+                             "THEN RAISE(ABORT,'return quantity exceeded') END; END")
+            conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(3, ?)", (_now(),))
 
     @staticmethod
     def _require_owner(conn, sid: str, user_id: str) -> sqlite3.Row:
@@ -197,12 +238,15 @@ class SessionStore:
         order, missing = None, []
         if task and task["status"] != "cancelled":
             missing = [f for f in ("order_id", "item_id", "quantity", "reason") if task[f] is None]
-            if task["reason"] == "no_reason" and task["condition"] is None:
-                missing.append("condition")
+            if task["reason"] == "no_reason" and task.get("secondary_sale_ok") is not True:
+                missing.append("secondary_sale_ok")
             if task["reason"] == "quality":
                 if not task["problem_description"]:
                     missing.append("problem_description")
-                missing.append("quality_evidence")
+                if task.get("quality_non_user_damage") is not True:
+                    missing.append("quality_non_user_damage")
+                if not task.get("evidence_id"):
+                    missing.append("quality_evidence")
             if task["order_id"]:
                 row = conn.execute("SELECT order_id,status,delivered_at FROM orders "
                                    "WHERE order_id=? AND user_id=?",
@@ -214,8 +258,11 @@ class SessionStore:
                         "FROM order_items i JOIN products p USING(product_id) WHERE order_id=?",
                         (task["order_id"],),
                     )]
-        return {"task": task, "order": order, "missing_fields": missing, "can_submit": False,
-                "note": "仅保存退货草稿，用户自述未经审核；尚未创建售后单或退款。",
+        submitted = bool(task and task["status"] == "submitted")
+        return {"task": task, "order": order, "missing_fields": [] if submitted else missing,
+                "can_submit": False,
+                "note": "已创建申请，后续状态以申请记录为准，尚未退款。" if submitted else
+                        "草稿未经审核；生成预览后须通过界面确认提交，尚未创建售后单或退款。",
                 "queried_at": _now()}
 
     def get_return_task(self, sid: str, user_id: str) -> dict:
@@ -226,7 +273,8 @@ class SessionStore:
     def update_return_task(self, sid: str, user_id: str, tid: str, patch: dict,
                            *, cancel: bool = False) -> dict:
         """Save model-extracted claims with their original user turn, not verified eligibility."""
-        fields = ("order_id", "item_id", "quantity", "reason", "condition", "problem_description")
+        fields = ("order_id", "item_id", "quantity", "reason", "condition", "problem_description",
+                  "secondary_sale_ok", "quality_non_user_damage")
         if set(patch) - set(fields) or (not patch and not cancel):
             raise TaskValidationError("草稿字段无效或为空")
         with closing(self._connect()) as conn, conn:
@@ -245,7 +293,10 @@ class SessionStore:
                         "暂停话题不清空草稿。确需中止请明确说“中止退货草稿”。"
                     )
             previous = self._task(conn, sid)
-            task = previous if previous and previous["status"] != "cancelled" else {
+            if previous and previous["status"] == "submitted":
+                raise TaskValidationError("申请已经提交，不能修改或用中止草稿撤销；"
+                                          "请查询结果，新申请请新建会话。")
+            task = previous if previous and previous["status"] == "draft" else {
                 **dict.fromkeys(fields), "sources": {},
                 "revision": previous["revision"] if previous else 0,
             }
@@ -254,9 +305,14 @@ class SessionStore:
             if "order_id" in patch and patch["order_id"] != task["order_id"]:
                 clear.update(set(fields) - {"order_id"})
             elif "item_id" in patch and patch["item_id"] != task["item_id"]:
-                clear.update({"quantity", "condition", "problem_description"})
+                clear.update({"quantity", "condition", "problem_description",
+                              "secondary_sale_ok", "quality_non_user_damage"})
             if "reason" in patch and patch["reason"] != task["reason"]:
-                clear.update({"condition", "problem_description"})
+                clear.update({"condition", "problem_description",
+                              "secondary_sale_ok", "quality_non_user_damage"})
+            if clear:
+                task.pop("evidence_id", None)
+                task["sources"].pop("evidence_id", None)
             for field in clear:
                 task[field] = None
                 task["sources"].pop(field, None)
@@ -288,6 +344,9 @@ class SessionStore:
                 raise TaskValidationError("退货原因须为no_reason或quality")
             if task["condition"] not in (None, "sealed", "opened"):
                 raise TaskValidationError("商品状况须为sealed或opened；不清楚时留空")
+            for field in ("secondary_sale_ok", "quality_non_user_damage"):
+                if task.get(field) is not None and type(task[field]) is not bool:
+                    raise TaskValidationError("商品条件声明必须为布尔值或空")
             description = task["problem_description"]
             if description is not None and (not isinstance(description, str)
                                             or not description.strip() or len(description) > 1000):

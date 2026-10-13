@@ -26,6 +26,7 @@ from typing import Any
 
 from .config import Settings, get_settings
 from .database import BusinessDB
+from .returns import ReturnService, policy_for_reason, return_policy
 from .sessions import SessionStore, TaskValidationError
 
 
@@ -124,7 +125,8 @@ class ToolRegistry:
                 name="get_order",
                 description=(
                     "查询订单信息：订单状态、下单/发货/签收时间、商品明细、实付金额、"
-                    "购买单价、当前售价、差价，以及退货与价保期限判断。"
+                    "购买单价、当前售价、差价，以及7天无理由退货和价保日期标志。"
+                    "7天标志不适用于质量问题；质量期限查看政策，不是完整资格判断。"
                     "只能查询当前用户自己的订单。"
                 ),
                 parameters={
@@ -202,13 +204,27 @@ class ToolRegistry:
     def bind_return_task(self, store: SessionStore, sid: str, tid: str) -> None:
         """Bind application context for one turn; model arguments cannot choose a session."""
         def read(*, current_user_id: str) -> dict:
-            return store.get_return_task(sid, current_user_id)
+            view = store.get_return_task(sid, current_user_id)
+            return view | {"policy": policy_for_reason(
+                return_policy(self.settings), (view["task"] or {}).get("reason"),
+            )}
 
         def update(*, current_user_id: str, **fields) -> dict:
-            return store.update_return_task(sid, current_user_id, tid, fields)
+            view = store.update_return_task(sid, current_user_id, tid, fields)
+            return view | {"policy": policy_for_reason(
+                return_policy(self.settings), view["task"]["reason"],
+            )}
 
         def cancel(*, current_user_id: str) -> dict:
             return store.cancel_return_task(sid, current_user_id, tid)
+
+        service = ReturnService(self.settings, store)
+
+        def preview(*, current_user_id: str) -> dict:
+            return service.preview(sid, current_user_id, tid)
+
+        def requests(*, current_user_id: str) -> dict:
+            return {"requests": service.list_requests(current_user_id)}
 
         empty = {"type": "object", "properties": {}, "required": []}
         self.register(ToolSpec(
@@ -228,12 +244,24 @@ class ToolRegistry:
                 "condition": {"enum": ["sealed", "opened", None],
                               "description": "用户自述未拆封/已拆封，未知留空"},
                 "problem_description": {"type": ["string", "null"], "description": "用户自述故障"},
+                "secondary_sale_ok": {"type": ["boolean", "null"],
+                                      "description": "用户明确陈述全部二次销售条件满足，不能猜测"},
+                "quality_non_user_damage": {"type": ["boolean", "null"],
+                                            "description": "用户自述故障非人为损坏，未经核实"},
             }, "required": [], "additionalProperties": False}, update,
         ))
         self.register(ToolSpec(
             "cancel_return_task",
             "仅在用户明确说中止/取消/清空退货草稿时清空；不取消订单。"
             "先不用继续、暂停、闲聊均保留草稿，不能调用本工具。", empty, cancel,
+        ))
+        self.register(ToolSpec(
+            "preview_return", "核查当前草稿的订单、数量、政策与凭证并生成申请预览。"
+            "不会创建售后单；缺信息时提示补充，通过后须用户在页面点击确认提交。", empty, preview,
+        ))
+        self.register(ToolSpec(
+            "get_return_requests", "查询当前用户实际创建的售后申请与状态。提交响应丢失先查询，"
+            "待审核不等于通过或退款，不要重复创建。", empty, requests,
         ))
 
     def schemas(self) -> list[dict[str, Any]]:

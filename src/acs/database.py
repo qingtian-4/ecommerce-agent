@@ -26,14 +26,19 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import closing
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from .config import Settings, get_settings
 
 DAYS_IN_RETURN_WINDOW = 7
 DAYS_IN_PRICE_PROTECTION = 15
+
+
+def business_today(settings: Settings) -> date:
+    return settings.reference_date or datetime.now(ZoneInfo("Asia/Shanghai")).date()
 
 
 def connect(db_path: Path) -> sqlite3.Connection:
@@ -144,7 +149,7 @@ class BusinessDB:
         order["found"] = True
 
         # Explicit calendar context: the model must not do date arithmetic.
-        today = self.settings.reference_date or date.today()
+        today = business_today(self.settings)
         order["today"] = today.isoformat()
         order["created_date"] = order.get("created_at")
         order["delivered_date"] = order.get("delivered_at")
@@ -166,6 +171,7 @@ class BusinessDB:
         order["instruction_for_assistant"] = (
             "日期字段已为你算好：delivered_date 是签收日期，delivered_days_ago 是"
             "距今的天数。请直接使用这些值，不要自行推算或改用其他日期。"
+            "within_return_window只表示7天无理由窗口，不适用于质量问题，也不代表完整退货资格。"
         )
         return order
 
@@ -197,7 +203,7 @@ class BusinessDB:
         data["found"] = True
         data["trace"] = json.loads(data.pop("trace_json") or "[]")
         data["latest"] = data["trace"][-1]["text"] if data["trace"] else None
-        data["today"] = (self.settings.reference_date or date.today()).isoformat()
+        data["today"] = business_today(self.settings).isoformat()
         return data
 
     # ------------------------------------------------------------------ #
@@ -213,7 +219,7 @@ class BusinessDB:
         return {
             "found": True,
             "product_id": product_id,
-            "today": (self.settings.reference_date or date.today()).isoformat(),
+            "today": business_today(self.settings).isoformat(),
             "current_price": history[0]["price"],
             "records": history,
             "note": "records[0] 为当前售价；价格按时间倒序排列",

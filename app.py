@@ -58,8 +58,9 @@ from acs.eval_view import (  # noqa: E402
     review_run_rows,
 )
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
+from acs.returns import ReturnService, return_policy  # noqa: E402
 from acs.service_agent import SYSTEM_PROMPT, AgentResult, CustomerServiceAgent  # noqa: E402
-from acs.sessions import ConversationBusy, SessionStore  # noqa: E402
+from acs.sessions import ConversationBusy, SessionStore, TaskValidationError  # noqa: E402
 
 SETTINGS = get_settings()
 _SESSION_STORE: SessionStore | None = None
@@ -95,6 +96,7 @@ DEMO_CASES: list[tuple[str, str]] = [
 ORDER_STATUS = {
     "pending": "待发货", "shipped": "已发货", "delivered": "已签收", "cancelled": "已取消",
 }
+RETURN_STATUS = {"pending_review": "待审核", "approved": "允许退回", "rejected": "已拒绝"}
 
 
 # --------------------------------------------------------------------------- #
@@ -160,7 +162,7 @@ def _kb_stats() -> dict[str, int]:
         except Exception:  # noqa: BLE001 - header must never break the page
             chunks = 0
         try:
-            tools = len(ToolRegistry(SETTINGS).names) + 3  # Session-scoped draft tools.
+            tools = len(ToolRegistry(SETTINGS).names) + 5  # Session-scoped return tools.
         except Exception:  # noqa: BLE001
             tools = 0
         _KB_STATS = {"chunks": chunks, "tools": tools}
@@ -195,7 +197,7 @@ def render_user_card(user_id: str, user_label: str) -> str:
         f"<div class='cs-order'><b>{html.escape(order['order_id'])}</b> "
         f"<span>{html.escape(ORDER_STATUS.get(order['status'], order['status']))}"
         f" · ¥{order['paid_amount']:.2f}</span></div>"
-        for order in user_orders[:5]
+        for order in user_orders
     )
     return (
         "<div class='cs-card'>"
@@ -213,7 +215,7 @@ def render_user_card(user_id: str, user_label: str) -> str:
         "<h4>订单列表</h4>"
         f"<div class='cs-orders'>{orders}</div>"
         "<div class='cs-hint' style='margin-top:8px'>"
-        f"当前用户共 {len(user_orders)} 个订单，此处展示最近 5 笔。</div>"
+        f"共 {len(user_orders)} 个订单，可向下滚动查看全部。</div>"
         "</div>"
     )
 
@@ -351,6 +353,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             )
         elif event.type == "error":
             title = f"Step {step_no} · 错误 <code>{html.escape(event.label)}</code>"
+        elif event.type == "ui_action":
+            title = f"Step {step_no} · 页面操作 <code>{html.escape(event.label)}</code>"
         else:
             title = f"Step {step_no} · 最终回答"
 
@@ -500,10 +504,14 @@ def render_return_task(view: dict | None) -> str:
         content = "尚无退货草稿，可在对话中描述需要退货的商品。"
     elif task["status"] == "cancelled":
         content = "退货草稿已中止；订单未取消。"
+    elif task["status"] == "submitted":
+        content = ("已创建售后申请：" + html.escape(task["request_id"]) +
+                   "<p>尚未退款，可查询实际申请状态。</p>")
     else:
         labels = {"order_id": "订单", "item_id": "商品明细", "quantity": "数量", "reason": "原因",
                   "condition": "状况（自述）", "problem_description": "问题（自述）",
-                  "quality_evidence": "质量照片或视频"}
+                  "quality_evidence": "质量照片或视频", "secondary_sale_ok": "二次销售条件声明",
+                  "quality_non_user_damage": "非人为损坏声明"}
         values = {"no_reason": "无理由", "quality": "质量问题", "sealed": "未拆封", "opened": "已拆封"}
         order = view.get("order") or {}
         item = next((i for i in order.get("items", []) if i["id"] == task["item_id"]), {})
@@ -512,11 +520,16 @@ def render_return_task(view: dict | None) -> str:
             if field in task and task[field] is not None:
                 value = item.get("product_name", task[field]) if field == "item_id" else task[field]
                 value = values.get(str(value), value)
+                if type(value) is bool:
+                    value = "已声明符合" if value else "声明不符合"
                 content += f"<div>{label}：{html.escape(str(value))}</div>"
         missing = "、".join(labels[f] for f in view["missing_fields"])
         content += f"<p>待补充：{missing}</p>" if missing else "<p>基本信息已记录</p>"
-        content += f"<small>草稿版本 {task['revision']} · 用户自述待审核 · 尚未提交</small>"
-    return "<div class='cs-card' id='return-task'><b>当前退货草稿</b><p>" + content + "</p></div>"
+        if task.get("evidence_id"):
+            content += "<p>质量凭证已保存，待审核</p>"
+        content += "<small>用户自述待审核 · 尚未提交</small>"
+    return ("<div class='cs-card' id='return-task' style='overflow-wrap:anywhere'>"
+            "<b>当前退货办理</b><div>" + content + "</div></div>")
 
 
 def _card_for(user_key: str, task_view: dict | None = None) -> str:
@@ -682,6 +695,194 @@ def on_load(user_key: str):
             *on_data_user_change(user_key), on_history_choices(state, user_key))
 
 
+def return_panel(state_dict: dict, user_key: str):
+    uid, sid = user_id_from_key(user_key), state_dict.get("session_id")
+    service = ReturnService(SETTINGS, session_store())
+    task = session_store().get_return_task(sid, uid)["task"] if sid else None
+    preview = service.latest_preview(sid, uid) if sid else None
+    content = "<p>先在聊天中确定退货商品，再检查申请信息。</p>"
+    if task and task["status"] == "submitted":
+        content = "<p>这份申请已创建，可在下方查询实际进度；新申请请新建会话。</p>"
+    elif task:
+        content = "<p>请补齐当前申请信息，并核查生成有效预览；更改后需要重新核查。</p>"
+    if preview:
+        item = preview["content"]
+        reason = "无理由" if item["reason"] == "no_reason" else "质量问题"
+        content = (f"<p><b>{html.escape(item['product_name'])} × {item['quantity']}</b></p>"
+                   f"<p>订单：{html.escape(item['order_id'])} · 原因：{reason}</p>"
+                   "<p>商品状况与故障是用户陈述，尚未审核。确认后创建待审核申请，不代表退款。</p>"
+                   "<p>预览10分钟内有效；修改信息后须重新生成并确认。</p>")
+        if item.get("problem_description"):
+            content += "<p>故障（自述）：" + html.escape(item["problem_description"]) + "</p>"
+        if item.get("condition"):
+            content += "<p>商品状况（自述）：" + (
+                "未拆封" if item["condition"] == "sealed" else "已拆封"
+            ) + "</p>"
+        if item["reason"] == "no_reason":
+            content += "<p>本次声明符合以下条件（待审核）：</p><ul>" + "".join(
+                "<li>" + html.escape(line) + "</li>"
+                for line in item["policy"].get("required_conditions",
+                                               item["policy"].get("secondary_sale_conditions", []))
+            ) + "</ul>"
+        else:
+            content += "<p>本次用户声明：故障非人为损坏，尚未核实。</p>"
+        if item.get("evidence"):
+            content += "<p>照片或视频已保存，尚未核实内容。</p>"
+    requests = service.list_requests(uid)
+    rows = "".join(
+        f"<p>{html.escape(r['request_id'])}<br>{html.escape(r['order_id'])} · "
+        f"{r['quantity']}件 · {RETURN_STATUS[r['status']]}</p>" for r in requests
+    ) or "<p>当前用户暂无售后申请。</p>"
+    draft = bool(task and task["status"] == "draft")
+    return ("<div class='cs-card' id='return-preview'>" + content + "</div>",
+            preview["preview_id"] if preview else None,
+            gr.update(interactive=bool(preview)),
+            gr.update(value=bool(task and task.get("secondary_sale_ok")), interactive=draft),
+            gr.update(value=bool(task and task.get("quality_non_user_damage")), interactive=draft),
+            gr.update(interactive=bool(draft and task["reason"] == "quality"), **(
+                {"value": None} if not task or not task.get("evidence_id") else {}
+            )),
+            "<div id='return-requests' style='max-height:180px;overflow-y:auto;"
+            "overflow-wrap:anywhere'>" + rows + "</div>", gr.update(interactive=draft))
+
+
+def _local_return_action(state_dict: dict, user_key: str, text: str, operation, describe):
+    uid, store = user_id_from_key(user_key), session_store()
+    sid, tid, finished, answer = state_dict.get("session_id"), None, False, ""
+    started = perf_counter()
+    result = AgentResult(answer="")
+    try:
+        if not sid:
+            sid = store.create(uid)
+            state_dict["session_id"] = sid
+        tid = store.begin_turn(sid, uid, text)
+        payload = operation(ReturnService(SETTINGS, store), sid, uid, tid)
+        answer = describe(payload)
+        result.trace = [TraceEvent("ui_action", text, {"result": payload})]
+        if payload.get("ready") is False:
+            result.stop_reason = "blocked"
+    except PermissionError as exc:
+        state_dict.clear()
+        return pack([], render_trace(None, str(exc)), state_dict, render_stats(None),
+                    _card_for(user_key), render_header(user_key))
+    except (TaskValidationError, ConversationBusy) as exc:
+        answer = str(exc)
+        result.stop_reason = "blocked"
+        result.errors = [str(exc)]
+        result.trace = [TraceEvent("error", text, {"message": str(exc)})]
+    except Exception as exc:  # noqa: BLE001 - commit may have succeeded before response loss
+        answer = "本次操作未完整返回，请点击查询提交结果核查后再重试。"
+        result.stop_reason = "interrupted"
+        result.errors = [type(exc).__name__]
+    result.answer = answer
+    result.totals = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0,
+                     "cost_cny": "0", "latency_ms": (perf_counter() - started) * 1000}
+    try:
+        if tid:
+            store.finish_turn(sid, uid, tid, [{"role": "user", "content": text},
+                                            {"role": "assistant", "content": answer}], asdict(result))
+            finished = True
+    finally:
+        if tid and not finished:
+            store.interrupt_turn(sid, uid, tid, answer or "操作中断，请查询提交结果")
+    history = store.load(sid, uid)["history"]
+    packed = list(pack(history, render_trace(result), state_dict, render_stats(result),
+                       _card_for(user_key, store.get_return_task(sid, uid)), render_header(user_key),
+                       render_reply_status((perf_counter() - started) * 1000,
+                                           failed=result.stop_reason in {"blocked", "interrupted"})))
+    packed[1] = gr.update()  # A form action must preserve an unsent chat message.
+    return tuple(packed)
+
+
+def on_return_declaration(state_dict: dict, user_key: str, secondary: bool, non_user_damage: bool):
+    def declare(service, sid, uid, tid):
+        _require_return_draft(service.store, sid, uid)
+        return service.store.update_return_task(sid, uid, tid, {
+            "secondary_sale_ok": True if secondary else None,
+            "quality_non_user_damage": True if non_user_damage else None,
+        })
+
+    return _local_return_action(
+        state_dict, user_key,
+        "[操作] 更正条件声明：" + _declaration_text(secondary, non_user_damage),
+        declare, lambda _: "条件声明已更新；原预览失效，请重新生成并检查。",
+    )
+
+
+def _require_return_draft(store: SessionStore, sid: str, uid: str) -> None:
+    task = store.get_return_task(sid, uid)["task"]
+    if not task or task["status"] != "draft":
+        raise TaskValidationError("请先准备未提交的草稿；已创建申请可查询结果，不能修改原申请。")
+
+
+def on_return_preview(state_dict: dict, user_key: str, secondary: bool, non_user_damage: bool):
+    def prepare(service, sid, uid, tid):
+        _require_return_draft(service.store, sid, uid)
+        service.store.update_return_task(sid, uid, tid, {
+            "secondary_sale_ok": True if secondary else None,
+            "quality_non_user_damage": True if non_user_damage else None,
+        })
+        return service.preview(sid, uid, tid)
+
+    return _local_return_action(
+        state_dict, user_key,
+        "[操作] 请求申请预览：" + _declaration_text(secondary, non_user_damage),
+        prepare, lambda p: "申请预览已生成，请检查后点击确认提交。尚未创建售后单。"
+        if p["ready"] else "暂不能提交：" + "；".join(p["reasons"]),
+    )
+
+
+def _declaration_text(secondary: bool, non_user_damage: bool) -> str:
+    return ("声明商品符合二次销售条件" if secondary else "未声明二次销售条件") + "；" + (
+        "声明故障非人为损坏" if non_user_damage else "未声明非人为损坏"
+    )
+
+
+def on_return_confirm(preview_id: str | None, state_dict: dict, user_key: str):
+    return _local_return_action(
+        state_dict, user_key, "[操作] 点击确认提交当前申请",
+        lambda s, sid, uid, tid: s.confirm_and_submit(sid, uid, preview_id or "", tid),
+        lambda p: f"订单 {p['order_id']} 的售后申请 {p['request_id']} 已创建，"
+        f"当前状态{RETURN_STATUS[p['status']]}，尚未退款。",
+    )
+
+
+def on_return_upload(data: bytes | None, state_dict: dict, user_key: str):
+    return _local_return_action(
+        state_dict, user_key, "[操作] 用户上传质量问题照片或视频",
+        lambda s, sid, uid, tid: s.attach_evidence(sid, uid, tid, data),
+        lambda _: "质量凭证已保存。上传不等于核实故障，还需人工审核。",
+    )
+
+
+def on_return_clear_upload(state_dict: dict, user_key: str):
+    sid = state_dict.get("session_id")
+    if not sid:
+        return (*[gr.update() for _ in range(3)], state_dict,
+                *[gr.update() for _ in range(4)])
+    try:
+        task = session_store().get_return_task(sid, user_id_from_key(user_key))["task"]
+        if not task or not task.get("evidence_id"):
+            return (*[gr.update() for _ in range(3)], state_dict,
+                    *[gr.update() for _ in range(4)])
+    except PermissionError:
+        pass  # Let the action boundary return an owned, empty UI state.
+    return _local_return_action(
+        state_dict, user_key, "[操作] 撤下当前草稿的质量凭证",
+        lambda s, sid, uid, tid: s.clear_evidence(sid, uid, tid),
+        lambda _: "已撤下当前草稿凭证，原预览失效；如需继续质量申请，请重新上传。",
+    )
+
+
+def on_return_query(state_dict: dict, user_key: str):
+    return _local_return_action(
+        state_dict, user_key, "[操作] 查询提交结果",
+        lambda s, sid, uid, tid: {"requests": s.list_requests(uid)},
+        lambda p: "；".join(f"{r['request_id']}：{RETURN_STATUS[r['status']]}" for r in p["requests"])
+        or "当前用户暂无售后申请。",
+    )
+
+
 # --------------------------------------------------------------------------- #
 # layout
 # --------------------------------------------------------------------------- #
@@ -718,9 +919,13 @@ CSS = """
 .cs-user .nm { font-size: 13.5px; font-weight: 600; color: #111827; }
 .cs-user .ph { font-size: 11.5px; color: #6b7280; }
 .cs-hint { font-size: 11.5px; color: #6b7280; line-height: 1.6; }
-.cs-orders { display:flex; flex-direction:column; gap:6px; }
+.cs-orders {
+  display:flex; flex-direction:column; gap:6px; max-height:190px;
+  overflow-y:auto; overscroll-behavior:contain;
+}
 .cs-order {
   border:1px solid #eef0f3; border-radius:8px; padding:6px 9px; background:#fafbfc;
+  flex-shrink:0;
   font-size:12px; color:#374151; display:flex; justify-content:space-between; gap:8px;
 }
 .cs-order b { color:#111827; }
@@ -828,6 +1033,29 @@ def build_app() -> gr.Blocks:
                         for label, text in DEMO_CASES[3:]:
                             btn = gr.Button(label, size="sm")
                             btn.click(lambda t=text: t, outputs=message_box, show_progress="hidden")
+
+                    with gr.Accordion("退货申请 · 检查并确认", open=True):
+                        policy = return_policy(SETTINGS)
+                        gr.Markdown("无理由退货的二次销售条件：\n" + "\n".join(
+                            "- " + line for line in policy["secondary_sale_conditions"]
+                        ))
+                        secondary_box = gr.Checkbox(
+                            label="我声明商品符合上述条件（仍需审核）", interactive=False,
+                        )
+                        damage_box = gr.Checkbox(
+                            label="质量问题：我声明故障非人为损坏（仍需审核）", interactive=False,
+                        )
+                        evidence_file = gr.File(
+                            label="质量凭证 · PNG/JPEG/WebP照片或MP4视频，最大10MB",
+                            file_types=["image", "video"], type="binary", interactive=False,
+                        )
+                        preview_btn = gr.Button("核查并生成申请预览", interactive=False)
+                        preview_html = gr.HTML(elem_id="return-preview-panel")
+                        preview_state = gr.State(None)
+                        confirm_btn = gr.Button("确认提交申请", variant="primary", interactive=False)
+                        query_btn = gr.Button("查询提交结果")
+                        gr.Markdown("我的售后申请 · 状态来自数据库")
+                        requests_html = gr.HTML()
 
                 # ---------------- trace ---------------- #
                 with gr.Column(scale=5, min_width=380):
@@ -1027,9 +1255,15 @@ def build_app() -> gr.Blocks:
             header,
             reply_status,
         ]
-        controls = [message_box, send_btn, history_selector, clear_btn, user_selector]
+        panel_outputs = [preview_html, preview_state, confirm_btn, secondary_box,
+                         damage_box, evidence_file, requests_html, preview_btn]
+        controls = [message_box, send_btn, history_selector, clear_btn, user_selector,
+                    preview_btn, confirm_btn, query_btn, secondary_box, damage_box, evidence_file]
+        general_controls = [message_box, send_btn, history_selector, clear_btn, user_selector,
+                            query_btn]
         if report:
             controls.append(try_btn)
+            general_controls.append(try_btn)
         for submit in (send_btn.click, message_box.submit):
             submit(
                 lambda: [gr.update(interactive=False) for _ in controls], outputs=controls,
@@ -1038,21 +1272,46 @@ def build_app() -> gr.Blocks:
                 on_send, inputs=[message_box, chatbot, state, user_selector], outputs=outputs,
                 show_progress="hidden", stream_every=0.1,
             ).then(
-                lambda: [gr.update(interactive=True) for _ in controls], outputs=controls,
+                lambda: [gr.update(interactive=True) for _ in general_controls], outputs=general_controls,
                 queue=False, show_progress="hidden",
-            ).then(on_history_choices, inputs=[state, user_selector], outputs=history_selector, show_progress="hidden")
+            ).then(on_history_choices, inputs=[state, user_selector], outputs=history_selector, show_progress="hidden"
+            ).then(return_panel, inputs=[state, user_selector], outputs=panel_outputs, show_progress="hidden")
         clear_btn.click(
             on_clear, inputs=[state, user_selector], outputs=outputs, show_progress="hidden",
-        ).then(on_history_choices, inputs=[state, user_selector], outputs=history_selector, show_progress="hidden")
+        ).then(on_history_choices, inputs=[state, user_selector], outputs=history_selector, show_progress="hidden"
+        ).then(return_panel, inputs=[state, user_selector], outputs=panel_outputs, show_progress="hidden")
         history_selector.input(on_restore, inputs=[history_selector, state, user_selector], outputs=outputs,
-                               show_progress="hidden")
+                               show_progress="hidden"
+        ).then(return_panel, inputs=[state, user_selector], outputs=panel_outputs, show_progress="hidden")
         demo.load(on_load, inputs=user_selector, outputs=[*outputs, orders_table, order_selector, history_selector],
-                  show_progress="hidden")
+                  show_progress="hidden"
+        ).then(return_panel, inputs=[state, user_selector], outputs=panel_outputs, show_progress="hidden")
         user_selector.input(
             on_load, inputs=user_selector,
             outputs=[*outputs, orders_table, order_selector, history_selector],
             show_progress="hidden",
-        )
+        ).then(return_panel, inputs=[state, user_selector], outputs=panel_outputs, show_progress="hidden")
+        for trigger, handler, inputs in (
+            (secondary_box.input, on_return_declaration,
+             [state, user_selector, secondary_box, damage_box]),
+            (damage_box.input, on_return_declaration,
+             [state, user_selector, secondary_box, damage_box]),
+            (preview_btn.click, on_return_preview, [state, user_selector, secondary_box, damage_box]),
+            (confirm_btn.click, on_return_confirm, [preview_state, state, user_selector]),
+            (evidence_file.upload, on_return_upload, [evidence_file, state, user_selector]),
+            (evidence_file.clear, on_return_clear_upload, [state, user_selector]),
+            (query_btn.click, on_return_query, [state, user_selector]),
+        ):
+            trigger(
+                lambda: [gr.update(interactive=False) for _ in controls], outputs=controls,
+                queue=False, show_progress="hidden",
+            ).then(handler, inputs=inputs, outputs=outputs, show_progress="hidden"
+            ).then(
+                lambda: [gr.update(interactive=True) for _ in general_controls], outputs=general_controls,
+                queue=False, show_progress="hidden",
+            ).then(return_panel, inputs=[state, user_selector], outputs=panel_outputs, show_progress="hidden"
+            ).then(on_history_choices, inputs=[state, user_selector], outputs=history_selector,
+                   show_progress="hidden")
         order_selector.change(
             on_order_change, inputs=[order_selector, user_selector],
             outputs=[order_detail, items_table, logistics_table],
@@ -1077,7 +1336,7 @@ def build_app() -> gr.Blocks:
                 on_try_case, inputs=[case_selector, eval_state, state, user_selector],
                 outputs=[*outputs, tabs],
                 show_progress="hidden",
-            )
+            ).then(return_panel, inputs=[state, user_selector], outputs=panel_outputs, show_progress="hidden")
 
     return demo
 

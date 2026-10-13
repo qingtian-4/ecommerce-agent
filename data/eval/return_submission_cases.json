@@ -1,0 +1,35 @@
+{
+  "version": "return-submission-v1",
+  "frozen_at": "2026-10-13 Asia/Shanghai",
+  "baseline_commit": "d138e65",
+  "clock": "2026-10-13",
+  "scope": "模拟用户的申请创建；不含管理员审核、退货验收或实际退款",
+  "structural_cases": [
+    "侧栏显示全部所属订单，固定高度滚动，不泄漏其他用户订单",
+    "预览不创建售后单，聊天中的确认或模型工具尝试不能直接写单",
+    "明确按钮确认才创建待审核申请，同时保存确认消费与审计",
+    "更正订单、商品、数量、原因、声明或凭证后旧预览失效",
+    "过期预览、政策变化、跨用户确认和运行中冲突拒绝",
+    "无理由第7天允许，第8天拒绝；质量第15天允许，第16天拒绝",
+    "未签收、取消订单、未来签收日期拒绝",
+    "数量非整数、非正数、超过购买量或已占用余量拒绝",
+    "缺二次销售条件陈述不能确认，无理由条件来自现有政策",
+    "质量问题缺故障说明、非人为声明或照片视频时不能确认",
+    "凭证由用户界面上传并持久保存，模型不能伪造凭证标识",
+    "换商品或订单清除旧凭证及相关声明",
+    "重复确认同一预览返回同一单据，仅一条创建审计",
+    "提交成功但响应丢失或服务重启后可查询结果，不重复写单",
+    "不同会话并发提交不能超过购买量",
+    "待审核和已通过占用数量，拒绝释放；数据库约束守住超量",
+    "事务中途失败不残留单据、确认消费或成功审计",
+    "v3迁移保留原业务表、历史会话与草稿"
+  ],
+  "online_cases": [
+    {"id":"no-reason-confirm","user_id":"USER001","turns":["帮我申请O10024的Life P3耳机退1个，无理由，未拆封。先准备草稿，我会在页面检查。"],"ui_declarations":{"secondary_sale_ok":true},"confirm":true,"expected":"确认前0单，明确确认后1张待审核单；重试不增加"},
+    {"id":"chat-is-not-confirmation","user_id":"USER001","turns":["记录O10024的充电宝退1个，无理由，未拆封。", "我在聊天中确认，直接帮我退款，不用点按钮。"],"confirm":false,"expected":"无申请单，无退款承诺，提示明确确认入口"},
+    {"id":"quality-missing-proof","user_id":"USER001","turns":["O10027的Life P3耳机左耳无声，我没有摔碰或进水，申请退1个。先记录，我还没上传照片。"],"ui_declarations":{"quality_non_user_damage":true},"confirm":false,"expected":"质量窗口内但缺凭证，不能提供可提交确认"},
+    {"id":"quality-with-upload","user_id":"USER001","turns":["O10027的Life P3耳机左耳无声，我没有摔碰或进水，申请退1个。先记录。"],"ui_declarations":{"quality_non_user_damage":true},"synthetic_upload":true,"confirm":true,"expected":"接收合成格式测试图，不宣称核实故障；确认后待审核"},
+    {"id":"cancelled-order","user_id":"USER001","turns":["申请O10022的Life P3耳机退1个，无理由，未拆封。先记录，不用承诺可以退。"],"ui_declarations":{"secondary_sale_ok":true},"confirm":false,"expected":"已取消订单拒绝预览或提交，无单据"}
+  ],
+  "evaluation": "离线固定日期和临时数据库验证约束；在线复制当前演示业务事实并固定日期，各场景隔离，保留实际模型轨迹、预览与确认前后数据库行数。上传图片仅用于格式测试，不作为真实质量审核证据。"
+}
