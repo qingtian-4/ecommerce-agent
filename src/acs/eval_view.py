@@ -5,8 +5,12 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import sqlite3
+from contextlib import closing
 from dataclasses import asdict
+from decimal import Decimal
 from pathlib import Path
+from statistics import median
 
 import yaml
 
@@ -24,6 +28,64 @@ CATEGORY_LABELS = {
     "price_protection": "价保", "security": "安全边界", "fallback": "闲聊兜底",
 }
 RESULTS_PATH = PROJECT_ROOT / "results" / "tool_efficiency"
+
+
+def catalog_knowledge_rows(root: Path = PROJECT_ROOT, db_path: Path | None = None) -> list[list]:
+    """Recalculate the small-corpus table after checking raw inputs and records."""
+    base = root / "results/catalog_knowledge"
+    manifest = json.loads((base / "frozen_manifest.json").read_text())
+    if manifest["cases_sha256"] != hashlib.sha256(
+        (root / "data/eval/catalog_knowledge_cases.json").read_bytes(),
+    ).hexdigest():
+        raise ValueError("小知识库用例与冻结输入不一致")
+    for name, expected in manifest["knowledge_fingerprints"].items():
+        if hashlib.sha256((root / "data/docs" / name).read_bytes()).hexdigest() != expected:
+            raise ValueError("知识正文与小知识库对照不一致")
+    with closing(sqlite3.connect(db_path or root / "data/db/business.db")) as conn:
+        for table, expected in manifest["business_fingerprints"].items():
+            data = conn.execute(f"SELECT * FROM {table} ORDER BY 1").fetchall()
+            if hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True).encode(
+            )).hexdigest() != expected:
+                raise ValueError("业务事实与小知识库对照不一致")
+    rows = []
+    conditions = None
+    reviews = json.loads((base / "manual_review.json").read_text())["attempts"]
+    for folder, label in (("baseline", "修复前 · BM25"), ("retrieval", "修复后 · BM25"),
+                          ("full_context", "修复后 · 全文"), ("documents", "修复后 · 选整篇文档")):
+        summary = json.loads((base / folder / "summary.json").read_text())
+        actual_conditions = {k: summary[k] for k in (
+            "model", "temperature", "thinking", "retrieval_mode", "reranker_enabled",
+            "evidence_backfill", "clock",
+        )}
+        if conditions is None:
+            conditions = actual_conditions
+        elif conditions != actual_conditions:
+            raise ValueError("小知识库对照的模型或运行条件不一致")
+        raw = (base / folder / "per_case.jsonl").read_bytes()
+        if (summary["cases_sha256"] != manifest["cases_sha256"]
+                or hashlib.sha256(raw).hexdigest() != summary["raw_sha256"]):
+            raise ValueError("小知识库原始记录不匹配")
+        records = [json.loads(line) for line in raw.splitlines()]
+        review = reviews[folder]
+        if (review["raw_sha256"] != summary["raw_sha256"]
+                or set(review["cases"]) != {r["id"] for r in records}):
+            raise ValueError("逐条复核与小知识库原始记录不匹配")
+        turns = [t for r in records for t in r["turns"]]
+        if len(records) != summary["cases"] or len(turns) != summary["turns"]:
+            raise ValueError("小知识库记录条数不匹配")
+        usage = [t["result"]["totals"] for t in turns]
+        walls = [t["handler_wall_ms"] for t in turns if "handler_wall_ms" in t]
+        partial = any(u.get("cost_is_partial") or u.get("tokens_are_partial") for u in usage)
+        cost = sum(Decimal(u.get("cost_cny") or "0") for u in usage)
+        rows.append([label, len(records), len(turns),
+                     sum(all(r["automatic_checks"].values()) for r in records),
+                     sum(c["passed"] for c in review["cases"].values()),
+                     sum(t["result"]["tool_calls"] for t in turns),
+                     sum(u.get("calls", 0) for u in usage),
+                     sum(u.get("total_tokens", 0) for u in usage),
+                     round(median(walls)) if len(walls) == len(turns) else "未测",
+                     str(cost) + ("（不完整）" if partial else "")])
+    return rows
 
 
 def load_retrieval_evaluation(root: Path = PROJECT_ROOT) -> dict:

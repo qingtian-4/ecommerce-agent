@@ -24,8 +24,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from .capabilities import capability_notice
 from .config import Settings, get_settings
 from .database import BusinessDB
+from .knowledge_context import load_source_documents, select_source_documents
 from .returns import ReturnService, policy_for_reason, return_policy
 from .sessions import SessionStore, TaskValidationError
 
@@ -93,6 +95,12 @@ class ToolRegistry:
 
     # ------------------------------------------------------------------ #
     def _register_all(self) -> None:
+        self.register(ToolSpec(
+            "list_products", "列出本店全部商品及当前有效价、类目、佩戴方式等已知属性。"
+            "用于枚举商品或按用户硬条件找候选；知识检索未命中不能说明店内没有商品。"
+            "这是完整目录，不是推荐结果；颜色、图片、库存等未提供的字段仍未知。",
+            {"type": "object", "properties": {}, "required": []}, self._list_products,
+        ))
         self.register(ToolSpec(
             name="list_orders",
             description=("列出当前用户的订单候选及商品明细，按下单时间倒序。用户不记得订单号时"
@@ -176,6 +184,21 @@ class ToolRegistry:
                 func=self._get_price_history,
             )
         )
+        if self.settings.knowledge_mode == "documents":
+            documents = load_source_documents(self.settings)
+            self.register(ToolSpec(
+                "get_knowledge_documents",
+                "按问题选择知识文档，获取完整正文及版本来源，不做片段检索。"
+                "目录：" + "；".join(f"{d['document_id']}：{d['title']}" for d in documents),
+                {"type": "object", "properties": {"document_ids": {
+                    "type": "array", "items": {"type": "string", "enum": [
+                        d["document_id"] for d in documents
+                    ]}, "minItems": 1,
+                }}, "required": ["document_ids"], "additionalProperties": False},
+                self._get_knowledge_documents,
+            ))
+        if self.settings.knowledge_mode != "retrieval":
+            return
         self.register(
             ToolSpec(
                 name="search_knowledge",
@@ -439,6 +462,7 @@ class ToolRegistry:
     def _search_knowledge(self, *, current_user_id: str, query: str) -> dict[str, Any]:
         chunks = self.knowledge.search(query)
         pipeline = {"retrieval_mode": self.settings.retrieval_mode,
+                    "application_notice": capability_notice(),
                     "reranker_model": self.settings.reranker_model
                     if self.settings.reranker_enabled else None,
                     "evidence_backfill": self.settings.evidence_backfill}
@@ -456,3 +480,16 @@ class ToolRegistry:
             "query": query,
             "documents": [c.as_dict() for c in chunks],
         }
+
+    def _list_products(self, *, current_user_id: str) -> dict[str, Any]:
+        products = [self.db.get_product(p["product_id"]) for p in self.db.list_products()]
+        for product in products:
+            product.pop("price", None)  # Base price is not today's effective price.
+        return {"products": products, "count": len(products), "complete_catalog": True,
+                "scope": "本店业务目录；没有返回颜色、图片或库存不代表这些属性存在",
+                "instruction": "优先满足用户的佩戴方式、预算等硬条件；无匹配如实说明，不替换条件。"}
+
+    def _get_knowledge_documents(self, *, current_user_id: str, document_ids: list[str]) -> dict:
+        return {"documents": select_source_documents(self.settings, document_ids),
+                "complete_documents": True, "knowledge_mode": "documents",
+                "application_notice": capability_notice()}

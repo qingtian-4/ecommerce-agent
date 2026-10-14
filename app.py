@@ -46,6 +46,7 @@ from acs.database import BusinessDB  # noqa: E402
 from acs.eval_view import (  # noqa: E402
     CATEGORY_LABELS,
     case_rows,
+    catalog_knowledge_rows,
     comparison_rows,
     load_evaluation,
     load_rerank_evaluation,
@@ -59,7 +60,7 @@ from acs.eval_view import (  # noqa: E402
 )
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
 from acs.returns import ReturnService, return_policy  # noqa: E402
-from acs.service_agent import SYSTEM_PROMPT, AgentResult, CustomerServiceAgent  # noqa: E402
+from acs.service_agent import AgentResult, CustomerServiceAgent, build_system_prompt  # noqa: E402
 from acs.sessions import ConversationBusy, SessionStore, TaskValidationError  # noqa: E402
 
 SETTINGS = get_settings()
@@ -182,7 +183,7 @@ def render_header(user_key: str) -> str:
         f"<span class='cs-badge'>{html.escape(SETTINGS.llm_model)}</span>"
         "<br>"
         f"知识库 {stats['chunks']} chunks · 可用工具 {stats['tools']} 个 · "
-        f"top_k={SETTINGS.top_k} · max_steps={SETTINGS.max_steps}"
+        f"知识方式={html.escape(SETTINGS.knowledge_mode)} · max_steps={SETTINGS.max_steps}"
         "</div>"
         "</div>"
     )
@@ -576,7 +577,7 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
         )
         agent = ensure_agent(state_dict, user_key)
         agent.registry.bind_return_task(store, sid, tid)
-        agent.messages = [{"role": "system", "content": SYSTEM_PROMPT}] + snapshot["messages"]
+        agent.messages = [{"role": "system", "content": build_system_prompt(SETTINGS)}] + snapshot["messages"]
         if snapshot["messages"]:
             agent.messages.append({"role": "system", "content": (
                 "以下继续已有会话。历史订单、物流、价格和政策结果可能已经变化；"
@@ -631,7 +632,7 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
         partial = history[reply_index]["content"] + "\n\n" if len(history) > reply_index else ""
         history[reply_index:] = [{
             "role": "assistant",
-            "content": partial + "抱歉，系统出现异常，本次回答未完成，请稍后重试或联系人工客服。",
+            "content": partial + "抱歉，系统出现异常，本次回答未完成，请稍后重试。当前没有人工接入此窗口的功能。",
         }]
         yield pack(
             history,
@@ -1109,6 +1110,22 @@ def build_app() -> gr.Blocks:
                 )
 
             with gr.Tab("评测进展", id="evaluation"):
+                gr.Markdown("**小知识库与完整目录对照** · 自动检查和回答复核分别报告。")
+                try:
+                    knowledge_rows = catalog_knowledge_rows(db_path=SETTINGS.db_path)
+                except (FileNotFoundError, ValueError) as exc:
+                    gr.Markdown(f"小知识库对照尚不可用：{html.escape(str(exc))}")
+                else:
+                    gr.Dataframe(
+                        knowledge_rows, headers=["方案", "场景数", "轮数", "自动检查通过", "事实/入口复核",
+                                                 "工具调用", "记账 API 请求", "token",
+                                                 "完整处理器耗时 p50 / ms", "估算成本 / 元"],
+                        interactive=False, label="小知识库对照（开发场景）",
+                    )
+                    gr.Markdown("这是单遍、已见开发问题；关键词通过不是完整回答正确率。"
+                                "事实/入口复核为逐条阅读诊断，未经外部人工独立审核；全文实验仍有额外事实和页面指引错误。"
+                                "修复前未记录完整处理器耗时，不能与修复后三方案混比。"
+                                "原始答案、复核与运行条件保存在 results/catalog_knowledge。")
                 gr.Markdown("**重排与核验后补位** · 分开比较排序、证据覆盖和新增消耗。")
                 try:
                     rerank_report = load_rerank_evaluation()

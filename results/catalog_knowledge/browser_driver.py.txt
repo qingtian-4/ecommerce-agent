@@ -1,0 +1,53 @@
+import asyncio,hashlib,json,sqlite3
+from pathlib import Path
+from playwright.async_api import async_playwright,expect
+ROOT=Path.cwd();OUT=ROOT/'results/catalog_knowledge'
+
+def counts():
+ with sqlite3.connect(ROOT/'data/db/business.db') as c:
+  return {t:c.execute(f'SELECT count(*) FROM {t}').fetchone()[0] for t in ['return_requests','return_confirmations','return_audit']}
+
+async def main():
+ checks=[];errors=[];before=counts()
+ async with async_playwright() as p:
+  browser=await p.chromium.launch(executable_path='/home/qingtian/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome',args=['--no-sandbox'])
+  page=await browser.new_page(viewport={'width':1440,'height':1050})
+  page.on('pageerror',lambda e:errors.append(str(e)))
+  await page.goto('http://127.0.0.1:7860',wait_until='domcontentloaded')
+  box=page.locator('textarea').first;await box.wait_for()
+  await expect(page.locator('.cs-header')).to_contain_text('可用工具 12 个',timeout=30000)
+  await expect(page.locator('.cs-header')).to_contain_text('知识方式=retrieval')
+  checks.append({'check':'actual_header_shows_12_tools_and_retrieval_mode','passed':True})
+  await page.evaluate("""()=>{window.chatChanges=0;let last='';let n=document.querySelector('#customer-chat');new MutationObserver(()=>{let v=n.innerText;if(v!==last){window.chatChanges++;last=v}}).observe(n,{subtree:true,childList:true,characterData:true});}""")
+  await box.fill('请列出本店全部耳机的当前价格和佩戴方式，按完整目录回答。')
+  await page.get_by_role('button',name='发送',exact=True).click()
+  await page.wait_for_function("document.querySelector('#reply-status')?.innerText.includes('回答完成')",timeout=120000)
+  await expect(box).to_be_enabled(timeout=30000)
+  chat=page.locator('#customer-chat')
+  for term in ['Life P3','Q45','469','879']:await expect(chat).to_contain_text(term)
+  await expect(page.locator('#execution-trace')).to_contain_text('list_products')
+  changes=await page.evaluate('window.chatChanges');assert changes>=2
+  checks.append({'check':'complete_catalogue_and_effective_prices_stream_to_customer','passed':True,'chat_text_changes':changes})
+  await box.fill('你能让人工现在直接接入这个窗口吗？当前有可用的人工入口吗？')
+  await page.get_by_role('button',name='发送',exact=True).click()
+  await page.wait_for_function("document.querySelector('#reply-status')?.innerText.includes('回答完成')",timeout=120000)
+  await expect(box).to_be_enabled(timeout=30000)
+  await page.screenshot(path=str(OUT/'browser_catalogue.png'),full_page=True)
+  with sqlite3.connect(ROOT/'data/db/business.db') as c:
+   answer=c.execute('SELECT answer FROM conversation_turns WHERE user_text=? ORDER BY created_at DESC LIMIT 1',('你能让人工现在直接接入这个窗口吗？当前有可用的人工入口吗？',)).fetchone()[0]
+  assert ('没有' in answer or '无法' in answer) and '已转接' not in answer
+  checks.append({'check':'human_capability_answer_matches_actual_unavailable_channel','passed':True,'answer':answer})
+  await page.get_by_role('tab',name='评测进展',exact=True).click()
+  await expect(page.get_by_text('小知识库对照（开发场景）',exact=True)).to_be_visible(timeout=30000)
+  body=await page.locator('body').inner_text()
+  for term in ['修复前 · BM25','修复后 · BM25','修复后 · 全文','修复后 · 选整篇文档']:assert term in body,term
+  await page.screenshot(path=str(OUT/'browser_comparison.png'),full_page=True)
+  checks.append({'check':'all_four_verified_comparison_rows_visible','passed':True})
+  assert counts()==before and not errors
+  checks.append({'check':'consultations_create_no_return_side_effects_and_no_page_errors','passed':True})
+  await browser.close()
+ result={'checks':checks,'page_errors':errors,'before_counts':before,'after_counts':counts(),'implementation_sha256':{f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in ['app.py','src/acs/cs_tools.py','src/acs/service_agent.py','src/acs/capabilities.py','src/acs/knowledge_context.py','src/acs/eval_view.py']}}
+ with (OUT/'browser_check.json').open('x') as f:f.write(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({'passed':len(checks),'page_errors':errors}),flush=True)
+
+asyncio.run(main())

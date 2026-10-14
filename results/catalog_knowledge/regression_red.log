@@ -1,0 +1,198 @@
+FFFFFFFFFF                                                               [100%]
+=================================== FAILURES ===================================
+_______ test_model_can_enumerate_complete_catalogue_with_current_prices ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+
+    def test_model_can_enumerate_complete_catalogue_with_current_prices(settings):
+        registry = ToolRegistry(settings)
+        payload, _, error = registry.run("list_products", "{}", current_user_id="USER001")
+>       assert error is None
+E       AssertionError: assert 'tool_not_found: list_products' is None
+
+tests/test_catalog_knowledge_modes.py:19: AssertionError
+_____ test_real_fallback_does_not_point_to_nonexistent_human_channel[api] ______
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+failure = 'api'
+
+    @pytest.mark.parametrize("failure", ["api", "step_limit"])
+    def test_real_fallback_does_not_point_to_nonexistent_human_channel(settings, failure):
+        class FailingLLM(ScriptedLLM):
+            def chat(self, *args, **kwargs):
+                raise RuntimeError("simulated API failure")
+    
+        llm = FailingLLM([]) if failure == "api" else ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("repeat", "get_product", '{"product_id":"P001"}'),
+            ]),
+        ])
+        result = CustomerServiceAgent(settings=settings, llm=llm, max_steps=1).chat("需要帮助")
+        assert result.stop_reason == ("llm_error" if failure == "api" else "max_steps")
+>       assert "人工接入" in result.answer and "没有" in result.answer
+E       AssertionError: assert ('人工接入' in '抱歉，我这边连接服务时出了点问题，请稍后再试一次。如果反复出现，可以联系人工客服。')
+E        +  where '抱歉，我这边连接服务时出了点问题，请稍后再试一次。如果反复出现，可以联系人工客服。' = AgentResult(answer='抱歉，我这边连接服务时出了点问题，请稍后再试一次。如果反复出现，可以联系人工客服。', trace=[TraceEvent(type='error', label='llm', detail={'...okens': 0, 'total_tokens': 0, 'latency_ms': 0.0, 'cost_cny': '0.000100', 'unpriced_models': [], 'api_latency_ms': 1.0}).answer
+
+tests/test_catalog_knowledge_modes.py:43: AssertionError
+__ test_real_fallback_does_not_point_to_nonexistent_human_channel[step_limit] __
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+failure = 'step_limit'
+
+    @pytest.mark.parametrize("failure", ["api", "step_limit"])
+    def test_real_fallback_does_not_point_to_nonexistent_human_channel(settings, failure):
+        class FailingLLM(ScriptedLLM):
+            def chat(self, *args, **kwargs):
+                raise RuntimeError("simulated API failure")
+    
+        llm = FailingLLM([]) if failure == "api" else ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("repeat", "get_product", '{"product_id":"P001"}'),
+            ]),
+        ])
+        result = CustomerServiceAgent(settings=settings, llm=llm, max_steps=1).chat("需要帮助")
+        assert result.stop_reason == ("llm_error" if failure == "api" else "max_steps")
+>       assert "人工接入" in result.answer and "没有" in result.answer
+E       AssertionError: assert ('人工接入' in '抱歉，这个问题需要核实的信息比较多，我暂时没能给出准确答复。请联系人工客服继续处理。')
+E        +  where '抱歉，这个问题需要核实的信息比较多，我暂时没能给出准确答复。请联系人工客服继续处理。' = AgentResult(answer='抱歉，这个问题需要核实的信息比较多，我暂时没能给出准确答复。请联系人工客服继续处理。', trace=[TraceEvent(type='tool_call', label='get_produc...kens': 5, 'total_tokens': 15, 'latency_ms': 0.7, 'cost_cny': '0.000100', 'unpriced_models': [], 'api_latency_ms': 1.0}).answer
+
+tests/test_catalog_knowledge_modes.py:43: AssertionError
+_______ test_application_exception_also_reports_actual_human_capability ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7af3acf7f820>
+
+    def test_application_exception_also_reports_actual_human_capability(settings, monkeypatch):
+        import app
+    
+        class BrokenAgent:
+            registry = ToolRegistry(settings)
+    
+            def chat_stream(self, message):
+                raise RuntimeError("simulated handler failure")
+    
+        monkeypatch.setattr(app, "SETTINGS", settings)
+        monkeypatch.setattr(app, "_SESSION_STORE", None)
+        monkeypatch.setattr(app, "ensure_agent", lambda *_: BrokenAgent())
+        updates = list(app.on_send("需要帮助", [], {}, "USER001"))
+        answer = updates[-1][0][-1]["content"]
+>       assert "人工接入" in answer and "没有" in answer
+E       AssertionError: assert ('人工接入' in '抱歉，系统出现异常，本次回答未完成，请稍后重试或联系人工客服。')
+
+tests/test_catalog_knowledge_modes.py:61: AssertionError
+_______ test_full_context_uses_fresh_versioned_sources_without_an_index ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-15/test_full_context_uses_fresh_v0')
+
+    def test_full_context_uses_fresh_versioned_sources_without_an_index(settings, tmp_path):
+        path = tmp_path / "policy.md"
+        path.write_text("---\ndocument_id: policy\nversion: v1\n---\n完整正文甲乙丙")
+        settings = settings.model_copy(update={"knowledge_mode": "full_context", "docs_dir": tmp_path})
+        llm = ScriptedLLM([ScriptedResponse(text="有依据的回答")])
+        agent = CustomerServiceAgent(settings=settings, llm=llm)
+        agent.chat("政策是什么")
+        prompt = llm.calls[0]["messages"][0]["content"]
+>       assert "完整正文甲乙丙" in prompt
+E       assert '完整正文甲乙丙' in '你是一名专业的电商客服助手，服务于一家销售无线耳机与充电配件的店铺。\n\n## 你拥有的工具\n\n- `search_knowledge`：检索店铺政策与商品说明\n  （退换货政策、配送说明、价格保护规则、保修政策、各商品详细参...程用中文，语气礼貌、直接；不插入英文策划句或“我需要先提醒…”的旁白。\n- 先给结论，再补充必要依据（例如"根据退换货政策，签收后 7 天内…"）。\n- 涉及金额和时间时，给出具体数字。\n- 不需要向用户复述你调用了哪些工具。\n'
+
+tests/test_catalog_knowledge_modes.py:73: AssertionError
+______ test_document_mode_returns_whole_selected_documents_and_provenance ______
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-15/test_document_mode_returns_who0')
+
+    def test_document_mode_returns_whole_selected_documents_and_provenance(settings, tmp_path):
+        path = tmp_path / "policy.md"
+        body = "首项事实。" * 180 + "最后一项事实。"
+        path.write_text("---\ndocument_id: policy\nversion: v1\n---\n" + body)
+        settings = settings.model_copy(update={"knowledge_mode": "documents", "docs_dir": tmp_path})
+        registry = ToolRegistry(settings)
+        payload, _, error = registry.run(
+            "get_knowledge_documents", json.dumps({"document_ids": ["policy"]}),
+            current_user_id="USER001",
+        )
+>       assert error is None
+E       AssertionError: assert 'tool_not_found: get_knowledge_documents' is None
+
+tests/test_catalog_knowledge_modes.py:93: AssertionError
+__ test_document_selection_rejects_invalid_ids_without_partial_evidence[ids0] __
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-15/test_document_selection_reject0')
+ids = ['../.env']
+
+    @pytest.mark.parametrize("ids", [["../.env"], ["unknown"], [], "policy"])
+    def test_document_selection_rejects_invalid_ids_without_partial_evidence(settings, tmp_path, ids):
+        (tmp_path / "policy.md").write_text("---\ndocument_id: policy\n---\n正文")
+        settings = settings.model_copy(update={"knowledge_mode": "documents", "docs_dir": tmp_path})
+        payload, _, error = ToolRegistry(settings).run(
+            "get_knowledge_documents", json.dumps({"document_ids": ids}), current_user_id="USER001",
+        )
+>       assert error and "invalid_arguments" in error
+E       AssertionError: assert ('tool_not_found: get_knowledge_documents' and 'invalid_arguments' in 'tool_not_found: get_knowledge_documents')
+
+tests/test_catalog_knowledge_modes.py:108: AssertionError
+__ test_document_selection_rejects_invalid_ids_without_partial_evidence[ids1] __
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-15/test_document_selection_reject1')
+ids = ['unknown']
+
+    @pytest.mark.parametrize("ids", [["../.env"], ["unknown"], [], "policy"])
+    def test_document_selection_rejects_invalid_ids_without_partial_evidence(settings, tmp_path, ids):
+        (tmp_path / "policy.md").write_text("---\ndocument_id: policy\n---\n正文")
+        settings = settings.model_copy(update={"knowledge_mode": "documents", "docs_dir": tmp_path})
+        payload, _, error = ToolRegistry(settings).run(
+            "get_knowledge_documents", json.dumps({"document_ids": ids}), current_user_id="USER001",
+        )
+>       assert error and "invalid_arguments" in error
+E       AssertionError: assert ('tool_not_found: get_knowledge_documents' and 'invalid_arguments' in 'tool_not_found: get_knowledge_documents')
+
+tests/test_catalog_knowledge_modes.py:108: AssertionError
+__ test_document_selection_rejects_invalid_ids_without_partial_evidence[ids2] __
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-15/test_document_selection_reject2')
+ids = []
+
+    @pytest.mark.parametrize("ids", [["../.env"], ["unknown"], [], "policy"])
+    def test_document_selection_rejects_invalid_ids_without_partial_evidence(settings, tmp_path, ids):
+        (tmp_path / "policy.md").write_text("---\ndocument_id: policy\n---\n正文")
+        settings = settings.model_copy(update={"knowledge_mode": "documents", "docs_dir": tmp_path})
+        payload, _, error = ToolRegistry(settings).run(
+            "get_knowledge_documents", json.dumps({"document_ids": ids}), current_user_id="USER001",
+        )
+>       assert error and "invalid_arguments" in error
+E       AssertionError: assert ('tool_not_found: get_knowledge_documents' and 'invalid_arguments' in 'tool_not_found: get_knowledge_documents')
+
+tests/test_catalog_knowledge_modes.py:108: AssertionError
+_ test_document_selection_rejects_invalid_ids_without_partial_evidence[policy] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-15/test_document_selection_reject3')
+ids = 'policy'
+
+    @pytest.mark.parametrize("ids", [["../.env"], ["unknown"], [], "policy"])
+    def test_document_selection_rejects_invalid_ids_without_partial_evidence(settings, tmp_path, ids):
+        (tmp_path / "policy.md").write_text("---\ndocument_id: policy\n---\n正文")
+        settings = settings.model_copy(update={"knowledge_mode": "documents", "docs_dir": tmp_path})
+        payload, _, error = ToolRegistry(settings).run(
+            "get_knowledge_documents", json.dumps({"document_ids": ids}), current_user_id="USER001",
+        )
+>       assert error and "invalid_arguments" in error
+E       AssertionError: assert ('tool_not_found: get_knowledge_documents' and 'invalid_arguments' in 'tool_not_found: get_knowledge_documents')
+
+tests/test_catalog_knowledge_modes.py:108: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_catalog_knowledge_modes.py::test_model_can_enumerate_complete_catalogue_with_current_prices
+FAILED tests/test_catalog_knowledge_modes.py::test_real_fallback_does_not_point_to_nonexistent_human_channel[api]
+FAILED tests/test_catalog_knowledge_modes.py::test_real_fallback_does_not_point_to_nonexistent_human_channel[step_limit]
+FAILED tests/test_catalog_knowledge_modes.py::test_application_exception_also_reports_actual_human_capability
+FAILED tests/test_catalog_knowledge_modes.py::test_full_context_uses_fresh_versioned_sources_without_an_index
+FAILED tests/test_catalog_knowledge_modes.py::test_document_mode_returns_whole_selected_documents_and_provenance
+FAILED tests/test_catalog_knowledge_modes.py::test_document_selection_rejects_invalid_ids_without_partial_evidence[ids0]
+FAILED tests/test_catalog_knowledge_modes.py::test_document_selection_rejects_invalid_ids_without_partial_evidence[ids1]
+FAILED tests/test_catalog_knowledge_modes.py::test_document_selection_rejects_invalid_ids_without_partial_evidence[ids2]
+FAILED tests/test_catalog_knowledge_modes.py::test_document_selection_rejects_invalid_ids_without_partial_evidence[policy]
+10 failed in 5.10s

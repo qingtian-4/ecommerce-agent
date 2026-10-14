@@ -116,6 +116,7 @@ class Settings(BaseSettings):
     docs_dir: Path = Path("data/docs")
 
     # ---------- RAG ----------
+    knowledge_mode: Literal["retrieval", "full_context", "documents"] = "retrieval"
     # Chunk size is picked once and deliberately NOT tuned in this phase. Tuning
     # chunks before an evaluation set exists would be fitting to nothing.
     chunk_size: int = 700
