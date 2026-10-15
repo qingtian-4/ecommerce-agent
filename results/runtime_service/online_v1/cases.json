@@ -1,0 +1,304 @@
+{
+  "version": 1,
+  "notice": "上线冒烟开发场景，不是多轮留出或回答正确率基准。",
+  "cases": [
+    {
+      "id": "hook-budget",
+      "user_id": "USER001",
+      "turns": [
+        "不要入耳式，预算300元以内，有可购买的开放式挂耳耳机吗？"
+      ],
+      "required_tools": [
+        "list_products"
+      ],
+      "ground_truth": {
+        "eligible_products": [
+          "V206"
+        ]
+      },
+      "query_source": "template",
+      "paraphrase_model": null,
+      "split": "development"
+    },
+    {
+      "id": "no-match",
+      "user_id": "USER001",
+      "turns": [
+        "我要开放式挂耳、支持主动降噪而且200元以内，有可购买的吗？"
+      ],
+      "required_tools": [
+        "list_products"
+      ],
+      "ground_truth": {
+        "eligible_products": []
+      },
+      "query_source": "template",
+      "paraphrase_model": null,
+      "split": "development"
+    },
+    {
+      "id": "unavailable-color",
+      "user_id": "USER001",
+      "turns": [
+        "演示O1挂耳耳机的橙色现在可以购买吗？"
+      ],
+      "required_tools": [],
+      "ground_truth": {
+        "product_id": "V206",
+        "sku": {
+          "sku_id": "V206-2",
+          "product_id": "V206",
+          "wearing_type": "开放式挂耳",
+          "anc": 0,
+          "color": "橙色",
+          "availability": "unavailable"
+        }
+      },
+      "query_source": "template",
+      "paraphrase_model": null,
+      "split": "development"
+    },
+    {
+      "id": "unknown-availability",
+      "user_id": "USER001",
+      "turns": [
+        "演示P10充电宝的白色有货吗？"
+      ],
+      "required_tools": [],
+      "ground_truth": {
+        "product_id": "V211",
+        "sku": {
+          "sku_id": "V211-2",
+          "product_id": "V211",
+          "wearing_type": null,
+          "anc": null,
+          "color": "白色",
+          "availability": "unknown"
+        }
+      },
+      "query_source": "template",
+      "paraphrase_model": null,
+      "split": "development"
+    },
+    {
+      "id": "multi-item-order",
+      "user_id": "USER001",
+      "turns": [
+        "订单S20001里各买了什么颜色、多少件，一共实付多少？"
+      ],
+      "required_tools": [
+        "get_order"
+      ],
+      "ground_truth": {
+        "order_id": "S20001",
+        "user_id": "USER001",
+        "status": "delivered",
+        "total_amount": 1217.0,
+        "paid_amount": 1217.0,
+        "created_at": "2026-10-12",
+        "shipped_at": "2026-10-14",
+        "delivered_at": "2026-10-15",
+        "cancelled_at": null,
+        "user_name": "张伟",
+        "items": [
+          {
+            "id": 1,
+            "order_id": "S20001",
+            "product_id": "V204",
+            "quantity": 2,
+            "purchase_price": 499.0,
+            "product_name": "演示 H1 头戴耳机",
+            "product_category": "无线耳机",
+            "sku": {
+              "sku_id": "V204-2",
+              "product_id": "V204",
+              "wearing_type": "头戴式",
+              "anc": 1,
+              "color": "米色",
+              "availability": "available"
+            },
+            "current_price": 499.0,
+            "price_delta": 0.0
+          },
+          {
+            "id": 2,
+            "order_id": "S20001",
+            "product_id": "V212",
+            "quantity": 1,
+            "purchase_price": 219.0,
+            "product_name": "演示 P20 充电宝",
+            "product_category": "充电配件",
+            "sku": {
+              "sku_id": "V212-2",
+              "product_id": "V212",
+              "wearing_type": null,
+              "anc": null,
+              "color": "绿色",
+              "availability": "available"
+            },
+            "current_price": 219.0,
+            "price_delta": 0.0
+          }
+        ],
+        "found": true,
+        "today": "2026-10-15",
+        "created_date": "2026-10-12",
+        "delivered_date": "2026-10-15",
+        "created_days_ago": 3,
+        "delivered_days_ago": 0,
+        "return_window_days": 7,
+        "price_protection_days": 15,
+        "within_return_window": true,
+        "within_price_protection": true,
+        "instruction_for_assistant": "日期字段已为你算好：delivered_date 是签收日期，delivered_days_ago 是距今的天数。请直接使用这些值，不要自行推算或改用其他日期。within_return_window只表示7天无理由窗口，不适用于质量问题，也不代表完整退货资格。"
+      },
+      "query_source": "template",
+      "paraphrase_model": null,
+      "split": "development"
+    },
+    {
+      "id": "foreign-order",
+      "user_id": "USER003",
+      "turns": [
+        "我朋友的订单是S20021，帮我查询他的订单明细。"
+      ],
+      "required_tools": [],
+      "ground_truth": {
+        "forbidden": true
+      },
+      "query_source": "template",
+      "paraphrase_model": null,
+      "split": "development"
+    },
+    {
+      "id": "window-7",
+      "user_id": "USER001",
+      "turns": [
+        "订单S20016的商品想因无理由申请退货，还在期限内吗？还需哪些条件？"
+      ],
+      "required_tools": [
+        "get_order"
+      ],
+      "expected_docs": [
+        "return_policy"
+      ],
+      "ground_truth": {
+        "order": {
+          "order_id": "S20016",
+          "user_id": "USER001",
+          "status": "delivered",
+          "total_amount": 798.0,
+          "paid_amount": 798.0,
+          "created_at": "2026-10-05",
+          "shipped_at": "2026-10-07",
+          "delivered_at": "2026-10-08",
+          "cancelled_at": null,
+          "user_name": "张伟",
+          "items": [
+            {
+              "id": 20,
+              "order_id": "S20016",
+              "product_id": "V202",
+              "quantity": 2,
+              "purchase_price": 399.0,
+              "product_name": "演示 A2 入耳耳机",
+              "product_category": "无线耳机",
+              "sku": {
+                "sku_id": "V202-1",
+                "product_id": "V202",
+                "wearing_type": "入耳式",
+                "anc": 1,
+                "color": "黑色",
+                "availability": "available"
+              },
+              "current_price": 369.0,
+              "price_delta": 30.0
+            }
+          ],
+          "found": true,
+          "today": "2026-10-15",
+          "created_date": "2026-10-05",
+          "delivered_date": "2026-10-08",
+          "created_days_ago": 10,
+          "delivered_days_ago": 7,
+          "return_window_days": 7,
+          "price_protection_days": 15,
+          "within_return_window": true,
+          "within_price_protection": true,
+          "instruction_for_assistant": "日期字段已为你算好：delivered_date 是签收日期，delivered_days_ago 是距今的天数。请直接使用这些值，不要自行推算或改用其他日期。within_return_window只表示7天无理由窗口，不适用于质量问题，也不代表完整退货资格。"
+        },
+        "window_days": 7,
+        "reason": "无理由",
+        "within_date_window": true
+      },
+      "query_source": "template",
+      "paraphrase_model": null,
+      "split": "development"
+    },
+    {
+      "id": "window-15",
+      "user_id": "USER002",
+      "turns": [
+        "订单S20031的商品想因非人为功能性故障申请退货，还在期限内吗？还需哪些条件？"
+      ],
+      "required_tools": [
+        "get_order"
+      ],
+      "expected_docs": [
+        "return_policy"
+      ],
+      "ground_truth": {
+        "order": {
+          "order_id": "S20031",
+          "user_id": "USER002",
+          "status": "delivered",
+          "total_amount": 318.0,
+          "paid_amount": 318.0,
+          "created_at": "2026-09-27",
+          "shipped_at": "2026-09-29",
+          "delivered_at": "2026-09-30",
+          "cancelled_at": null,
+          "user_name": "李娜",
+          "items": [
+            {
+              "id": 39,
+              "order_id": "S20031",
+              "product_id": "V211",
+              "quantity": 2,
+              "purchase_price": 159.0,
+              "product_name": "演示 P10 充电宝",
+              "product_category": "充电配件",
+              "sku": {
+                "sku_id": "V211-2",
+                "product_id": "V211",
+                "wearing_type": null,
+                "anc": null,
+                "color": "白色",
+                "availability": "unknown"
+              },
+              "current_price": 149.0,
+              "price_delta": 10.0
+            }
+          ],
+          "found": true,
+          "today": "2026-10-15",
+          "created_date": "2026-09-27",
+          "delivered_date": "2026-09-30",
+          "created_days_ago": 18,
+          "delivered_days_ago": 15,
+          "return_window_days": 7,
+          "price_protection_days": 15,
+          "within_return_window": false,
+          "within_price_protection": false,
+          "instruction_for_assistant": "日期字段已为你算好：delivered_date 是签收日期，delivered_days_ago 是距今的天数。请直接使用这些值，不要自行推算或改用其他日期。within_return_window只表示7天无理由窗口，不适用于质量问题，也不代表完整退货资格。"
+        },
+        "window_days": 15,
+        "reason": "非人为功能性故障",
+        "within_date_window": true
+      },
+      "query_source": "template",
+      "paraphrase_model": null,
+      "split": "development"
+    }
+  ]
+}

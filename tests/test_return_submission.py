@@ -329,7 +329,6 @@ def test_withdrawing_checkbox_consent_invalidates_old_ui_preview(flow, monkeypat
 
     settings, _, service, sid = flow
     monkeypatch.setattr(app, "SETTINGS", settings)
-    monkeypatch.setattr(app, "_KB_STATS", None)
     state = {"session_id": sid}
     preview = service.preview(sid, "USER001")
     response = app.on_return_declaration(state, "USER001", False, False)
@@ -344,7 +343,6 @@ def test_ui_response_loss_keeps_committed_result_and_safe_replay(flow, monkeypat
 
     settings, _, service, sid = flow
     monkeypatch.setattr(app, "SETTINGS", settings)
-    monkeypatch.setattr(app, "_KB_STATS", None)
     state = {"session_id": sid}
     preview = service.preview(sid, "USER001")
     actual = ReturnService.confirm_and_submit
@@ -369,7 +367,6 @@ def test_form_actions_cannot_clear_a_submitted_task(flow, monkeypatch, action):
 
     settings, store, service, sid = flow
     monkeypatch.setattr(app, "SETTINGS", settings)
-    monkeypatch.setattr(app, "_KB_STATS", None)
     service.confirm_and_submit(sid, "USER001", service.preview(sid, "USER001")["preview_id"])
     before = store.get_return_task(sid, "USER001")["task"]
     handler = app.on_return_preview if action == "preview" else app.on_return_declaration
@@ -456,5 +453,5 @@ def test_v3_migration_preserves_existing_v2_messages_and_draft(settings):
     assert upgraded.load(sid, "USER001") == before
     assert upgraded.get_return_task(sid, "USER001")["task"] == task
     with closing(upgraded._connect()) as conn:
-        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 4
+        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 5
         assert conn.execute("SELECT * FROM order_items ORDER BY id").fetchall() == business

@@ -1,4 +1,4 @@
-"""Run the frozen task conversations through the real UI handler; preserve every turn."""
+"""Run the frozen task conversations through the shared streaming service; preserve every turn."""
 
 from __future__ import annotations
 
@@ -11,9 +11,10 @@ from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-import app  # noqa: E402
+from acs.chat_service import ChatService  # noqa: E402
+from acs.config import get_settings  # noqa: E402
 
 
 def state_check(case_id: str, turns: list[dict]) -> bool:
@@ -61,34 +62,31 @@ def main() -> None:
     # Exclusive creation keeps failures and earlier attempts instead of overwriting them.
     with raw_path.open("x") as raw, TemporaryDirectory(prefix="acs-task-eval-") as temp:
         db_path = Path(temp) / "business.db"
-        with closing(sqlite3.connect(app.SETTINGS.db_path)) as src, closing(
+        with closing(sqlite3.connect(get_settings().db_path)) as src, closing(
             sqlite3.connect(db_path)
         ) as dst:
             src.backup(dst)
-        original = app.SETTINGS
-        app.SETTINGS = original.model_copy(update={"db_path": db_path})
+        original = get_settings()
+        service = ChatService(original.model_copy(update={"db_path": db_path}))
         results = []
-        try:
-            for case in cases:
-                state, turns = {}, []
-                for text in case["turns"]:
-                    for _update in app.on_send(text, [], state, case["user_id"]):
-                        pass
-                    store = app.session_store()
-                    snapshot = store.load(state["session_id"], case["user_id"])
-                    result = snapshot["last_result"]
-                    turns.append({"query": text, "result": result,
-                                  "task_view": store.get_return_task(state["session_id"],
-                                                                     case["user_id"])})
-                record = {"id": case["id"], "user_id": case["user_id"], "turns": turns,
-                          "state_check_passed": state_check(case["id"], turns),
-                          "manual_answer_review": "pending", "criterion": case["check"]}
-                raw.write(json.dumps(record, ensure_ascii=False) + "\n")
-                raw.flush()
-                results.append(record)
-                print(f"{case['id']}: state_check={record['state_check_passed']}", flush=True)
-        finally:
-            app.SETTINGS = original
+        for case in cases:
+            sid, turns = None, []
+            for text in case["turns"]:
+                for update in service.run_turn(text, case["user_id"], sid):
+                    sid = update.session_id
+                store = service.store
+                snapshot = store.load(sid, case["user_id"])
+                result = snapshot["last_result"]
+                turns.append({"query": text, "result": result,
+                              "task_view": store.get_return_task(sid,
+                                                                 case["user_id"])})
+            record = {"id": case["id"], "user_id": case["user_id"], "turns": turns,
+                      "state_check_passed": state_check(case["id"], turns),
+                      "manual_answer_review": "pending", "criterion": case["check"]}
+            raw.write(json.dumps(record, ensure_ascii=False) + "\n")
+            raw.flush()
+            results.append(record)
+            print(f"{case['id']}: state_check={record['state_check_passed']}", flush=True)
         summary = {"cases_sha256": hashlib.sha256(cases_path.read_bytes()).hexdigest(),
                    "raw_sha256": hashlib.sha256(raw_path.read_bytes()).hexdigest(),
                    "model": original.llm_model, "temperature": original.llm_temperature,
@@ -99,7 +97,9 @@ def main() -> None:
                    "state_checks_passed": sum(r["state_check_passed"] for r in results),
                    "implementation_sha256": {
                        f: hashlib.sha256(Path(f).read_bytes()).hexdigest() for f in (
-                           "app.py", "src/acs/service_agent.py", "src/acs/cs_tools.py",
+                           "src/acs/chat_service.py", "src/acs/context.py", "src/acs/runtime.py",
+                       "src/acs/async_transport.py", "src/acs/llm.py",
+                       "src/acs/service_agent.py", "src/acs/cs_tools.py",
                            "src/acs/sessions.py", "scripts/eval_task_memory.py",
                        )
                    },

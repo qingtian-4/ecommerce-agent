@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
+from .database import item_sku
+
 
 class ConversationBusy(RuntimeError):
     pass
@@ -63,7 +65,7 @@ class SessionStore:
             conn.execute("CREATE TABLE IF NOT EXISTS acs_migrations "
                          "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
             version = conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] or 0
-            if version > 4:
+            if version > 5:
                 raise RuntimeError("数据库迁移版本比当前程序新，不能自动降级")
             conn.execute("CREATE TABLE IF NOT EXISTS conversations ("
                          "session_id TEXT PRIMARY KEY,"
@@ -137,6 +139,15 @@ class SessionStore:
                          "OR NEW.status NOT IN ('approved','rejected')) "
                          "BEGIN SELECT RAISE(ABORT,'illegal return status transition'); END")
             conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(4, ?)", (_now(),))
+            conn.execute("CREATE TABLE IF NOT EXISTS product_skus ("
+                         "sku_id TEXT PRIMARY KEY, product_id TEXT NOT NULL "
+                         "REFERENCES products(product_id), wearing_type TEXT, anc INTEGER "
+                         "CHECK(anc IN (0,1)), color TEXT, availability TEXT NOT NULL "
+                         "CHECK(availability IN ('available','unavailable','unknown')))")
+            conn.execute("CREATE TABLE IF NOT EXISTS order_item_skus ("
+                         "item_id INTEGER PRIMARY KEY REFERENCES order_items(id),"
+                         "sku_id TEXT NOT NULL REFERENCES product_skus(sku_id))")
+            conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(5, ?)", (_now(),))
 
     @staticmethod
     def _require_owner(conn, sid: str, user_id: str) -> sqlite3.Row:
@@ -269,6 +280,8 @@ class SessionStore:
                         "FROM order_items i JOIN products p USING(product_id) WHERE order_id=?",
                         (task["order_id"],),
                     )]
+                    for item in order["items"]:
+                        item["sku"] = item_sku(conn, item["id"])
         submitted = bool(task and task["status"] == "submitted")
         return {"task": task, "order": order, "missing_fields": [] if submitted else missing,
                 "can_submit": False,

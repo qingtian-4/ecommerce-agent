@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import base64
 import html
 import io
@@ -17,14 +18,29 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from acs.config import Settings, get_settings  # noqa: E402
 from acs.returns import ReturnService  # noqa: E402
+from acs.scenarios import scenario_settings  # noqa: E402
 from acs.sessions import TaskValidationError  # noqa: E402
 
 STATUS = {"pending_review": "待审核", "approved": "允许退回", "rejected": "已拒绝", "all": "全部"}
 CSS = """
-.gradio-container {max-width:1200px!important; font-family:Arial,'Microsoft YaHei',sans-serif;}
-#review-header {padding:18px 0; border-bottom:1px solid #e2e8f0;}
-#review-header h1 {font-size:24px; margin:0; color:#172033;}
+.gradio-container {max-width:1440px!important; padding:clamp(8px,2vw,24px)!important;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',
+    'Microsoft YaHei',sans-serif;
+  background:#edf0f4; color:#172033;}
+.gradio-container .main {padding:0!important;}
+#review-header {padding:8px 0 20px; border-bottom:1px solid #dbe1e8;}
+#review-header h1 {font-size:22px; font-weight:650; margin:0; color:#172033;}
 #review-header p {color:#536174; line-height:1.75; margin:8px 0 0;}
+#review-workspace {gap:0!important; border:1px solid #dbe1e8; border-radius:12px; overflow:hidden;}
+#review-list {padding:16px!important; background:#e5e9ef;}
+#review-reader {padding:24px!important; background:#fff;}
+#review-workspace [data-testid='block-info'] {
+  background:transparent; color:#536174; font-size:12px;}
+button {min-height:40px; border-radius:8px!important;}
+button.primary {background:#c64b06!important; color:#fff!important;}
+button:active:not(:disabled) {transform:scale(.96);}
+button:focus-visible,input:focus-visible,textarea:focus-visible {
+  outline:2px solid #c64b06!important;}
 .review-detail {line-height:1.8; color:#172033; overflow-wrap:anywhere;}
 .review-detail h2 {font-size:20px; margin:12px 0;}
 .review-detail h3 {font-size:15px; margin:20px 0 8px;}
@@ -55,17 +71,20 @@ def render_detail(detail: dict) -> str:
         return "未声明" if value is None else ("是" if value else "否")
 
     content, order = detail["content"], detail["current_order"]
-    order_status = {"delivered": "已签收", "shipped": "已发货", "paid": "待发货",
+    order_status = {"delivered": "已签收", "shipped": "已发货",
+                    "paid": "待发货", "pending": "待发货",
                     "cancelled": "已取消"}.get(order["status"], order["status"])
     lines = [("申请号", detail["request_id"]), ("客户", detail["user_id"]),
              ("订单 / 明细", f"{detail['order_id']} / {detail['item_id']}"),
              ("商品 / 数量", f"{content['product_name']} × {detail['quantity']}"),
+             ("所购颜色", (content.get("sku") or {}).get("color") or "旧数据未提供"),
              ("原因", "质量问题" if content["reason"] == "quality" else "无理由"),
              ("提交时间", timestamp(detail["created_at"])),
              ("当前订单", f"{order_status} · 购买 {order['quantity']} 件"),
              ("签收日期", order["delivered_at"]),
              ("故障自述", content.get("problem_description") or "未提供"),
-             ("商品状况自述", content.get("condition") or "未提供"),
+             ("商品状况自述", {"sealed": "未拆封", "opened": "已拆封"}.get(
+                 content.get("condition"), content.get("condition") or "未提供")),
              ("二次销售声明", claim(content.get("secondary_sale_ok"))),
              ("非人为声明", claim(content.get("quality_non_user_damage"))),
              ("提交时政策", f"{content['policy']['source']} / {content['policy']['version']}")]
@@ -150,15 +169,15 @@ def build_app(settings: Settings | None = None) -> gr.Blocks:
     with gr.Blocks(title="售后审核工作台") as demo:
         gr.HTML("<header id='review-header' lang='zh'><h1>售后审核工作台</h1>"
                 "<p>核对材料，记录原因，客户查询真实结果。此入口仅供管理员使用。</p></header>")
-        with gr.Row():
-            with gr.Column(scale=2, min_width=260):
+        with gr.Row(elem_id="review-workspace"):
+            with gr.Column(scale=2, min_width=260, elem_id="review-list"):
                 status = gr.Dropdown([(v, k) for k, v in STATUS.items()],
                                      value="pending_review", label="申请状态")
                 refresh_btn = gr.Button("刷新申请列表")
                 selector = gr.Dropdown([], label="选择申请", elem_id="review-selector")
                 message = gr.Markdown("", elem_id="review-message")
                 gr.HTML("<a href='/logout'>退出管理账号</a>")
-            with gr.Column(scale=3, min_width=300):
+            with gr.Column(scale=5, min_width=280, elem_id="review-reader"):
                 detail = gr.HTML("<p>选择申请后查看材料。</p>", elem_id="review-detail")
                 media = gr.HTML("", elem_id="review-media")
                 media_btn = gr.Button("查看原始凭证")
@@ -180,10 +199,17 @@ def build_app(settings: Settings | None = None) -> gr.Blocks:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="售后审核工作台")
+    parser.add_argument("--port", type=int, default=7861)
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--scenario", type=Path)
+    args = parser.parse_args()
     settings = get_settings()
+    if args.scenario:
+        settings = scenario_settings(settings, args.scenario)
     demo = build_app(settings)
     service = ReturnService(settings)
-    demo.launch(server_name="127.0.0.1", server_port=7861, auth=service.authenticate_reviewer,
+    demo.launch(server_name=args.host, server_port=args.port, auth=service.authenticate_reviewer,
                 auth_message="使用.env中单独配置的管理账号登录", css=CSS,
                 theme=gr.themes.Soft(primary_hue="orange", neutral_hue="slate"),
                 footer_links=[], show_error=False)

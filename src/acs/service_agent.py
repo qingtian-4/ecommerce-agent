@@ -32,9 +32,11 @@ from typing import Any
 
 from .capabilities import capability_notice
 from .config import Settings, get_settings
+from .context import ContextLimitExceeded, input_chars, model_context
 from .cs_tools import ToolRegistry, TraceEvent
 from .knowledge_context import load_source_documents
 from .llm import LLMClient
+from .runtime import BudgetExceeded, RunBudget
 
 SYSTEM_PROMPT = """你是一名专业的电商客服助手，服务于一家销售无线耳机与充电配件的店铺。
 
@@ -76,6 +78,9 @@ SYSTEM_PROMPT = """你是一名专业的电商客服助手，服务于一家销�
     商品是否存在、店内有哪些型号要查完整目录；知识检索没命中不代表没有商品。
     推荐先满足用户的预算、佩戴方式等硬条件。挂耳、入耳、头戴不能混为同一种；
     没有匹配款时明确说明，不硬推不符合条件的商品。颜色、图片、库存未提供则未知。
+    SKU中availability为available/unavailable/unknown，分别表示可购买/不可购买/未知；
+    anc为1/0/null表示支持主动降噪/不支持/未知。推荐具体颜色前核对该SKU的可用状态。
+    订单明细的sku才是用户所购颜色，不能以商品所有候选颜色代替所购颜色。
     商品事实按product_id绑定，不把另一款的结构、配件或使用条件拼接到当前商品。
 11. 业务查询不改变订单，不能直接退款或转接。要求退款时先说明需申请售后并经过审核，
     再确认退款原因；需要判断资格时才查询。不得宣称已办理，不重复追问已提供的信息。
@@ -155,6 +160,8 @@ class AgentResult:
             return f"达到最大步数 {self.steps}，已停止并给出兜底回复。"
         if self.stop_reason == "llm_error":
             return "调用模型时出错，未能完成回答。"
+        if self.stop_reason in {"budget_exceeded", "context_limit"}:
+            return "达到本轮运行上限，已停止；本次回答未完成。"
         used = [e.label for e in self.trace if e.type == "tool_call"]
         if not used:
             if any(e.type == "ui_action" for e in self.trace):
@@ -206,6 +213,7 @@ class CustomerServiceAgent:
 
     def _snapshot(self, result: AgentResult, started: float) -> AgentResult:
         totals = self.llm.totals()
+        totals["model_input_chars"] = list(result.totals.get("model_input_chars", []))
         totals["api_latency_ms"] = totals.get("latency_ms", 0.0)
         totals["latency_ms"] = round((perf_counter() - started) * 1000, 1)
         return replace(
@@ -214,26 +222,41 @@ class CustomerServiceAgent:
             retrieved_documents=list(result.retrieved_documents),
         )
 
-    def chat_stream(self, user_message: str) -> Iterator[AgentResult]:
+    def chat_stream(self, user_message: str, *,
+                    budget: RunBudget | None = None) -> Iterator[AgentResult]:
         """Yield execution progress and answer text as it arrives from the model."""
-        yield from self._run_turn(user_message, stream_text=True)
+        previous = getattr(self.llm, "budget", None)
+        self.llm.budget = budget
+        try:
+            yield from self._run_turn(user_message, stream_text=True, budget=budget)
+        finally:
+            self.llm.budget = previous
 
-    def _run_turn(self, user_message: str, *, stream_text: bool) -> Iterator[AgentResult]:
+    def _run_turn(self, user_message: str, *, stream_text: bool,
+                  budget: RunBudget | None = None) -> Iterator[AgentResult]:
         started = perf_counter()
         self.llm.reset_usage()
+        current_start = len(self.messages)
         self.messages.append({"role": "user", "content": user_message})
 
-        result = AgentResult(answer="", stop_reason="running")
+        result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
         schemas = self.registry.schemas()
+        retrievals = 0
 
         for step in range(1, self.max_steps + 1):
             result.steps = step
             yield self._snapshot(result, started)
             try:
+                if budget:
+                    budget.remaining()
+                model_messages = model_context(
+                    self.messages, current_start, schemas, self.settings.context_max_chars,
+                )
+                result.totals["model_input_chars"].append(input_chars(model_messages, schemas))
                 if stream_text:
                     response = None
                     with closing(self.llm.chat_stream(
-                        self.messages, tools=schemas, stage=f"agent_step_{step}",
+                        model_messages, tools=schemas, stage=f"agent_step_{step}",
                     )) as events:
                         for event in events:
                             if isinstance(event, str):
@@ -245,7 +268,7 @@ class CustomerServiceAgent:
                         raise RuntimeError("模型未返回完整响应")
                 else:
                     response = self.llm.chat(
-                        self.messages, tools=schemas, stage=f"agent_step_{step}",
+                        model_messages, tools=schemas, stage=f"agent_step_{step}",
                     )
             except Exception as exc:  # noqa: BLE001 - must surface, not crash the UI
                 message = f"{type(exc).__name__}: {exc}"
@@ -257,14 +280,22 @@ class CustomerServiceAgent:
                         detail={"error_type": "llm_api_error", "message": message},
                     )
                 )
-                if result.answer:
-                    result.answer += "\n\n⚠️ 回答中断，以上内容尚未完成，请重试。"
-                else:
-                    result.answer = (
-                        "抱歉，我这边连接服务时出了点问题，请稍后再试一次。"
-                        "当前没有人工接入此窗口的功能。"
+                if isinstance(exc, (BudgetExceeded, ContextLimitExceeded)):
+                    result.stop_reason = ("context_limit" if isinstance(exc, ContextLimitExceeded)
+                                          else "budget_exceeded")
+                    result.answer = (result.answer + "\n\n" if result.answer else "") + (
+                        str(exc) + "，本次回答未完成，请缩小问题范围后重试。"
                     )
-                result.stop_reason = "llm_error"
+                    result.trace[-1].detail["error_type"] = result.stop_reason
+                else:
+                    result.stop_reason = "llm_error"
+                    if result.answer:
+                        result.answer += "\n\n⚠️ 回答中断，以上内容尚未完成，请重试。"
+                    else:
+                        result.answer = (
+                            "抱歉，我这边连接服务时出了点问题，请稍后再试一次。"
+                            "当前没有人工接入此窗口的功能。"
+                        )
                 self.messages.append({"role": "assistant", "content": result.answer})
                 break
 
@@ -284,15 +315,46 @@ class CustomerServiceAgent:
             # --- tool calls: execute, append results, continue ------------- #
             result.answer = ""
             self.messages.append(self._assistant_message(response))
+            stopped = None
+            limit_reason = "budget_exceeded"
             for call in response.tool_calls:
+                is_retrieval = call.name in {"search_knowledge", "get_knowledge_documents"}
+                try:
+                    if stopped:
+                        raise BudgetExceeded(stopped)
+                    if budget:
+                        budget.remaining()
+                    if result.tool_calls >= self.settings.max_tool_calls:
+                        raise BudgetExceeded("整轮工具调用数已达上限")
+                    if is_retrieval and retrievals >= self.settings.max_retrieval_calls:
+                        raise BudgetExceeded("整轮知识查询数已达上限")
+                except BudgetExceeded as exc:
+                    stopped = str(exc)
+                if stopped:
+                    payload = {"error_type": limit_reason, "executed": False,
+                               "reason": stopped}
+                    result.trace.append(TraceEvent(type="error", label=call.name, detail=payload))
+                    self.messages.append({"role": "tool", "tool_call_id": call.id,
+                                          "content": json.dumps(payload, ensure_ascii=False)})
+                    continue
                 result.tool_calls += 1
+                retrievals += int(is_retrieval)
                 result.trace.append(TraceEvent(
                     type="tool_call", label=call.name, detail={"arguments": call.arguments},
                 ))
                 yield self._snapshot(result, started)
-                payload, events, error = self.registry.run(
-                    call.name, call.arguments, current_user_id=self.current_user_id
-                )
+                try:
+                    payload, events, error = self.registry.run(
+                        call.name, call.arguments, current_user_id=self.current_user_id
+                    )
+                except (BudgetExceeded, ContextLimitExceeded) as exc:
+                    stopped = str(exc)
+                    limit_reason = ("context_limit" if isinstance(exc, ContextLimitExceeded)
+                                    else "budget_exceeded")
+                    payload = {"error_type": limit_reason, "reason": stopped}
+                    events = [result.trace[-1], TraceEvent(type="error", label=call.name,
+                                                          detail=payload)]
+                    error = limit_reason
                 # The registry's first event is the call already published above.
                 result.trace.extend(events[1:])
                 if error:
@@ -311,6 +373,14 @@ class CustomerServiceAgent:
                     }
                 )
                 yield self._snapshot(result, started)
+            if stopped:
+                result.stop_reason = limit_reason
+                result.answer = stopped + (
+                    "，本次回答未完成；已停止后续操作，请重试或查询已有办理结果。"
+                )
+                result.errors.append(limit_reason)
+                self.messages.append({"role": "assistant", "content": result.answer})
+                break
         else:
             # Loop exhausted without a final answer.
             result.stop_reason = "max_steps"

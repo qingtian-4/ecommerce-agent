@@ -165,7 +165,7 @@ def test_v4_migration_keeps_v3_pending_request_history_and_original_content(pend
     assert fresh.load(sid, "USER001") == history
     with closing(fresh._connect()) as conn:
         assert [tuple(r) for r in conn.execute("SELECT * FROM return_requests")] == before
-        assert conn.execute("SELECT max(version) FROM acs_migrations").fetchone()[0] == 4
+        assert conn.execute("SELECT max(version) FROM acs_migrations").fetchone()[0] == 5
         assert conn.execute("SELECT count(*) FROM return_reviews").fetchone()[0] == 0
 
 

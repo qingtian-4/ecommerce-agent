@@ -1,6 +1,6 @@
 # Open design refinements
 
-Decisions agreed during review that are **not yet implemented**. Each entry
+Decisions agreed during review, with domain delivery and remaining scope separated. Each entry
 records the reasoning so it does not get lost or silently dropped.
 
 ---
@@ -40,7 +40,8 @@ self-consistent while preserving real user phrasing.
    `query_source: template | paraphrase` and `paraphrase_model`. A paraphrase
    batch is itself an experimental variable.
 
-**Status:** not implemented. Needed at Phase 2.
+**Status:** 自动自然化生成器及其两个 guard 尚未实现。v2 冒烟场景的事实从 SQL 派生，
+问题仍用模板，记录 `query_source=template`；这只覆盖数据来源，不代表 T1 全部完成。
 
 章节级检索对照已单独实现：`data/eval/retrieval_cases.json` 与
 `scripts/run_retrieval_eval.py`。52 条问题先冻结，再比较 Dense、BM25 和 RRF；
@@ -72,20 +73,26 @@ failure into a *structural* impossibility, and makes it directly testable:
 def test_mutating_tool_without_confirmation_never_writes(): ...
 ```
 
-**Status:** not implemented. Needed at Phase 3.
+**Status:** 退货申请的正式提交已具备预览、过期/修订/归属校验和页面明确确认；
+模型没有提交或审核工具。草稿字段保存是允许的低风险副作用，不套用“首次不写任何数据”。
+通用 `MUTATING` 拦截框架及 `cancel_order` 尚未实现，也不对外宣称支持取消订单。
+见 `returns.py`、`test_return_submission.py`。
 
 ---
 
 ## T3 — Idempotency must be observable in the data, not just in code
 
-With a fully mocked SQLite backend there is no real side effect, so a duplicate
-write would be invisible. Therefore every write operation also appends a row to
-an **operation audit table** keyed by `idempotency_key`.
+The original review assumed a fully mocked backend. The current SQLite backend
+persists requests and audit rows, so duplicate domain actions must be detectable
+from database state, with the logical action key preserved in the audit trail.
 
 This makes "the same logical action was attempted twice" detectable from the
 database state alone, which is what the evaluator inspects.
 
-**Status:** not implemented. Needed at Phase 2 (schema) + Phase 3 (guard).
+**Status:** 退货申请已实现。`return_requests.preview_id` 唯一，确认消费、创建申请和
+`return_audit` 在同一事务；重放同一预览返回已有申请，不再追加创建审计。
+审核结论也有唯一记录和审计。数据库能直接验证一次逻辑提交对应一张申请/一条创建审计。
+泛化到其他未来业务动作的统一审计框架尚未实现；不为同一退货流程再建重复审计表。
 
 ---
 
@@ -109,7 +116,11 @@ The claim to be proved later is of the form: *"N% of queries are answerable on a
 single hop; forcing everything through the full agent path moved P95 from X to Y
 while accuracy changed by only Z%."*
 
-**Status:** table is a plan; real numbers arrive in Phase 4.
+**Status:** 上表仍是计划，没有路由器或实测承诺。当前先交付可检查的共同边界：
+整轮120秒、最多6个step/16个API请求/12个工具/4次知识查询；两个活动会话，超额可见排队。
+Agent输入按消息及工具schema的JSON字符计数，最多24,000字符，完整历史仍在SQLite。
+核验/embedding/reranker共用请求与耗时预算；SDK隐式重试关闭，失败请求也记账。
+这不是原表的多路线成本路由，也不是生产SLA。证据见 `results/runtime_service/`。
 
 ---
 

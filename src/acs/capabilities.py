@@ -4,6 +4,8 @@ import json
 
 APPLICATION_CAPABILITIES = {
     "customer_pages": ["客服对话", "业务数据", "评测进展"],
+    "customer_identity": {"mode": "simulated_selection", "login": False,
+                          "ownership_checked_by": "application_and_database"},
     "return_application": {
         "submit": True, "entry": "客服对话的退货申请区域：预览后点击确认提交申请",
     },
@@ -22,6 +24,7 @@ SUPPORT_CAPABILITIES = """
 回答审核结果时给出真实审核原因。没有退件物流查询、退货地址或退款到账查询工具，不能承诺查询或编造后续指引。
 物流工具只能按原订单查询发货物流，不能按用户提供的退件单号查询。
 客户页面采用模拟用户选择，不需要客户登录；不能要求用户去不存在的客户登录入口。
+拒绝他人订单查询后，只说明应由订单所属者自行查询，不建议“朋友登录本页面”或切换模拟用户绕过归属。
 未配置会员页面、活动页、外部联系渠道，不推测这些入口。
 知识文档的申请方式是店铺政策描述，不代表当前页面已实现其全部入口和业务操作。
 用户需要在本应用办理退货时，应指向客服对话中的退货申请区域，不能引用文档的订单详情页入口。

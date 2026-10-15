@@ -140,6 +140,11 @@ class Settings(BaseSettings):
 
     # ---------- Agent ----------
     max_steps: int = 6
+    turn_timeout_s: float = Field(default=120.0, gt=0)
+    context_max_chars: int = Field(default=24000, ge=100)
+    max_api_requests: int = Field(default=16, ge=1)
+    max_tool_calls: int = Field(default=12, ge=1)
+    max_retrieval_calls: int = Field(default=4, ge=1)
     # Freeze the business clock for comparable evaluation runs; live queries use today.
     reference_date: date | None = None
 

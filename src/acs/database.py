@@ -47,6 +47,15 @@ def connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def item_sku(conn: sqlite3.Connection, item_id: int) -> dict | None:
+    if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='order_item_skus'").fetchone():
+        return None
+    row = conn.execute("SELECT s.* FROM order_item_skus i JOIN product_skus s USING(sku_id) "
+                       "JOIN order_items o ON o.id=i.item_id AND o.product_id=s.product_id "
+                       "WHERE i.item_id=?", (item_id,)).fetchone()
+    return dict(row) if row else None
+
+
 def _days_since(iso_date: str | None, today: date) -> int | None:
     if not iso_date:
         return None
@@ -84,6 +93,14 @@ class BusinessDB:
         product["attributes"] = [
             a for a in str(product.get("attributes", "")).split("；") if a
         ]
+        with closing(connect(self.settings.db_path)) as conn:
+            has_skus = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE name='product_skus'",
+            ).fetchone()
+            product["skus"] = [dict(row) for row in conn.execute(
+                "SELECT * FROM product_skus WHERE product_id=? ORDER BY sku_id", (product_id,),
+            )] if has_skus else []
+        product["sku_information"] = "provided" if product["skus"] else "unknown"
         return product
 
     def list_products(self) -> list[dict[str, Any]]:
@@ -140,6 +157,8 @@ class BusinessDB:
             )
         ]
         for item in items:
+            with closing(connect(self.settings.db_path)) as conn:
+                item["sku"] = item_sku(conn, item["id"])
             item["current_price"] = self._current_price(item["product_id"])
             item["price_delta"] = round(
                 float(item["purchase_price"]) - float(item["current_price"] or 0), 2

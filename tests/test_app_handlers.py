@@ -36,7 +36,6 @@ def isolated_ui_settings(settings, monkeypatch):
     monkeypatch.setattr(app_module, "SETTINGS", settings.model_copy(
         update={"llm_api_key": "audit-ui-placeholder"}
     ))
-    monkeypatch.setattr(app_module, "_KB_STATS", None)
 
 
 # --------------------------------------------------------------------------- #
@@ -107,6 +106,31 @@ def test_every_user_choice_is_well_formed() -> None:
 def test_renderers_handle_the_empty_state() -> None:
     assert "尚未发送消息" in app_module.render_trace(None)
     assert "—" in app_module.render_stats(None)
+
+
+@pytest.mark.parametrize("tampered", [None, "raw.jsonl", "cases.json"])
+def test_runtime_display_rejects_changed_experimental_inputs(tmp_path, tampered):
+    import hashlib
+    import json
+
+    raw, cases = b'{"result":"fixture"}\n', b'{"cases":[]}\n'
+    (tmp_path / "raw.jsonl").write_bytes(raw)
+    (tmp_path / "cases.json").write_bytes(cases)
+    (tmp_path / "summary.json").write_text(json.dumps({
+        "cases": 8, "execution_checks_passed": 7, "api_requests": 20, "total_tokens": 1000,
+        "raw_sha256": hashlib.sha256(raw).hexdigest(),
+    }))
+    (tmp_path / "frozen_manifest.json").write_text(json.dumps({
+        "cases_sha256": hashlib.sha256(cases).hexdigest(),
+    }))
+    if tampered:
+        (tmp_path / tampered).write_bytes(b"changed")
+        with pytest.raises(ValueError, match="来源不一致"):
+            app_module.runtime_evaluation_rows(tmp_path)
+    else:
+        assert app_module.runtime_evaluation_rows(tmp_path) == [[
+            "v2 合成开发场景", 8, 7, 20, 1000,
+        ]]
 
 
 def test_retrieval_trace_distinguishes_fusion_scores_and_channel_ranks():
@@ -348,7 +372,7 @@ def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch, partial) 
     real = app_module.ensure_agent
 
     class _Boom:
-        def chat_stream(self, _message):  # noqa: ANN001
+        def chat_stream(self, _message, *, budget=None):  # noqa: ANN001
             if partial:
                 yield AgentResult(answer="已生成的内容", stop_reason="running")
             raise RuntimeError("simulated backend failure")
@@ -525,7 +549,7 @@ def test_gradio_component_arguments_still_exist() -> None:
     assert "show_api" not in launch_params, "launch(show_api=...) is gone in Gradio 6"
 
 
-def test_on_send_with_the_real_agent_constructor(settings, fake_embedder, monkeypatch):
+def test_on_send_with_the_real_agent_constructor(settings, monkeypatch):
     """End-to-end through the handler that actually failed in the browser.
 
     Every other handler test replaces `ensure_agent`, which is fine for testing
@@ -536,7 +560,6 @@ def test_on_send_with_the_real_agent_constructor(settings, fake_embedder, monkey
     regressed to passing `settings` positionally.
     """
     from acs.llm import LLMClient
-    from acs.rag import KnowledgeBase
 
     # A dummy key so LLMClient's constructor accepts the settings, then the real
     # network client is replaced by a scripted one so nothing is called. Without
@@ -554,14 +577,12 @@ def test_on_send_with_the_real_agent_constructor(settings, fake_embedder, monkey
 
     monkeypatch.setattr(app_module, "SETTINGS", usable)
     monkeypatch.setattr(
-        app_module, "KnowledgeBase", lambda *_a, **_k: KnowledgeBase(usable, llm=fake_embedder)
-    )
-    monkeypatch.setattr(
-        app_module, "ToolRegistry", lambda *_a, **_k: ToolRegistry(usable, kb=None)
-    )
-    monkeypatch.setattr(
         LLMClient, "__post_init__", lambda self: setattr(self, "_client", None)
     )
+    def scripted_stream(*args, **kwargs):
+        yield ScriptedResponse(text="您好")
+
+    monkeypatch.setattr(LLMClient, "chat_stream", scripted_stream)
 
     state: dict = {"user_key": app_module.USER_CHOICES[0], "agent": None}
     history, _, trace, state_out, stats, _, _, _ = list(app_module.on_send(
@@ -572,4 +593,5 @@ def test_on_send_with_the_real_agent_constructor(settings, fake_embedder, monkey
     assert state_out["user_id"] == "USER001"
     assert state_out["agent"].current_user_id == "USER001"
     assert len(history) == 2
+    assert history[-1]["content"] == "您好"
     assert trace and stats

@@ -26,9 +26,11 @@ from typing import Any
 
 from .capabilities import capability_notice
 from .config import Settings, get_settings
+from .context import ContextLimitExceeded
 from .database import BusinessDB
 from .knowledge_context import load_source_documents, select_source_documents
 from .returns import ReturnService, policy_for_reason, return_policy
+from .runtime import BudgetExceeded
 from .sessions import SessionStore, TaskValidationError
 
 
@@ -401,6 +403,8 @@ class ToolRegistry:
                 detail={"error_type": "invalid_arguments", "message": str(exc)},
             ))
             return {"error": str(exc)}, events, f"invalid_arguments: {exc}"
+        except (BudgetExceeded, ContextLimitExceeded):
+            raise  # The host stops the entire turn, not just this knowledge request.
         except Exception as exc:  # noqa: BLE001 - must not kill the loop
             events.append(
                 TraceEvent(

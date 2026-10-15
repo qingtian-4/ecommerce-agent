@@ -14,7 +14,7 @@ from uuid import uuid4
 from PIL import Image, UnidentifiedImageError
 
 from .config import Settings
-from .database import business_today
+from .database import business_today, item_sku
 from .sessions import ConversationBusy, SessionStore, TaskValidationError, _now
 
 REQUEST_QUERY = ("SELECT r.*,v.decision AS review_decision,v.reason AS review_reason,"
@@ -127,6 +127,7 @@ class ReturnService:
                 evidence = dict(media) | {"source": "user_upload", "verified": False}
         content = {"order_id": task["order_id"], "item_id": task["item_id"],
                    "product_id": row["product_id"], "product_name": row["product_name"],
+                   "sku": item_sku(conn, task["item_id"]),
                    "quantity": task["quantity"], "reason": task["reason"],
                    "condition": task.get("condition"),
                    "problem_description": task.get("problem_description"),
@@ -298,8 +299,9 @@ class ReturnService:
             if reasons:
                 raise TaskValidationError("；".join(reasons))
             original = json.loads(preview["content_json"])
-            if any(content[k] != original[k] for k in (
+            if any(content.get(k) != original.get(k) for k in (
                 "order_id", "item_id", "product_id", "product_name", "delivered_at",
+                "sku",
                 "quantity", "reason", "condition", "problem_description",
                 "secondary_sale_ok", "quality_non_user_damage", "evidence",
             )):

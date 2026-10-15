@@ -14,6 +14,7 @@ from __future__ import annotations
 import math
 import time
 from collections.abc import Iterator
+from contextlib import closing
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
@@ -21,6 +22,8 @@ from typing import Any
 from openai import OpenAI
 
 from .config import Settings, estimate_cost_cny, get_settings
+from .context import ContextLimitExceeded, input_chars
+from .runtime import RunBudget
 
 
 @dataclass
@@ -89,6 +92,7 @@ class LLMClient:
 
     settings: Settings = field(default_factory=get_settings)
     usages: list[Usage] = field(default_factory=list)
+    budget: RunBudget | None = None
 
     def __post_init__(self) -> None:
         if not self.settings.has_llm_key:
@@ -100,6 +104,7 @@ class LLMClient:
             api_key=self.settings.llm_api_key,
             base_url=self.settings.llm_base_url,
             timeout=self.settings.llm_timeout_s,
+            max_retries=0,
         )
 
     # ------------------------------------------------------------------ #
@@ -164,13 +169,18 @@ class LLMClient:
             max_tokens=max_tokens, response_format_json=response_format_json,
             thinking=thinking, reasoning_effort=reasoning_effort,
         )
+        remaining = self.budget.request() if self.budget else None
         started = time.perf_counter()
-        resp = self._client.chat.completions.create(**kwargs)
-        usage = self._record(
-            resp, model=kwargs["model"], stage=stage,
-            latency_ms=(time.perf_counter() - started) * 1000,
-            thinking=kwargs["extra_body"]["thinking"]["type"] == "enabled",
-        )
+        resp = None
+        try:
+            resp = (self._client.chat.completions.create(**kwargs) if remaining is None
+                    else list(self._async_chat(kwargs, remaining))[0])
+        finally:
+            usage = self._record(
+                resp, model=kwargs["model"], stage=stage,
+                latency_ms=(time.perf_counter() - started) * 1000,
+                thinking=kwargs["extra_body"]["thinking"]["type"] == "enabled",
+            )
         choice = resp.choices[0]
         message = choice.message
         calls = [
@@ -193,6 +203,7 @@ class LLMClient:
         including interrupted requests whose provider usage is unavailable.
         """
         kwargs = self._chat_kwargs(messages, tools=tools, **options)
+        remaining = self.budget.request() if self.budget else None
         started = time.perf_counter()
         stream = None
         usage_chunk = None
@@ -201,9 +212,11 @@ class LLMClient:
         finish_reason = None
         reasoning_chars = 0
         try:
-            stream = self._client.chat.completions.create(
+            stream = (self._client.chat.completions.create(
                 **kwargs, stream=True, stream_options={"include_usage": True},
-            )
+            ) if remaining is None else self._async_chat(
+                kwargs | {"stream": True, "stream_options": {"include_usage": True}}, remaining,
+            ))
             for chunk in stream:
                 if getattr(chunk, "usage", None) is not None:
                     usage_chunk = chunk
@@ -239,6 +252,27 @@ class LLMClient:
             finish_reason=finish_reason,
         )
 
+    def _async_chat(self, kwargs: dict, remaining: float) -> Iterator[Any]:
+        from openai import AsyncOpenAI
+
+        from .async_transport import iterate_request
+
+        async def request(publish):
+            async with AsyncOpenAI(
+                api_key=self.settings.llm_api_key, base_url=self.settings.llm_base_url,
+                timeout=min(self.settings.llm_timeout_s, remaining), max_retries=0,
+            ) as client:
+                response = await client.chat.completions.create(**kwargs)
+                if kwargs.get("stream"):
+                    async with response:
+                        async for chunk in response:
+                            publish(("value", chunk))
+                else:
+                    publish(("value", response))
+
+        with closing(iterate_request(request, remaining)) as events:
+            yield from events
+
     def _chat_kwargs(
         self, messages: list[dict[str, Any]], *,
         tools: list[dict[str, Any]] | None = None, model: str | None = None,
@@ -246,6 +280,8 @@ class LLMClient:
         response_format_json: bool = False, thinking: bool | None = None,
         reasoning_effort: str | None = None,
     ) -> dict[str, Any]:
+        if self.budget and input_chars(messages, tools or []) > self.settings.context_max_chars:
+            raise ContextLimitExceeded("模型输入超过字符上限")
         model = model or self.settings.llm_model
         thinking = self.settings.llm_thinking if thinking is None else thinking
         temperature = (
@@ -295,27 +331,43 @@ class LLMClient:
 
         from openai import OpenAI as _OpenAI
 
-        client = _OpenAI(
-            api_key=s.embedding_api_key, base_url=base_url, timeout=s.llm_timeout_s
-        )
+        remaining = self.budget.request() if self.budget else None
         started = time.perf_counter()
-        resp = client.embeddings.create(model=s.embedding_model, input=texts)
-        latency_ms = (time.perf_counter() - started) * 1000
+        resp = None
+        try:
+            if remaining is None:
+                client = _OpenAI(api_key=s.embedding_api_key, base_url=base_url,
+                                 timeout=s.llm_timeout_s, max_retries=0)
+                resp = client.embeddings.create(model=s.embedding_model, input=texts)
+            else:
+                from openai import AsyncOpenAI
+
+                from .async_transport import iterate_request
+
+                async def request(publish):
+                    async with AsyncOpenAI(
+                        api_key=s.embedding_api_key, base_url=base_url,
+                        timeout=min(s.llm_timeout_s, remaining), max_retries=0,
+                    ) as client:
+                        response = await client.embeddings.create(
+                            model=s.embedding_model, input=texts,
+                        )
+                        publish(("value", response))
+
+                resp = list(iterate_request(request, remaining))[0]
+        finally:
+            u = getattr(resp, "usage", None)
+            self.usages.append(Usage(
+                model=s.embedding_model or "unknown-embedding", stage=stage,
+                prompt_tokens=int(getattr(u, "prompt_tokens", 0) or 0),
+                total_tokens=int(getattr(u, "total_tokens", 0) or 0),
+                latency_ms=(time.perf_counter() - started) * 1000,
+                cost_cny=None, usage_missing=u is None,
+            ))
 
         # Embedding calls are priced separately by the provider and are not in
         # PRICING, so record tokens/latency and leave cost as unknown rather
         # than inventing a number.
-        u = getattr(resp, "usage", None)
-        self.usages.append(
-            Usage(
-                model=s.embedding_model or "unknown-embedding",
-                stage=stage,
-                prompt_tokens=int(getattr(u, "prompt_tokens", 0) or 0),
-                total_tokens=int(getattr(u, "total_tokens", 0) or 0),
-                latency_ms=latency_ms,
-                cost_cny=None,
-            )
-        )
         return [d.embedding for d in resp.data]
 
     # ------------------------------------------------------------------ #
@@ -336,15 +388,28 @@ class LLMClient:
             key = s.embedding_api_key
         if not key:
             raise RuntimeError("ACS_RERANKER_API_KEY is not set for this service")
+        remaining = self.budget.request() if self.budget else None
         started = time.perf_counter()
         usage = Usage(model=s.reranker_model, stage="kb_rerank", usage_missing=True)
         try:
-            response = httpx.post(
-                base + "/rerank", headers={"Authorization": "Bearer " + key},
-                json={"model": s.reranker_model, "query": query, "documents": documents,
-                      "top_n": len(documents), "return_documents": False},
-                timeout=s.reranker_timeout_s,
-            )
+            request_args = {
+                "headers": {"Authorization": "Bearer " + key},
+                "json": {"model": s.reranker_model, "query": query, "documents": documents,
+                         "top_n": len(documents), "return_documents": False},
+                "timeout": min(s.reranker_timeout_s, remaining) if remaining is not None
+                else s.reranker_timeout_s,
+            }
+            if remaining is None:
+                response = httpx.post(base + "/rerank", **request_args)
+            else:
+                from .async_transport import iterate_request
+
+                async def request(publish):
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(base + "/rerank", **request_args)
+                        publish(("value", response))
+
+                response = list(iterate_request(request, remaining))[0]
             if not response.is_success:
                 raise RuntimeError(f"rerank API failed (HTTP {response.status_code})")
             body = response.json()
@@ -414,6 +479,7 @@ class LLMClient:
             cached_prompt_tokens=cached,
             thinking=thinking,
             reasoning_chars=len(reasoning) if reasoning_chars is None else reasoning_chars,
+            usage_missing=u is None,
         )
         self.usages.append(usage)
         return usage
