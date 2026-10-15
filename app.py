@@ -732,7 +732,11 @@ def return_panel(state_dict: dict, user_key: str):
     requests = service.list_requests(uid)
     rows = "".join(
         f"<p>{html.escape(r['request_id'])}<br>{html.escape(r['order_id'])} · "
-        f"{r['quantity']}件 · {RETURN_STATUS[r['status']]}</p>" for r in requests
+        f"{r['quantity']}件 · {RETURN_STATUS[r['status']]}</p>"
+        + (f"<p>审核原因：{html.escape(r['review']['reason'])}<br>"
+           f"审核时间：{html.escape(r['review']['reviewed_at'])}</p>" if r["review"] else "")
+        + ("<p>允许退回商品，尚未退款。</p>" if r["status"] == "approved" else "")
+        for r in requests
     ) or "<p>当前用户暂无售后申请。</p>"
     draft = bool(task and task["status"] == "draft")
     return ("<div class='cs-card' id='return-preview'>" + content + "</div>",
@@ -985,6 +989,7 @@ def build_app() -> gr.Blocks:
         header = gr.HTML()
         state = gr.State({})
         user_selector = gr.Dropdown(USER_CHOICES, value=USER_CHOICES[0], label="模拟用户")
+        debug_toggle = gr.Checkbox(label="显示开发观察", value=False)
         with gr.Tabs(selected="chat", elem_id="project-tabs") as tabs:
             with gr.Tab("客服对话", id="chat"), gr.Row():
                 # ---------------- sidebar ---------------- #
@@ -1059,7 +1064,7 @@ def build_app() -> gr.Blocks:
                         requests_html = gr.HTML()
 
                 # ---------------- trace ---------------- #
-                with gr.Column(scale=5, min_width=380):
+                with gr.Column(scale=5, min_width=380, visible=False) as observations:
                     gr.HTML(
                         "<div class='cs-panel-title'><b>运行指标</b>"
                         "<span>token / 成本</span></div>"
@@ -1073,6 +1078,9 @@ def build_app() -> gr.Blocks:
                         render_trace(None), elem_id="execution-trace", max_height=500,
                         js_on_load=TRACE_FOLLOW_JS,
                     )
+
+            debug_toggle.change(lambda show: gr.update(visible=show), inputs=debug_toggle,
+                                outputs=observations, show_progress="hidden", api_name=False)
 
             with gr.Tab("业务数据", id="data"):
                 gr.Markdown("浏览当前 SQLite 合成数据，展示所选模拟用户的订单。")

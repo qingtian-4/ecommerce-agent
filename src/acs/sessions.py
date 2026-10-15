@@ -63,7 +63,7 @@ class SessionStore:
             conn.execute("CREATE TABLE IF NOT EXISTS acs_migrations "
                          "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
             version = conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] or 0
-            if version > 3:
+            if version > 4:
                 raise RuntimeError("数据库迁移版本比当前程序新，不能自动降级")
             conn.execute("CREATE TABLE IF NOT EXISTS conversations ("
                          "session_id TEXT PRIMARY KEY,"
@@ -126,6 +126,17 @@ class SessionStore:
                              "(SELECT quantity FROM order_items WHERE id=NEW.item_id) "
                              "THEN RAISE(ABORT,'return quantity exceeded') END; END")
             conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(3, ?)", (_now(),))
+            conn.execute("CREATE TABLE IF NOT EXISTS return_reviews ("
+                         "request_id TEXT PRIMARY KEY REFERENCES return_requests(request_id),"
+                         "decision TEXT NOT NULL CHECK(decision IN ('approved','rejected')),"
+                         "reason TEXT NOT NULL CHECK(length(trim(reason))>0),"
+                         "reviewer TEXT NOT NULL, reviewed_at TEXT NOT NULL)")
+            conn.execute("CREATE TRIGGER IF NOT EXISTS return_status_transition "
+                         "BEFORE UPDATE OF status ON return_requests "
+                         "WHEN NEW.status<>OLD.status AND (OLD.status<>'pending_review' "
+                         "OR NEW.status NOT IN ('approved','rejected')) "
+                         "BEGIN SELECT RAISE(ABORT,'illegal return status transition'); END")
+            conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(4, ?)", (_now(),))
 
     @staticmethod
     def _require_owner(conn, sid: str, user_id: str) -> sqlite3.Row:

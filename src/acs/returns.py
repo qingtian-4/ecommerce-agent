@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import io
 import json
 import re
@@ -15,6 +16,10 @@ from PIL import Image, UnidentifiedImageError
 from .config import Settings
 from .database import business_today
 from .sessions import ConversationBusy, SessionStore, TaskValidationError, _now
+
+REQUEST_QUERY = ("SELECT r.*,v.decision AS review_decision,v.reason AS review_reason,"
+                 "v.reviewer,v.reviewed_at FROM return_requests r "
+                 "LEFT JOIN return_reviews v USING(request_id)")
 
 
 def return_policy(settings: Settings) -> dict:
@@ -171,13 +176,101 @@ class ReturnService:
     @staticmethod
     def _request(row) -> dict:
         return {k: row[k] for k in ("request_id", "order_id", "item_id", "quantity", "status",
-                                   "created_at")} | {"content": json.loads(row["content_json"])}
+                                   "created_at")} | {"content": json.loads(row["content_json"]),
+            "review": {"decision": row["review_decision"], "reason": row["review_reason"],
+                       "reviewer": row["reviewer"], "reviewed_at": row["reviewed_at"]}
+            if row["reviewed_at"] else None}
 
     def list_requests(self, uid: str) -> list[dict]:
         with closing(self.store._connect()) as conn:
             return [self._request(r) for r in conn.execute(
-                "SELECT * FROM return_requests WHERE user_id=? ORDER BY created_at DESC", (uid,),
+                REQUEST_QUERY + " WHERE r.user_id=? ORDER BY r.created_at DESC", (uid,),
             )]
+
+    def authenticate_reviewer(self, username: str, password: str) -> bool:
+        """Used only by Gradio's server-side login, not a customer/model input."""
+        configured = self.settings.admin_password.get_secret_value()
+        return bool(self.settings.admin_username and configured) and (
+            hmac.compare_digest(username.encode(), self.settings.admin_username.encode())
+            and hmac.compare_digest(password.encode(), configured.encode())
+        )
+
+    def _require_reviewer(self, reviewer: str | None) -> None:
+        # reviewer comes from authenticated gr.Request.username, never a form field.
+        if (not self.settings.admin_username or not self.settings.admin_password.get_secret_value()
+                or reviewer != self.settings.admin_username):
+            raise PermissionError("需要已认证的管理员身份")
+
+    def list_for_review(self, *, reviewer: str | None,
+                        status: str = "pending_review") -> list[dict]:
+        self._require_reviewer(reviewer)
+        if status not in {"pending_review", "approved", "rejected", "all"}:
+            raise TaskValidationError("审核列表状态不合法")
+        with closing(self.store._connect()) as conn:
+            rows = conn.execute(REQUEST_QUERY + " WHERE (?='all' OR r.status=?) "
+                                "ORDER BY r.created_at,r.request_id", (status, status)).fetchall()
+            return [self._request(r) | {"user_id": r["user_id"]} for r in rows]
+
+    def get_for_review(self, rid: str, *, reviewer: str | None) -> dict:
+        self._require_reviewer(reviewer)
+        with closing(self.store._connect()) as conn:
+            row = conn.execute(REQUEST_QUERY + " WHERE r.request_id=?", (rid,)).fetchone()
+            if row is None:
+                raise TaskValidationError("申请不存在，请刷新列表")
+            order = conn.execute(
+                "SELECT o.order_id,o.user_id,o.status,o.created_at,o.delivered_at,"
+                "i.product_id,i.quantity,i.purchase_price FROM orders o "
+                "JOIN order_items i ON i.order_id=o.order_id WHERE o.order_id=? AND i.id=?",
+                (row["order_id"], row["item_id"]),
+            ).fetchone()
+            audits = [{"action": a["action"], "actor": a["actor"],
+                       "detail": json.loads(a["detail_json"]), "created_at": a["created_at"]}
+                      for a in conn.execute("SELECT * FROM return_audit WHERE request_id=? "
+                                            "ORDER BY created_at,audit_id", (rid,))]
+            return self._request(row) | {"user_id": row["user_id"],
+                                         "current_order": dict(order), "audit": audits}
+
+    def review_evidence(self, rid: str, *, reviewer: str | None) -> dict | None:
+        detail = self.get_for_review(rid, reviewer=reviewer)
+        evidence = detail["content"].get("evidence")
+        if not evidence:
+            return None
+        with closing(self.store._connect()) as conn:
+            row = conn.execute("SELECT e.* FROM return_evidence e JOIN return_requests r "
+                               "ON r.session_id=e.session_id WHERE r.request_id=? "
+                               "AND e.evidence_id=?", (rid, evidence["evidence_id"])).fetchone()
+            if (row is None or row["sha256"] != evidence["sha256"]
+                    or hashlib.sha256(row["data"]).hexdigest() != evidence["sha256"]):
+                raise TaskValidationError("原始凭证缺失或校验失败，请核实后再审核")
+            return {k: row[k] for k in ("media_type", "data", "sha256")}
+
+    def review(self, rid: str, decision: str, reason: str, *, reviewer: str | None) -> dict:
+        self._require_reviewer(reviewer)
+        if decision not in {"approved", "rejected"}:
+            raise TaskValidationError("只能审核通过或拒绝申请")
+        if not isinstance(reason, str) or not 0 < len(reason.strip()) <= 1000:
+            raise TaskValidationError("请填写1到1000字的审核原因")
+        reason = reason.strip()
+        with closing(self.store._connect()) as conn, conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT status FROM return_requests WHERE request_id=?",
+                               (rid,)).fetchone()
+            if row is None:
+                raise TaskValidationError("申请不存在，请刷新列表")
+            if row["status"] != "pending_review":
+                raise TaskValidationError("申请已经审核，不能重复审核或修改结论，请刷新查询")
+            now = _now()
+            conn.execute("UPDATE return_requests SET status=? WHERE request_id=?", (decision, rid))
+            conn.execute("INSERT INTO return_reviews VALUES(?,?,?,?,?)",
+                         (rid, decision, reason, reviewer, now))
+            conn.execute("INSERT INTO return_audit VALUES(?,?,?,?,?,?)", (
+                uuid4().hex, rid, "reviewed", reviewer,
+                json.dumps({"from_status": "pending_review", "to_status": decision,
+                            "reason": reason, "entry": "authenticated_review_ui"},
+                           ensure_ascii=False), now,
+            ))
+            return self._request(conn.execute(REQUEST_QUERY + " WHERE r.request_id=?",
+                                              (rid,)).fetchone())
 
     def confirm_and_submit(self, sid: str, uid: str, pid: str, tid: str | None = None) -> dict:
         """Only called by the explicit UI button, never exposed as a model tool."""
@@ -185,8 +278,8 @@ class ReturnService:
             conn.execute("BEGIN IMMEDIATE")
             self.store._require_owner(conn, sid, uid)
             self._check_active(conn, sid, tid)
-            row = conn.execute("SELECT * FROM return_requests WHERE preview_id=? "
-                               "AND session_id=? AND user_id=?", (pid, sid, uid)).fetchone()
+            row = conn.execute(REQUEST_QUERY + " WHERE r.preview_id=? "
+                               "AND r.session_id=? AND r.user_id=?", (pid, sid, uid)).fetchone()
             if row:
                 return self._request(row)
             preview = conn.execute("SELECT * FROM return_previews WHERE preview_id=? "
@@ -226,7 +319,7 @@ class ReturnService:
             task.update(status="submitted", request_id=request_id)
             conn.execute("UPDATE return_tasks SET data_json=?,updated_at=? WHERE session_id=?",
                          (json.dumps(task, ensure_ascii=False), now, sid))
-            return self._request(conn.execute("SELECT * FROM return_requests WHERE request_id=?",
+            return self._request(conn.execute(REQUEST_QUERY + " WHERE r.request_id=?",
                                               (request_id,)).fetchone())
 
     def attach_evidence(self, sid: str, uid: str, tid: str, data: bytes) -> dict:

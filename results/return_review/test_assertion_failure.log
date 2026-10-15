@@ -1,0 +1,44 @@
+...............F........................................................ [ 91%]
+.......                                                                  [100%]
+=================================== FAILURES ===================================
+___ test_v4_migration_keeps_v3_pending_request_history_and_original_content ____
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x7e211cfb1af0>, '840a53c89dfd40c69e0275b530b6f9d0', 'R31c30f48a84d4376937c25a2db3477f1')
+
+    def test_v4_migration_keeps_v3_pending_request_history_and_original_content(pending):
+        settings, store, _, sid, _ = pending
+        history = store.load(sid, "USER001")
+        with closing(store._connect()) as conn, conn:
+            before = conn.execute("SELECT * FROM return_requests").fetchall()
+            conn.execute("DROP TABLE return_reviews")
+            conn.execute("DROP TRIGGER return_status_transition")
+            conn.execute("DELETE FROM acs_migrations WHERE version=4")
+        fresh = SessionStore(settings.db_path)
+        assert fresh.load(sid, "USER001") == history
+        with closing(fresh._connect()) as conn:
+>           assert [tuple(r) for r in conn.execute("SELECT * FROM return_requests")] == before
+E           assert [('R31c30f48a...024', 4, ...)] == [<sqlite3.Row...7e20f4353d60>]
+E             
+E             At index 0 diff: ('R31c30f48a84d4376937c25a2db3477f1', '3c93d8408fcd4fc8a6dce6b90898ca88', '840a53c89dfd40c69e0275b530b6f9d0', 'USER001', 'O10024', 4, 1, 'pending_review', '{"order_id": "O10024", "item_id": 4, "product_id": "P001", "product_name": "SoundCore 声阔 Life P3 无线降噪耳机", "quantity": 1, "reason": "no_reason", "condition": "sealed", "problem_description": null, "secondary_sale_ok": true, "quality_non_user_damage": null, "evidence": null, "claims_verified": false, "delivered_at": "2026-10-06", "checked_on": "2026-10-13", "policy": {"source": "return_policy.md", "ver...
+E             
+E             ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_return_review.py:167: AssertionError
+=============================== warnings summary ===============================
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/contextlib.py:141: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    return next(self.gen)
+
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/site-packages/gradio/queueing.py:178: Pandas4Warning: The copy keyword is deprecated and will be removed in a future version. Copy-on-Write is active in pandas since 3.0 which utilizes a lazy copy mechanism that defers copies until necessary. Use .copy() to make an eager copy if necessary.
+    pd.DataFrame(records).fillna(value=np.nan).infer_objects(copy=False)  # type: ignore
+
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/contextlib.py:148: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    next(self.gen)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_return_review.py::test_v4_migration_keeps_v3_pending_request_history_and_original_content
+1 failed, 78 passed, 4 warnings in 120.06s (0:02:00)

@@ -1,0 +1,35 @@
+.........................................F...........F                   [100%]
+=================================== FAILURES ===================================
+_______ test_approved_quantity_stays_reserved_and_rejection_releases_it ________
+
+flow = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...re object at 0x783bd1194e60>, <acs.returns.ReturnService object at 0x783bd1146e70>, 'c3ccbc788dd44736805241ff5a03d452')
+
+    @pytest.mark.parametrize("decision", ["approved", "rejected"])
+    def test_approved_quantity_stays_reserved_and_rejection_releases_it(flow, decision):
+        settings, store, service, sid = flow
+        first = service.confirm_and_submit(
+            sid, "USER001", service.preview(sid, "USER001")["preview_id"],
+        )
+        other = store.create("USER001")
+        write(store, other, {"order_id": "O10024", "item_id": 4, "quantity": 1,
+                             "reason": "no_reason", "secondary_sale_ok": True})
+        with closing(sqlite3.connect(settings.db_path)) as conn, conn:
+            conn.execute("UPDATE return_requests SET status=? WHERE request_id=?",
+                         (decision, first["request_id"]))
+        preview = service.preview(other, "USER001")
+>       assert preview["ready"] is (decision == "rejected")
+E       sqlite3.IntegrityError: illegal return status transition
+
+tests/test_return_submission.py:298: IntegrityError
+__________ test_v3_migration_preserves_existing_v2_messages_and_draft __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...n/v1', reranker_api_key='', reranker_timeout_s=15.0, relevance_calibration_path=None, max_steps=6, reference_date=None)
+
+>   ???
+E   assert 4 == 3
+
+tests/test_return_submission.py:461: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_return_submission.py::test_approved_quantity_stays_reserved_and_rejection_releases_it
+FAILED tests/test_return_submission.py::test_v3_migration_preserves_existing_v2_messages_and_draft
+2 failed, 52 passed in 92.01s (0:01:32)

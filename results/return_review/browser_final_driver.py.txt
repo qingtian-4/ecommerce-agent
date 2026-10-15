@@ -1,0 +1,32 @@
+import asyncio,hashlib,json,sqlite3
+from pathlib import Path
+from playwright.async_api import async_playwright,expect
+cfg=json.loads(Path('/tmp/acs-review-browser-28w4xlw6/config.json').read_text());out=Path('results/return_review')
+def count():
+ with sqlite3.connect(cfg['db_path']) as c:return [c.execute('SELECT count(*) FROM return_reviews').fetchone()[0],c.execute('SELECT count(*) FROM return_audit').fetchone()[0]]
+async def main():
+ before=count();checks=[];errors=[]
+ async with async_playwright() as p:
+  b=await p.chromium.launch(executable_path='/home/qingtian/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome',args=['--no-sandbox']);ctx=await b.new_context(viewport={'width':1280,'height':980});page=await ctx.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
+  await page.goto('http://127.0.0.1:7862');await page.get_by_label('Username').fill(cfg['username']);await page.get_by_label('Password').fill(cfg['password']);await page.get_by_role('button',name='Login',exact=True).click();await expect(page.get_by_text('售后审核工作台',exact=True)).to_be_visible(timeout=30000)
+  await page.get_by_role('combobox').first.click();await page.get_by_role('option',name='全部',exact=True).click()
+  await expect(page.locator('#review-message')).to_contain_text('当前列表 2 张')
+  await page.locator('#review-selector input').click();await page.get_by_role('option').filter(has_text=cfg['approve_id']).click();await expect(page.locator('#review-detail')).to_contain_text('允许退回')
+  for text in ['北京时间','未声明','已签收']:await expect(page.locator('#review-detail')).to_contain_text(text)
+  await expect(page.get_by_role('button',name='通过：允许退回',exact=True)).to_be_disabled()
+  await page.screenshot(path=str(out/'browser_final_admin.png'),full_page=True)
+  for width in [375,320]:
+   await page.set_viewport_size({'width':width,'height':900});await page.screenshot(path=str(out/f'browser_final_admin_{width}.png'),full_page=True);assert await page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1')
+  checks.append({'check':'final_admin_display_and_terminal_disable_at_desktop_and_phone','passed':True})
+  customer=await ctx.new_page();customer.on('pageerror',lambda e:errors.append(str(e)));await customer.set_viewport_size({'width':1280,'height':980});await customer.goto('http://127.0.0.1:7863')
+  await expect(customer.get_by_role('button',name='查询提交结果',exact=True)).to_be_visible(timeout=30000)
+  await expect(customer.locator('#execution-trace')).not_to_be_visible()
+  await customer.get_by_label('显示开发观察').check();await expect(customer.locator('#execution-trace')).to_be_visible();await customer.get_by_label('显示开发观察').uncheck();await expect(customer.locator('#execution-trace')).not_to_be_visible()
+  checks.append({'check':'customer_defaults_to_conversation_and_developer_trace_is_toggleable','passed':True})
+  await customer.get_by_role('button',name='查询提交结果',exact=True).click();await expect(customer.locator('#return-requests')).to_contain_text('允许退回商品，尚未退款');await expect(customer.locator('#return-requests')).to_contain_text('凭证无法辨认故障')
+  await customer.screenshot(path=str(out/'browser_final_customer.png'),full_page=True)
+  checks.append({'check':'final_customer_queries_both_preserved_review_results','passed':True})
+  assert count()==before and not errors;await b.close()
+ with (out/'browser_final_check.json').open('x') as f:f.write(json.dumps({'checks':checks,'page_errors':errors,'before_review_audit_counts':before,'after_review_audit_counts':count(),'boundary':'只读复核最终展示；复用首轮浏览器已完成的两次审核，不重复审核或运行模型。','implementation_sha256':{f:hashlib.sha256(Path(f).read_bytes()).hexdigest() for f in ['app.py','admin_app.py','src/acs/returns.py','src/acs/sessions.py','src/acs/capabilities.py','src/acs/config.py','src/acs/cs_tools.py']}},ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({'passed':len(checks),'page_errors':errors}),flush=True)
+asyncio.run(main())

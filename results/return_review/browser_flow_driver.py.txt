@@ -1,0 +1,64 @@
+import asyncio,hashlib,json,sqlite3
+from pathlib import Path
+from playwright.async_api import async_playwright,expect
+CFG=Path('/tmp/acs-review-browser-28w4xlw6/config.json');cfg=json.loads(CFG.read_text());OUT=Path('results/return_review')
+def db_state():
+ with sqlite3.connect(cfg['db_path']) as c:
+  return {'reviews':c.execute('SELECT count(*) FROM return_reviews').fetchone()[0],'audit':c.execute('SELECT count(*) FROM return_audit').fetchone()[0],'statuses':dict(c.execute('SELECT request_id,status FROM return_requests'))}
+async def choose(page,rid):
+ await page.locator('#review-selector input').click()
+ await page.get_by_role('option').filter(has_text=rid).click()
+ await expect(page.locator('#review-detail')).to_contain_text(rid)
+async def main():
+ checks=[];errors=[];before=db_state()
+ async with async_playwright() as p:
+  browser=await p.chromium.launch(executable_path='/home/qingtian/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome',args=['--no-sandbox'])
+  context=await browser.new_context(viewport={'width':1280,'height':980});page=await context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
+  await page.goto('http://127.0.0.1:7862',wait_until='domcontentloaded')
+  assert (await page.request.get('http://127.0.0.1:7862/config')).status==401
+  assert (await page.request.post('http://127.0.0.1:7862/gradio_api/call/approved',data={'data':[cfg['approve_id'],'伪造'], 'username':cfg['username']})).status==401
+  await page.get_by_label('Username').fill(cfg['username']);await page.get_by_label('Password').fill(cfg['password']);await page.get_by_role('button',name='Login',exact=True).click()
+  await expect(page.get_by_text('售后审核工作台',exact=True)).to_be_visible(timeout=30000)
+  checks.append({'check':'anonymous_config_and_forged_callback_denied_then_native_login_succeeds','passed':True})
+  await choose(page,cfg['approve_id'])
+  await page.get_by_role('button',name='查看原始凭证',exact=True).click();await expect(page.locator('#review-media img')).to_be_visible()
+  checks.append({'check':'authenticated_operator_views_original_evidence_and_current_order','passed':True})
+  await page.get_by_role('button',name='通过：允许退回',exact=True).click();await expect(page.locator('#review-message')).to_contain_text('请填写')
+  assert db_state()==before
+  checks.append({'check':'empty_reason_prevents_review_without_side_effect','passed':True})
+  await page.get_by_label('审核原因（必填，客户可见）').fill('演示审核：材料符合退货条件，允许退回商品。')
+  await page.get_by_role('button',name='通过：允许退回',exact=True).click();await expect(page.locator('#review-message')).to_contain_text('审核已保存')
+  await expect(page.get_by_role('button',name='通过：允许退回',exact=True)).to_be_disabled()
+  assert db_state()['statuses'][cfg['approve_id']]=='approved'
+  await page.screenshot(path=str(OUT/'browser_admin_approved.png'),full_page=True)
+  checks.append({'check':'approve_is_saved_and_terminal_actions_disabled','passed':True})
+  await page.get_by_role('button',name='刷新申请列表',exact=True).click();await expect(page.locator('#review-message')).to_contain_text('当前列表 1 张')
+  await choose(page,cfg['reject_id'])
+  await page.get_by_label('审核原因（必填，客户可见）').fill('演示审核：凭证无法辨认故障，请补充清晰材料。')
+  await page.get_by_role('button',name='拒绝申请',exact=True).click();await expect(page.locator('#review-detail')).to_contain_text('已拒绝')
+  after=db_state();assert after['reviews']==2 and after['audit']==before['audit']+2
+  assert after['statuses'][cfg['reject_id']]=='rejected'
+  checks.append({'check':'reject_saves_reason_and_single_audit_in_isolated_copy','passed':True})
+  for width in [375,320]:
+   await page.set_viewport_size({'width':width,'height':900});await page.screenshot(path=str(OUT/f'browser_admin_{width}.png'),full_page=True)
+   assert await page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1')
+  checks.append({'check':'desktop_1280_and_phone_375_320_without_horizontal_overflow','passed':True})
+  await page.set_viewport_size({'width':1280,'height':980})
+  customer=await context.new_page();customer.on('pageerror',lambda e:errors.append(str(e)))
+  await customer.goto('http://127.0.0.1:7863',wait_until='domcontentloaded')
+  await expect(customer.get_by_role('button',name='查询提交结果',exact=True)).to_be_visible(timeout=30000)
+  await customer.get_by_role('button',name='查询提交结果',exact=True).click()
+  await expect(customer.locator('#return-requests')).to_contain_text('演示审核：材料符合退货条件')
+  await expect(customer.locator('#return-requests')).to_contain_text('凭证无法辨认故障')
+  await expect(customer.locator('#return-requests')).to_contain_text('允许退回商品，尚未退款')
+  await customer.screenshot(path=str(OUT/'browser_customer_results.png'),full_page=True)
+  checks.append({'check':'customer_queries_both_real_decisions_reasons_and_no_refund_notice','passed':True})
+  await page.goto('http://127.0.0.1:7862/logout')
+  assert (await page.request.get('http://127.0.0.1:7862/config')).status==401
+  assert db_state()==after and not errors
+  checks.append({'check':'logout_revokes_access_and_queries_do_not_duplicate_review','passed':True})
+  await browser.close()
+  result={'checks':checks,'page_errors':errors,'before':before,'after':after,'boundary':'全部审核发生在临时SQLite副本；演示库原申请未审核，无真实退款。','implementation_sha256':{f:hashlib.sha256(Path(f).read_bytes()).hexdigest() for f in ['admin_app.py','app.py','src/acs/returns.py','src/acs/sessions.py','src/acs/config.py','src/acs/capabilities.py','src/acs/cs_tools.py']}}
+  with (OUT/'browser_check.json').open('x') as f:f.write(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+  print(json.dumps({'passed':len(checks),'page_errors':errors}),flush=True)
+asyncio.run(main())

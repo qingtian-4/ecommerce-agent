@@ -1,0 +1,63 @@
+{
+  "checks": [
+    {
+      "check": "anonymous_config_and_forged_callback_denied_then_native_login_succeeds",
+      "passed": true
+    },
+    {
+      "check": "authenticated_operator_views_original_evidence_and_current_order",
+      "passed": true
+    },
+    {
+      "check": "empty_reason_prevents_review_without_side_effect",
+      "passed": true
+    },
+    {
+      "check": "approve_is_saved_and_terminal_actions_disabled",
+      "passed": true
+    },
+    {
+      "check": "reject_saves_reason_and_single_audit_in_isolated_copy",
+      "passed": true
+    },
+    {
+      "check": "desktop_1280_and_phone_375_320_without_horizontal_overflow",
+      "passed": true
+    },
+    {
+      "check": "customer_queries_both_real_decisions_reasons_and_no_refund_notice",
+      "passed": true
+    },
+    {
+      "check": "logout_revokes_access_and_queries_do_not_duplicate_review",
+      "passed": true
+    }
+  ],
+  "page_errors": [],
+  "before": {
+    "reviews": 0,
+    "audit": 2,
+    "statuses": {
+      "Rf74a32cb10d144ed94846bd08bcbc0f5": "pending_review",
+      "R202deb13e82c41acb7c2b9c64628f017": "pending_review"
+    }
+  },
+  "after": {
+    "reviews": 2,
+    "audit": 4,
+    "statuses": {
+      "Rf74a32cb10d144ed94846bd08bcbc0f5": "approved",
+      "R202deb13e82c41acb7c2b9c64628f017": "rejected"
+    }
+  },
+  "boundary": "全部审核发生在临时SQLite副本；演示库原申请未审核，无真实退款。",
+  "implementation_sha256": {
+    "admin_app.py": "5331e0962edad7f97ac0fb55bf1ae00f1a8bef781300dda12f1537d2ea293420",
+    "app.py": "ee1490208fd06eea8395470f80539eb933fa93d4f304d866e0d7f86ee34410af",
+    "src/acs/returns.py": "53598294040fbced03764e519ee9c035d6ff4442b5b9d3ea5cfc7c49a73871c0",
+    "src/acs/sessions.py": "f61952280106eeb16b97f8ea0a06c394836d48ec08a73cd86336bf48baf3a033",
+    "src/acs/config.py": "ccb7c453162ae1139f4b6707898a11998d3f22b54c1fdcb2feed79f47b373f3b",
+    "src/acs/capabilities.py": "682a387646df0c61a90515497fd8962d0468dd8c418a27aff78dc4d83c1ff8ca",
+    "src/acs/cs_tools.py": "c3f52ee55c35d0c00aced74117cfa3efad3b51699723e55f14946e67bfc75b33"
+  }
+}

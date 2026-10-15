@@ -282,7 +282,8 @@ def test_policy_change_invalidates_preview_and_rules_are_from_document(flow, tmp
     assert counts(settings) == (0, 0, 0)
 
 
-def test_approved_quantity_stays_reserved_and_rejection_releases_it(flow):
+@pytest.mark.parametrize("decision", ["approved", "rejected"])
+def test_approved_quantity_stays_reserved_and_rejection_releases_it(flow, decision):
     settings, store, service, sid = flow
     first = service.confirm_and_submit(
         sid, "USER001", service.preview(sid, "USER001")["preview_id"],
@@ -291,16 +292,13 @@ def test_approved_quantity_stays_reserved_and_rejection_releases_it(flow):
     write(store, other, {"order_id": "O10024", "item_id": 4, "quantity": 1,
                          "reason": "no_reason", "secondary_sale_ok": True})
     with closing(sqlite3.connect(settings.db_path)) as conn, conn:
-        conn.execute("UPDATE return_requests SET status='approved' WHERE request_id=?",
-                     (first["request_id"],))
-    assert not service.preview(other, "USER001")["ready"]
-    with closing(sqlite3.connect(settings.db_path)) as conn, conn:
-        conn.execute("UPDATE return_requests SET status='rejected' WHERE request_id=?",
-                     (first["request_id"],))
+        conn.execute("UPDATE return_requests SET status=? WHERE request_id=?",
+                     (decision, first["request_id"]))
     preview = service.preview(other, "USER001")
-    assert preview["ready"]
-    service.confirm_and_submit(other, "USER001", preview["preview_id"])
-    assert counts(settings) == (2, 2, 2)
+    assert preview["ready"] is (decision == "rejected")
+    if preview["ready"]:
+        service.confirm_and_submit(other, "USER001", preview["preview_id"])
+        assert counts(settings) == (2, 2, 2)
 
 
 def test_quantity_revision_invalidates_preview_and_partial_returns_reserve_cumulatively(flow):
@@ -449,14 +447,14 @@ def test_v3_migration_preserves_existing_v2_messages_and_draft(settings):
             task.pop(field, None)
         conn.execute("UPDATE return_tasks SET data_json=? WHERE session_id=?",
                      (json.dumps(task), sid))
-        for table in ("return_audit", "return_requests", "return_confirmations",
+        for table in ("return_reviews", "return_audit", "return_requests", "return_confirmations",
                       "return_previews", "return_evidence"):
             conn.execute(f"DROP TABLE {table}")
-        conn.execute("DELETE FROM acs_migrations WHERE version=3")
+        conn.execute("DELETE FROM acs_migrations WHERE version>=3")
         business = conn.execute("SELECT * FROM order_items ORDER BY id").fetchall()
     upgraded = SessionStore(settings.db_path)
     assert upgraded.load(sid, "USER001") == before
     assert upgraded.get_return_task(sid, "USER001")["task"] == task
     with closing(upgraded._connect()) as conn:
-        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 3
+        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 4
         assert conn.execute("SELECT * FROM order_items ORDER BY id").fetchall() == business

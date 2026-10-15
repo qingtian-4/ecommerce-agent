@@ -68,7 +68,8 @@ def main() -> None:
                     sqlite3.connect(db_path),
                 ) as dst:
                     src.backup(dst)
-                    for table in ("return_audit", "return_requests", "return_confirmations",
+                    for table in ("return_reviews", "return_audit", "return_requests",
+                                  "return_confirmations",
                                   "return_previews", "return_evidence", "return_tasks",
                                   "conversation_turns", "conversations"):
                         dst.execute(f"DELETE FROM {table}")

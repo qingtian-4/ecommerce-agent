@@ -1,0 +1,310 @@
+FFFFFFFFFFFFFFF                                                          [100%]
+=================================== FAILURES ===================================
+_ test_review_is_durable_customer_visible_and_preserves_business_facts[approved] _
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7cff9bd0>, '7e39ef4acd4a4a1088efd3bdd8cd628f', 'Rf8b3522389164002beaf572427a1c553')
+decision = 'approved'
+
+    @pytest.mark.parametrize("decision", ["approved", "rejected"])
+    def test_review_is_durable_customer_visible_and_preserves_business_facts(pending, decision):
+        settings, store, service, _, rid = pending
+        with closing(sqlite3.connect(settings.db_path)) as conn:
+            before = conn.execute("SELECT * FROM orders").fetchall()
+>       result = service.review(rid, decision, "已核对申请材料", reviewer="reviewer")
+                 ^^^^^^^^^^^^^^
+E       AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:43: AttributeError
+_ test_review_is_durable_customer_visible_and_preserves_business_facts[rejected] _
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a902490>, '5bd63468ea604c1c91811b572c1acc93', 'R9a13d88ac74b4a8fbe58b5fd7342c23b')
+decision = 'rejected'
+
+    @pytest.mark.parametrize("decision", ["approved", "rejected"])
+    def test_review_is_durable_customer_visible_and_preserves_business_facts(pending, decision):
+        settings, store, service, _, rid = pending
+        with closing(sqlite3.connect(settings.db_path)) as conn:
+            before = conn.execute("SELECT * FROM orders").fetchall()
+>       result = service.review(rid, decision, "已核对申请材料", reviewer="reviewer")
+                 ^^^^^^^^^^^^^^
+E       AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:43: AttributeError
+_______ test_customer_and_missing_principal_cannot_read_or_review[None] ________
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a903110>, '76c430159bc547168ff3ddfa16b7c5e9', 'R5a24007559ef4baea96647c4c1019df8')
+actor = None
+
+    @pytest.mark.parametrize("actor", [None, "USER001", "unconfigured-admin"])
+    def test_customer_and_missing_principal_cannot_read_or_review(pending, actor):
+        settings, _, service, _, rid = pending
+        for action in (lambda: service.list_for_review(reviewer=actor),
+                       lambda: service.get_for_review(rid, reviewer=actor),
+                       lambda: service.review_evidence(rid, reviewer=actor),
+                       lambda: service.review(rid, "approved", "冒充管理员", reviewer=actor)):
+            with pytest.raises(PermissionError):
+>               action()
+
+tests/test_return_review.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   for action in (lambda: service.list_for_review(reviewer=actor),
+                           ^^^^^^^^^^^^^^^^^^^^^^^
+                   lambda: service.get_for_review(rid, reviewer=actor),
+                   lambda: service.review_evidence(rid, reviewer=actor),
+                   lambda: service.review(rid, "approved", "冒充管理员", reviewer=actor)):
+E                  AttributeError: 'ReturnService' object has no attribute 'list_for_review'
+
+tests/test_return_review.py:63: AttributeError
+______ test_customer_and_missing_principal_cannot_read_or_review[USER001] ______
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a903610>, 'e99ea2768f62475cafbdc492f9da1910', 'R06bc7d19faa8436b84939cf61effca9c')
+actor = 'USER001'
+
+    @pytest.mark.parametrize("actor", [None, "USER001", "unconfigured-admin"])
+    def test_customer_and_missing_principal_cannot_read_or_review(pending, actor):
+        settings, _, service, _, rid = pending
+        for action in (lambda: service.list_for_review(reviewer=actor),
+                       lambda: service.get_for_review(rid, reviewer=actor),
+                       lambda: service.review_evidence(rid, reviewer=actor),
+                       lambda: service.review(rid, "approved", "冒充管理员", reviewer=actor)):
+            with pytest.raises(PermissionError):
+>               action()
+
+tests/test_return_review.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   for action in (lambda: service.list_for_review(reviewer=actor),
+                           ^^^^^^^^^^^^^^^^^^^^^^^
+                   lambda: service.get_for_review(rid, reviewer=actor),
+                   lambda: service.review_evidence(rid, reviewer=actor),
+                   lambda: service.review(rid, "approved", "冒充管理员", reviewer=actor)):
+E                  AttributeError: 'ReturnService' object has no attribute 'list_for_review'
+
+tests/test_return_review.py:63: AttributeError
+_ test_customer_and_missing_principal_cannot_read_or_review[unconfigured-admin] _
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a903b10>, 'c6c59a1c218b4a978716cac1cf107ae7', 'R6f28885247a5454e8a24532861b7550e')
+actor = 'unconfigured-admin'
+
+    @pytest.mark.parametrize("actor", [None, "USER001", "unconfigured-admin"])
+    def test_customer_and_missing_principal_cannot_read_or_review(pending, actor):
+        settings, _, service, _, rid = pending
+        for action in (lambda: service.list_for_review(reviewer=actor),
+                       lambda: service.get_for_review(rid, reviewer=actor),
+                       lambda: service.review_evidence(rid, reviewer=actor),
+                       lambda: service.review(rid, "approved", "冒充管理员", reviewer=actor)):
+            with pytest.raises(PermissionError):
+>               action()
+
+tests/test_return_review.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   for action in (lambda: service.list_for_review(reviewer=actor),
+                           ^^^^^^^^^^^^^^^^^^^^^^^
+                   lambda: service.get_for_review(rid, reviewer=actor),
+                   lambda: service.review_evidence(rid, reviewer=actor),
+                   lambda: service.review(rid, "approved", "冒充管理员", reviewer=actor)):
+E                  AttributeError: 'ReturnService' object has no attribute 'list_for_review'
+
+tests/test_return_review.py:63: AttributeError
+____ test_invalid_transition_or_reason_has_no_write[refunded-\u5ba1\u6838] _____
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a903d90>, '46a2b51df91a4be7a7dcae4004cee714', 'R11b3fbb977184cf3bcb87117d576605f')
+decision = 'refunded', reason = '审核'
+
+    @pytest.mark.parametrize("decision,reason", [("refunded", "审核"), ("pending_review", "审核"),
+                                               ("approved", " "), ("rejected", None),
+                                               ("approved", "字" * 1001)])
+    def test_invalid_transition_or_reason_has_no_write(pending, decision, reason):
+        settings, _, service, _, rid = pending
+        with pytest.raises(TaskValidationError):
+>           service.review(rid, decision, reason, reviewer="reviewer")
+            ^^^^^^^^^^^^^^
+E           AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:79: AttributeError
+_ test_invalid_transition_or_reason_has_no_write[pending_review-\u5ba1\u6838] __
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a990190>, '3a78092eedd54d88aaefc45680ab6132', 'Rf022ffa94af04622a2564f5fa02d3d3b')
+decision = 'pending_review', reason = '审核'
+
+    @pytest.mark.parametrize("decision,reason", [("refunded", "审核"), ("pending_review", "审核"),
+                                               ("approved", " "), ("rejected", None),
+                                               ("approved", "字" * 1001)])
+    def test_invalid_transition_or_reason_has_no_write(pending, decision, reason):
+        settings, _, service, _, rid = pending
+        with pytest.raises(TaskValidationError):
+>           service.review(rid, decision, reason, reviewer="reviewer")
+            ^^^^^^^^^^^^^^
+E           AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:79: AttributeError
+__________ test_invalid_transition_or_reason_has_no_write[approved- ] __________
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a903ed0>, '6ffa6c757c0d47eea7600a2764c60900', 'R5b0a6b22f698450f92156282ba8bfafe')
+decision = 'approved', reason = ' '
+
+    @pytest.mark.parametrize("decision,reason", [("refunded", "审核"), ("pending_review", "审核"),
+                                               ("approved", " "), ("rejected", None),
+                                               ("approved", "字" * 1001)])
+    def test_invalid_transition_or_reason_has_no_write(pending, decision, reason):
+        settings, _, service, _, rid = pending
+        with pytest.raises(TaskValidationError):
+>           service.review(rid, decision, reason, reviewer="reviewer")
+            ^^^^^^^^^^^^^^
+E           AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:79: AttributeError
+________ test_invalid_transition_or_reason_has_no_write[rejected-None] _________
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a9039d0>, 'd538e77747a64866aafbcb5ee555c4dd', 'R751fadd9f6ed4f9c9c8f79dcdd003bc9')
+decision = 'rejected', reason = None
+
+    @pytest.mark.parametrize("decision,reason", [("refunded", "审核"), ("pending_review", "审核"),
+                                               ("approved", " "), ("rejected", None),
+                                               ("approved", "字" * 1001)])
+    def test_invalid_transition_or_reason_has_no_write(pending, decision, reason):
+        settings, _, service, _, rid = pending
+        with pytest.raises(TaskValidationError):
+>           service.review(rid, decision, reason, reviewer="reviewer")
+            ^^^^^^^^^^^^^^
+E           AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:79: AttributeError
+_ test_invalid_transition_or_reason_has_no_write[approved-\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57] _
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a902fd0>, 'd298666f61fe403ebe6443fe10841ec7', 'Rae7c41312466450fbbb9b494dd1fbf7e')
+decision = 'approved'
+reason = '字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字...字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字'
+
+    @pytest.mark.parametrize("decision,reason", [("refunded", "审核"), ("pending_review", "审核"),
+                                               ("approved", " "), ("rejected", None),
+                                               ("approved", "字" * 1001)])
+    def test_invalid_transition_or_reason_has_no_write(pending, decision, reason):
+        settings, _, service, _, rid = pending
+        with pytest.raises(TaskValidationError):
+>           service.review(rid, decision, reason, reviewer="reviewer")
+            ^^^^^^^^^^^^^^
+E           AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:79: AttributeError
+__________ test_repeat_review_and_sql_terminal_reversal_are_rejected ___________
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a902d50>, 'b87672d7d9714cb98fee2c290241acd8', 'R0b66049e75e04083a8adf4ecc06218f7')
+
+    def test_repeat_review_and_sql_terminal_reversal_are_rejected(pending):
+        settings, _, service, _, rid = pending
+>       service.review(rid, "approved", "材料符合", reviewer="reviewer")
+        ^^^^^^^^^^^^^^
+E       AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:85: AttributeError
+_____________ test_concurrent_approve_and_reject_only_one_succeeds _____________
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a902350>, 'cdd780ffbb8a4975a44254d58eab8f0f', 'Rde10b883ccf84aa5a49ae67511af4831')
+
+    def test_concurrent_approve_and_reject_only_one_succeeds(pending):
+        settings, _, service, _, rid = pending
+    
+        def decide(decision):
+            try:
+                return service.review(rid, decision, "并发审核", reviewer="reviewer")["status"]
+            except TaskValidationError:
+                return "already_reviewed"
+    
+        with ThreadPoolExecutor(max_workers=2) as pool:
+>           results = list(pool.map(decide, ["approved", "rejected"]))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_return_review.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/concurrent/futures/_base.py:619: in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/concurrent/futures/_base.py:317: in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+../../.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+../../.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+../../.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/concurrent/futures/thread.py:59: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+decision = 'approved'
+
+    def decide(decision):
+        try:
+>           return service.review(rid, decision, "并发审核", reviewer="reviewer")["status"]
+                   ^^^^^^^^^^^^^^
+E           AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:99: AttributeError
+_______________ test_audit_failure_rolls_back_review_and_status ________________
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a990410>, 'dae65c7985a3487d8950c39bdbd36a3c', 'R6239da9394f94de6b02f50fa37ffe7c9')
+
+    def test_audit_failure_rolls_back_review_and_status(pending):
+        settings, _, service, _, rid = pending
+        with closing(sqlite3.connect(settings.db_path)) as conn, conn:
+            conn.execute("CREATE TRIGGER fail_review_audit BEFORE INSERT ON return_audit "
+                         "WHEN NEW.action='reviewed' BEGIN SELECT RAISE(ABORT,'audit failure'); END")
+        with pytest.raises(sqlite3.IntegrityError, match="audit failure"):
+>           service.review(rid, "approved", "材料符合", reviewer="reviewer")
+            ^^^^^^^^^^^^^^
+E           AttributeError: 'ReturnService' object has no attribute 'review'. Did you mean: 'preview'?
+
+tests/test_return_review.py:115: AttributeError
+_____ test_admin_sees_original_quality_evidence_and_tampering_is_detected ______
+
+flow = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...re object at 0x76ee7a9a99b0>, <acs.returns.ReturnService object at 0x76ee7a990690>, 'cad437fbf71949f389286a6df6b146e9')
+
+    def test_admin_sees_original_quality_evidence_and_tampering_is_detected(flow):
+        settings, store, _, sid = flow
+        settings = settings.model_copy(update={"admin_username": "reviewer",
+                                               "admin_password": SecretStr("synthetic-review-pass")})
+        service = ReturnService(settings, store)
+        write(store, sid, {"reason": "quality", "problem_description": "单耳无声",
+                           "quality_non_user_damage": True})
+        tid = store.begin_turn(sid, "USER001", "上传合成图")
+        service.attach_evidence(sid, "USER001", tid, image_bytes())
+        store.interrupt_turn(sid, "USER001", tid)
+        rid = service.confirm_and_submit(sid, "USER001", service.preview(sid, "USER001")["preview_id"])["request_id"]
+>       detail = service.get_for_review(rid, reviewer="reviewer")
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'ReturnService' object has no attribute 'get_for_review'
+
+tests/test_return_review.py:131: AttributeError
+_____ test_model_has_no_review_tool_even_when_admin_credentials_configured _____
+
+pending = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...turns.ReturnService object at 0x76ee7a991e50>, '49e7712d142648a98a017b9229498826', 'R69f66915105c4d1283010052f198bba0')
+
+    def test_model_has_no_review_tool_even_when_admin_credentials_configured(pending):
+        settings, _, service, _, _ = pending
+        assert not any("review" in name for name in ToolRegistry(settings).names if name != "preview_return")
+>       assert service.authenticate_reviewer("reviewer", "synthetic-review-pass")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'ReturnService' object has no attribute 'authenticate_reviewer'
+
+tests/test_return_review.py:146: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_return_review.py::test_review_is_durable_customer_visible_and_preserves_business_facts[approved]
+FAILED tests/test_return_review.py::test_review_is_durable_customer_visible_and_preserves_business_facts[rejected]
+FAILED tests/test_return_review.py::test_customer_and_missing_principal_cannot_read_or_review[None]
+FAILED tests/test_return_review.py::test_customer_and_missing_principal_cannot_read_or_review[USER001]
+FAILED tests/test_return_review.py::test_customer_and_missing_principal_cannot_read_or_review[unconfigured-admin]
+FAILED tests/test_return_review.py::test_invalid_transition_or_reason_has_no_write[refunded-\u5ba1\u6838]
+FAILED tests/test_return_review.py::test_invalid_transition_or_reason_has_no_write[pending_review-\u5ba1\u6838]
+FAILED tests/test_return_review.py::test_invalid_transition_or_reason_has_no_write[approved- ]
+FAILED tests/test_return_review.py::test_invalid_transition_or_reason_has_no_write[rejected-None]
+FAILED tests/test_return_review.py::test_invalid_transition_or_reason_has_no_write[approved-\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57\u5b57]
+FAILED tests/test_return_review.py::test_repeat_review_and_sql_terminal_reversal_are_rejected
+FAILED tests/test_return_review.py::test_concurrent_approve_and_reject_only_one_succeeds
+FAILED tests/test_return_review.py::test_audit_failure_rolls_back_review_and_status
+FAILED tests/test_return_review.py::test_admin_sees_original_quality_evidence_and_tampering_is_detected
+FAILED tests/test_return_review.py::test_model_has_no_review_tool_even_when_admin_credentials_configured
+15 failed in 22.94s

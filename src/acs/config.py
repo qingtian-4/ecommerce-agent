@@ -12,7 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -114,6 +114,10 @@ class Settings(BaseSettings):
     index_dir: Path = Path("data/.index")
     trace_dir: Path = Path("results/traces")
     docs_dir: Path = Path("data/docs")
+
+    # Separate operator entrance; customer simulation never grants this identity.
+    admin_username: str = ""
+    admin_password: SecretStr = SecretStr("")
 
     # ---------- RAG ----------
     knowledge_mode: Literal["retrieval", "full_context", "documents"] = "retrieval"

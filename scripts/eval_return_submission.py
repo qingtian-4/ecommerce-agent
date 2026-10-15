@@ -118,7 +118,8 @@ def main() -> None:
                         ).encode()).hexdigest()
                         assert digest == expected
                     # Only the temporary benchmark copy is reset; business facts stay untouched.
-                    for table in ("return_audit", "return_requests", "return_confirmations",
+                    for table in ("return_reviews", "return_audit", "return_requests",
+                                  "return_confirmations",
                                   "return_previews", "return_evidence", "return_tasks",
                                   "conversation_turns", "conversations"):
                         if dst.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",

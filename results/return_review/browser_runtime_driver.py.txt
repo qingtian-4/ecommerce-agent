@@ -1,0 +1,15 @@
+import asyncio,json,hashlib
+from pathlib import Path
+from playwright.async_api import async_playwright,expect
+cfg=json.loads(Path('/tmp/acs-review-browser-28w4xlw6/config.json').read_text());out=Path('results/return_review')
+async def main():
+ async with async_playwright() as p:
+  b=await p.chromium.launch(executable_path='/home/qingtian/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome',args=['--no-sandbox']);ctx=await b.new_context(viewport={'width':1280,'height':1000});page=await ctx.new_page()
+  await page.goto('http://127.0.0.1:7860');await expect(page.get_by_label('显示开发观察')).to_be_visible(timeout=30000);await expect(page.locator('#execution-trace')).not_to_be_visible();await expect(page.locator('#return-requests')).to_contain_text('待审核');await page.screenshot(path=str(out/'browser_live_customer.png'),full_page=True)
+  await page.get_by_label('显示开发观察').check();await expect(page.locator('#execution-trace')).to_be_visible();await page.get_by_label('显示开发观察').uncheck()
+  await page.goto('http://127.0.0.1:7862');await page.get_by_label('Username').fill(cfg['username']);await page.get_by_label('Password').fill(cfg['password']);await page.get_by_role('button',name='Login',exact=True).click();await expect(page.get_by_text('售后审核工作台',exact=True)).to_be_visible(timeout=30000)
+  await page.get_by_role('combobox').first.click();await page.get_by_role('option',name='全部',exact=True).click();await expect(page.locator('#review-message')).to_contain_text('当前列表 2 张');await page.locator('#review-selector input').click();await page.get_by_role('option').filter(has_text=cfg['approve_id']).click();await page.locator('#review-detail h2').click();await page.wait_for_timeout(350);await page.screenshot(path=str(out/'browser_clean_admin.png'),full_page=True)
+  await b.close()
+ with (out/'browser_runtime_check.json').open('x') as f:f.write(json.dumps({'live_customer_default_and_toggle':True,'original_pending_visible':True,'live_model_calls':0,'admin_snapshot':'temporary_copy_read_only','app_sha256':hashlib.sha256(Path('app.py').read_bytes()).hexdigest(),'admin_sha256':hashlib.sha256(Path('admin_app.py').read_bytes()).hexdigest()},ensure_ascii=False,indent=2)+'\n')
+ print('Live customer UI and original pending request verified; no model or review action')
+asyncio.run(main())

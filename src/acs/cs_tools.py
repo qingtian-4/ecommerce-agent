@@ -283,7 +283,8 @@ class ToolRegistry:
             "不会创建售后单；缺信息时提示补充，通过后须用户在页面点击确认提交。", empty, preview,
         ))
         self.register(ToolSpec(
-            "get_return_requests", "查询当前用户实际创建的售后申请与状态。提交响应丢失先查询，"
+            "get_return_requests", "查询当前用户实际创建的售后申请、审核状态和真实原因。"
+            "审核通过仅允许退回，不是退款。提交响应丢失先查询，"
             "待审核不等于通过或退款，不要重复创建。", empty, requests,
         ))
 
