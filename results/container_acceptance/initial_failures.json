@@ -1,0 +1,32 @@
+[
+  {
+    "stage": "environment",
+    "error": "Docker Desktop engine not running and Ubuntu integration disabled",
+    "resolution": "User enabled WSL integration; native Linux docker client connected."
+  },
+  {
+    "stage": "build",
+    "error": "Docker Hub python:3.13-slim manifest request returned EOF",
+    "resolution": "Use official Astral Python image from GHCR, pinned by version and digest."
+  },
+  {
+    "stage": "build",
+    "error": "Initial GHCR bookworm tag did not exist",
+    "resolution": "Inspect official published trixie tag and pin its returned digest."
+  },
+  {
+    "stage": "runtime",
+    "error": "Installed package resolved data under site-packages; direct service call could not find knowledge",
+    "resolution": "Set PYTHONPATH=/app/src so UI, health, CLI and exec share bundled source and data root."
+  },
+  {
+    "stage": "acceptance_harness",
+    "error": "Probe finish_turn user text differed from reserved original text",
+    "resolution": "Use exact reserved text and a new isolated test volume; preserve failed volume, do not mutate user data."
+  },
+  {
+    "stage": "rebuild",
+    "error": "Changing application files invalidated the combined COPY/install layer and redownloaded dependencies; one rebuild hit PyPI TLS EOF for httpcore2.",
+    "resolution": "Copy lock/config first, cache the dependency layer separately, and use an uv cache mount; application rebuild no longer needs to redownload unchanged dependencies."
+  }
+]

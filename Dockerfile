@@ -1,14 +1,17 @@
-FROM ghcr.io/astral-sh/uv:0.11.8 AS uv
-FROM python:3.13-slim
-COPY --from=uv /uv /bin/uv
+FROM ghcr.io/astral-sh/uv:0.11.8-python3.13-trixie-slim@sha256:3a99382378e1d3d67c6d671cddbfd7a17f3b064db802c3afe9d29406c36a6dc2
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+COPY pyproject.toml uv.lock .python-version /app/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
 COPY . /app
-RUN uv sync --frozen --no-dev --no-editable
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-editable
 ENV ACS_DB_PATH=/app/persist/business.db \
     ACS_INDEX_DIR=/app/persist/index \
     ACS_TRACE_DIR=/app/persist/traces \
+    PYTHONPATH=/app/src \
     PYTHONUNBUFFERED=1
 VOLUME ["/app/persist"]
 EXPOSE 7860

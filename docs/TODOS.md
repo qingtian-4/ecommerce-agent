@@ -131,3 +131,14 @@ Use **"mutating"**, not "write", for tools with side effects.
 Reason: "write" collides with *writing a Python file* and with *writing an
 answer*, both of which occur in this codebase. `READ_ONLY` / `MUTATING` keeps
 the tool-safety discussion unambiguous.
+
+---
+
+## 本轮评测交付
+
+单机容器已实际构建运行，包含持久化重建、迁移、索引、并发、服务不可用与管理认证。
+新增80段脚本多轮任务，开发40段各1次、留出40段各3次；真实后台状态与语义评分分开。
+保留评分输入缺失/时间顺序误判及修正后的同回答评分，不冒充模型提升。原版τ retail
+固定5任务各3次，项目14/15、官方同模型15/15，失败与复现见[TASK_EVALUATION.md](TASK_EVALUATION.md)。
+T1的自动自然化与去重/不泄漏规则、T4的多路成本路由仍未实现，不将本次脚本语料
+与共同预算当作完成了这些计划。新增反馈、人工工单和真实价保办理需另有业务证据。

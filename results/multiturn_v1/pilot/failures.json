@@ -1,0 +1,92 @@
+[
+  {
+    "id": "no_reason-01",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "runtime",
+        "evidence": "runtime"
+      },
+      {
+        "type": "grounding",
+        "evidence": "preview_eligibility"
+      },
+      {
+        "type": "grounding",
+        "evidence": "用户首条已明确订单号S20002和商品“演示 A1 入耳耳机”，客服却回复“当前问题及工具返回超过输入上限，请缩小问题范围，本次回答未完成”，未处理已提供的订单与商品信息。"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户首条已提供订单号S20002和商品名称，客服第二条仍说“还没有退货草稿，所以我不知道您要退的是哪一笔订单、哪件商品”，重复索要已明确提供且未更改的订单号/商品。"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户第三条再次声明二次销售条件，客服第三条仍说“草稿里还缺最关键的信息：要退哪一笔订单、哪件商品”，继续重复索要已提供的订单号/商品。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "用户第四条要求核查期限和剩余数量并给预览，客服第四条称“您有 20 笔订单，我这边没法确定您要退的是哪一笔”，与用户已明确S20002及商品的事实矛盾，且未核查签收7天期限、未说明本订单delivered、签收距今0天、1件预览应允许。"
+      },
+      {
+        "type": "false_completion",
+        "evidence": "客服第四条称“已取消的订单和还没签收的订单不能提交退货申请”，并列举S20010、S20005、S20020、S20015等，但本订单S20002状态为delivered，客服未完成用户要求的期限核查与预览，反而以无法确定订单为由未推进。"
+      }
+    ]
+  },
+  {
+    "id": "memory-01",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "runtime",
+        "evidence": "runtime"
+      },
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户首条已明确提供订单号S20006、商品“演示 B1 骨传导耳机”、数量2件、原因无理由退货；客服在后续三条回复中反复索要“要退的是哪一笔订单”“这单里要退哪个商品、退几件”“退货原因”，未保留已提供字段。"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户第二条补充“未拆封，符合二次销售条件”，第三条要求“先保留草稿”，客服却称“当前会话里还没有任何退货草稿，所以没有‘2件’这个数量可以改，也没有需要保留的内容”，未保留用户已提供的数量与条件。"
+      },
+      {
+        "type": "false_completion",
+        "evidence": "用户要求“先不提交”“先保留草稿”，客服未建立或保留草稿，反而多次声称“没有退货草稿”，未完成用户要求的草稿准备任务。"
+      }
+    ]
+  },
+  {
+    "id": "review-01",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "runtime",
+        "evidence": "runtime"
+      },
+      {
+        "type": "confirmation",
+        "evidence": "new_request_count"
+      },
+      {
+        "type": "state_transition",
+        "evidence": "trusted_operations"
+      },
+      {
+        "type": "grounding",
+        "evidence": "用户查询售后结果和审核原因，客服回复称订单为 S20001、商品为演示 H1 头戴耳机（米色，1 件），但事实中订单为 S20002、商品为演示 A1 入耳耳机，且 expected.request_status 为 approved，客服却称当前状态为待审核、没有审核原因。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "事实中 expected.request_status 为 approved，审核原因应为“评测审核：包装条件核对结果”，客服却称“审核结果还没出来，所以暂时没有审核原因可看”，与已批准状态及审核原因矛盾。"
+      },
+      {
+        "type": "false_completion",
+        "evidence": "客服称“你目前有 1 笔售后申请”并列出订单 S20001 的待审核状态，但 trusted_operations 中 review 操作返回错误“申请不存在，请刷新列表”，客服未如实说明查询失败，反而编造了不存在的售后申请详情。"
+      }
+    ]
+  }
+]

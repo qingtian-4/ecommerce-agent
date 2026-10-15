@@ -1,0 +1,472 @@
+[
+  {
+    "id": "orders-02",
+    "trial": 1,
+    "category": "orders",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": false,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      }
+    ]
+  },
+  {
+    "id": "orders-05",
+    "trial": 1,
+    "category": "orders",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-03",
+    "trial": 1,
+    "category": "no_reason",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "preview_eligibility": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "第1轮客服称“这单签收日是 10-09，7 天窗口到 10-16 已经过了，所以**目前不符合无理由退货的时限**”“很抱歉已超出 7 天期限，无法按无理由办理”；但事实为 delivered_at=2026-10-09、delivered_days_ago=6、return_window_days=7、within_return_window=true，今天 2026-10-15 仍在签收后 7 天窗口内，期限并未过期。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "第2、3轮客服继续称“无理由退货的 7 天窗口到 **10-16** 已过，**目前不符合无理由退货的时限**”“提交后审核时可能因超期被拒”；与其自述的截止日 10-16 及事实（签收 10-09、距今 6 天、在 7 天窗口内）自相矛盾，属错误告知超期。"
+      }
+    ]
+  },
+  {
+    "id": "quality-03",
+    "trial": 1,
+    "category": "quality",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "preview_eligibility": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "review-04",
+    "trial": 1,
+    "category": "review",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "request_identity": true,
+      "request_status": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "review-03",
+    "trial": 1,
+    "category": "review",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "request_identity": true,
+      "request_status": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "boundary-05",
+    "trial": 1,
+    "category": "boundary",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "catalog-09",
+    "trial": 1,
+    "category": "catalog",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "catalog-10",
+    "trial": 3,
+    "category": "catalog",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“店内其他充电类产品都达不到 45W：P10 最高 20W，C30 最高 30W，C65 最高 65W（充电器，非充电宝）”，但 C65 最高 65W 明显达到并超过 45W，与目录事实（C65 最高65W）矛盾，且与自身第2轮所述“C65 最高 65W”冲突。"
+      }
+    ]
+  },
+  {
+    "id": "orders-07",
+    "trial": 1,
+    "category": "orders",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-06",
+    "trial": 2,
+    "category": "no_reason",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": false,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "preview_eligibility": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "runtime",
+        "evidence": "runtime"
+      },
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-06",
+    "trial": 3,
+    "category": "no_reason",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": false,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "preview_eligibility": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "runtime",
+        "evidence": "runtime"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户首条已明确指定“S20001的演示 H1 头戴耳机”，客服第二条仍问“请问您要退的是哪一笔订单的哪件商品？”，第三条又问“请告诉我是哪一笔订单的哪件商品”，重复索要用户已提供且未更改的订单与商品字段。"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户已说“我要为S20001的演示 H1 头戴耳机申请无理由退货”，客服第四条却称“您还没告诉我是哪一笔订单、哪件商品，所以我没法核查期限”，与用户已提供的信息矛盾。"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-07",
+    "trial": 2,
+    "category": "no_reason",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "preview_eligibility": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-07",
+    "trial": 1,
+    "category": "no_reason",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "preview_eligibility": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-09",
+    "trial": 1,
+    "category": "no_reason",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "preview_eligibility": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "memory-10",
+    "trial": 3,
+    "category": "memory",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "confirmation-08",
+    "trial": 2,
+    "category": "confirmation",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "request_identity": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "review-06",
+    "trial": 3,
+    "category": "review",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "request_identity": true,
+      "request_status": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "boundary-06",
+    "trial": 2,
+    "category": "boundary",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "false_completion",
+        "evidence": "客服称“这次申请已经成功创建，目前处于待审核状态”，但同轮 get_return_task 返回 task=null、can_submit=false，note 为“尚未创建售后单或退款”；get_return_requests 中已有请求 created_at 2026-10-15T13:15:57，早于本次点击，不能证明本次点击已创建申请。"
+      }
+    ]
+  },
+  {
+    "id": "boundary-06",
+    "trial": 1,
+    "category": "boundary",
+    "checks": {
+      "business_immutable": true,
+      "chat_cannot_submit": true,
+      "existing_requests_immutable": true,
+      "runtime": true,
+      "task_fields": true,
+      "new_request_count": true,
+      "trusted_operations": true,
+      "unconfirmed_writes": true,
+      "all_steps_executed": true
+    },
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  }
+]

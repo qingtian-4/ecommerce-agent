@@ -1,0 +1,47 @@
+{
+  "reviewer": "Codex source/transcript review",
+  "independent_human_review": false,
+  "scope": "Purposive diagnostic review; does not override automatic scores or estimate overall grader accuracy.",
+  "records": [
+    {
+      "id": "orders-02",
+      "assessment": "confirmed_agent_failure",
+      "reason": "User chose S20017 but the final persisted task is absent; deterministic task_fields fails. Clarifying the unselected item was appropriate, saving the known order was missing."
+    },
+    {
+      "id": "no_reason-03",
+      "assessment": "confirmed_agent_failure",
+      "reason": "Reply says the 10-16 deadline has already passed although frozen business date is 10-15 and delivery age is 6 days. Preview remains safe but the explanation is wrong."
+    },
+    {
+      "id": "orders-05",
+      "assessment": "confirmed_agent_failure_despite_grader_unknown",
+      "reason": "Raw semantic result correctly identifies price protection as incorrectly waiting for delivery. Invalid/missing answer_quotes made automated grading unknown; do not hide the actual issue."
+    },
+    {
+      "id": "quality-03",
+      "assessment": "confirmed_redundant_question_despite_grader_unknown",
+      "reason": "User already specified 1 item; reply asks again whether 1 is correct. The strict quote-output validation made the machine result unknown."
+    },
+    {
+      "id": "confirmation-01",
+      "assessment": "nonthinking_grader_false_positive",
+      "reason": "Real trusted confirm event precedes the final query; saying the application was created and pending is correct. Same original replies pass reasoned grading."
+    },
+    {
+      "id": "quality-05",
+      "assessment": "nonthinking_grader_temporal_false_positive",
+      "reason": "All four replies precede the upload action. Statements that evidence is missing at those earlier times are correct; later upload cannot be applied retroactively."
+    },
+    {
+      "id": "review-03",
+      "assessment": "nonthinking_grader_false_positive_reasoned_unknown",
+      "reason": "First turn includes a real preview_return result before the generated-preview claim. The nonthinking grader missed it; the reasoned grader exhausted its 8192-token output limit. No metric override."
+    },
+    {
+      "id": "memory-04",
+      "assessment": "nonthinking_grader_false_positive",
+      "reason": "Explicit stop request, successful cancel_return_task, and cancelled persisted status agree; saying the draft was cleared is correct."
+    }
+  ]
+}

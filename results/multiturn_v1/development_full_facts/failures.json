@@ -1,0 +1,100 @@
+[
+  {
+    "id": "orders-02",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      }
+    ]
+  },
+  {
+    "id": "orders-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "订单S20017状态为delivered（已签收），但客服在物流部分编造了承运商“演示物流”、运单号“SYNS20017”及揽收/签收轨迹，事实中并无任何物流或运单信息，属于未发货/无运单情况下编造运单。"
+      }
+    ]
+  },
+  {
+    "id": "orders-05",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“签收日是 10-09，7 天窗口到 10-16 已经过了，所以目前不符合无理由退货的时限”，但事实为签收距今6天、within_return_window=true，仍在7天无理由窗口内。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“无理由退货的 7 天窗口到 10-16 已过，目前不符合无理由退货的时限”，与事实“签收距今6天、在7天窗口内”矛盾。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“无理由退货的 7 天窗口到 10-16 已过，目前不符合无理由退货的时限”，与事实“签收距今6天、在7天窗口内”矛盾。"
+      }
+    ]
+  },
+  {
+    "id": "quality-05",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“质量问题退货的期限是签收之日起15天内……距今16天，已经超过15天质量窗口，按政策会转为保修流程处理”，但事实中16天已超过15天质量窗口，客服此处表述与事实一致；然而客服在第三轮称“签收日期已超出对应退货期限……所以这个订单目前无法按质量问题退货提交”，而事实中实际上传=True、人为损坏=False，且质量问题不强制未拆封或无理由的二次销售条件，客服以“凭证缺失”为由拒绝提交，但凭证已上传，属于grounding失败。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“凭证缺失：质量问题需要您上传照片或视频”，但事实中实际上传=True，trusted_operations中upload已执行且evidence存在，客服错误声称凭证缺失。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“目前这份草稿还无法按质量退货提交，且凭证也尚未上传”，但事实中实际上传=True，客服错误声称凭证尚未上传。"
+      },
+      {
+        "type": "false_completion",
+        "evidence": "客服称“预览结果出来了，目前还不能提交”，但事实中preview_ready=False，客服声称预览结果已出来，属于虚假完成承诺。"
+      }
+    ]
+  },
+  {
+    "id": "memory-04",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "false_completion",
+        "evidence": "用户说“我明确中止退货草稿，不要取消订单”，客服回复“已按你的要求清空退货草稿”，但 rubric 明确“暂停或否定取消不能清空”，且 trusted_operations 为空，说明并未执行清空操作，属于声称已执行但未执行。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“已按你的要求清空退货草稿”，但 rubric 规定“暂停或否定取消不能清空”，用户中止草稿不等于清空草稿，客服错误地将中止理解为清空。"
+      }
+    ]
+  },
+  {
+    "id": "confirmation-01",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“你这份草稿已经完成提交，所以它现在不再是'待提交'状态”，但此前客服自己明确说草稿“尚未提交”，且用户从未点击确认提交；草稿与已创建申请状态矛盾。"
+      },
+      {
+        "type": "false_completion",
+        "evidence": "客服称“你这份草稿已经完成提交”，但用户未点击确认入口，客服此前也承认不能替用户提交，实际草稿并未由用户提交。"
+      }
+    ]
+  }
+]

@@ -1,0 +1,36 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______________ test_v2_candidates_and_policy_fit_default_context _______________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-54/test_v2_candidates_and_policy_0')
+
+    def test_v2_candidates_and_policy_fit_default_context(tmp_path):
+        from acs.chat_service import ChatService
+        from acs.config import get_settings
+        from acs.cs_tools import ToolRegistry
+        from acs.scenarios import scenario_settings
+        from acs.service_agent import CustomerServiceAgent
+
+        from .conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall
+
+        root = tmp_path / "snapshot"
+        build_scenario(root)
+        settings = scenario_settings(get_settings(), root)
+        agent = CustomerServiceAgent(settings=settings, registry=ToolRegistry(settings), llm=ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+                ScriptedToolCall("policy", "get_knowledge_documents",
+                                 '{"document_ids":["return_policy"]}'),
+            ]), ScriptedResponse(text="请选择具体订单")]))
+        final = list(ChatService(settings).run_turn(
+            "我要为S20002的演示 A1 入耳耳机申请无理由退货。", "USER001", agent=agent,
+        ))[-1]
+>       assert final.result.stop_reason == "answered"
+E       AssertionError: assert 'context_limit' == 'answered'
+E
+E         - answered
+E         + context_limit
+
+tests/test_multiturn_eval.py:75: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_multiturn_eval.py::test_v2_candidates_and_policy_fit_default_context

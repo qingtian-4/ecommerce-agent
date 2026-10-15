@@ -108,7 +108,7 @@ uv run pytest && uv run ruff check .
 
 新版工作台将历史放左侧、聊天和固定输入放中间、订单与售后办理放右侧；开发观察
 按需展开，审核入口独立认证。设计来源与缺口见 [开源对照](docs/OPEN_SOURCE_REVIEW.md)，
-运行边界、v2 入口与尚未验证的容器路径见 [运行说明](docs/DEPLOYMENT.md)。
+运行边界、v2 入口与已实际验收的单机容器路径见 [运行说明](docs/DEPLOYMENT.md)。
 
 ```bash
 uv run python scripts/build_scenario.py
@@ -116,7 +116,11 @@ uv run python app.py --scenario data/scenarios/v2 --port 7862
 ```
 
 这不会替换原数据库与会话。v2 使用明确标注的合成规格、固定日期和整篇文档选择，
-不把增加数据后的命中视为修复旧目录失败。80 段多轮任务和外部 τ retail 评测尚未交付。
+不把增加数据后的命中视为修复旧目录失败。新增80段多轮任务，开发40段各1次、
+留出40段各3次；SQL约束、回答质量、失败分类和评分修正分开保留，见
+[评测协议](docs/TASK_EVALUATION.md)与[本地结果](results/multiturn_v1/final/REPORT.md)。
+外部原版τ retail固定5题各3次，项目Loop为14/15、官方同模型对照15/15；
+这是小子集原版环境对照，不是本地完整应用或排行榜成绩。
 
 ---
 

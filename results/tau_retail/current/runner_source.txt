@@ -1,0 +1,201 @@
+"""Compare the ACS loop and official LLMAgent on a pinned, unmodified τ retail subset.
+
+Run with the upstream isolated Python environment and PYTHONPATH=src:scripts.
+Credentials are injected into process environment only, never into result configs.
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.metadata
+import json
+import os
+import subprocess
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from acs.config import get_settings  # noqa: E402
+from acs.scenarios import sha256  # noqa: E402
+
+PINNED_COMMIT = "dd8757d4c8791dad7b3cdaf02a105a3d5f9d86bd"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--upstream", required=True, type=Path)
+    parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--freeze", action="store_true")
+    parser.add_argument("--manifest", type=Path, default=Path("data/eval/tau_retail_subset.json"))
+    args = parser.parse_args()
+    commit = (
+        subprocess.check_output(["git", "-C", str(args.upstream), "rev-parse", "HEAD"])
+        .decode()
+        .strip()
+    )
+    if commit != PINNED_COMMIT:
+        raise ValueError("Upstream checkout differs from pinned version")
+    dirty = subprocess.check_output(
+        ["git", "-C", str(args.upstream), "status", "--porcelain"]
+    ).decode()
+    if dirty:
+        raise ValueError("Refusing modified upstream environment, tools or evaluators")
+    settings = get_settings()
+    os.environ["OPENAI_API_KEY"] = settings.llm_api_key
+    os.environ["OPENAI_API_BASE"] = settings.llm_base_url
+    os.environ["TAU2_DATA_DIR"] = str(args.upstream / "data")
+    from loguru import logger
+
+    logger.remove()  # Avoid upstream printing complete model configuration.
+    logger.add(sys.stderr, level="ERROR")
+    from tau2.domains.retail.environment import get_tasks
+
+    tasks = sorted(get_tasks("base"), key=lambda t: int(t.id))[:5]
+    model = "openai/" + settings.llm_model
+    llm_args = {
+        "api_base": settings.llm_base_url,
+        "temperature": settings.llm_temperature,
+        "max_tokens": settings.llm_max_output_tokens,
+        "extra_body": {"thinking": {"type": "disabled"}},
+        "timeout": 120,
+    }
+    if args.freeze:
+        manifest = {
+            "upstream": "https://github.com/sierra-research/tau2-bench",
+            "commit": commit,
+            "selection": "first 5 base task IDs in numeric order; no outcome-based filtering",
+            "task_ids": [t.id for t in tasks],
+            "trials": 3,
+            "seed": 20261015,
+            "roles": {"agent": model, "user": model, "nl_judge": model},
+            "llm_args": llm_args,
+            "evaluation_type": "all",
+            "max_steps": 100,
+            "task_hash": sha256(args.upstream / "data/tau2/domains/retail/tasks.json"),
+            "upstream_files": {
+                str(p.relative_to(args.upstream)): sha256(p)
+                for p in sorted((args.upstream / "src/tau2").rglob("*.py"))
+            },
+            "arms": ["llm_agent", "acs_loop"],
+                "scope": "Original environment/scorer; actual ACS loop, not local UI/SQL/RAG.",
+                "acs_context_chars": 64000,
+                "enforce_communication_protocol": False,
+        }
+        with args.manifest.open("x") as f:
+            json.dump(manifest, f, indent=2)
+        print(f"Frozen task IDs: {manifest['task_ids']}")
+        return
+    manifest = json.loads(args.manifest.read_text())
+    if (
+        manifest["commit"] != commit
+        or manifest["task_ids"] != [t.id for t in tasks]
+        or manifest["roles"]["agent"] != model
+        or manifest["llm_args"] != llm_args
+        or manifest["task_hash"] != sha256(args.upstream / "data/tau2/domains/retail/tasks.json")
+    ):
+        raise ValueError("External conditions differ from frozen manifest")
+    from tau2.data_model.simulation import TextRunConfig
+    from tau2.evaluator import evaluator_nl_assertions
+    from tau2.registry import registry
+    from tau2.runner.batch import run_single_task
+    from tau_acs_agent import create_acs_agent
+
+    # The evaluator's supported module-level configuration selects the judge provider.
+    # Its prompts, original assertions, reward basis and scoring implementation stay intact.
+    evaluator_nl_assertions.DEFAULT_LLM_NL_ASSERTIONS = model
+    evaluator_nl_assertions.DEFAULT_LLM_NL_ASSERTIONS_ARGS = llm_args
+    registry.register_agent_factory(create_acs_agent, "acs_loop")
+    args.out.mkdir(parents=True, exist_ok=False)
+    frozen = manifest | {
+        "implementation": {
+            str(p): sha256(p)
+            for p in sorted(
+                [
+                    *Path("src/acs").glob("*.py"),
+                    Path("scripts/tau_acs_agent.py"),
+                    Path(__file__),
+                ]
+            )
+        },
+        "packages": {
+            p: importlib.metadata.version(p)
+            for p in (
+                "tau2",
+                "litellm",
+                "openai",
+                "pydantic",
+                "pydantic-settings",
+            )
+        },
+    }
+    (args.out / "frozen_manifest.json").write_text(json.dumps(frozen, indent=2) + "\n")
+    rows = []
+    with (args.out / "raw.jsonl").open("x") as raw:
+        for trial in range(manifest["trials"]):
+            for task in tasks:
+                for arm in manifest["arms"]:
+                    config = TextRunConfig(
+                        domain="retail",
+                        agent=arm,
+                        user="user_simulator",
+                        llm_agent=model,
+                        llm_user=model,
+                        llm_args_agent=llm_args,
+                        llm_args_user=llm_args,
+                        max_steps=100,
+                        max_errors=10,
+                        enforce_communication_protocol=manifest["enforce_communication_protocol"],
+                    )
+                    try:
+                        result = run_single_task(config, task, seed=manifest["seed"] + trial)
+                        row = {
+                            "id": task.id,
+                            "trial": trial + 1,
+                            "arm": arm,
+                            "simulation": result.model_dump(mode="json"),
+                            "reward": result.reward_info.reward,
+                        }
+                    except Exception as exc:
+                        # No retries or omitted tasks; preserve errors as failures.
+                        row = {
+                            "id": task.id,
+                            "trial": trial + 1,
+                            "arm": arm,
+                            "reward": 0,
+                            "error": {"type": type(exc).__name__, "message": str(exc)},
+                        }
+                    raw.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    raw.flush()
+                    rows.append(row)
+                    summary = {}
+                    for name in manifest["arms"]:
+                        rs = [r for r in rows if r["arm"] == name]
+                        grouped = defaultdict(list)
+                        for r in rs:
+                            grouped[r["id"]].append(r["reward"])
+                        summary[name] = {
+                            "episodes": len(rs),
+                            "mean_reward": sum(r["reward"] for r in rs) / len(rs) if rs else None,
+                            "all_three_success": sum(
+                                len(v) == 3 and all(x == 1 for x in v) for v in grouped.values()
+                            )
+                            / len(tasks),
+                            "infrastructure_errors": sum("error" in r for r in rs),
+                        }
+                    (args.out / "summary.json").write_text(
+                        json.dumps(
+                            summary | {"raw_sha256": sha256(args.out / "raw.jsonl")}, indent=2
+                        )
+                        + "\n"
+                    )
+                    print(
+                        f"{arm} task={task.id} trial={trial + 1} reward={row['reward']} "
+                        f"error={row.get('error', {}).get('type', 'none')}",
+                        flush=True,
+                    )
+
+
+if __name__ == "__main__":
+    main()

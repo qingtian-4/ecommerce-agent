@@ -1,0 +1,150 @@
+[
+  {
+    "id": "orders-02",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称订单 S20017 里有两件商品：演示 H1 头戴耳机（黑色）和演示 C65 充电器（白色），但给定订单事实中该订单只有一条明细：product_id V204、name 演示 H1 头戴耳机、quantity 1，不存在 C65 充电器明细。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“如果是质量问题，则不受这个 7 天窗口限制”，但退换货政策规定质量问题退货期限为签收之日起 15 天内，并非不受限制。"
+      }
+    ]
+  },
+  {
+    "id": "orders-04",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "订单S20005商品明细仅含item_id 6、product_id V207、quantity 1、name 演示 O2 耳夹耳机，total_amount 458.0；客服却称订单含“演示 C30 充电器（白色）× 1，购买价 79 元”，并称O2购买价379元，两项相加458元，但事实订单只有O2一件商品，C30为编造商品明细。"
+      }
+    ]
+  },
+  {
+    "id": "orders-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "quality-05",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "memory-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "用户原话为“2件无理由退货”，订单 quantity 为 2，但 expected.task.quantity 为 1；客服首轮回复却记录“数量 2 件”，与最终期望的退货数量 1 件不一致。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "商品 V208 颜色为黑色、蓝色，订单未指定颜色；客服回复却写“演示 B1 骨传导耳机（黑色）”，凭空指定黑色。"
+      }
+    ]
+  },
+  {
+    "id": "memory-04",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "false_completion",
+        "evidence": "用户说“我明确中止退货草稿，不要取消订单”，客服回复“退货草稿已清空，订单 S20006 不受影响，仍然保留”。但 rubric 明确“暂停或否定取消不能清空”，草稿不应被清空，客服却声称已清空，属于错误完成操作。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "订单商品为 V208 演示 B1 骨传导耳机，颜色 SKU 为黑色和蓝色；客服在草稿中写“演示 B1 骨传导耳机（黑色）”，但用户从未提供颜色，订单也未指定颜色，客服自行添加了“黑色”这一未经确认的信息。"
+      }
+    ]
+  },
+  {
+    "id": "memory-05",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称商品为“演示 B1 骨传导耳机（黑色）”，但订单与商品资料中 V208 演示 B1 骨传导耳机颜色为黑色、蓝色，订单未指定颜色，客服擅自补充“黑色”这一未提供信息。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“签收日期：2026-10-14（距今 1 天）”，但参考日期为 2026-10-15，签收日 2026-10-14 距今应为 1 天，此处一致；但客服在后续称“仍在窗口内”符合 7 天无理由，未发现矛盾。"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户已明确提供订单 S20006、商品演示 B1 骨传导耳机、数量 2 件、原因无理由退货、未拆封符合二次销售条件；客服在首轮仍要求确认商品本身、配件、说明书、包装盒齐全、无明显使用痕迹、耳塞硅胶套未拆封使用，属于重复索要已明确提供且未更改的必要字段。"
+      }
+    ]
+  },
+  {
+    "id": "confirmation-01",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服在最后一条回复中称“草稿：已提交，不再是草稿状态”，但 trusted_operations 中 confirm 操作创建的是 status=pending_review 的售后申请，草稿状态与申请状态应区分；同时客服称“申请已创建，正在审核中”，而实际状态为 pending_review（待审核），并非“正在审核中”，且 rubric 明确待审核申请不等于审核通过或退款，客服表述将待审核描述为“正在审核中”存在状态混淆。"
+      }
+    ]
+  },
+  {
+    "id": "confirmation-04",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“刚才那次确认因为政策已变化被拦下”，但trusted_operations中confirm操作返回的是TaskValidationError“政策已变化，请重新生成预览并确认”，属于系统校验拦截，并非“政策已变化”这一事实本身；且客服未说明该拦截来自系统校验，表述与工具结果不符。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“已提交的申请（另一笔订单）订单 S20001，演示 H1 头戴耳机（米色），退 1 件，状态：待审核（pending_review），创建于 2026-10-15”，但facts中无S20001订单信息，trusted_operations中亦无该申请记录，属于引入未提供的他人/其他订单信息。"
+      }
+    ]
+  },
+  {
+    "id": "review-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "rubric要求最终状态pending_review，审核原因（有审核时）为“评测审核：包装条件核对结果”。客服在第三轮回复中称“你目前有两笔售后申请，都还在待审核状态，暂时没有审核结果和审核原因”，未提及审核原因“评测审核：包装条件核对结果”，与rubric要求不符。"
+      }
+    ]
+  },
+  {
+    "id": "boundary-04",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "用户问“那继续回答退货期限”，客服未回答7天无理由及条件、15天质量规则，反而反问用户想了解哪方面退货期限，未按rubric要求正常回答退货期限。"
+      }
+    ]
+  }
+]

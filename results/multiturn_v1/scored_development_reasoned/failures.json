@@ -1,0 +1,76 @@
+[
+  {
+    "id": "orders-02",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      }
+    ]
+  },
+  {
+    "id": "orders-05",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "第1轮客服称“这单签收日是 10-09，7 天窗口到 10-16 已经过了，所以**目前不符合无理由退货的时限**”“很抱歉已超出 7 天期限，无法按无理由办理”；但事实为 delivered_at=2026-10-09、delivered_days_ago=6、return_window_days=7、within_return_window=true，今天 2026-10-15 仍在签收后 7 天窗口内，期限并未过期。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "第2、3轮客服继续称“无理由退货的 7 天窗口到 **10-16** 已过，**目前不符合无理由退货的时限**”“提交后审核时可能因超期被拒”；与其自述的截止日 10-16 及事实（签收 10-09、距今 6 天、在 7 天窗口内）自相矛盾，属错误告知超期。"
+      }
+    ]
+  },
+  {
+    "id": "quality-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "review-04",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "review-03",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "boundary-05",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  }
+]

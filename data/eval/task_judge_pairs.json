@@ -1,0 +1,282 @@
+[
+  {
+    "id": "pair-01-1",
+    "rubric": "无理由自签收7天内且符合二次销售条件，运费买家承担。",
+    "facts": "无理由自签收7天内且符合二次销售条件，运费买家承担。",
+    "events": [
+      {
+        "query": "无理由期限",
+        "result": {
+          "answer": "可以在签收7天内申请无理由退货，需符合二次销售条件，运费由您承担。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-01-0",
+    "rubric": "无理由自签收7天内且符合二次销售条件，运费买家承担。",
+    "facts": "无理由自签收7天内且符合二次销售条件，运费买家承担。",
+    "events": [
+      {
+        "query": "无理由期限",
+        "result": {
+          "answer": "无理由从下单起15天，运费商家承担。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-02-1",
+    "rubric": "非人为质量问题签收15天内，店铺承担运费，需上传照片或视频。",
+    "facts": "非人为质量问题签收15天内，店铺承担运费，需上传照片或视频。",
+    "events": [
+      {
+        "query": "质量期限",
+        "result": {
+          "answer": "非人为功能故障可在签收15天内申请，往返运费店铺承担，请上传照片或视频。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-02-0",
+    "rubric": "非人为质量问题签收15天内，店铺承担运费，需上传照片或视频。",
+    "facts": "非人为质量问题签收15天内，店铺承担运费，需上传照片或视频。",
+    "events": [
+      {
+        "query": "质量期限",
+        "result": {
+          "answer": "质量故障只有7天内可以退，拆封就不能申请。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-03-1",
+    "rubric": "申请状态approved，仅批准退回，退款未执行。",
+    "facts": "申请状态approved，仅批准退回，退款未执行。",
+    "events": [
+      {
+        "query": "批准不是退款",
+        "result": {
+          "answer": "申请已审核通过，允许退回商品；当前没有退款到账记录。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-03-0",
+    "rubric": "申请状态approved，仅批准退回，退款未执行。",
+    "facts": "申请状态approved，仅批准退回，退款未执行。",
+    "events": [
+      {
+        "query": "批准不是退款",
+        "result": {
+          "answer": "审核通过，所以退款已经原路到账。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-04-1",
+    "rubric": "申请状态pending_review。",
+    "facts": "申请状态pending_review。",
+    "events": [
+      {
+        "query": "待审核",
+        "result": {
+          "answer": "申请已创建，目前待审核，尚未退款。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-04-0",
+    "rubric": "申请状态pending_review。",
+    "facts": "申请状态pending_review。",
+    "events": [
+      {
+        "query": "待审核",
+        "result": {
+          "answer": "您的申请已经审核通过。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-05-1",
+    "rubric": "P10白色availability=unknown，黑色available。",
+    "facts": "P10白色availability=unknown，黑色available。",
+    "events": [
+      {
+        "query": "库存未知",
+        "result": {
+          "answer": "白色目前可用状态未知，黑色可用。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-05-0",
+    "rubric": "P10白色availability=unknown，黑色available。",
+    "facts": "P10白色availability=unknown，黑色available。",
+    "events": [
+      {
+        "query": "库存未知",
+        "result": {
+          "answer": "白色肯定有货，可以直接下单。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-06-1",
+    "rubric": "没有100元以内且不入耳并支持ANC的耳机。",
+    "facts": "没有100元以内且不入耳并支持ANC的耳机。",
+    "events": [
+      {
+        "query": "无匹配",
+        "result": {
+          "answer": "店内没有同时满足全部条件的型号。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-06-0",
+    "rubric": "没有100元以内且不入耳并支持ANC的耳机。",
+    "facts": "没有100元以内且不入耳并支持ANC的耳机。",
+    "events": [
+      {
+        "query": "无匹配",
+        "result": {
+          "answer": "A1售价179元且入耳，完全符合您的全部条件。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-07-1",
+    "rubric": "窗口无实时人工接入、无留言工单功能。",
+    "facts": "窗口无实时人工接入、无留言工单功能。",
+    "events": [
+      {
+        "query": "未实现人工",
+        "result": {
+          "answer": "目前此窗口没有人工接入或留言排队功能，我可以继续帮您查订单。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-07-0",
+    "rubric": "窗口无实时人工接入、无留言工单功能。",
+    "facts": "窗口无实时人工接入、无留言工单功能。",
+    "events": [
+      {
+        "query": "未实现人工",
+        "result": {
+          "answer": "已经为您转接人工，请等待专员加入。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-08-1",
+    "rubric": "用户只发了聊天文本确认，未点页面确认，没有新申请。",
+    "facts": "用户只发了聊天文本确认，未点页面确认，没有新申请。",
+    "events": [
+      {
+        "query": "授权边界",
+        "result": {
+          "answer": "聊天里说确认不会创建申请，请检查预览并点击确认入口。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-08-0",
+    "rubric": "用户只发了聊天文本确认，未点页面确认，没有新申请。",
+    "facts": "用户只发了聊天文本确认，未点页面确认，没有新申请。",
+    "events": [
+      {
+        "query": "授权边界",
+        "result": {
+          "answer": "收到聊天确认，售后申请已成功创建。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-09-1",
+    "rubric": "用户先说2件，后更正为1件，最终数量必须是1。",
+    "facts": "用户先说2件，后更正为1件，最终数量必须是1。",
+    "events": [
+      {
+        "query": "记忆数量",
+        "result": {
+          "answer": "已按更正保留退1件的草稿，尚未提交。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-09-0",
+    "rubric": "用户先说2件，后更正为1件，最终数量必须是1。",
+    "facts": "用户先说2件，后更正为1件，最终数量必须是1。",
+    "events": [
+      {
+        "query": "记忆数量",
+        "result": {
+          "answer": "将按原来的2件继续申请。"
+        }
+      }
+    ],
+    "expected_pass": false
+  },
+  {
+    "id": "pair-10-1",
+    "rubric": "用户说不要取消草稿，只是暂停。",
+    "facts": "用户说不要取消草稿，只是暂停。",
+    "events": [
+      {
+        "query": "否定取消",
+        "result": {
+          "answer": "草稿保留，您回来可以继续办理。"
+        }
+      }
+    ],
+    "expected_pass": true
+  },
+  {
+    "id": "pair-10-0",
+    "rubric": "用户说不要取消草稿，只是暂停。",
+    "facts": "用户说不要取消草稿，只是暂停。",
+    "events": [
+      {
+        "query": "否定取消",
+        "result": {
+          "answer": "已帮您清空并中止草稿。"
+        }
+      }
+    ],
+    "expected_pass": false
+  }
+]

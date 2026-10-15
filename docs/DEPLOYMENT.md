@@ -30,9 +30,14 @@ API，不能证明外部模型此刻可用。`provider_checked=false` 会明确�
 
 ## 容器入口
 
-已提供 Dockerfile、构建排除规则、只在数据库不存在时初始化的入口，以及健康检查。
-当前开发环境的 WSL Docker 命令不可用，提示启用 Desktop 的 WSL 集成，**本轮没有完成镜像构建和容器运行验证**。
-下面是待运行的客户服务部署路径，不能将本机通过等同于容器通过。
+2026-10-15已在Docker Desktop Linux引擎实际构建与运行。此前引擎未启动、Ubuntu的
+WSL集成关闭；启用后原Docker Hub基础镜像请求仍返回EOF，改用官方Astral的Python镜像，
+并固定版本和镜像digest。实际结果见[容器证据](../results/container_acceptance/)。
+锁文件与依赖层先于源码复制，uv下载缓存独立挂载；修改文档或业务代码不再重新下载
+整套依赖，避免一次源码重建因PyPI的TLS中断失败。
+
+直接调用已安装包还暴露了知识目录指向site-packages的问题；镜像设置`PYTHONPATH=/app/src`，
+确保页面、健康检查、CLI和`docker exec`都使用同一份源码与数据根目录。
 
 ```bash
 docker build -t acs:local .
@@ -48,7 +53,37 @@ docker run --rm --name acs-customer --env-file .env \
 持久目录包含数据库中的上传凭证和历史，索引单独保存。首次检索启动可能需要构建
 索引并调用 embedding；过期索引不静默服务，应先校验知识、模型和标定，再重建。
 原评测结果没有打进镜像，界面会显示历史证据不可用；需要时单独只读挂载结果目录。
-独立管理入口仍需配置管理账号，本文件未验证管理服务的容器部署。
+独立管理入口使用已配置的管理账号，已验证未认证拒绝、真实登录后可加载组件。
+管理容器须单独指定端口健康检查，不能沿用客户容器的7860端口。
+
+```bash
+docker run --rm --name acs-review --env-file .env \
+  --entrypoint /app/.venv/bin/python \
+  -e ACS_KNOWLEDGE_MODE=documents \
+  -e ACS_DB_PATH=/app/persist/business.db \
+  -p 127.0.0.1:7861:7861 -v acs-persist:/app/persist \
+  --health-cmd '/app/.venv/bin/python scripts/check_runtime.py --url http://127.0.0.1:7861/' \
+  acs:local admin_app.py --host 0.0.0.0 --port 7861
+```
+
+实际验收包含：真实模型查单；上传原始凭证、预览、明确确认和审核；第三会话排队、
+同会话并发拒绝；API不可用时报告失败；旧版合成数据库迁移保留15张已有表的数据；
+索引构建、过期embedding模型索引拒绝；停止重启及删除容器后用同一数据卷重建。
+历史、草稿/申请、审核与原始凭证hash均保留。另以检索模式启动并完成真实政策检索，
+整篇文档模式通过不被冒充为检索模式通过。
+
+```bash
+# 在新建的、仅供验收的卷中执行；write会创建合成申请并审核，勿对已有用户数据重复运行
+docker exec acs-customer /app/.venv/bin/python scripts/container_probe.py write
+docker exec acs-customer /app/.venv/bin/python scripts/container_probe.py index
+docker exec acs-customer /app/.venv/bin/python scripts/container_probe.py migration
+docker restart acs-customer
+docker exec acs-customer /app/.venv/bin/python scripts/container_probe.py read
+```
+
+验收用客户/管理入口分别为7864/7865，使用独立`acs-acceptance-final-persist`卷，
+未挂载或重置项目原数据库。镜像内容检查排除了`.env`、本机数据库、场景数据库和
+结果目录；敏感配置只在运行时注入。这是单机容器验收，不等于公网、多实例或生产SLA验收。
 
 已有数据库只追加迁移，不执行种子重建。升级到 schema 5 增加 SKU 表，不修改旧六张
 业务表和历史申请；旧数据不会自动获得颜色。升级前使用 SQLite backup 保存完整副本，

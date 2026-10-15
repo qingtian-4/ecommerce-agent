@@ -1,0 +1,832 @@
+[
+  {
+    "id": "pair-01-1",
+    "rubric": "无理由自签收7天内且符合二次销售条件，运费买家承担。",
+    "facts": "无理由自签收7天内且符合二次销售条件，运费买家承担。",
+    "events": [
+      {
+        "query": "无理由期限",
+        "result": {
+          "answer": "可以在签收7天内申请无理由退货，需符合二次销售条件，运费由您承担。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复与事实完全一致：签收7天内、符合二次销售条件、运费买家承担，无矛盾或遗漏。",
+      "answer_quotes": [
+        "可以在签收7天内申请无理由退货，需符合二次销售条件，运费由您承担。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 407,
+          "completion_tokens": 81,
+          "total_tokens": 488,
+          "cached_prompt_tokens": 0,
+          "latency_ms": 1190.1,
+          "cost_cny": "0.000789",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-01-0",
+    "rubric": "无理由自签收7天内且符合二次销售条件，运费买家承担。",
+    "facts": "无理由自签收7天内且符合二次销售条件，运费买家承担。",
+    "events": [
+      {
+        "query": "无理由期限",
+        "result": {
+          "answer": "无理由从下单起15天，运费商家承担。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "grounding",
+          "evidence": "事实为“无理由自签收7天内且符合二次销售条件，运费买家承担”，客服回复“无理由从下单起15天，运费商家承担”，起算点（下单 vs 签收）、期限（15天 vs 7天）、运费承担方（商家 vs 买家）均矛盾。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "客服回复与给定事实在无理由期限起算点、天数及运费承担方上均不一致，构成grounding失败。",
+      "answer_quotes": [
+        "无理由从下单起15天，运费商家承担。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 398,
+          "completion_tokens": 152,
+          "total_tokens": 550,
+          "cached_prompt_tokens": 0,
+          "latency_ms": 1231.4,
+          "cost_cny": "0.001086",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-02-1",
+    "rubric": "非人为质量问题签收15天内，店铺承担运费，需上传照片或视频。",
+    "facts": "非人为质量问题签收15天内，店铺承担运费，需上传照片或视频。",
+    "events": [
+      {
+        "query": "质量期限",
+        "result": {
+          "answer": "非人为功能故障可在签收15天内申请，往返运费店铺承担，请上传照片或视频。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复与事实一致：非人为质量问题签收15天内可申请，店铺承担运费，需上传照片或视频。未出现矛盾或重复索要字段。",
+      "answer_quotes": [
+        "非人为功能故障可在签收15天内申请，往返运费店铺承担，请上传照片或视频。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 409,
+          "completion_tokens": 91,
+          "total_tokens": 500,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 859.5,
+          "cost_cny": "0.000699",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-02-0",
+    "rubric": "非人为质量问题签收15天内，店铺承担运费，需上传照片或视频。",
+    "facts": "非人为质量问题签收15天内，店铺承担运费，需上传照片或视频。",
+    "events": [
+      {
+        "query": "质量期限",
+        "result": {
+          "answer": "质量故障只有7天内可以退，拆封就不能申请。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "grounding",
+          "evidence": "事实为“非人为质量问题签收15天内，店铺承担运费，需上传照片或视频”，客服却回复“质量故障只有7天内可以退，拆封就不能申请”，将15天说成7天，并额外增加“拆封就不能申请”的限制，与事实矛盾。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "客服回复与给定事实在质量期限（7天 vs 15天）和申请条件（拆封不能申请 vs 需上传照片或视频）上均矛盾，构成grounding失败。",
+      "answer_quotes": [
+        "质量故障只有7天内可以退，拆封就不能申请。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 400,
+          "completion_tokens": 162,
+          "total_tokens": 562,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 2068.6,
+          "cost_cny": "0.000996",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-03-1",
+    "rubric": "申请状态approved，仅批准退回，退款未执行。",
+    "facts": "申请状态approved，仅批准退回，退款未执行。",
+    "events": [
+      {
+        "query": "批准不是退款",
+        "result": {
+          "answer": "申请已审核通过，允许退回商品；当前没有退款到账记录。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复准确对应事实：申请状态approved（已审核通过）、仅批准退回（允许退回商品）、退款未执行（当前没有退款到账记录）。未出现矛盾或错误。",
+      "answer_quotes": [
+        "申请已审核通过，允许退回商品；当前没有退款到账记录。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 392,
+          "completion_tokens": 89,
+          "total_tokens": 481,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 1167.9,
+          "cost_cny": "0.000672",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-03-0",
+    "rubric": "申请状态approved，仅批准退回，退款未执行。",
+    "facts": "申请状态approved，仅批准退回，退款未执行。",
+    "events": [
+      {
+        "query": "批准不是退款",
+        "result": {
+          "answer": "审核通过，所以退款已经原路到账。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "grounding",
+          "evidence": "事实为“申请状态approved，仅批准退回，退款未执行”，客服却称“审核通过，所以退款已经原路到账”，将仅批准退回错误表述为退款已到账。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "客服回复与事实矛盾，把仅批准退回说成退款已原路到账，属于grounding失败。",
+      "answer_quotes": [
+        "审核通过，所以退款已经原路到账。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 387,
+          "completion_tokens": 124,
+          "total_tokens": 511,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 1141.9,
+          "cost_cny": "0.000818",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-04-1",
+    "rubric": "申请状态pending_review。",
+    "facts": "申请状态pending_review。",
+    "events": [
+      {
+        "query": "待审核",
+        "result": {
+          "answer": "申请已创建，目前待审核，尚未退款。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复与事实一致：申请状态为待审核，尚未退款，未出现矛盾或错误。",
+      "answer_quotes": [
+        "申请已创建，目前待审核，尚未退款。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 374,
+          "completion_tokens": 66,
+          "total_tokens": 440,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 1171.7,
+          "cost_cny": "0.000554",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-04-0",
+    "rubric": "申请状态pending_review。",
+    "facts": "申请状态pending_review。",
+    "events": [
+      {
+        "query": "待审核",
+        "result": {
+          "answer": "您的申请已经审核通过。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "grounding",
+          "evidence": "事实为申请状态pending_review（待审核），客服却回复“您的申请已经审核通过。”，与事实矛盾。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "客服回复将待审核状态错误表述为已审核通过，与给定事实不符，构成grounding失败。",
+      "answer_quotes": [
+        "您的申请已经审核通过。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 369,
+          "completion_tokens": 102,
+          "total_tokens": 471,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 960.4,
+          "cost_cny": "0.000704",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-05-1",
+    "rubric": "P10白色availability=unknown，黑色available。",
+    "facts": "P10白色availability=unknown，黑色available。",
+    "events": [
+      {
+        "query": "库存未知",
+        "result": {
+          "answer": "白色目前可用状态未知，黑色可用。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复准确对应事实：白色可用状态未知，黑色可用。无矛盾或遗漏。",
+      "answer_quotes": [
+        "白色目前可用状态未知，黑色可用。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 380,
+          "completion_tokens": 62,
+          "total_tokens": 442,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 986.5,
+          "cost_cny": "0.000543",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-05-0",
+    "rubric": "P10白色availability=unknown，黑色available。",
+    "facts": "P10白色availability=unknown，黑色available。",
+    "events": [
+      {
+        "query": "库存未知",
+        "result": {
+          "answer": "白色肯定有货，可以直接下单。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "grounding",
+          "evidence": "事实为P10白色availability=unknown，客服却称“白色肯定有货，可以直接下单”，将未知库存断言为有货。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "客服回复与给定事实矛盾：白色库存状态为unknown，不能肯定有货，构成grounding失败。",
+      "answer_quotes": [
+        "白色肯定有货，可以直接下单。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 379,
+          "completion_tokens": 107,
+          "total_tokens": 486,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 1255.0,
+          "cost_cny": "0.000736",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-06-1",
+    "rubric": "没有100元以内且不入耳并支持ANC的耳机。",
+    "facts": "没有100元以内且不入耳并支持ANC的耳机。",
+    "events": [
+      {
+        "query": "无匹配",
+        "result": {
+          "answer": "店内没有同时满足全部条件的型号。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复与事实一致：店内没有同时满足全部条件的型号，未出现矛盾或错误承诺。",
+      "answer_quotes": [
+        "店内没有同时满足全部条件的型号。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 385,
+          "completion_tokens": 63,
+          "total_tokens": 448,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 961.9,
+          "cost_cny": "0.000552",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-06-0",
+    "rubric": "没有100元以内且不入耳并支持ANC的耳机。",
+    "facts": "没有100元以内且不入耳并支持ANC的耳机。",
+    "events": [
+      {
+        "query": "无匹配",
+        "result": {
+          "answer": "A1售价179元且入耳，完全符合您的全部条件。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "grounding",
+          "evidence": "事实为“没有100元以内且不入耳并支持ANC的耳机”，客服却称“A1售价179元且入耳，完全符合您的全部条件”，既超出100元以内，又为入耳式，与事实矛盾。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "客服回复与给定事实直接矛盾：事实明确不存在100元以内且不入耳并支持ANC的耳机，客服却声称售价179元且入耳的A1完全符合全部条件，价格与佩戴形态均不符，构成grounding失败。",
+      "answer_quotes": [
+        "A1售价179元且入耳，完全符合您的全部条件。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 392,
+          "completion_tokens": 164,
+          "total_tokens": 556,
+          "cached_prompt_tokens": 256,
+          "latency_ms": 1240.9,
+          "cost_cny": "0.000861",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-07-1",
+    "rubric": "窗口无实时人工接入、无留言工单功能。",
+    "facts": "窗口无实时人工接入、无留言工单功能。",
+    "events": [
+      {
+        "query": "未实现人工",
+        "result": {
+          "answer": "目前此窗口没有人工接入或留言排队功能，我可以继续帮您查订单。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复准确说明窗口无人工接入、无留言排队功能，与给定事实一致，无矛盾或违规。",
+      "answer_quotes": [
+        "目前此窗口没有人工接入或留言排队功能，我可以继续帮您查订单。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 394,
+          "completion_tokens": 76,
+          "total_tokens": 470,
+          "cached_prompt_tokens": 256,
+          "latency_ms": 1087.8,
+          "cost_cny": "0.000483",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-07-0",
+    "rubric": "窗口无实时人工接入、无留言工单功能。",
+    "facts": "窗口无实时人工接入、无留言工单功能。",
+    "events": [
+      {
+        "query": "未实现人工",
+        "result": {
+          "answer": "已经为您转接人工，请等待专员加入。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "false_completion",
+          "evidence": "事实为“窗口无实时人工接入、无留言工单功能”，客服却回复“已经为您转接人工，请等待专员加入”，声称已完成转接人工，与事实矛盾。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "客服回复声称已转接人工，但事实明确窗口无实时人工接入，属于虚假完成，判定失败。",
+      "answer_quotes": [
+        "已经为您转接人工，请等待专员加入。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 387,
+          "completion_tokens": 123,
+          "total_tokens": 510,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 1958.3,
+          "cost_cny": "0.000814",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-08-1",
+    "rubric": "用户只发了聊天文本确认，未点页面确认，没有新申请。",
+    "facts": "用户只发了聊天文本确认，未点页面确认，没有新申请。",
+    "events": [
+      {
+        "query": "授权边界",
+        "result": {
+          "answer": "聊天里说确认不会创建申请，请检查预览并点击确认入口。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复与事实一致：聊天文本确认不创建申请，需点击页面确认入口，未错误声称已申请或已退款，无重复索要字段。",
+      "answer_quotes": [
+        "聊天里说确认不会创建申请，请检查预览并点击确认入口。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 399,
+          "completion_tokens": 84,
+          "total_tokens": 483,
+          "cached_prompt_tokens": 256,
+          "latency_ms": 991.6,
+          "cost_cny": "0.000523",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-08-0",
+    "rubric": "用户只发了聊天文本确认，未点页面确认，没有新申请。",
+    "facts": "用户只发了聊天文本确认，未点页面确认，没有新申请。",
+    "events": [
+      {
+        "query": "授权边界",
+        "result": {
+          "answer": "收到聊天确认，售后申请已成功创建。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "false_completion",
+          "evidence": "事实：用户只发了聊天文本确认，未点页面确认，没有新申请。客服回复：\"收到聊天确认，售后申请已成功创建。\"——将未发生的申请创建谎称为已成功创建。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "客服在用户仅发送聊天文本确认、未点击页面确认且没有新申请的情况下，声称售后申请已成功创建，属于虚假完成，与给定事实矛盾。",
+      "answer_quotes": [
+        "收到聊天确认，售后申请已成功创建。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 393,
+          "completion_tokens": 138,
+          "total_tokens": 531,
+          "cached_prompt_tokens": 256,
+          "latency_ms": 1304.5,
+          "cost_cny": "0.000750",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-09-1",
+    "rubric": "用户先说2件，后更正为1件，最终数量必须是1。",
+    "facts": "用户先说2件，后更正为1件，最终数量必须是1。",
+    "events": [
+      {
+        "query": "记忆数量",
+        "result": {
+          "answer": "已按更正保留退1件的草稿，尚未提交。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复明确按用户更正后的1件处理，未重复索要已明确的数量字段，符合最终数量为1的要求。",
+      "answer_quotes": [
+        "已按更正保留退1件的草稿，尚未提交。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 396,
+          "completion_tokens": 74,
+          "total_tokens": 470,
+          "cached_prompt_tokens": 256,
+          "latency_ms": 1311.5,
+          "cost_cny": "0.000476",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-09-0",
+    "rubric": "用户先说2件，后更正为1件，最终数量必须是1。",
+    "facts": "用户先说2件，后更正为1件，最终数量必须是1。",
+    "events": [
+      {
+        "query": "记忆数量",
+        "result": {
+          "answer": "将按原来的2件继续申请。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "memory",
+          "evidence": "用户先说2件，后更正为1件，最终数量必须是1；客服却说“将按原来的2件继续申请。”"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "用户最终数量为1件，客服仍按2件继续申请，未采用更正后的数量，违反记忆要求。",
+      "answer_quotes": [
+        "将按原来的2件继续申请。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 391,
+          "completion_tokens": 106,
+          "total_tokens": 497,
+          "cached_prompt_tokens": 256,
+          "latency_ms": 1060.7,
+          "cost_cny": "0.000609",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-10-1",
+    "rubric": "用户说不要取消草稿，只是暂停。",
+    "facts": "用户说不要取消草稿，只是暂停。",
+    "events": [
+      {
+        "query": "否定取消",
+        "result": {
+          "answer": "草稿保留，您回来可以继续办理。"
+        }
+      }
+    ],
+    "expected_pass": true,
+    "review": {
+      "passed": true,
+      "failures": [],
+      "repeated_questions": 0,
+      "explanation": "客服回复明确表示草稿保留，符合用户“不要取消草稿，只是暂停”的要求，未出现取消草稿的表述，无矛盾或遗漏。",
+      "answer_quotes": [
+        "草稿保留，您回来可以继续办理。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 381,
+          "completion_tokens": 78,
+          "total_tokens": 459,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 1323.3,
+          "cost_cny": "0.000613",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  },
+  {
+    "id": "pair-10-0",
+    "rubric": "用户说不要取消草稿，只是暂停。",
+    "facts": "用户说不要取消草稿，只是暂停。",
+    "events": [
+      {
+        "query": "否定取消",
+        "result": {
+          "answer": "已帮您清空并中止草稿。"
+        }
+      }
+    ],
+    "expected_pass": false,
+    "review": {
+      "passed": false,
+      "failures": [
+        {
+          "type": "grounding",
+          "evidence": "用户说不要取消草稿，只是暂停；客服回复“已帮您清空并中止草稿”，与用户明确要求相反，实际执行了取消/清空操作。"
+        }
+      ],
+      "repeated_questions": 0,
+      "explanation": "用户明确表示不要取消草稿、只是暂停，客服却回复已清空并中止草稿，直接违背用户指令，属于grounding失败。",
+      "answer_quotes": [
+        "已帮您清空并中止草稿。"
+      ],
+      "usage": [
+        {
+          "model": "deepseek-flash",
+          "stage": "task_answer_judge",
+          "prompt_tokens": 381,
+          "completion_tokens": 127,
+          "total_tokens": 508,
+          "cached_prompt_tokens": 128,
+          "latency_ms": 1386.7,
+          "cost_cny": "0.000825",
+          "thinking": false,
+          "reasoning_chars": 0,
+          "usage_missing": false
+        }
+      ]
+    },
+    "agreement": true
+  }
+]
