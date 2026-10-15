@@ -1,0 +1,39 @@
+import asyncio,hashlib,json,sqlite3,sys
+from pathlib import Path
+sys.path.insert(0,str(Path.cwd()/'src'))
+from acs.config import get_settings
+from playwright.async_api import async_playwright,expect
+s=get_settings();folder=Path(Path('/tmp/acs-evidence-fixture-path').read_text());cfg=json.loads((folder/'config.json').read_text());out=Path('results/evidence_preview');stage={'value':'start'}
+async def main():
+ checks=[];errors=[]
+ async with async_playwright() as p:
+  browser=await p.chromium.launch(executable_path='/home/qingtian/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome',args=['--no-sandbox'])
+  for case in ['live_white','synthetic_color']:
+   stage['value']=case
+   if case=='live_white':
+    port=7861;username=s.admin_username;password=s.admin_password.get_secret_value()
+    with sqlite3.connect(s.db_path) as c:
+     rid,text=c.execute('SELECT request_id,content_json FROM return_requests ORDER BY created_at LIMIT 1').fetchone();eid=json.loads(text)['evidence']['evidence_id'];original=c.execute('SELECT data FROM return_evidence WHERE evidence_id=?',(eid,)).fetchone()[0]
+    expected=hashlib.sha256(original).hexdigest();natural=[16,16]
+   else:port=7862;username=cfg['username'];password=cfg['password'];rid=cfg['rid'];expected=cfg['image_sha256'];natural=[640,480]
+   ctx=await browser.new_context(viewport={'width':1280,'height':980});page=await ctx.new_page();page.on('pageerror',lambda e:errors.append(type(e).__name__))
+   await page.goto(f'http://127.0.0.1:{port}')
+   assert (await page.request.get(f'http://127.0.0.1:{port}/config')).status==401
+   await page.get_by_label('Username').fill(username);await page.get_by_label('Password').fill(password);await page.get_by_role('button',name='Login',exact=True).click();await expect(page.get_by_text('售后审核工作台',exact=True)).to_be_visible(timeout=30000)
+   await page.get_by_role('combobox').first.click();await page.get_by_role('option',name='全部',exact=True).click();await expect(page.locator('#review-message')).to_contain_text('当前列表')
+   await page.locator('#review-selector input').click();await page.get_by_role('option').filter(has_text=rid).click();await expect(page.locator('#review-detail')).to_contain_text(rid)
+   await page.get_by_role('button',name='查看原始凭证',exact=True).click();panel=page.locator('#review-media');img=panel.locator('img');await expect(img).to_be_visible();await expect(panel).to_contain_text(f'{natural[0]} × {natural[1]}')
+   geometry=await img.evaluate('(e)=>({natural:[e.naturalWidth,e.naturalHeight],width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height})');assert geometry['natural']==natural and geometry['height']>=240 and geometry['width']>=200
+   await panel.screenshot(path=str(out/f'{case}_after.png'))
+   stage['value']=case+'_download'
+   async with page.expect_download(timeout=10000) as event:await page.get_by_role('link',name='下载原始凭证',exact=True).click()
+   download=await event.value;assert hashlib.sha256(Path(await download.path()).read_bytes()).hexdigest()==expected
+   checks.append({'case':case,'preview':geometry,'download_sha256_matches_original':True,'anonymous_denied':True})
+   if case=='live_white':
+    await page.set_viewport_size({'width':375,'height':900});assert await page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1');await panel.screenshot(path=str(out/'live_white_mobile.png'))
+   await ctx.close()
+  assert not errors;await browser.close()
+ with (out/'browser_check.json').open('x') as f:f.write(json.dumps({'checks':checks,'page_errors':errors,'live_review_actions':0,'boundary':'历史白图保持不变；彩色图仅用于隔离副本验证预览和下载，不是实际故障证明。','admin_source_sha256':hashlib.sha256(Path('admin_app.py').read_bytes()).hexdigest()},ensure_ascii=False,indent=2)+'\n')
+ print(json.dumps({'cases_passed':len(checks),'page_errors':errors}),flush=True)
+try:asyncio.run(main())
+except Exception as exc:print(json.dumps({'error_type':type(exc).__name__,'stage':stage['value']}),flush=True);sys.exit(1)

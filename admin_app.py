@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import base64
 import html
+import io
 import sys
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import gradio as gr
+from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
@@ -30,6 +32,11 @@ CSS = """
 .review-detail dt {color:#536174;} .review-detail dd {margin:0;}
 .review-detail small {color:#536174;}
 .review-detail img,.review-detail video {max-width:100%;max-height:360px;object-fit:contain;}
+.review-detail .evidence-image,.review-detail .evidence-video {
+  display:block;width:100%;height:320px;object-fit:contain;
+  background:#e2e8f0;border:1px solid #cbd5e1;border-radius:6px;
+}
+.evidence-meta {font-variant-numeric:tabular-nums;}
 #review-message {min-height:44px;line-height:1.8;}
 button:active {transform:scale(.98);}
 button:focus-visible {outline:2px solid #c35008;outline-offset:3px;}
@@ -109,10 +116,23 @@ def build_app(settings: Settings | None = None) -> gr.Blocks:
                 return "<p>本申请未附照片或视频。</p>"
             data = base64.b64encode(media["data"]).decode("ascii")
             url = f"data:{media['media_type']};base64,{data}"
+            suffix = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
+                      "video/mp4": "mp4"}[media["media_type"]]
             # Inline data avoids exposing evidence through a shared public file cache.
-            tag = (f"<video controls src='{url}'></video>" if media["media_type"] == "video/mp4"
-                   else f"<img src='{url}' alt='客户上传的原始退货凭证'>")
-            return "<div class='review-detail'>" + tag + "</div>"
+            if media["media_type"] == "video/mp4":
+                tag = f"<video class='evidence-video' controls src='{url}'></video>"
+                description = "MP4"
+                note = "若视频无法播放，请下载原文件核对。上传不代表内容已审核。"
+            else:
+                with Image.open(io.BytesIO(media["data"])) as image:
+                    width, height = image.size
+                tag = f"<img class='evidence-image' src='{url}' alt='客户上传的原始退货凭证'>"
+                description = f"{suffix.upper()} · {width} × {height} 像素"
+                note = "若原图为空白、纯色或模糊图片，放大不会增加细节，需补充可辨认的凭证。"
+            return ("<div class='review-detail'><h3>原始凭证预览</h3>"
+                    f"<p class='evidence-meta'>{description} · {len(media['data'])} 字节</p>"
+                    + tag + f"<p>{note}</p><p><a href='{url}' "
+                    f"download='return-evidence.{suffix}'>下载原始凭证</a></p></div>")
         except TaskValidationError as exc:
             return f"<p>{html.escape(str(exc))}</p>"
 

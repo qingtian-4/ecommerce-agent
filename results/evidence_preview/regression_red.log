@@ -1,0 +1,80 @@
+FFF.F                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_image_preview_explains_dimensions_and_downloads_exact_original[PNG-size0] _
+
+flow = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...re object at 0x79abd2524ec0>, <acs.returns.ReturnService object at 0x79aba39d6ba0>, '613f44f5405446bc83688031a1800296')
+format = 'PNG', size = (16, 16)
+
+    @pytest.mark.parametrize("format,size", [("PNG", (16, 16)), ("JPEG", (640, 480)),
+                                           ("WEBP", (300, 200))])
+    def test_image_preview_explains_dimensions_and_downloads_exact_original(flow, format, size):
+        output = io.BytesIO()
+        Image.new("RGB", size, "white").save(output, format=format)
+        original = output.getvalue()
+        text = preview(flow, original)
+        markup = MediaMarkup(text)
+        assert len(markup.images) == 1
+>       assert f"{size[0]} × {size[1]}" in unescape(text)
+E       assert '16 × 16' in "<div class='review-detail'><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGP8//8/AymAiSTVoxpGNQwpDQBVbQMdPVIhQwAAAABJRU5ErkJggg==' alt='客户上传的原始退货凭证'></div>"
+E        +  where "<div class='review-detail'><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGP8//8/AymAiSTVoxpGNQwpDQBVbQMdPVIhQwAAAABJRU5ErkJggg==' alt='客户上传的原始退货凭证'></div>" = unescape("<div class='review-detail'><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGP8//8/AymAiSTVoxpGNQwpDQBVbQMdPVIhQwAAAABJRU5ErkJggg==' alt='客户上传的原始退货凭证'></div>")
+
+tests/test_evidence_preview.py:59: AssertionError
+_ test_image_preview_explains_dimensions_and_downloads_exact_original[JPEG-size1] _
+
+flow = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...re object at 0x79aba3a3ac10>, <acs.returns.ReturnService object at 0x79aba35789d0>, 'a65316f8e4884053872b0595ae5f5908')
+format = 'JPEG', size = (640, 480)
+
+    @pytest.mark.parametrize("format,size", [("PNG", (16, 16)), ("JPEG", (640, 480)),
+                                           ("WEBP", (300, 200))])
+    def test_image_preview_explains_dimensions_and_downloads_exact_original(flow, format, size):
+        output = io.BytesIO()
+        Image.new("RGB", size, "white").save(output, format=format)
+        original = output.getvalue()
+        text = preview(flow, original)
+        markup = MediaMarkup(text)
+        assert len(markup.images) == 1
+>       assert f"{size[0]} × {size[1]}" in unescape(text)
+E       assert '640 × 480' in "<div class='review-detail'><img src='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQND...ooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z' alt='客户上传的原始退货凭证'></div>"
+E        +  where "<div class='review-detail'><img src='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQND...ooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z' alt='客户上传的原始退货凭证'></div>" = unescape("<div class='review-detail'><img src='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQND...ooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z' alt='客户上传的原始退货凭证'></div>")
+
+tests/test_evidence_preview.py:59: AssertionError
+_ test_image_preview_explains_dimensions_and_downloads_exact_original[WEBP-size2] _
+
+flow = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...re object at 0x79aba3706c40>, <acs.returns.ReturnService object at 0x79aba39bb9b0>, '820abe1c97f6421080116c5467c0083e')
+format = 'WEBP', size = (300, 200)
+
+    @pytest.mark.parametrize("format,size", [("PNG", (16, 16)), ("JPEG", (640, 480)),
+                                           ("WEBP", (300, 200))])
+    def test_image_preview_explains_dimensions_and_downloads_exact_original(flow, format, size):
+        output = io.BytesIO()
+        Image.new("RGB", size, "white").save(output, format=format)
+        original = output.getvalue()
+        text = preview(flow, original)
+        markup = MediaMarkup(text)
+        assert len(markup.images) == 1
+>       assert f"{size[0]} × {size[1]}" in unescape(text)
+E       assert '300 × 200' in "<div class='review-detail'><img src='data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAABwEACdASosAcgAPm02mUmkIyKhICgAg...e+2TkPfbJyHvtk5D32ych77ZOQ99snIe+2TkPfbJyHvtk5D32ych77ZOQ99snIe+2TkPfbJwoAD+/9GgAAAAAAAAAAAA' alt='客户上传的原始退货凭证'></div>"
+E        +  where "<div class='review-detail'><img src='data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAABwEACdASosAcgAPm02mUmkIyKhICgAg...e+2TkPfbJyHvtk5D32ych77ZOQ99snIe+2TkPfbJyHvtk5D32ych77ZOQ99snIe+2TkPfbJwoAD+/9GgAAAAAAAAAAAA' alt='客户上传的原始退货凭证'></div>" = unescape("<div class='review-detail'><img src='data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAABwEACdASosAcgAPm02mUmkIyKhICgAg...e+2TkPfbJyHvtk5D32ych77ZOQ99snIe+2TkPfbJyHvtk5D32ych77ZOQ99snIe+2TkPfbJwoAD+/9GgAAAAAAAAAAAA' alt='客户上传的原始退货凭证'></div>")
+
+tests/test_evidence_preview.py:59: AssertionError
+____________ test_video_keeps_controls_and_offers_original_download ____________
+
+flow = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...re object at 0x79aba36c1850>, <acs.returns.ReturnService object at 0x79aba187f850>, '1aea958e0c414f70b5235e18e66ddc02')
+
+    def test_video_keeps_controls_and_offers_original_download(flow):
+        # Matches the existing upload header check, not a playable-video assertion.
+        original = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 16
+        markup = MediaMarkup(preview(flow, original))
+        assert len(markup.videos) == 1 and "controls" in markup.videos[0]
+>       assert len(markup.links) == 1 and markup.links[0]["download"].endswith(".mp4")
+E       assert (0 == 1)
+E        +  where 0 = len([])
+E        +    where [] = <tests.test_evidence_preview.MediaMarkup object at 0x79aba3707230>.links
+
+tests/test_evidence_preview.py:79: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_evidence_preview.py::test_image_preview_explains_dimensions_and_downloads_exact_original[PNG-size0]
+FAILED tests/test_evidence_preview.py::test_image_preview_explains_dimensions_and_downloads_exact_original[JPEG-size1]
+FAILED tests/test_evidence_preview.py::test_image_preview_explains_dimensions_and_downloads_exact_original[WEBP-size2]
+FAILED tests/test_evidence_preview.py::test_video_keeps_controls_and_offers_original_download
+4 failed, 1 passed in 17.50s
