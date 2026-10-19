@@ -10,6 +10,8 @@
 官方同模型分别为87.4%、75.4%。预算与评分限制、未解决项及
 [首次中断记录](results/iteration_v2/final/REPORT.md) 均保留，不据此宣称整体能力提升。
 
+网页端审查、离线检查和后续 PR 流程见 [Review 指南](docs/REVIEW_GUIDE.md)。
+
 ```bash
 uv run python app.py      # 打开 http://127.0.0.1:7860
 ```

@@ -17,8 +17,9 @@ binding.
    `docs/EXPERIMENT_LOG.md` (measured findings and regression risks).
 2. Check `git status` and the current branch. **Do not overwrite uncommitted
    work.** If the tree is dirty, ask before touching the affected files.
-3. This repository has **no remote**. Do not push, rebase, or rewrite shared
-   history. Rewriting local history requires an explicit request (see §5).
+3. The remote repository is `qingtian-4/ecommerce-agent` (private). Commit and
+   push only when authorized by the user; do not force-push or rewrite shared
+   history without an explicit request (see §5).
 4. For anything larger than a single small change, state a brief plan and how
    the finished behaviour will be verified. Group commits around complete
    deliverables, not individual implementation steps.
@@ -152,8 +153,8 @@ git show --stat HEAD     # does the file list match the title?
 
 ## 5. History
 
-`main` is the only branch and there is no remote, so the usual "never rewrite
-shared history" risk does not apply. Rewriting is still off by default.
+`main` is the default branch. Preserve the existing commit history when pushing
+to GitHub. Rewriting local or shared history is off by default.
 
 If you believe history needs rewriting:
 
