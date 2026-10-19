@@ -127,3 +127,10 @@ PYTHONPATH=src:scripts /tmp/acs-tau/.venv/bin/python scripts/eval_tau_retail.py 
 凭据仅在当前进程环境注入，结果配置不保存密钥。上游Agent、环境与裁判使用同一
 固定版本；NL裁判模型是已记录的配置选择，没有替换原评分提示或reward_basis。
 本轮未额外适配ECom-Bench，也不将本地改编任务称为官方原版成绩。
+
+
+以上外部复现命令对应 ab9dbdd 的五题接口和v2清单。当前入口扩展为
+`--task-set smoke|base`，默认smoke五题、三次重复；v3清单冻结完整环境。
+旧v2清单应在原版本复现，不能传给新版并绕过条件校验。新增24段任务和本次完整评测
+状态见 [EXECUTION_PLAN.md](EXECUTION_PLAN.md)。本次τ批次因余额故障中断，
+不替代上面的历史有效成绩。

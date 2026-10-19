@@ -1,0 +1,32 @@
+Traceback (most recent call last):
+  File "/app/scripts/container_probe.py", line 218, in <module>
+    main()
+    ~~~~^^
+  File "/app/scripts/container_probe.py", line 173, in main
+    concurrency = list(pool.map(one, ["USER001", "USER002", "USER003"]))
+  File "/usr/local/lib/python3.13/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/local/lib/python3.13/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/usr/local/lib/python3.13/concurrent/futures/_base.py", line 456, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/usr/local/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/app/scripts/container_probe.py", line 168, in one
+    for final in chat.run_turn("你好，请简短回应一句。", uid):
+                 ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/acs/chat_service.py", line 108, in run_turn
+    self.store.finish_turn(
+    ~~~~~~~~~~~~~~~~~~~~~~^
+        sid, user_id, tid, agent.messages[offset:], asdict(result),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/app/src/acs/sessions.py", line 218, in finish_turn
+    raise ValueError("会话轮次不存在、已完成或消息不匹配")
+ValueError: 会话轮次不存在、已完成或消息不匹配

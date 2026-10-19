@@ -1,0 +1,10 @@
+{
+  "valid_persistence_acceptance": false,
+  "cause": "Initial docker run inherited ACS_DB_PATH from .env and did not override it to /app/persist. Restart preserved the container filesystem; removal correctly exposed that the test data was not in the volume.",
+  "resolution": "Repeat on isolated fixture with explicit ACS_DB_PATH/INDEX_DIR/TRACE_DIR volume paths; retain initial artifacts.",
+  "second_probe_failure": {
+    "cause": "Probe started while Gradio build_app startup recovery was still running. The interrupted DB row contains the startup recovery default message.",
+    "fix": "Wait for HTTP readiness before launching probe on a new isolated volume.",
+    "product_change": false
+  }
+}

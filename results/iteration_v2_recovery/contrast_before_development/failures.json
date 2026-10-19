@@ -1,0 +1,182 @@
+[
+  {
+    "id": "negation-01-positive",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      },
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "negation-01-positive",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“我查了一下，商品编号 S20001 在店里查不到，可能编号有误。”但S20001是订单号且订单存在，含演示 H1 头戴耳机；不能按商品编号查不到否定订单。"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户首句已明确“我说的是S20001”，客服仍说“需要你确认是哪一单”并反复问“请告诉我是哪一笔”，重复索要已提供且未更改的订单号。"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户已说明“演示 H1 头戴耳机无法开机”，客服第四轮仍称“草稿里还缺**故障描述**”，重复索要已提供的故障描述。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“**故障对应的商品还没确定**”，但用户已明确S20001中的演示 H1 头戴耳机无法开机；草稿order_id/item_id仍为null，未按rubric关联H1。"
+      }
+    ]
+  },
+  {
+    "id": "negation-01-positive",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“我查了一下，商品编号 S20001 在店里查不到，可能编号有误”，但事实是 S20001 是有效订单号，该订单已签收，含演示 H1 头戴耳机 2 件和演示 P20 充电宝 1 件；客服误将订单号当成商品编号，并错误表示编号有误。"
+      },
+      {
+        "type": "memory",
+        "evidence": "用户首轮已明确“我说的是S20001”，此后未更改订单号；客服仍在第二轮问“方便的话，请告诉我订单号”，第三轮要求“需要你确认是哪一单”，第四轮又问“请告诉我订单号”，反复索要已明确提供的订单号。"
+      }
+    ]
+  },
+  {
+    "id": "correction-01-positive",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "conflict-02-positive",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“退货和价保的期限都还没开始计算”，后续又称“这是退货和价保期限的起算点”“退货和价保的期限暂时没法按签收日计算”。但事实是：价保期限自下单之日起15天内有效，本单下单日为2026-10-12，当前仍在价保期内，起算点并非签收日。"
+      }
+    ]
+  },
+  {
+    "id": "conflict-02-positive",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“退货、价保这类判断都要以签收日期为起算点”；事实：价保自下单之日起15天内，起算点是下单日2026-10-12，不是签收日，且与是否签收无关。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“7 天无理由窗口和 15 天价保都以签收日期为起算点”并要求等签收日期明确；事实：15天价保起算点为下单日2026-10-12，当前2026-10-15仍在下单后15天内，当前售价179等于购买价，差价0。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服称“因为还没签收，暂时不涉及退货或价保的时间计算”；事实：价保自下单日起算，订单2026-10-12下单，2026-10-15仍在价保期内，不能因未签收而不计算价保。"
+      }
+    ]
+  },
+  {
+    "id": "conflict-02-positive",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "用户已明确表示“我已经收到包裹了”，客服却称“这种情况下，退货的 7 天无理由窗口还没开始计算，暂时也无法提交退货申请”，把系统仍显示已发货、签收记录为空、物流仅已揽收当作实际未签收，未先核实实际签收日期便断言窗口未起算；事实是系统签收记录为 None，但用户陈述已收到，二者需核实，不能据此断言窗口未开始计算。"
+      }
+    ]
+  },
+  {
+    "id": "negation-01-counterexample",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "negation-01-counterexample",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "negation-01-counterexample",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "correction-02-counterexample",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "conflict-01-counterexample",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "conflict-02-counterexample",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服回复1称“因为还没签收，暂时不涉及退货或价保的起算时间”。事实：价保自下单日2026-10-12起算15天，与签收无关；该订单当前仍在下单价保期内（within_price_protection=true），并非“不涉及起算”。"
+      },
+      {
+        "type": "grounding",
+        "evidence": "客服回复2称“退货和价保的起算时间都还没开始，等签收后再看会更准确”。事实：退货自签收日起算无误，但价保起算点是下单日，且已经起算，不能与退货一并说成“都还没开始”。"
+      }
+    ]
+  },
+  {
+    "id": "conflict-02-counterexample",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“因为还没签收，暂时不涉及退货或价保的起算时间。”但价保自下单之日起15天内起算，本单下单日为2026-10-12，今天2026-10-15仍在价保期内，与是否签收无关。"
+      }
+    ]
+  }
+]

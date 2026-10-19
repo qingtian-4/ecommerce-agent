@@ -1,0 +1,33 @@
+.FF                                                                      [100%]
+=================================== FAILURES ===================================
+________________ test_judge_has_both_orders_for_an_interruption ________________
+
+contrast = (PosixPath('/tmp/pytest-of-qingtian/pytest-1/contrast0/scenario'), [{'id': 'negation-01-positive', 'pair_id': 'negatio...rection-03-positive', 'pair_id': 'correction-03', 'source_cluster': 'correction-03', 'variant': 'positive', ...}, ...])
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...t_s=120.0, context_max_chars=24000, max_api_requests=16, max_tool_calls=12, max_retrieval_calls=4, reference_date=None)
+
+    def test_judge_has_both_orders_for_an_interruption(contrast, settings):
+        root, cases = contrast
+        case = next(c for c in cases if c["category"] == "interruption")
+        facts = answer_facts(scenario_settings(settings, root), case)
+>       assert set(facts["referenced_orders"]) == set(case["reference_orders"])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'referenced_orders'
+
+tests/test_iteration_v2.py:32: KeyError
+_________________ test_summary_uses_planned_counts_and_repeats _________________
+
+    def test_summary_uses_planned_counts_and_repeats():
+        from scripts.eval_multiturn import summarise
+    
+        planned = {"a": {"split": "development", "trials": 3}}
+        row = {"id": "a", "split": "development", "category": "negation",
+               "passed": True, "events": [], "answer_review": {"usage": []}, "failures": []}
+        rows = [row | {"trial": n} for n in (1, 2, 3)]
+>       assert summarise(rows, planned)["splits"]["development"]["all_trials_success"] == 1
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: summarise() takes 1 positional argument but 2 were given
+
+tests/test_iteration_v2.py:43: TypeError
+=========================== short test summary info ============================
+FAILED tests/test_iteration_v2.py::test_judge_has_both_orders_for_an_interruption
+FAILED tests/test_iteration_v2.py::test_summary_uses_planned_counts_and_repeats

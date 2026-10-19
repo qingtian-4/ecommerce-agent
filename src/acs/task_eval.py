@@ -156,6 +156,11 @@ def answer_facts(settings: Settings, case: dict) -> dict:
         | {"price_protection.md": (settings.docs_dir / "price_protection.md").read_text()},
         "order": db.get_order(ref["order_id"], case["user_id"]) if ref else None,
         "logistics": db.get_logistics(ref["order_id"], case["user_id"]) if ref else None,
+        "referenced_orders": {
+            oid: {"order": db.get_order(oid, case["user_id"]),
+                  "logistics": db.get_logistics(oid, case["user_id"])}
+            for oid in case.get("reference_orders", [])
+        },
         "expected": case["expected"],
         "time_scope": "Initial facts. Apply state changes only at their timeline position.",
     }

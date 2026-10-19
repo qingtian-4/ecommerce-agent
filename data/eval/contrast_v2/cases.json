@@ -1,0 +1,1300 @@
+[
+  {
+    "id": "negation-01-positive",
+    "pair_id": "negation-01",
+    "source_cluster": "negation-01",
+    "variant": "positive",
+    "category": "negation",
+    "name": "negation 成对变体 1/positive",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20001",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 1217.0,
+      "paid_amount": 1217.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-14",
+      "delivered_at": "2026-10-15",
+      "cancelled_at": null,
+      "item_id": 1,
+      "product_id": "V204",
+      "quantity": 2,
+      "name": "演示 H1 头戴耳机"
+    },
+    "reference_orders": [
+      "S20001"
+    ],
+    "steps": [
+      {
+        "say": "我说的是S20001，请先核对商品。"
+      },
+      {
+        "say": "不是演示 P20 充电宝有问题，是演示 H1 头戴耳机无法开机。"
+      },
+      {
+        "say": "只为演示 H1 头戴耳机记录质量退货，数量1，已拆封。"
+      },
+      {
+        "say": "只保存我的声明和草稿，回顾故障对应的商品，先不判断资格。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20001",
+        "item_id": 1,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "故障对象与草稿必须是演示 H1 头戴耳机，不能把否定的演示 P20 充电宝作为故障商品。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "negation-02-positive",
+    "pair_id": "negation-02",
+    "source_cluster": "negation-02",
+    "variant": "positive",
+    "category": "negation",
+    "name": "negation 成对变体 2/positive",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20006",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 998.0,
+      "paid_amount": 998.0,
+      "created_at": "2026-10-11",
+      "shipped_at": "2026-10-13",
+      "delivered_at": "2026-10-14",
+      "cancelled_at": null,
+      "item_id": 8,
+      "product_id": "V208",
+      "quantity": 2,
+      "name": "演示 B1 骨传导耳机"
+    },
+    "reference_orders": [
+      "S20006"
+    ],
+    "steps": [
+      {
+        "say": "我要记录S20006的演示 B1 骨传导耳机无理由退货。"
+      },
+      {
+        "say": "不是退2件，只退其中1件。"
+      },
+      {
+        "say": "商品未拆封；只记录，不核查资格或提交。"
+      },
+      {
+        "say": "回顾刚才最终确认的数量，不要把被否定的数量保存进去。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20006",
+        "item_id": 8,
+        "quantity": 1,
+        "reason": "no_reason"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "最终数量为1，购买数量为2。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "negation-03-positive",
+    "pair_id": "negation-03",
+    "source_cluster": "negation-03",
+    "variant": "positive",
+    "category": "negation",
+    "name": "negation 成对变体 3/positive",
+    "split": "holdout",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20011",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 298.0,
+      "paid_amount": 298.0,
+      "created_at": "2026-10-06",
+      "shipped_at": "2026-10-08",
+      "delivered_at": "2026-10-09",
+      "cancelled_at": null,
+      "item_id": 14,
+      "product_id": "V203",
+      "quantity": 2,
+      "name": "演示 S1 半入耳耳机"
+    },
+    "reference_orders": [
+      "S20011"
+    ],
+    "steps": [
+      {
+        "say": "记录S20011的演示 S1 半入耳耳机质量退货，1件，已拆封。"
+      },
+      {
+        "say": "右边能出声，不能出声的是左边。"
+      },
+      {
+        "say": "不要给排障步骤，先记录这两边的区别。"
+      },
+      {
+        "say": "回顾哪个能用、哪个不能用，故障仍只是我的声明，尚未审核。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20011",
+        "item_id": 14,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "左侧不能出声，右侧能出声；不可交换对象或称故障已经核实。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "correction-01-positive",
+    "pair_id": "correction-01",
+    "source_cluster": "correction-01",
+    "variant": "positive",
+    "category": "correction",
+    "name": "correction 成对变体 1/positive",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20007",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 549.0,
+      "paid_amount": 549.0,
+      "created_at": "2026-10-11",
+      "shipped_at": "2026-10-13",
+      "delivered_at": "2026-10-14",
+      "cancelled_at": null,
+      "item_id": 9,
+      "product_id": "V204",
+      "quantity": 1,
+      "name": "演示 H1 头戴耳机"
+    },
+    "reference_orders": [
+      "S20007",
+      "S20002"
+    ],
+    "steps": [
+      {
+        "say": "记录S20002的演示 A1 入耳耳机无理由退货，1件，未拆封。"
+      },
+      {
+        "say": "刚才订单说错了，改成S20007的演示 H1 头戴耳机。"
+      },
+      {
+        "say": "最终要退的就是S20007的演示 H1 头戴耳机，1件，无理由，未拆封。"
+      },
+      {
+        "say": "只回顾并保存最终草稿，不判断资格、不预览、不提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20007",
+        "item_id": 9,
+        "quantity": 1,
+        "reason": "no_reason"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "最终订单是S20007，不能继续办理另一笔。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "correction-02-positive",
+    "pair_id": "correction-02",
+    "source_cluster": "correction-02",
+    "variant": "positive",
+    "category": "correction",
+    "name": "correction 成对变体 2/positive",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20006",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 998.0,
+      "paid_amount": 998.0,
+      "created_at": "2026-10-11",
+      "shipped_at": "2026-10-13",
+      "delivered_at": "2026-10-14",
+      "cancelled_at": null,
+      "item_id": 8,
+      "product_id": "V208",
+      "quantity": 2,
+      "name": "演示 B1 骨传导耳机"
+    },
+    "reference_orders": [
+      "S20006"
+    ],
+    "steps": [
+      {
+        "say": "记录S20006的演示 B1 骨传导耳机无理由退货，2件，未拆封。"
+      },
+      {
+        "say": "数量说错了，改成1件。"
+      },
+      {
+        "say": "暂时不继续办理，保留草稿。"
+      },
+      {
+        "say": "继续回顾已保存的数量，只记录，不判断资格和提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20006",
+        "item_id": 8,
+        "quantity": 1,
+        "reason": "no_reason"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "最终数量为1；暂停不能清空草稿。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "correction-03-positive",
+    "pair_id": "correction-03",
+    "source_cluster": "correction-03",
+    "variant": "positive",
+    "category": "correction",
+    "name": "correction 成对变体 3/positive",
+    "split": "holdout",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20012",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 199.0,
+      "paid_amount": 199.0,
+      "created_at": "2026-10-06",
+      "shipped_at": "2026-10-08",
+      "delivered_at": "2026-10-09",
+      "cancelled_at": null,
+      "item_id": 15,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20012"
+    ],
+    "steps": [
+      {
+        "say": "记录S20012的演示 A1 入耳耳机无理由退货，1件，未拆封。"
+      },
+      {
+        "say": "更正：已拆封，而且无法充电，改为质量问题退货。"
+      },
+      {
+        "say": "只回顾最终原因，材料没齐也可以先保存草稿。"
+      },
+      {
+        "say": "暂停办理，不取消草稿，不要声称已经提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20012",
+        "item_id": 15,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "最终原因是quality，不得误读否定或沿用已被更正的状况。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "interruption-01-positive",
+    "pair_id": "interruption-01",
+    "source_cluster": "interruption-01",
+    "variant": "positive",
+    "category": "interruption",
+    "name": "interruption 成对变体 1/positive",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20002",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 179.0,
+      "paid_amount": 179.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-14",
+      "delivered_at": "2026-10-15",
+      "cancelled_at": null,
+      "item_id": 3,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20002",
+      "S20003"
+    ],
+    "steps": [
+      {
+        "say": "只记录S20002的演示 A1 入耳耳机质量退货，1件，已拆封，无法开机。"
+      },
+      {
+        "say": "先插问S20003的物流，查询不代表要换退货订单。"
+      },
+      {
+        "say": "回到刚才的质量退货，原订单商品和数量不变。"
+      },
+      {
+        "say": "先不判断资格，回顾并保存最终草稿。即便不能提交也不能伪造已提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20002",
+        "item_id": 3,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "查询物流应针对S20003，最终草稿为S20002的演示 A1 入耳耳机；普通插问不能替换草稿，明确更正必须更新。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "interruption-02-positive",
+    "pair_id": "interruption-02",
+    "source_cluster": "interruption-02",
+    "variant": "positive",
+    "category": "interruption",
+    "name": "interruption 成对变体 2/positive",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20007",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 549.0,
+      "paid_amount": 549.0,
+      "created_at": "2026-10-11",
+      "shipped_at": "2026-10-13",
+      "delivered_at": "2026-10-14",
+      "cancelled_at": null,
+      "item_id": 9,
+      "product_id": "V204",
+      "quantity": 1,
+      "name": "演示 H1 头戴耳机"
+    },
+    "reference_orders": [
+      "S20007",
+      "S20008"
+    ],
+    "steps": [
+      {
+        "say": "只记录S20007的演示 H1 头戴耳机质量退货，1件，已拆封，无法开机。"
+      },
+      {
+        "say": "先插问S20008的物流，查询不代表要换退货订单。"
+      },
+      {
+        "say": "回到刚才的质量退货，原订单商品和数量不变。"
+      },
+      {
+        "say": "先不判断资格，回顾并保存最终草稿。即便不能提交也不能伪造已提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20007",
+        "item_id": 9,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "查询物流应针对S20008，最终草稿为S20007的演示 H1 头戴耳机；普通插问不能替换草稿，明确更正必须更新。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "interruption-03-positive",
+    "pair_id": "interruption-03",
+    "source_cluster": "interruption-03",
+    "variant": "positive",
+    "category": "interruption",
+    "name": "interruption 成对变体 3/positive",
+    "split": "holdout",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20012",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 199.0,
+      "paid_amount": 199.0,
+      "created_at": "2026-10-06",
+      "shipped_at": "2026-10-08",
+      "delivered_at": "2026-10-09",
+      "cancelled_at": null,
+      "item_id": 15,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20012",
+      "S20018"
+    ],
+    "steps": [
+      {
+        "say": "只记录S20012的演示 A1 入耳耳机质量退货，1件，已拆封，无法开机。"
+      },
+      {
+        "say": "先插问S20018的物流，查询不代表要换退货订单。"
+      },
+      {
+        "say": "回到刚才的质量退货，原订单商品和数量不变。"
+      },
+      {
+        "say": "先不判断资格，回顾并保存最终草稿。即便不能提交也不能伪造已提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20012",
+        "item_id": 15,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "查询物流应针对S20018，最终草稿为S20012的演示 A1 入耳耳机；普通插问不能替换草稿，明确更正必须更新。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "conflict-01-positive",
+    "pair_id": "conflict-01",
+    "source_cluster": "conflict-01",
+    "variant": "positive",
+    "category": "conflict",
+    "name": "conflict 成对变体 1/positive",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20001",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 1217.0,
+      "paid_amount": 1217.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-14",
+      "delivered_at": "2026-10-15",
+      "cancelled_at": null,
+      "item_id": 1,
+      "product_id": "V204",
+      "quantity": 2,
+      "name": "演示 H1 头戴耳机"
+    },
+    "reference_orders": [
+      "S20001"
+    ],
+    "steps": [
+      {
+        "say": "帮我核对S20001的订单和物流。"
+      },
+      {
+        "say": "我没有收到这单。"
+      },
+      {
+        "say": "分别说明系统记录与我的说法，不能擅自认定我说错了。"
+      },
+      {
+        "say": "有冲突就指出需要核实什么；不要改订单或创建申请，也别声称转人工已完成。"
+      }
+    ],
+    "expected": {
+      "task": {},
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "业务状态为delivered，签收记录为2026-10-15；用户原话为“我没有收到这单。”。分别保留记录与用户陈述，矛盾需核实，一致时不制造冲突；不把物流状态视为客户实际收到物品的证明。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "conflict-02-positive",
+    "pair_id": "conflict-02",
+    "source_cluster": "conflict-02",
+    "variant": "positive",
+    "category": "conflict",
+    "name": "conflict 成对变体 2/positive",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20003",
+      "user_id": "USER001",
+      "status": "shipped",
+      "total_amount": 179.0,
+      "paid_amount": 179.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-13",
+      "delivered_at": null,
+      "cancelled_at": null,
+      "item_id": 4,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20003"
+    ],
+    "steps": [
+      {
+        "say": "帮我核对S20003的订单和物流。"
+      },
+      {
+        "say": "我已经收到包裹了。"
+      },
+      {
+        "say": "分别说明系统记录与我的说法，不能擅自认定我说错了。"
+      },
+      {
+        "say": "有冲突就指出需要核实什么；不要改订单或创建申请，也别声称转人工已完成。"
+      }
+    ],
+    "expected": {
+      "task": {},
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "业务状态为shipped，签收记录为None；用户原话为“我已经收到包裹了。”。分别保留记录与用户陈述，矛盾需核实，一致时不制造冲突；不把物流状态视为客户实际收到物品的证明。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "conflict-03-positive",
+    "pair_id": "conflict-03",
+    "source_cluster": "conflict-03",
+    "variant": "positive",
+    "category": "conflict",
+    "name": "conflict 成对变体 3/positive",
+    "split": "holdout",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20010",
+      "user_id": "USER001",
+      "status": "cancelled",
+      "total_amount": 79.0,
+      "paid_amount": 0.0,
+      "created_at": "2026-10-14",
+      "shipped_at": null,
+      "delivered_at": null,
+      "cancelled_at": "2026-10-14",
+      "item_id": 13,
+      "product_id": "V210",
+      "quantity": 1,
+      "name": "演示 C30 充电器"
+    },
+    "reference_orders": [
+      "S20010"
+    ],
+    "steps": [
+      {
+        "say": "帮我核对S20010的订单和物流。"
+      },
+      {
+        "say": "我没取消这单，为什么还没发货？"
+      },
+      {
+        "say": "分别说明系统记录与我的说法，不能擅自认定我说错了。"
+      },
+      {
+        "say": "有冲突就指出需要核实什么；不要改订单或创建申请，也别声称转人工已完成。"
+      }
+    ],
+    "expected": {
+      "task": {},
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "业务状态为cancelled，签收记录为None；用户原话为“我没取消这单，为什么还没发货？”。分别保留记录与用户陈述，矛盾需核实，一致时不制造冲突；不把物流状态视为客户实际收到物品的证明。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "negation-01-counterexample",
+    "pair_id": "negation-01",
+    "source_cluster": "negation-01",
+    "variant": "counterexample",
+    "category": "negation",
+    "name": "negation 成对变体 1/counterexample",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20001",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 1217.0,
+      "paid_amount": 1217.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-14",
+      "delivered_at": "2026-10-15",
+      "cancelled_at": null,
+      "item_id": 2,
+      "product_id": "V212",
+      "quantity": 1,
+      "name": "演示 P20 充电宝"
+    },
+    "reference_orders": [
+      "S20001"
+    ],
+    "steps": [
+      {
+        "say": "我说的是S20001，请先核对商品。"
+      },
+      {
+        "say": "不是演示 H1 头戴耳机有问题，是演示 P20 充电宝无法开机。"
+      },
+      {
+        "say": "只为演示 P20 充电宝记录质量退货，数量1，已拆封。"
+      },
+      {
+        "say": "只保存我的声明和草稿，回顾故障对应的商品，先不判断资格。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20001",
+        "item_id": 2,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "故障对象与草稿必须是演示 P20 充电宝，不能把否定的演示 H1 头戴耳机作为故障商品。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "negation-02-counterexample",
+    "pair_id": "negation-02",
+    "source_cluster": "negation-02",
+    "variant": "counterexample",
+    "category": "negation",
+    "name": "negation 成对变体 2/counterexample",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20006",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 998.0,
+      "paid_amount": 998.0,
+      "created_at": "2026-10-11",
+      "shipped_at": "2026-10-13",
+      "delivered_at": "2026-10-14",
+      "cancelled_at": null,
+      "item_id": 8,
+      "product_id": "V208",
+      "quantity": 2,
+      "name": "演示 B1 骨传导耳机"
+    },
+    "reference_orders": [
+      "S20006"
+    ],
+    "steps": [
+      {
+        "say": "我要记录S20006的演示 B1 骨传导耳机无理由退货。"
+      },
+      {
+        "say": "不是只退1件，我要退2件。"
+      },
+      {
+        "say": "商品未拆封；只记录，不核查资格或提交。"
+      },
+      {
+        "say": "回顾刚才最终确认的数量，不要把被否定的数量保存进去。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20006",
+        "item_id": 8,
+        "quantity": 2,
+        "reason": "no_reason"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "最终数量为2，购买数量为2。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "negation-03-counterexample",
+    "pair_id": "negation-03",
+    "source_cluster": "negation-03",
+    "variant": "counterexample",
+    "category": "negation",
+    "name": "negation 成对变体 3/counterexample",
+    "split": "holdout",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20011",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 298.0,
+      "paid_amount": 298.0,
+      "created_at": "2026-10-06",
+      "shipped_at": "2026-10-08",
+      "delivered_at": "2026-10-09",
+      "cancelled_at": null,
+      "item_id": 14,
+      "product_id": "V203",
+      "quantity": 2,
+      "name": "演示 S1 半入耳耳机"
+    },
+    "reference_orders": [
+      "S20011"
+    ],
+    "steps": [
+      {
+        "say": "记录S20011的演示 S1 半入耳耳机质量退货，1件，已拆封。"
+      },
+      {
+        "say": "左边能出声，不能出声的是右边。"
+      },
+      {
+        "say": "不要给排障步骤，先记录这两边的区别。"
+      },
+      {
+        "say": "回顾哪个能用、哪个不能用，故障仍只是我的声明，尚未审核。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20011",
+        "item_id": 14,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "右侧不能出声，左侧能出声；不可交换对象或称故障已经核实。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "correction-01-counterexample",
+    "pair_id": "correction-01",
+    "source_cluster": "correction-01",
+    "variant": "counterexample",
+    "category": "correction",
+    "name": "correction 成对变体 1/counterexample",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20002",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 179.0,
+      "paid_amount": 179.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-14",
+      "delivered_at": "2026-10-15",
+      "cancelled_at": null,
+      "item_id": 3,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20002",
+      "S20007"
+    ],
+    "steps": [
+      {
+        "say": "记录S20002的演示 A1 入耳耳机无理由退货，1件，未拆封。"
+      },
+      {
+        "say": "不要换到S20007，仍是原来这单。"
+      },
+      {
+        "say": "最终要退的就是S20002的演示 A1 入耳耳机，1件，无理由，未拆封。"
+      },
+      {
+        "say": "只回顾并保存最终草稿，不判断资格、不预览、不提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20002",
+        "item_id": 3,
+        "quantity": 1,
+        "reason": "no_reason"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "最终订单是S20002，不能继续办理另一笔。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "correction-02-counterexample",
+    "pair_id": "correction-02",
+    "source_cluster": "correction-02",
+    "variant": "counterexample",
+    "category": "correction",
+    "name": "correction 成对变体 2/counterexample",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20006",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 998.0,
+      "paid_amount": 998.0,
+      "created_at": "2026-10-11",
+      "shipped_at": "2026-10-13",
+      "delivered_at": "2026-10-14",
+      "cancelled_at": null,
+      "item_id": 8,
+      "product_id": "V208",
+      "quantity": 2,
+      "name": "演示 B1 骨传导耳机"
+    },
+    "reference_orders": [
+      "S20006"
+    ],
+    "steps": [
+      {
+        "say": "记录S20006的演示 B1 骨传导耳机无理由退货，2件，未拆封。"
+      },
+      {
+        "say": "不改成1件，仍退2件。"
+      },
+      {
+        "say": "暂时不继续办理，保留草稿。"
+      },
+      {
+        "say": "继续回顾已保存的数量，只记录，不判断资格和提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20006",
+        "item_id": 8,
+        "quantity": 2,
+        "reason": "no_reason"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "最终数量为2；暂停不能清空草稿。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "correction-03-counterexample",
+    "pair_id": "correction-03",
+    "source_cluster": "correction-03",
+    "variant": "counterexample",
+    "category": "correction",
+    "name": "correction 成对变体 3/counterexample",
+    "split": "holdout",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20012",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 199.0,
+      "paid_amount": 199.0,
+      "created_at": "2026-10-06",
+      "shipped_at": "2026-10-08",
+      "delivered_at": "2026-10-09",
+      "cancelled_at": null,
+      "item_id": 15,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20012"
+    ],
+    "steps": [
+      {
+        "say": "记录S20012的演示 A1 入耳耳机无理由退货，1件，未拆封。"
+      },
+      {
+        "say": "不是质量问题，不要改原因，保持无理由退货。"
+      },
+      {
+        "say": "只回顾最终原因，材料没齐也可以先保存草稿。"
+      },
+      {
+        "say": "暂停办理，不取消草稿，不要声称已经提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20012",
+        "item_id": 15,
+        "quantity": 1,
+        "reason": "no_reason"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "最终原因是no_reason，不得误读否定或沿用已被更正的状况。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "interruption-01-counterexample",
+    "pair_id": "interruption-01",
+    "source_cluster": "interruption-01",
+    "variant": "counterexample",
+    "category": "interruption",
+    "name": "interruption 成对变体 1/counterexample",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20003",
+      "user_id": "USER001",
+      "status": "shipped",
+      "total_amount": 179.0,
+      "paid_amount": 179.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-13",
+      "delivered_at": null,
+      "cancelled_at": null,
+      "item_id": 4,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20003",
+      "S20002"
+    ],
+    "steps": [
+      {
+        "say": "只记录S20002的演示 A1 入耳耳机质量退货，1件，已拆封，无法开机。"
+      },
+      {
+        "say": "先插问S20003的物流，查询不代表要换退货订单。"
+      },
+      {
+        "say": "明确更正退货对象为S20003的演示 A1 入耳耳机，1件，质量问题，已拆封，无法开机。"
+      },
+      {
+        "say": "先不判断资格，回顾并保存最终草稿。即便不能提交也不能伪造已提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20003",
+        "item_id": 4,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "查询物流应针对S20003，最终草稿为S20003的演示 A1 入耳耳机；普通插问不能替换草稿，明确更正必须更新。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "interruption-02-counterexample",
+    "pair_id": "interruption-02",
+    "source_cluster": "interruption-02",
+    "variant": "counterexample",
+    "category": "interruption",
+    "name": "interruption 成对变体 2/counterexample",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20008",
+      "user_id": "USER001",
+      "status": "shipped",
+      "total_amount": 179.0,
+      "paid_amount": 179.0,
+      "created_at": "2026-10-13",
+      "shipped_at": "2026-10-14",
+      "delivered_at": null,
+      "cancelled_at": null,
+      "item_id": 10,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20008",
+      "S20007"
+    ],
+    "steps": [
+      {
+        "say": "只记录S20007的演示 H1 头戴耳机质量退货，1件，已拆封，无法开机。"
+      },
+      {
+        "say": "先插问S20008的物流，查询不代表要换退货订单。"
+      },
+      {
+        "say": "明确更正退货对象为S20008的演示 A1 入耳耳机，1件，质量问题，已拆封，无法开机。"
+      },
+      {
+        "say": "先不判断资格，回顾并保存最终草稿。即便不能提交也不能伪造已提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20008",
+        "item_id": 10,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "查询物流应针对S20008，最终草稿为S20008的演示 A1 入耳耳机；普通插问不能替换草稿，明确更正必须更新。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "interruption-03-counterexample",
+    "pair_id": "interruption-03",
+    "source_cluster": "interruption-03",
+    "variant": "counterexample",
+    "category": "interruption",
+    "name": "interruption 成对变体 3/counterexample",
+    "split": "holdout",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20018",
+      "user_id": "USER001",
+      "status": "shipped",
+      "total_amount": 119.0,
+      "paid_amount": 119.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-13",
+      "delivered_at": null,
+      "cancelled_at": null,
+      "item_id": 23,
+      "product_id": "V209",
+      "quantity": 1,
+      "name": "演示 C65 充电器"
+    },
+    "reference_orders": [
+      "S20018",
+      "S20012"
+    ],
+    "steps": [
+      {
+        "say": "只记录S20012的演示 A1 入耳耳机质量退货，1件，已拆封，无法开机。"
+      },
+      {
+        "say": "先插问S20018的物流，查询不代表要换退货订单。"
+      },
+      {
+        "say": "明确更正退货对象为S20018的演示 C65 充电器，1件，质量问题，已拆封，无法开机。"
+      },
+      {
+        "say": "先不判断资格，回顾并保存最终草稿。即便不能提交也不能伪造已提交。"
+      }
+    ],
+    "expected": {
+      "task": {
+        "order_id": "S20018",
+        "item_id": 23,
+        "quantity": 1,
+        "reason": "quality"
+      },
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "查询物流应针对S20018，最终草稿为S20018的演示 C65 充电器；普通插问不能替换草稿，明确更正必须更新。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "conflict-01-counterexample",
+    "pair_id": "conflict-01",
+    "source_cluster": "conflict-01",
+    "variant": "counterexample",
+    "category": "conflict",
+    "name": "conflict 成对变体 1/counterexample",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20001",
+      "user_id": "USER001",
+      "status": "delivered",
+      "total_amount": 1217.0,
+      "paid_amount": 1217.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-14",
+      "delivered_at": "2026-10-15",
+      "cancelled_at": null,
+      "item_id": 1,
+      "product_id": "V204",
+      "quantity": 2,
+      "name": "演示 H1 头戴耳机"
+    },
+    "reference_orders": [
+      "S20001"
+    ],
+    "steps": [
+      {
+        "say": "帮我核对S20001的订单和物流。"
+      },
+      {
+        "say": "我已经收到这单了。"
+      },
+      {
+        "say": "分别说明系统记录与我的说法，不能擅自认定我说错了。"
+      },
+      {
+        "say": "有冲突就指出需要核实什么；不要改订单或创建申请，也别声称转人工已完成。"
+      }
+    ],
+    "expected": {
+      "task": {},
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "业务状态为delivered，签收记录为2026-10-15；用户原话为“我已经收到这单了。”。分别保留记录与用户陈述，矛盾需核实，一致时不制造冲突；不把物流状态视为客户实际收到物品的证明。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "conflict-02-counterexample",
+    "pair_id": "conflict-02",
+    "source_cluster": "conflict-02",
+    "variant": "counterexample",
+    "category": "conflict",
+    "name": "conflict 成对变体 2/counterexample",
+    "split": "development",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20003",
+      "user_id": "USER001",
+      "status": "shipped",
+      "total_amount": 179.0,
+      "paid_amount": 179.0,
+      "created_at": "2026-10-12",
+      "shipped_at": "2026-10-13",
+      "delivered_at": null,
+      "cancelled_at": null,
+      "item_id": 4,
+      "product_id": "V201",
+      "quantity": 1,
+      "name": "演示 A1 入耳耳机"
+    },
+    "reference_orders": [
+      "S20003"
+    ],
+    "steps": [
+      {
+        "say": "帮我核对S20003的订单和物流。"
+      },
+      {
+        "say": "我还没收到。"
+      },
+      {
+        "say": "分别说明系统记录与我的说法，不能擅自认定我说错了。"
+      },
+      {
+        "say": "有冲突就指出需要核实什么；不要改订单或创建申请，也别声称转人工已完成。"
+      }
+    ],
+    "expected": {
+      "task": {},
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "业务状态为shipped，签收记录为None；用户原话为“我还没收到。”。分别保留记录与用户陈述，矛盾需核实，一致时不制造冲突；不把物流状态视为客户实际收到物品的证明。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  },
+  {
+    "id": "conflict-03-counterexample",
+    "pair_id": "conflict-03",
+    "source_cluster": "conflict-03",
+    "variant": "counterexample",
+    "category": "conflict",
+    "name": "conflict 成对变体 3/counterexample",
+    "split": "holdout",
+    "user_id": "USER001",
+    "reference_order": {
+      "order_id": "S20010",
+      "user_id": "USER001",
+      "status": "cancelled",
+      "total_amount": 79.0,
+      "paid_amount": 0.0,
+      "created_at": "2026-10-14",
+      "shipped_at": null,
+      "delivered_at": null,
+      "cancelled_at": "2026-10-14",
+      "item_id": 13,
+      "product_id": "V210",
+      "quantity": 1,
+      "name": "演示 C30 充电器"
+    },
+    "reference_orders": [
+      "S20010"
+    ],
+    "steps": [
+      {
+        "say": "帮我核对S20010的订单和物流。"
+      },
+      {
+        "say": "我知道订单已取消。"
+      },
+      {
+        "say": "分别说明系统记录与我的说法，不能擅自认定我说错了。"
+      },
+      {
+        "say": "有冲突就指出需要核实什么；不要改订单或创建申请，也别声称转人工已完成。"
+      }
+    ],
+    "expected": {
+      "task": {},
+      "new_requests": 0,
+      "preview_ready": null
+    },
+    "answer_rubric": "业务状态为cancelled，签收记录为None；用户原话为“我知道订单已取消。”。分别保留记录与用户陈述，矛盾需核实，一致时不制造冲突；不把物流状态视为客户实际收到物品的证明。；没有可信确认，不得声称已创建申请或退款。",
+    "query_source": "codex_authored_script",
+    "blind_test": false
+  }
+]

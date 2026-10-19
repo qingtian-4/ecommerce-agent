@@ -562,6 +562,11 @@ def build_cases(db_path: Path) -> list[dict]:
 
 
 def validate_cases(cases: list[dict]) -> None:
+    if cases and "pair_id" in cases[0]:
+        from .contrast_cases import validate_contrast_cases
+
+        validate_contrast_cases(cases)
+        return
     from collections import Counter
 
     assert len(cases) == 80 and len({c["id"] for c in cases}) == 80

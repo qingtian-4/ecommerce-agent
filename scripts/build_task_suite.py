@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from acs.contrast_cases import build_contrast_cases  # noqa: E402
 from acs.scenarios import build_scenario, sha256  # noqa: E402
 from acs.task_cases import build_cases, validate_cases  # noqa: E402
 
@@ -14,6 +15,7 @@ from acs.task_cases import build_cases, validate_cases  # noqa: E402
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("data/eval/multiturn_v1"))
+    parser.add_argument("--kind", choices=("original", "contrast"), default="original")
     parser.add_argument(
         "--materialize",
         action="store_true",
@@ -27,7 +29,8 @@ def main():
         scenario = build_scenario(args.out / "scenario")
         if scenario != manifest["scenario"]:
             raise ValueError("生成业务事实与冻结清单不一致，不能用于本套评测")
-        if build_cases(args.out / "scenario/business.db") != json.loads(
+        builder = build_contrast_cases if manifest.get("kind") == "contrast" else build_cases
+        if builder(args.out / "scenario/business.db") != json.loads(
             (args.out / "cases.json").read_text(),
         ):
             raise ValueError("生成用例与冻结任务不同")
@@ -35,17 +38,19 @@ def main():
         return
     args.out.mkdir(parents=True, exist_ok=False)
     scenario = build_scenario(args.out / "scenario")
-    cases = build_cases(args.out / "scenario/business.db")
+    builder = build_contrast_cases if args.kind == "contrast" else build_cases
+    cases = builder(args.out / "scenario/business.db")
     validate_cases(cases)
     path = args.out / "cases.json"
     path.write_text(json.dumps(cases, ensure_ascii=False, indent=2) + "\n")
     manifest = {
         "format": 1,
+        "kind": args.kind,
         "cases_sha256": sha256(path),
         "scenario": scenario,
         "author_knows_cases": True,
         "user": "fixed scripts, not LLM simulation",
-        "development_trials": 1,
+        "development_trials": 3 if args.kind == "contrast" else 1,
         "holdout_trials": 3,
         "success": "all deterministic checks AND calibrated semantic judge pass",
         "thresholds": {"holdout_mean": 0.85, "holdout_all_three": 0.75},

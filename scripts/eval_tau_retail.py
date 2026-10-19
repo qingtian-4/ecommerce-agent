@@ -1,8 +1,4 @@
-"""Compare the ACS loop and official LLMAgent on a pinned, unmodified τ retail subset.
-
-Run with the upstream isolated Python environment and PYTHONPATH=src:scripts.
-Credentials are injected into process environment only, never into result configs.
-"""
+"""Evaluate the actual ACS loop and official LLMAgent in pinned τ retail."""
 
 from __future__ import annotations
 
@@ -12,7 +8,8 @@ import json
 import os
 import subprocess
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -23,26 +20,94 @@ from acs.scenarios import sha256  # noqa: E402
 PINNED_COMMIT = "dd8757d4c8791dad7b3cdaf02a105a3d5f9d86bd"
 
 
+def select_tasks(tasks, task_set):
+    ordered = sorted(tasks, key=lambda t: int(t.id))
+    if task_set == "smoke":
+        return ordered[:5]
+    if task_set == "base":
+        return ordered
+    raise ValueError("Unknown task set")
+
+
+def summarise(rows, task_ids, trials):
+    summary = {}
+    for arm in ("llm_agent", "acs_loop"):
+        rs = [r for r in rows if r["arm"] == arm]
+        groups = defaultdict(list)
+        for row in rs:
+            groups[row["id"]].append(row)
+        complete = {
+            tid: group for tid, group in groups.items()
+            if len(group) == trials
+            and {r["trial"] for r in group} == set(range(1, trials + 1))
+        }
+        success = lambda r: r.get("reward") == 1  # noqa: E731
+        evaluated = [r for r in rs if "error" not in r and r.get("simulation", {}).get(
+            "termination_reason",
+        ) != "infrastructure_error"]
+        components = Counter()
+        for row in rs:
+            for key, value in row.get("simulation", {}).get("reward_info", {}).get(
+                "reward_breakdown", {},
+            ).items():
+                if value != 1:
+                    components[key] += 1
+        summary[arm] = {
+            "episodes": len(rs), "planned_episodes": len(task_ids) * trials,
+            "complete": set(complete) == set(task_ids),
+            "mean_reward": sum(r["reward"] for r in rs) / len(rs) if rs else None,
+            "pass^1": sum(success(r) for r in rs) / len(rs) if rs else None,
+            "pass^3": sum(all(success(r) for r in group) for group in complete.values())
+            / len(task_ids) if trials == 3 and set(complete) == set(task_ids) else None,
+            "all_trials_success": sum(all(success(r) for r in g) for g in complete.values())
+            / len(task_ids),
+            "errors": sum("error" in r for r in rs),
+            "official_evaluated_episodes": len(evaluated),
+            "official_mean_reward": sum(r["reward"] for r in evaluated) / len(evaluated)
+            if evaluated else None,
+            "termination_reasons": dict(Counter(
+                r.get("simulation", {}).get("termination_reason", "runner_error") for r in rs
+            )),
+            "failed_reward_components": dict(components),
+            "tool_calls": sum(len(m.get("tool_calls") or []) for r in rs
+                              for m in r.get("simulation", {}).get("messages", [])),
+            "observed_tokens": sum(
+                sum((m.get("usage") or {}).get(k, 0) or 0
+                    for k in ("prompt_tokens", "completion_tokens"))
+                for r in rs for m in r.get("simulation", {}).get("messages", [])
+            ),
+            "observed_duration_s": sum(
+                r.get("simulation", {}).get("duration") or 0 for r in rs
+            ),
+            "cost_complete": False,
+            "cost_note": "Upstream price may be unknown; judge usage is not exported. "
+                         "Zero upstream cost is not free; token counts may be partial.",
+        }
+    return summary
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--upstream", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--freeze", action="store_true")
-    parser.add_argument(
-        "--manifest", type=Path, default=Path("data/eval/tau_retail_subset_v2.json")
-    )
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--task-set", choices=("smoke", "base"), default="smoke")
+    parser.add_argument("--trials", type=int, default=3)
+    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--seed", type=int, default=20261018)
     args = parser.parse_args()
-    commit = (
-        subprocess.check_output(["git", "-C", str(args.upstream), "rev-parse", "HEAD"])
-        .decode()
-        .strip()
-    )
+    if args.trials < 1 or args.workers < 1:
+        parser.error("trials and workers must be positive")
+    args.manifest = args.manifest or Path(f"data/eval/tau_retail_{args.task_set}_v3.json")
+    commit = subprocess.check_output(
+        ["git", "-C", str(args.upstream), "rev-parse", "HEAD"], text=True,
+    ).strip()
     if commit != PINNED_COMMIT:
         raise ValueError("Upstream checkout differs from pinned version")
-    dirty = subprocess.check_output(
-        ["git", "-C", str(args.upstream), "status", "--porcelain"]
-    ).decode()
-    if dirty:
+    if subprocess.check_output(
+        ["git", "-C", str(args.upstream), "status", "--porcelain"], text=True,
+    ):
         raise ValueError("Refusing modified upstream environment, tools or evaluators")
     settings = get_settings()
     os.environ["OPENAI_API_KEY"] = settings.llm_api_key
@@ -50,153 +115,100 @@ def main():
     os.environ["TAU2_DATA_DIR"] = str(args.upstream / "data")
     from loguru import logger
 
-    logger.remove()  # Avoid upstream printing complete model configuration.
-    logger.add(sys.stderr, level="ERROR")
+    logger.remove()
+    logger.add(sys.stderr, level="CRITICAL")
+    from tau2.config import DEFAULT_MAX_RETRIES, LLM_CACHE_ENABLED
     from tau2.domains.retail.environment import get_tasks
 
-    tasks = sorted(get_tasks("base"), key=lambda t: int(t.id))[:5]
+    tasks = select_tasks(get_tasks("base"), args.task_set)
     model = "openai/" + settings.llm_model
-    llm_args = {
-        "api_base": settings.llm_base_url,
-        "temperature": settings.llm_temperature,
-        "max_tokens": settings.llm_max_output_tokens,
-        "extra_body": {"thinking": {"type": "disabled"}},
-        "timeout": 120,
+    llm_args = {"api_base": settings.llm_base_url, "temperature": settings.llm_temperature,
+                "max_tokens": settings.llm_max_output_tokens,
+                "extra_body": {"thinking": {"type": "disabled"}}, "timeout": 120}
+    manifest = {
+        "format": 3, "upstream": "https://github.com/sierra-research/tau2-bench",
+        "commit": commit, "task_set": args.task_set, "task_ids": [t.id for t in tasks],
+        "trials": args.trials, "workers": args.workers, "seed": args.seed,
+        "roles": {"agent": model, "user": model, "nl_judge": model},
+        "llm_args": llm_args, "evaluation_type": "all", "max_steps": 100, "max_errors": 10,
+        "task_hash": sha256(args.upstream / "data/tau2/domains/retail/tasks.json"),
+        "upstream_files": {str(p.relative_to(args.upstream)): sha256(p)
+                           for p in sorted((args.upstream / "src/tau2").rglob("*.py"))},
+        "reward_basis_counts": dict(Counter(
+            "+".join(sorted(t.evaluation_criteria.reward_basis)) for t in tasks
+        )),
+        "arms": ["llm_agent", "acs_loop"], "acs_context_chars": 64000,
+        "acs_budgets": {k: getattr(settings, k) for k in (
+            "max_steps", "turn_timeout_s", "max_api_requests", "max_tool_calls",
+            "max_retrieval_calls",
+        )},
+        "enforce_communication_protocol": False,
+        "upstream_max_retries": DEFAULT_MAX_RETRIES,
+        "upstream_llm_cache_enabled": LLM_CACHE_ENABLED,
+        "error_policy": "No automatic reruns; every attempt retained in planned denominator.",
+        "environment_packages": {d.metadata["Name"]: d.version
+                                 for d in importlib.metadata.distributions()},
+        "scope": "Original environment/scorer; actual ACS loop, not local UI/SQL/RAG. "
+                 "ACS internal budgets differ from official LLMAgent. "
+                 "Concurrent timings are not SLA.",
     }
     if args.freeze:
-        manifest = {
-            "upstream": "https://github.com/sierra-research/tau2-bench",
-            "commit": commit,
-            "selection": "first 5 base task IDs in numeric order; no outcome-based filtering",
-            "task_ids": [t.id for t in tasks],
-            "trials": 3,
-            "seed": 20261015,
-            "roles": {"agent": model, "user": model, "nl_judge": model},
-            "llm_args": llm_args,
-            "evaluation_type": "all",
-            "max_steps": 100,
-            "task_hash": sha256(args.upstream / "data/tau2/domains/retail/tasks.json"),
-            "upstream_files": {
-                str(p.relative_to(args.upstream)): sha256(p)
-                for p in sorted((args.upstream / "src/tau2").rglob("*.py"))
-            },
-            "arms": ["llm_agent", "acs_loop"],
-            "scope": "Original environment/scorer; actual ACS loop, not local UI/SQL/RAG.",
-            "acs_context_chars": 64000,
-            "enforce_communication_protocol": False,
-        }
-        with args.manifest.open("x") as f:
-            json.dump(manifest, f, indent=2)
-        print(f"Frozen task IDs: {manifest['task_ids']}")
+        with args.manifest.open("x") as out:
+            json.dump(manifest, out, indent=2)
+        print(f"Frozen {len(tasks)} tasks x {args.trials} trials x 2 arms")
         return
-    manifest = json.loads(args.manifest.read_text())
-    if (
-        manifest["commit"] != commit
-        or manifest["task_ids"] != [t.id for t in tasks]
-        or manifest["roles"]["agent"] != model
-        or manifest["llm_args"] != llm_args
-        or manifest["task_hash"] != sha256(args.upstream / "data/tau2/domains/retail/tasks.json")
-    ):
-        raise ValueError("External conditions differ from frozen manifest")
+    if json.loads(args.manifest.read_text()) != manifest:
+        raise ValueError("Conditions differ from frozen manifest; freeze a new experiment")
     from tau2.data_model.simulation import TextRunConfig
     from tau2.evaluator import evaluator_nl_assertions
     from tau2.registry import registry
     from tau2.runner.batch import run_single_task
     from tau_acs_agent import create_acs_agent
 
-    # The evaluator's supported module-level configuration selects the judge provider.
-    # Its prompts, original assertions, reward basis and scoring implementation stay intact.
     evaluator_nl_assertions.DEFAULT_LLM_NL_ASSERTIONS = model
     evaluator_nl_assertions.DEFAULT_LLM_NL_ASSERTIONS_ARGS = llm_args
     registry.register_agent_factory(create_acs_agent, "acs_loop")
     args.out.mkdir(parents=True, exist_ok=False)
     frozen = manifest | {
-        "implementation": {
-            str(p): sha256(p)
-            for p in sorted(
-                [
-                    *Path("src/acs").glob("*.py"),
-                    Path("scripts/tau_acs_agent.py"),
-                    Path(__file__),
-                ]
-            )
-        },
-        "packages": {
-            p: importlib.metadata.version(p)
-            for p in (
-                "tau2",
-                "litellm",
-                "openai",
-                "pydantic",
-                "pydantic-settings",
-            )
-        },
+        "implementation": {str(p): sha256(p) for p in sorted([
+            *Path("src/acs").glob("*.py"), Path("scripts/tau_acs_agent.py"), Path(__file__),
+        ])},
+        "packages": {p: importlib.metadata.version(p)
+                     for p in ("tau2", "litellm", "openai", "pydantic", "pydantic-settings")},
     }
     (args.out / "frozen_manifest.json").write_text(json.dumps(frozen, indent=2) + "\n")
+
+    def one(task, trial, arm):
+        config = TextRunConfig(
+            domain="retail", agent=arm, user="user_simulator", llm_agent=model, llm_user=model,
+            llm_args_agent=llm_args, llm_args_user=llm_args, max_steps=100, max_errors=10,
+            enforce_communication_protocol=False,
+        )
+        try:
+            result = run_single_task(config, task, seed=args.seed + trial - 1)
+            return {"id": task.id, "trial": trial, "arm": arm,
+                    "simulation": result.model_dump(mode="json"),
+                    "reward": result.reward_info.reward}
+        except Exception as exc:
+            message = str(exc).replace(settings.llm_api_key, "[REDACTED]")
+            return {"id": task.id, "trial": trial, "arm": arm, "reward": 0,
+                    "error": {"type": type(exc).__name__, "message": message[:1000]}}
+
     rows = []
-    with (args.out / "raw.jsonl").open("x") as raw:
-        for trial in range(manifest["trials"]):
-            for task in tasks:
-                for arm in manifest["arms"]:
-                    config = TextRunConfig(
-                        domain="retail",
-                        agent=arm,
-                        user="user_simulator",
-                        llm_agent=model,
-                        llm_user=model,
-                        llm_args_agent=llm_args,
-                        llm_args_user=llm_args,
-                        max_steps=100,
-                        max_errors=10,
-                        enforce_communication_protocol=manifest["enforce_communication_protocol"],
-                    )
-                    try:
-                        result = run_single_task(config, task, seed=manifest["seed"] + trial)
-                        row = {
-                            "id": task.id,
-                            "trial": trial + 1,
-                            "arm": arm,
-                            "simulation": result.model_dump(mode="json"),
-                            "reward": result.reward_info.reward,
-                        }
-                    except Exception as exc:
-                        # No retries or omitted tasks; preserve errors as failures.
-                        row = {
-                            "id": task.id,
-                            "trial": trial + 1,
-                            "arm": arm,
-                            "reward": 0,
-                            "error": {"type": type(exc).__name__, "message": str(exc)},
-                        }
-                    raw.write(json.dumps(row, ensure_ascii=False) + "\n")
-                    raw.flush()
-                    rows.append(row)
-                    summary = {}
-                    for name in manifest["arms"]:
-                        rs = [r for r in rows if r["arm"] == name]
-                        grouped = defaultdict(list)
-                        for r in rs:
-                            grouped[r["id"]].append(r["reward"])
-                        summary[name] = {
-                            "episodes": len(rs),
-                            "mean_reward": sum(r["reward"] for r in rs) / len(rs) if rs else None,
-                            "all_three_success": sum(
-                                len(v) == 3 and all(x == 1 for x in v) for v in grouped.values()
-                            )
-                            / len(tasks),
-                            "infrastructure_errors": sum("error" in r for r in rs),
-                        }
-                    (args.out / "summary.json").write_text(
-                        json.dumps(
-                            summary | {"raw_sha256": sha256(args.out / "raw.jsonl")}, indent=2
-                        )
-                        + "\n"
-                    )
-                    print(
-                        f"{arm} task={task.id} trial={trial + 1} reward={row['reward']} "
-                        f"error={row.get('error', {}).get('type', 'none')}",
-                        flush=True,
-                    )
+    with (args.out / "raw.jsonl").open("x") as raw, ThreadPoolExecutor(args.workers) as pool:
+        futures = [pool.submit(one, task, trial, arm) for trial in range(1, args.trials + 1)
+                   for task in tasks for arm in manifest["arms"]]
+        for future in as_completed(futures):
+            row = future.result()
+            raw.write(json.dumps(row, ensure_ascii=False) + "\n")
+            raw.flush()
+            rows.append(row)
+            summary = summarise(rows, manifest["task_ids"], args.trials)
+            (args.out / "summary.json").write_text(json.dumps(
+                summary | {"raw_sha256": sha256(args.out / "raw.jsonl")}, indent=2,
+            ) + "\n")
+            print(f"{len(rows)}/{len(futures)} {row['arm']} task={row['id']} "
+                  f"trial={row['trial']} reward={row['reward']}", flush=True)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,202 @@
+[
+  {
+    "id": "catalog-01",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "ValueError"
+      }
+    ]
+  },
+  {
+    "id": "catalog-09",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "unsupported",
+        "evidence": "客服原话：“其他型号要么不支持无线充电（如 A1、S1、H1、H2、O1、O2、B1）”。事实仅明确 A1 不支持无线充电；S1、H1、H2、O1、O2、B1 的无线充电支持情况未给出，不能断言其不支持，因此“A2 是唯一符合”的排除结论也缺乏完整依据。"
+      }
+    ]
+  },
+  {
+    "id": "orders-02",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "memory",
+        "evidence": "task_fields"
+      }
+    ]
+  },
+  {
+    "id": "orders-01",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "候选回复写“10. S20008 — 演示 A1 入耳耳机（黑色）×1，已发货”和“13. S20014 — 演示 A1 入耳耳机（黑色）×1，待发货”，但工具订单中 S20008、S20014 均为 V201-2 白色；颜色与实际订单不符。"
+      }
+    ]
+  },
+  {
+    "id": "orders-06",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“因尚未签收，7 天无理由退货窗口和 15 天价保期限都还没开始计算”；事实是价保自下单之日起15天，订单2026-10-13下单，2026-10-15仍处于价保期内，起算点不是签收日。"
+      }
+    ]
+  },
+  {
+    "id": "orders-06",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“因为还没有签收，所以暂时不涉及签收后的退货或价保起算”，又称“由于订单尚未签收，退货和价保的期限都还没有开始计算”“7 天无理由退货窗口和 15 天价保期限都还没有起算”。事实是价保期限自订单下单之日起 15 天内计算，与签收无关；S20023 下单 2026-10-13，2026-10-15 仍处于价保期（within_price_protection=true），只是当前售价等于购买价、差价为 0。"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-06",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-06",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "preview_eligibility"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-07",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-07",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-07",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "no_reason-09",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "quality-06",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "客服称“您这单签收日是 2026-10-14，今天是 2026-10-18，距签收 4 天，仍在 15 天窗口内”。但事实与 get_order 工具结果均为 today=2026-10-15、delivered_days_ago=1（本例签收 1 天），客服自行改用其他日期并算错天数，违背“直接使用已算好日期字段”的要求。"
+      }
+    ]
+  },
+  {
+    "id": "memory-08",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "grounding",
+        "evidence": "用户把原因改为“质量问题、无法开机、只退1件、非人为损坏”后，update_return_task 返回的草稿 condition 已被清空为 null、secondary_sale_ok 也为 null（仅 quality_non_user_damage=true）；客服却回复“状况：未拆封（沿用之前的信息）”，把无理由退货阶段的“未拆封”资格沿用到质量问题草稿，这与实际草稿状态矛盾，也违反“原因切换不能沿用旧资格”。"
+      }
+    ]
+  },
+  {
+    "id": "confirmation-08",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "confirmation-10",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "unsupported",
+        "evidence": "客服先称“预览已生成，但还没有创建售后单。”，末轮又让用户“重新生成预览”；任务要求本例操作为 no_preview，只应保留草稿，不应生成或引导生成预览。"
+      }
+    ]
+  },
+  {
+    "id": "confirmation-10",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "unsupported",
+        "evidence": "用户只要求准备草稿，且本例操作为 no_preview；客服却回复“预览已生成，但还没有创建售后单”，与不应生成预览的要求不符。"
+      }
+    ]
+  },
+  {
+    "id": "confirmation-10",
+    "trial": 3,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "review-07",
+    "trial": 2,
+    "failures": [
+      {
+        "type": "judge_error",
+        "evidence": "JSONDecodeError"
+      }
+    ]
+  },
+  {
+    "id": "boundary-04",
+    "trial": 1,
+    "failures": [
+      {
+        "type": "clarification",
+        "evidence": "用户要求继续回答退货期限时，客服仅说“你想问的是哪一笔订单的退货期限？我这边还没看到具体订单信息。”，未正常说明7天无理由退货（签收日起7天、不影响二次销售、买家承担运费）及15天质量问题规则（签收日起15天、店铺承担往返运费）。"
+      }
+    ]
+  }
+]

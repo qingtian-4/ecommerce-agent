@@ -1,0 +1,49 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+______ test_requests_do_not_attribute_an_old_application_to_this_session _______
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...t_s=120.0, context_max_chars=24000, max_api_requests=16, max_tool_calls=12, max_retrieval_calls=4, reference_date=None)
+
+    def test_requests_do_not_attribute_an_old_application_to_this_session(settings):
+        from acs.cs_tools import ToolRegistry
+        from acs.database import BusinessDB
+        from acs.returns import ReturnService
+        from acs.sessions import SessionStore
+    
+        store = SessionStore(settings.db_path)
+        service = ReturnService(settings, store)
+        sid = store.create("USER001")
+        tid = store.begin_turn(sid, "USER001", "退货1件，声明符合全部二次销售条件")
+        order = BusinessDB(settings).get_order("O10024", "USER001")
+        store.update_return_task(sid, "USER001", tid, {
+            "order_id": "O10024", "item_id": order["items"][0]["id"],
+            "quantity": 1, "reason": "no_reason", "condition": "sealed", "secondary_sale_ok": True,
+        })
+        preview = service.preview(sid, "USER001", tid)
+        request = service.confirm_and_submit(sid, "USER001", preview["preview_id"], tid)
+        registry = ToolRegistry(settings)
+        registry.bind_return_task(store, sid, tid)
+        same, _, _ = registry.run("get_return_requests", "{}", current_user_id="USER001")
+>       assert same["current_session_request_id"] == request["request_id"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'current_session_request_id'
+
+tests/test_iteration_v2.py:69: KeyError
+___________________ test_prompt_has_effective_business_date ____________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...t_s=120.0, context_max_chars=24000, max_api_requests=16, max_tool_calls=12, max_retrieval_calls=4, reference_date=None)
+
+    def test_prompt_has_effective_business_date(settings):
+        from datetime import date
+    
+        from acs.service_agent import build_system_prompt
+    
+        prompt = build_system_prompt(settings.model_copy(update={"reference_date": date(2026, 10, 15)}))
+>       assert "当前业务日期：2026-10-15" in prompt
+E       assert '当前业务日期：2026-10-15' in '你是一名专业的电商客服助手，服务于一家销售无线耳机与充电配件的店铺。\n\n## 你拥有的工具\n\n- 知识来源由本轮应用配置提供，包括政策与商品说明。\n- `list_products`：枚举本店完整商品目录与当前有效价；找商品...entry": null}, "human_support": {"transfer": false, "message": false, "entry": null}, "other_configured_channels": []}'
+
+tests/test_iteration_v2.py:84: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_iteration_v2.py::test_requests_do_not_attribute_an_old_application_to_this_session
+FAILED tests/test_iteration_v2.py::test_prompt_has_effective_business_date - ...
+2 failed, 4 deselected in 4.41s

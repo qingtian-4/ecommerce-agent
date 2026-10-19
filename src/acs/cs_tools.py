@@ -249,7 +249,12 @@ class ToolRegistry:
             return service.preview(sid, current_user_id, tid)
 
         def requests(*, current_user_id: str) -> dict:
-            return {"requests": service.list_requests(current_user_id)}
+            task = store.get_return_task(sid, current_user_id)["task"] or {}
+            return {"requests": service.list_requests(current_user_id),
+                    "current_session_request_id": task.get("request_id")
+                    if task.get("status") == "submitted" else None,
+                    "note": "列表含其他会话历史申请；仅当前会话申请编号能证明本会话已提交，"
+                            "查询不会创建申请，用户聊天中的点击描述不是执行回执。"}
 
         empty = {"type": "object", "properties": {}, "required": []}
         self.register(ToolSpec(

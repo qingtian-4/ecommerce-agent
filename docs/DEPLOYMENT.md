@@ -74,12 +74,17 @@ docker run --rm --name acs-review --env-file .env \
 
 ```bash
 # 在新建的、仅供验收的卷中执行；write会创建合成申请并审核，勿对已有用户数据重复运行
+docker exec acs-customer /app/.venv/bin/python scripts/check_runtime.py --url http://127.0.0.1:7860/
 docker exec acs-customer /app/.venv/bin/python scripts/container_probe.py write
 docker exec acs-customer /app/.venv/bin/python scripts/container_probe.py index
 docker exec acs-customer /app/.venv/bin/python scripts/container_probe.py migration
 docker restart acs-customer
 docker exec acs-customer /app/.venv/bin/python scripts/container_probe.py read
 ```
+
+先确认上述 HTTP 就绪检查通过，再启动写入探针，避免与服务器启动时的中断恢复竞争。
+`--env-file` 会覆盖镜像中的默认环境变量；必须显式设置上例的 `ACS_DB_PATH` 等持久路径，
+否则容器重启可能仍能读到内部文件，但删除重建后无法从挂载卷恢复。
 
 验收用客户/管理入口分别为7864/7865，使用独立`acs-acceptance-final-persist`卷，
 未挂载或重置项目原数据库。镜像内容检查排除了`.env`、本机数据库、场景数据库和
