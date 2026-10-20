@@ -158,3 +158,13 @@ Ruff与差异格式检查通过。详见 `results/iteration_v2_recovery/final_te
 详见 [最终验收与回退](../results/p0_order_draft_integrity/REPORT.md)、
 [性能分解](../results/p0_order_draft_integrity/acceptance_20261020/PERFORMANCE.md)、
 [下个 Badcase 原始证据](../results/p0_order_draft_integrity/acceptance_20261020/next_badcase.json)。
+
+### P0 PR 与真实页面补验
+
+2026-10-20，已创建 [PR #1](https://github.com/qingtian-4/ecommerce-agent/pull/1)，
+目标 main。功能分支显式开启 P0，真实 Gradio 页面完成三轮发送、刷新恢复和重复进入；
+S20017 草稿始终 item=null、revision=1，无新申请。固定假模型，付费请求为 0；
+后台共执行的 8 轮及浏览器驱动失败均保留，详见
+[页面补验](../results/p0_order_draft_integrity/gradio_acceptance_20261020_verified/REPORT.md)。
+P0 实现与离线验收、PR 和页面补验完成；合并仍待决定，默认开关保持关闭。
+按最新优先级启动独立 P1 订单候选事实一致性，不重跑 P0 性能实验。
