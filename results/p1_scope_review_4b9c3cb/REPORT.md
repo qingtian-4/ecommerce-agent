@@ -129,3 +129,82 @@ ACS_REVIEW_RUNTIME_ROOT=/tmp/acs-p1-review-4b9c3cb .venv/bin/python \
 输出目录必须不存在；运行保留全部失败，不重抽成功样本。构建合成数据库会写入本地
 临时 SQLite，不使用 .env 的模型密钥。脚本关闭 P0 以隔离 P1 因果；既有 P0 回归另测。
 本阶段不运行付费模型、完整 τ，不改写任何冻结历史结果。
+
+
+## 阶段二：最小结构修复与最终验收
+
+先交付并推送实验分析 `d7bdb10da4262537486a1369465bb77806c21800`，随后才修改
+`src/acs/order_candidates.py:19`。生产改动仅此文件：增加整批结构验证，校验失败
+返回 None；删除空明细 `[{}]` 兜底。未修改 ChatService、SQL、ReturnService、P0、
+配置默认值或用户 .env。合法空 orders、SKU=null、单元格转义继续通过原有测试。
+
+[新增单测](../../tests/test_order_candidate_protocol.py)先在原实现得到
+**24 failed、1 passed**，见[红测试原始日志](protocol_red.log)；没有删掉失败用例。
+增加 12 个真实 ChatService + SQLite 异常集成测试，检查 answered、answer、messages、
+final Trace、保存结果一致，以及七张退货相关业务表不变。
+
+最终验证：
+
+| 检查 | 本轮结果 | 证据 |
+| --- | --- | --- |
+| P1 协议、业务、恢复和 UI 定向 | 62 passed | [日志](targeted_green.log) |
+| 独立工作树完整 pytest | 520 passed、1 skipped、4 warnings；exit 0 | [日志](isolated_full_pytest.log) |
+| 独立工作树 Ruff | exit 0 | [日志](isolated_ruff.log) |
+| 正常回放前后配对 | 15 组、30 次输出逐字相同；五项指标和下轮输入完全不变 | [闸门](verification.json) |
+| 异常数据安全不接管 | 开启时 0/12 → 12/12，无中断、无 fact_render | [候选结果](candidate/summary.json) |
+| 业务安全 | 基线和候选共 108 次均无业务状态改变、无新草稿或申请 | [原始记录](candidate/raw.jsonl) |
+| 终态同步 | 候选全部 54 次回答、消息、会话保存、final Trace 一致 | [闸门](verification.json) |
+| 保护范围 | 冻结用例、旧报告/原始结果、用户原有修改、ChatService/P0/ReturnService 哈希不变 | [清单](freeze.json)、[闸门](verification.json) |
+
+完整测试的跳过是可选 tau2 环境未安装；4 个警告来自 Gradio/Pandas 兼容弃用提示，
+没有为本轮验收更新依赖。隔离树以 d7bdb10 建立，仅应用自有源代码/测试补丁；
+[闸门](verification.json)确认隔离测试文件与交付文件一致。没有把未提交用户工作带入测试。
+
+结构修复净收益闸门通过：异常安全回退改善，所有合法回放保持原有行为，无业务副作用。
+**这不是整体 P1 净收益或模型成功率提升的证据。** 意图范围仍未修复，11 个有害覆盖
+仍原样存在。独立 Standards/Spec 复审均未发现局部校验新增阻断缺陷，均保留路由阻塞项。
+原始 orders-01 的两订单颜色纠错保留；任意其他自由文本事实、资格判断均未获得保证。
+
+事实精度 100% 仅指冻结模板中被审计的表格行与明示计数/颜色声明；
+审计器不对任意附加自然语言作全事实验证。上下文字符不是 Token，假模型 usage 不计费用。
+零明细订单即便合法也整体不接管，这是保守降级；异常时保留原模型答案，也不代表该答案
+已经过事实审查。本机制不补工具调用、不修无工具回答、不撤回已流式展示的文字。
+
+### 接管建议与剩余风险
+
+| 问法 | 建议 | 当前实现 |
+| --- | --- | --- |
+| “请列出我的全部订单和全部商品明细” | 可作为无筛选全量展示入口候选 | 可以接管，主矩阵此例成功 |
+| “退货前请列出全部订单和明细让我选择” | 可作为全量候选澄清入口候选，仍需用户确认 | 可以接管，此例成功；不办理业务 |
+| “只列耳机/充电配件”“只看白色”“排除白色” | 不能接管 | 仍错误接管为全表 |
+| “只列已发货未签收/已签收”“只看 S20008/S20003” | 不能接管 | 仍错误接管为全表 |
+| “多少笔/多少件，只给数量”“一句话告诉我 S20008 颜色” | 不能接管 | 仍错误接管为全表 |
+| “最近”、时间界限、混合条件或资格/政策请求 | 不能按当前协议接管 | 单次 list_orders 时仍可能接管；无已证实语义保障 |
+| 已有任务、工具错误/混合工具、状态不可读、非法展示数据 | 不能接管 | 既有入口限制或本次新增结构校验拒绝 |
+
+以上“可作为候选”是未来入口边界，不是一个已经实现的语义路由。
+**最终结论：P1 暂不建议合并，不能默认开启；可交付这次独立的结构安全修复。**
+下一轮最具体的 Badcase 是 short-colour：正确短答被全表替换，带入 19 个无关订单，
+下一轮输入 +1975 字符。先明确用户请求范围与输出形式，再同时保住原始 orders-01
+颜色纠错；不得用白名单把原始缺陷放回去。冻结例均已见结果，后续只能作开发/回归。
+
+### 复验与回退
+
+在修复后的交付工作树运行同一脚本，使用全新输出目录：
+
+```bash
+.venv/bin/python scripts/review_order_candidate_scope.py \
+  --cases data/eval/order_candidate_scope_v1.json --out /tmp/p1-candidate-fresh
+.venv/bin/python -m pytest tests/test_order_candidate_protocol.py tests/test_order_candidate_facts.py
+.venv/bin/python -m pytest
+.venv/bin/ruff check .
+```
+
+对照 summary 的 pairs 必须完全相同；新候选 malformed 中 enabled=true 的 safe_decline
+必须全为 true。默认保持 ACS_ORDER_CANDIDATE_RENDER_ENABLED=false，无需迁移。
+回退局部修复可对相应完整 fix 提交执行 git revert，不改写历史；单独回退该 fix 会恢复
+异常接管/中断缺陷，不能同时开启 P1。实验分析提交可独立保留。
+
+本轮已按用户持续授权提交并推送功能分支；不创建/合并新 PR，不修改 main，
+不启用默认开关，无付费请求或完整 τ Benchmark。推送远端 SHA 以最终交付消息为准；
+仓库没有 GitHub Actions workflow，CI run 列表为空，不宣称远端 CI 已通过。

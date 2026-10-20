@@ -221,3 +221,36 @@ def test_render_switch_defaults_off_and_has_independent_environment(monkeypatch)
     assert not Settings(_env_file=None).order_candidate_render_enabled
     monkeypatch.setenv("ACS_ORDER_CANDIDATE_RENDER_ENABLED", "true")
     assert Settings(_env_file=None).order_candidate_render_enabled
+
+
+@pytest.mark.parametrize("name", json.loads(
+    (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+)["malformed"])
+def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+    from .test_order_candidate_protocol import corrupt_orders
+
+    settings, store = local
+    tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+              "return_requests", "return_audit", "return_reviews")
+
+    def snapshot():
+        with closing(store._connect()) as conn:
+            return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                    for t in tables}
+
+    before = snapshot()
+    monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+        "orders": corrupt_orders(name),
+    })
+    answer = "工具数据暂时不完整，请重新核对订单信息。"
+    final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                          responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                              ScriptedToolCall("orders", "list_orders", "{}"),
+                          ]), ScriptedResponse(text=answer)])
+    saved = store.load(final.session_id, "USER001")
+    assert final.result.stop_reason == "answered"
+    assert final.result.answer == agent.messages[-1]["content"] == answer
+    assert saved["last_result"]["answer"] == saved["messages"][-1]["content"] == answer
+    assert final.result.trace[-1].detail["text"] == answer
+    assert not any(e.type == "fact_render" for e in final.result.trace)
+    assert final.task_view["task"] is None and snapshot() == before

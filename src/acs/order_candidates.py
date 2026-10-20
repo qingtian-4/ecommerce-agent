@@ -16,6 +16,38 @@ def _cell(value) -> str:
     return text
 
 
+def _valid_orders(orders: list) -> bool:
+    """Decline the whole presentation when any nested row violates the tool protocol."""
+    for order in orders:
+        if (not isinstance(order, dict) or not isinstance(order.get("order_id"), str)
+                or not order["order_id"].strip()):
+            return False
+        if any(order.get(k) is not None and not isinstance(order[k], str)
+               for k in ("status", "created_at")):
+            return False
+        items = order.get("items")
+        if not isinstance(items, list) or not items:
+            return False
+        for item in items:
+            if (not isinstance(item, dict) or type(item.get("id")) is not int
+                    or item["id"] <= 0 or type(item.get("quantity")) is not int
+                    or item["quantity"] <= 0):
+                return False
+            if any(not isinstance(item.get(k), str) or not item[k].strip()
+                   for k in ("product_id", "product_name")):
+                return False
+            if "sku" not in item:
+                return False
+            sku = item["sku"]
+            if sku is not None and (
+                not isinstance(sku, dict) or not isinstance(sku.get("sku_id"), str)
+                or not sku["sku_id"].strip() or "color" not in sku
+                or (sku["color"] is not None and not isinstance(sku["color"], str))
+            ):
+                return False
+    return True
+
+
 def order_candidate_response(trace: list[TraceEvent], task_view: dict,
                              stop_reason: str) -> tuple[str, dict] | None:
     """Only a single successful list_orders, no active task and no other tool workflow."""
@@ -32,11 +64,13 @@ def order_candidate_response(trace: list[TraceEvent], task_view: dict,
     payload = event.detail.get("result")
     if not isinstance(payload, dict) or not isinstance(payload.get("orders"), list):
         return None
+    if not _valid_orders(payload["orders"]):
+        return None
     orders = sorted(payload["orders"], key=lambda o: o["order_id"])
     orders.sort(key=lambda o: o.get("created_at") or "", reverse=True)
     rows = []
     for order in orders:
-        items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+        items = sorted(order["items"], key=lambda i: i["id"])
         for item in items:
             sku = item.get("sku") or {}
             rows.append({"order_id": order["order_id"], "item_id": item.get("id"),
