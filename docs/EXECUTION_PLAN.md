@@ -168,3 +168,27 @@ S20017 草稿始终 item=null、revision=1，无新申请。固定假模型，�
 [页面补验](../results/p0_order_draft_integrity/gradio_acceptance_20261020_verified/REPORT.md)。
 P0 实现与离线验收、PR 和页面补验完成；合并仍待决定，默认开关保持关闭。
 按最新优先级启动独立 P1 订单候选事实一致性，不重跑 P0 性能实验。
+
+## P1 首轮交付与后续优先级
+
+2026-10-20，在独立 feat/order-candidate-facts 分支完成 orders-01 的最小候选呈现。
+原始红测试 1 失败/1 通过，实现后同两项通过；25 项针对性、483 项完整测试通过，
+1 项可选 tau2 适配跳过，Ruff 通过。四组开关配对使用同一模型决策与两轮输入，
+确定性展示绑定订单、明细和 SKU；SQL 改色能跟随，无新增草稿或申请。
+
+新增开关 ACS_ORDER_CANDIDATE_RENDER_ENABLED 默认关闭，只在无既有任务的
+单次成功 list_orders 纯候选回合生效。没有改动 SQL、ReturnService、RAG、权限或确认。
+模型调用数不变，原始案例后续输入+1,618 字符；不宣称 Token 节省或整体成功率提升。
+P1 工作仍在本地未提交、未推送，不进入 P0 PR。详见
+[P1 报告](../results/p1_order_candidate_facts/REPORT.md)和[候选协议](P1_ORDER_FACTS.md)。
+
+后续顺序保持用户决定的优先级，不自动执行：
+
+1. P0：[PR #1](https://github.com/qingtian-4/ecommerce-agent/pull/1) 已有真实页面补验，
+   审阅后决定合并；本轮不修改 main，默认检查继续关闭。
+2. P1：审阅纯候选入口及完整表格的取舍；扩大前冻结筛选、汇总、已有任务和混合工具
+   的成对任务，不以确定性表格的正确性替代整个回答协议的正确性。
+3. Context Engineering：优先依据后续上下文增加的实际证据优化有界信息呈现，
+   保留对象绑定和来源，不直接增加 Fact Ledger。
+4. 多轮 Evaluation：冻结下一候选与任务、明确预算后再做真实模型评价，
+   没有单独授权前不调用付费 API 或完整τ Benchmark。

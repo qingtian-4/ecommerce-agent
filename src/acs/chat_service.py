@@ -15,6 +15,8 @@ from time import perf_counter
 
 from .config import Settings
 from .context import ContextLimitExceeded, bounded_context
+from .cs_tools import TraceEvent
+from .order_candidates import order_candidate_response
 from .return_state_check import check_order_draft, state_notice
 from .runtime import BudgetExceeded, RunBudget
 from .service_agent import AgentResult, CustomerServiceAgent, build_system_prompt
@@ -106,6 +108,20 @@ class ChatService:
                         task = self.store.get_return_task(sid, user_id)
                         task_events = updates
                     if result.stop_reason != "running":
+                        if self.settings.order_candidate_render_enabled:
+                            rendered = order_candidate_response(result.trace, task,
+                                                                result.stop_reason)
+                            if rendered is not None:
+                                original = result.answer
+                                result.answer, detail = rendered
+                                detail.update(user_id=user_id, original_answer=original)
+                                agent.messages[-1]["content"] = result.answer
+                                finals = [e for e in result.trace if e.type == "final"]
+                                if finals:
+                                    finals[-1].detail["text"] = result.answer
+                                result.trace.insert(len(result.trace) - bool(finals), TraceEvent(
+                                    "fact_render", "order_candidates", detail,
+                                ))
                         if self.settings.return_state_check_enabled:
                             checked_at = perf_counter()
                             event = check_order_draft(

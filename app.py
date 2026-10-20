@@ -350,6 +350,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             title = f"Step {step_no} · 页面操作 <code>{html.escape(event.label)}</code>"
         elif event.type == "state_check":
             title = f"Step {step_no} · 服务端状态检查 <code>{html.escape(event.label)}</code>"
+        elif event.type == "fact_render":
+            title = f"Step {step_no} · 订单候选事实 <code>{html.escape(event.label)}</code>"
         else:
             title = f"Step {step_no} · 最终回答"
 
@@ -374,7 +376,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             body = _truncate(detail.get("result", detail))
 
         css_class = event.type.replace("_", "-")
-        if css_class not in {"call", "result", "retrieval", "error", "final", "state-check"}:
+        if css_class not in {"call", "result", "retrieval", "error", "final", "state-check",
+                             "fact-render"}:
             css_class = ""
         parts.append(
             f"<div class='trace-step {css_class}'>"
@@ -994,6 +997,7 @@ button.primary { background:#c64b06 !important; color:white !important; }
 .trace-step.error     { border-top-color: #dc2626; background: #fef2f2; }
 .trace-step.final     { border-top-color: #0f172a; background: #f1f5f9; }
 .trace-step.state-check { border-top-color: #b45309; background: #fffbeb; }
+.trace-step.fact-render { border-top-color: #0369a1; background: #f0f9ff; }
 .trace-head { font-weight: 600; margin-bottom: 4px; color:#0f172a; }
 .trace-body { white-space: pre-wrap; word-break: break-word; color: #334155; line-height:1.5; }
 .mono-key { color: #64748b; }
