@@ -96,3 +96,65 @@ PYTHONPATH=src:scripts /tmp/acs-tau-run-env/bin/python scripts/eval_tau_retail.p
 Ruff与差异格式检查通过。详见 `results/iteration_v2_recovery/final_tests.log`、
 `ruff.log`、`verification.json`；此前适配检查见 `results/iteration_v2/tau_bridge_tests.log`。
 上述检查记录对应本地评测阶段，后续提交和远程版本以 Git 历史为准。
+
+## P0 架构改进实施记录
+
+2026-10-20，按用户本轮要求从冻结提交 `3a4de7c` 创建
+`fix/order-draft-integrity` 功能分支，只实施
+[架构提案](ARCHITECTURE_IMPROVEMENT_PROPOSAL.md) 的方案 A。
+
+已迁入 orders-02 离线红测试并实施受限检查、事务内 only-if-absent、补存后权威状态
+重读、最终回答/消息/Trace 同步，以及独立服务端检查 UI。用户确认、ReturnService、
+幂等、管理员审核、业务表结构和 RAG 保持原约束。没有新增 Fact Ledger 或模型调用。
+
+8 组开关配对共 16 段离线对话中，原始遗漏仅补订单 S20017，不选择商品、不创建申请；
+负例误补存、额外 revision 和新申请均为 0。普通模型写入不重复。基线 398 项通过、
+1 项跳过；正式红测试 1 失败、3 通过，最小实现后同四项通过。最终针对性测试
+179 项通过，完整测试 453 项通过、1 项可选 τ 适配跳过，Ruff 通过；完整工程与恢复
+证据见 [本轮报告](../results/p0_order_draft_integrity/REPORT.md)。
+
+条件补存与读回本次约 405 ms，未达到提案的 20 ms 候选延迟目标；样本仅 4 次，
+不报告稳定提速。后续上下文增加，未调用真实模型，不能报告 Token 节省或整体成功率
+提升。开关默认 false；显式设置 `ACS_RETURN_STATE_CHECK_ENABLED=true` 并重启才启用，
+回退设为 false，不删除合法草稿、不迁移数据库。用户已有修改和历史实验保持原样。
+
+后续先汇报本轮结果，等待用户决定：
+
+1. 是否接受窄入口及已披露的延迟代价，或先在隔离、无网络条件下拆分延迟来源。
+2. 是否需要另行授权真实模型的小规模同条件验证；未经授权不调用付费 API。
+3. 是否继续 P1/P2。当前不自动实施，也不运行全量 τ Benchmark。
+
+本轮未自动提交、推送、合并或发布；实现、测试和必要文档保留为一个完整待审改动。
+
+## P0 最终工程验收与下一步
+
+2026-10-20，完成用户要求的代码审查、独立性能定位、离线回归和上下文拆分。
+补齐 finish_turn 失败后的实际任务卡与持久化历史恢复，读回失败显示未知；
+修正未绑定订单提示，保留中断回答的人工接入能力边界。没有改触发判据、
+条件事务、ReturnService 或其他架构功能。
+
+最终定向测试 108 passed，隔离工作树完整 458 passed、1 skipped，Ruff 通过；
+8 组开关配对无误补存、覆盖、额外 revision 或新申请。
+六路径微基准各 10 冷/30 热试验，失败 0；真实补存加读回预热 p50/p95/max 为
+150.59/240.26/258.22 ms，主要耗时在 SQLite 提交，竞争增加锁等待。
+原四个混合样本不能代表稳定 p95，未通过关闭同步或安全事务降低耗时。
+首轮模型输入不增加，后三轮每轮 +1,207 字符=草稿投影 1,138+历史更正 69；
+无新增模型请求，没有真实 Token 或费用收益结论。
+
+**验收建议：可以启用现有窄入口。** 默认开关仍关闭，未修改用户 .env；
+若部署必须满足 20 ms 的持久写入 SLO，当前环境不符合，需继续关闭并另评存储。
+用户可独立决定是否启用，以及是否提交本地完整改动。已准备 Conventional Commit
+标题和 PR 描述，未执行提交、创建 PR、push、merge 或修改 main。
+
+后续待用户决定，不自动执行：
+
+1. 优先冻结并复现 `orders-01 / trial=1` 的对象事实错误：S20008 的白色 V201-2
+   与 S20003 的黑色 V201-1 被合并描述成黑色。先建立订单、明细与颜色绑定的成对离线断言，
+   再决定最小方案，不默认增加 Fact Ledger 或任务平台。
+2. 对真实模型收益或费用有评价需求时，另行授权、冻结独立小批次及预算；
+   当前假模型回归与历史 140/160 不作成功率或真实 Token 提升证据。
+3. P1/P2、上下文重构与任何付费/API/完整 τ 工作均需后续单独范围决定。
+
+详见 [最终验收与回退](../results/p0_order_draft_integrity/REPORT.md)、
+[性能分解](../results/p0_order_draft_integrity/acceptance_20261020/PERFORMANCE.md)、
+[下个 Badcase 原始证据](../results/p0_order_draft_integrity/acceptance_20261020/next_badcase.json)。

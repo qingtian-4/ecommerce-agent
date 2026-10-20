@@ -1,0 +1,32 @@
+{
+  "cases": [
+    "not_applicable",
+    "blocked",
+    "satisfied",
+    "repaired",
+    "repaired_readback",
+    "contention"
+  ],
+  "cold_samples_per_case": 10,
+  "warm_samples_per_case": 30,
+  "warmup_per_case": 5,
+  "contention_threads": 4,
+  "cold_definition": "fresh subprocess, copied database, no measured-path warmup; OS page cache is not dropped",
+  "warm_definition": "same process/database after 5 declared warmups, new session per sample; production opens fresh SQLite connections",
+  "contention_definition": "4 valid conditional writers to one absent task, coordinated at BEGIN IMMEDIATE; 1 created and 3 satisfied required",
+  "filesystem": "same /tmp default TemporaryDirectory as original probe",
+  "sqlite": "production defaults; PRAGMAs recorded and never changed",
+  "phase_metrics": [
+    "intent_ms",
+    "initial_read_ms",
+    "write_connect_ms",
+    "write_lock_ms",
+    "conditional_write_ms",
+    "commit_ms",
+    "readback_ms",
+    "guard_ms",
+    "total_ms"
+  ],
+  "percentile": "nearest-rank; retain every sample and every error; warmups recorded separately",
+  "execution": "sequential subprocess samples; no pytest or paid API in parallel; only declared contention uses threads"
+}

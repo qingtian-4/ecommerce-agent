@@ -1,0 +1,105 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/qingtian/projects/E-commerce Agent/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/qingtian/projects/E-commerce Agent
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 58 items / 55 deselected / 3 selected
+
+tests/test_return_state_check.py::test_ui_finish_failure_rereads_committed_draft_or_shows_unknown[False] FAILED [ 33%]
+tests/test_return_state_check.py::test_ui_finish_failure_rereads_committed_draft_or_shows_unknown[True] FAILED [ 66%]
+tests/test_return_state_check.py::test_unbound_existing_draft_notice_does_not_print_none FAILED [100%]
+
+=================================== FAILURES ===================================
+____ test_ui_finish_failure_rereads_committed_draft_or_shows_unknown[False] ____
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...check_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7feefcaac190>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feefca0ed70>
+readback_fails = False
+
+    @pytest.mark.parametrize("readback_fails", [False, True])
+    def test_ui_finish_failure_rereads_committed_draft_or_shows_unknown(local, monkeypatch, readback_fails):
+        import app
+    
+        settings, store = local
+        settings = settings.model_copy(update={"return_state_check_enabled": True})
+        monkeypatch.setattr(app, "SETTINGS", settings)
+        monkeypatch.setattr(app, "_SESSION_STORE", store)
+        original_read = store.get_return_task
+        def fail_finish(*args):
+            if readback_fails:
+                def unavailable(*args):
+                    raise sqlite3.OperationalError("injected UI readback failure")
+                monkeypatch.setattr(store, "get_return_task", unavailable)
+            raise OSError("injected final response loss")
+        monkeypatch.setattr(store, "finish_turn", fail_finish)
+        agent = make_agent(settings, [order_response(), ScriptedResponse(text="请您选择商品")])
+        state = {"user_id": "USER001", "agent": agent}
+        final = list(app.on_send("我想退S20017。", [], state, app.USER_CHOICES[0]))[-1]
+        task = original_read(state["session_id"], "USER001")["task"]
+        assert task["order_id"] == "S20017" and task["revision"] == 1
+>       assert "尚无退货草稿" not in final[5]
+E       assert '尚无退货草稿' not in "<div class=...</div></div>"
+E         
+E         '尚无退货草稿' is contained here:
+E           <div class='cs-card'><h4>当前会话</h4><div class='cs-user'><div class='cs-avatar'>张</div><div><div class='nm'>张伟</div><div class='ph'>USER001 · 138****8001</div></div></div><div class='cs-hint' style='margin-top:9px'>只能查询该用户本人的订单，权限校验在数据层执行。</div></div><div class='cs-card'><h4>订单列表</h4><div class='cs-orders'><div class='cs-order'><b>S20004</b> <span>待发货 · ¥119.00</span></div><div class='cs-order'><b>S20010</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20013</b> <span>已发货 · ¥588.00</span></div><div class='cs-order'><b>S20019</b> <span>待发货 · ¥469.00</sp...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_return_state_check.py:593: AssertionError
+____ test_ui_finish_failure_rereads_committed_draft_or_shows_unknown[True] _____
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...check_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7feef8d6d6e0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feefca0ec40>
+readback_fails = True
+
+    @pytest.mark.parametrize("readback_fails", [False, True])
+    def test_ui_finish_failure_rereads_committed_draft_or_shows_unknown(local, monkeypatch, readback_fails):
+        import app
+    
+        settings, store = local
+        settings = settings.model_copy(update={"return_state_check_enabled": True})
+        monkeypatch.setattr(app, "SETTINGS", settings)
+        monkeypatch.setattr(app, "_SESSION_STORE", store)
+        original_read = store.get_return_task
+        def fail_finish(*args):
+            if readback_fails:
+                def unavailable(*args):
+                    raise sqlite3.OperationalError("injected UI readback failure")
+                monkeypatch.setattr(store, "get_return_task", unavailable)
+            raise OSError("injected final response loss")
+        monkeypatch.setattr(store, "finish_turn", fail_finish)
+        agent = make_agent(settings, [order_response(), ScriptedResponse(text="请您选择商品")])
+        state = {"user_id": "USER001", "agent": agent}
+        final = list(app.on_send("我想退S20017。", [], state, app.USER_CHOICES[0]))[-1]
+        task = original_read(state["session_id"], "USER001")["task"]
+        assert task["order_id"] == "S20017" and task["revision"] == 1
+>       assert "尚无退货草稿" not in final[5]
+E       assert '尚无退货草稿' not in "<div class=...</div></div>"
+E         
+E         '尚无退货草稿' is contained here:
+E           <div class='cs-card'><h4>当前会话</h4><div class='cs-user'><div class='cs-avatar'>张</div><div><div class='nm'>张伟</div><div class='ph'>USER001 · 138****8001</div></div></div><div class='cs-hint' style='margin-top:9px'>只能查询该用户本人的订单，权限校验在数据层执行。</div></div><div class='cs-card'><h4>订单列表</h4><div class='cs-orders'><div class='cs-order'><b>S20004</b> <span>待发货 · ¥119.00</span></div><div class='cs-order'><b>S20010</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20013</b> <span>已发货 · ¥588.00</span></div><div class='cs-order'><b>S20019</b> <span>待发货 · ¥469.00</sp...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_return_state_check.py:593: AssertionError
+____________ test_unbound_existing_draft_notice_does_not_print_none ____________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...check_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7feef8d6da70>)
+
+    def test_unbound_existing_draft_notice_does_not_print_none(local):
+        _, store = local
+        sid = save_task(store, {"reason": "no_reason"})
+        update, _ = run_request(local, sid=sid)
+        assert check_event(update).detail["status"] == "conflict"
+>       assert "尚未绑定订单" in update.result.answer
+E       assert '尚未绑定订单' in '请您选择商品。\n\n状态更正（以重新读取的后台记录为准）：当前草稿对应订单 None，与本轮请求的 S20017 不同；未执行自动补存，请明确是否更改。'
+E        +  where '请您选择商品。\n\n状态更正（以重新读取的后台记录为准）：当前草稿对应订单 None，与本轮请求的 S20017 不同；未执行自动补存，请明确是否更改。' = AgentResult(answer='请您选择商品。\n\n状态更正（以重新读取的后台记录为准）：当前草稿对应订单 None，与本轮请求的 S20017 不同；未执行自动补存，请明确是否更改。', trace=[TraceEvent(type='tool_call', label='get_order', detail={'arguments': '{"order_id": "S20017"}'}, duration_ms=None), TraceEvent(type='tool_result', label='get_order', detail={'result': {'order_id': 'S20017', 'user_id': 'USER001', 'status': 'delivered', 'total_amount': 678.0, 'paid_amount': 678.0, 'created_at': '2026-10-05', 'shipped_at': '2026-10-07', 'delivered_at': '2026-10-08', 'cancelled_at': None, 'user_name': '张伟', 'items': [{'id': 21, 'order_id': 'S20017', 'product_id': 'V204', 'quantity': 1, 'purchase_price': 549.0, 'product_name': '演示 H1 头戴耳机', 'product_category': '无线耳机', 'sku': {'sku_id': 'V204-1', 'product_id': 'V204', 'wearing_type': '头戴式', 'anc': 1, 'color': '黑色', 'availability': 'available'}, 'current_price': 499.0, 'price_delta': 50.0}, {'id': 22, 'order_id': 'S20017', 'product_id': 'V209', 'quantity': 1, 'purchase_price': 129.0, 'product_name': '演示 C65 充电器', 'product_category': '充电配件', 'sku': {'sku_id': 'V209-2', 'product_id': 'V209', 'wearing_type': None, 'anc': None, 'color': '白色', 'availability': 'available'}, 'current_price': 119.0, 'price_delta': 10.0}], '...ered_date 是签收日期，delivered_days_ago 是距今的天数。请直接使用这些值，不要自行推算或改用其他日期。within_return_window只表示7天无理由窗口，不适用于质量问题，也不代表完整退货资格。'}}, duration_ms=None), TraceEvent(type='state_check', label='return_order_draft', detail={'version': 1, 'order_id': 'S20017', 'turn_id': '5576e7bf41d540209e10efee9b9a2c9c', 'user_text': '我想退S20017。', 'source_type': 'user_claim', 'status': 'conflict', 'reason': 'existing_task', 'before_revision': 1, 'after_revision': 1, 'observed_status': 'draft'}, duration_ms=0.6746659928467125), TraceEvent(type='final', label='answer', detail={'text': '请您选择商品。\n\n状态更正（以重新读取的后台记录为准）：当前草稿对应订单 None，与本轮请求的 S20017 不同；未执行自动补存，请明确是否更改。'}, duration_ms=None)], steps=2, tool_calls=1, retrieval_queries=[], retrieved_documents=[], errors=[], stop_reason='answered', totals={'calls': 2, 'prompt_tokens': 20, 'completion_tokens': 10, 'total_tokens': 30, 'latency_ms': 2.9746659928467123, 'cost_cny': '0.000100', 'unpriced_models': [], 'model_input_chars': [9077, 10786], 'api_latency_ms': 1.0, 'context': {'limit_chars': 24000, 'input_chars': 9077, 'retained_turns': 1, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}, 'state_check_ms': 0.6746659928467125}).answer
+E        +    where AgentResult(answer='请您选择商品。\n\n状态更正（以重新读取的后台记录为准）：当前草稿对应订单 None，与本轮请求的 S20017 不同；未执行自动补存，请明确是否更改。', trace=[TraceEvent(type='tool_call', label='get_order', detail={'arguments': '{"order_id": "S20017"}'}, duration_ms=None), TraceEvent(type='tool_result', label='get_order', detail={'result': {'order_id': 'S20017', 'user_id': 'USER001', 'status': 'delivered', 'total_amount': 678.0, 'paid_amount': 678.0, 'created_at': '2026-10-05', 'shipped_at': '2026-10-07', 'delivered_at': '2026-10-08', 'cancelled_at': None, 'user_name': '张伟', 'items': [{'id': 21, 'order_id': 'S20017', 'product_id': 'V204', 'quantity': 1, 'purchase_price': 549.0, 'product_name': '演示 H1 头戴耳机', 'product_category': '无线耳机', 'sku': {'sku_id': 'V204-1', 'product_id': 'V204', 'wearing_type': '头戴式', 'anc': 1, 'color': '黑色', 'availability': 'available'}, 'current_price': 499.0, 'price_delta': 50.0}, {'id': 22, 'order_id': 'S20017', 'product_id': 'V209', 'quantity': 1, 'purchase_price': 129.0, 'product_name': '演示 C65 充电器', 'product_category': '充电配件', 'sku': {'sku_id': 'V209-2', 'product_id': 'V209', 'wearing_type': None, 'anc': None, 'color': '白色', 'availability': 'available'}, 'current_price': 119.0, 'price_delta': 10.0}], '...ered_date 是签收日期，delivered_days_ago 是距今的天数。请直接使用这些值，不要自行推算或改用其他日期。within_return_window只表示7天无理由窗口，不适用于质量问题，也不代表完整退货资格。'}}, duration_ms=None), TraceEvent(type='state_check', label='return_order_draft', detail={'version': 1, 'order_id': 'S20017', 'turn_id': '5576e7bf41d540209e10efee9b9a2c9c', 'user_text': '我想退S20017。', 'source_type': 'user_claim', 'status': 'conflict', 'reason': 'existing_task', 'before_revision': 1, 'after_revision': 1, 'observed_status': 'draft'}, duration_ms=0.6746659928467125), TraceEvent(type='final', label='answer', detail={'text': '请您选择商品。\n\n状态更正（以重新读取的后台记录为准）：当前草稿对应订单 None，与本轮请求的 S20017 不同；未执行自动补存，请明确是否更改。'}, duration_ms=None)], steps=2, tool_calls=1, retrieval_queries=[], retrieved_documents=[], errors=[], stop_reason='answered', totals={'calls': 2, 'prompt_tokens': 20, 'completion_tokens': 10, 'total_tokens': 30, 'latency_ms': 2.9746659928467123, 'cost_cny': '0.000100', 'unpriced_models': [], 'model_input_chars': [9077, 10786], 'api_latency_ms': 1.0, 'context': {'limit_chars': 24000, 'input_chars': 9077, 'retained_turns': 1, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}, 'state_check_ms': 0.6746659928467125}) = TurnUpdate(session_id='f40cde8a4059409bb491757368cee6df', history=[{'role': 'user', 'content': '{"reason": "no_reason"}'}, {'role': 'assistant', 'content': '已存草稿'}, {'role': 'user', 'content': '我想退S20017。'}, {'role': 'assistant', 'content': '请您选择商品。\n\n状态更正（以重新读取的后台记录为准）：当前草稿对应订单 None，与本轮请求的 S20017 不同；未执行自动补存，请明确是否更改。'}], result=AgentResult(answer='请您选择商品。\n\n状态更正（以重新读取的后台记录为准）：当前草稿对应订单 None，与本轮请求的 S20017 不同；未执行自动补存，请明确是否更改。', trace=[TraceEvent(type='tool_call', label='get_order', detail={'arguments': '{"order_id": "S20017"}'}, duration_ms=None), TraceEvent(type='tool_result', label='get_order', detail={'result': {'order_id': 'S20017', 'user_id': 'USER001', 'status': 'delivered', 'total_amount': 678.0, 'paid_amount': 678.0, 'created_at': '2026-10-05', 'shipped_at': '2026-10-07', 'delivered_at': '2026-10-08', 'cancelled_at': None, 'user_name': '张伟', 'items': [{'id': 21, 'order_id': 'S20017', 'product_id': 'V204', 'quantity': 1, 'purchase_price': 549.0, 'product_name': '演示 H1 头戴耳机', 'product_category': '无线耳机', 'sku': {'sku_id': 'V204-1', 'product_id': 'V204', 'wearing_type': '头戴式', 'anc': 1, 'color': '黑色', 'availability': 'available'}, 'current_price': 499.0, 'price_delta': 50.0}, ... retrieval_queries=[], retrieved_documents=[], errors=[], stop_reason='answered', totals={'calls': 2, 'prompt_tokens': 20, 'completion_tokens': 10, 'total_tokens': 30, 'latency_ms': 2.9746659928467123, 'cost_cny': '0.000100', 'unpriced_models': [], 'model_input_chars': [9077, 10786], 'api_latency_ms': 1.0, 'context': {'limit_chars': 24000, 'input_chars': 9077, 'retained_turns': 1, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}, 'state_check_ms': 0.6746659928467125}), task_view={'task': {'order_id': None, 'item_id': None, 'quantity': None, 'reason': 'no_reason', 'condition': None, 'problem_description': None, 'secondary_sale_ok': None, 'quality_non_user_damage': None, 'sources': {'reason': {'turn_id': 'a605df8ea8bc4a6faad8a37700350f75', 'user_text': '{"reason": "no_reason"}', 'type': 'user_claim', 'updated_at': '2026-10-20T11:39:05.372007+00:00'}}, 'revision': 1, 'status': 'draft'}, 'order': None, 'missing_fields': ['order_id', 'item_id', 'quantity', 'secondary_sale_ok'], 'can_submit': False, 'note': '草稿未经审核；生成预览后须通过界面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-20T11:39:05.809025+00:00'}, phase='completed', elapsed_ms=491.6291930130683).result
+
+tests/test_return_state_check.py:611: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_return_state_check.py::test_ui_finish_failure_rereads_committed_draft_or_shows_unknown[False]
+FAILED tests/test_return_state_check.py::test_ui_finish_failure_rereads_committed_draft_or_shows_unknown[True]
+FAILED tests/test_return_state_check.py::test_unbound_existing_draft_notice_does_not_print_none
+====================== 3 failed, 55 deselected in 14.44s =======================

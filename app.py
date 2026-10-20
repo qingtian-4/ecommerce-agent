@@ -317,7 +317,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
         )
 
     running = result.stop_reason == "running"
-    badge = {"running": "warn", "answered": "ok", "max_steps": "warn", "llm_error": "bad"}.get(
+    badge = {"running": "warn", "answered": "ok", "max_steps": "warn", "llm_error": "bad",
+             "state_check_error": "bad"}.get(
         result.stop_reason, ""
     )
     parts: list[str] = ["<div class='trace-panel'>"]
@@ -347,6 +348,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             title = f"Step {step_no} · 错误 <code>{html.escape(event.label)}</code>"
         elif event.type == "ui_action":
             title = f"Step {step_no} · 页面操作 <code>{html.escape(event.label)}</code>"
+        elif event.type == "state_check":
+            title = f"Step {step_no} · 服务端状态检查 <code>{html.escape(event.label)}</code>"
         else:
             title = f"Step {step_no} · 最终回答"
 
@@ -371,7 +374,7 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             body = _truncate(detail.get("result", detail))
 
         css_class = event.type.replace("_", "-")
-        if css_class not in {"call", "result", "retrieval", "error", "final"}:
+        if css_class not in {"call", "result", "retrieval", "error", "final", "state-check"}:
             css_class = ""
         parts.append(
             f"<div class='trace-step {css_class}'>"
@@ -511,7 +514,9 @@ def pack(
 
 def render_return_task(view: dict | None) -> str:
     task = (view or {}).get("task")
-    if not task:
+    if (view or {}).get("state_unavailable"):
+        content = "当前退货草稿状态无法读取，请重新载入核对，勿重复提交。"
+    elif not task:
         content = "尚无退货草稿，可在对话中描述需要退货的商品。"
     elif task["status"] == "cancelled":
         content = "退货草稿已中止；订单未取消。"
@@ -598,11 +603,23 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
                    card, render_header(user_key), render_reply_status(0, failed=True))
     except Exception as exc:  # noqa: BLE001 - the UI must never go blank
         detail = f"{type(exc).__name__}: {exc}\n\n{traceback.format_exc(limit=6)}"
-        partial = history[reply_index]["content"] + "\n\n" if len(history) > reply_index else ""
-        history[reply_index:] = [{
-            "role": "assistant",
-            "content": partial + "抱歉，系统出现异常，本次回答未完成，请稍后重试。当前没有人工接入此窗口的功能。",
-        }]
+        recovered = False
+        try:
+            if sid:
+                card = _card_for(user_key, store.get_return_task(sid, user_id))
+                saved = store.load(sid, user_id)
+                if (not saved["running"] and len(saved["history"]) >= 2
+                        and len(saved["history"]) == reply_index + 1
+                        and saved["history"][-2].get("content") == message):
+                    history, recovered = saved["history"], True
+        except Exception:  # noqa: BLE001 - never reuse a stale empty/success card
+            card = render_return_task({"state_unavailable": True})
+        if not recovered:
+            partial = history[reply_index]["content"] + "\n\n" if len(history) > reply_index else ""
+            history[reply_index:] = [{
+                "role": "assistant",
+                "content": partial + "抱歉，系统出现异常，本次回答未完成。当前草稿状态无法核实，请重新载入核对，勿重复提交。当前没有人工接入此窗口的功能。",
+            }]
         yield pack(history, render_trace(None, error=detail), state_dict, render_stats(None),
                    card, render_header(user_key),
                    render_reply_status((perf_counter() - started) * 1000, failed=True))
@@ -976,6 +993,7 @@ button.primary { background:#c64b06 !important; color:white !important; }
 .trace-step.retrieval { border-top-color: #7c3aed; background: #f5f3ff; }
 .trace-step.error     { border-top-color: #dc2626; background: #fef2f2; }
 .trace-step.final     { border-top-color: #0f172a; background: #f1f5f9; }
+.trace-step.state-check { border-top-color: #b45309; background: #fffbeb; }
 .trace-head { font-weight: 600; margin-bottom: 4px; color:#0f172a; }
 .trace-body { white-space: pre-wrap; word-break: break-word; color: #334155; line-height:1.5; }
 .mono-key { color: #64748b; }

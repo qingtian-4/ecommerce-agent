@@ -145,6 +145,8 @@ class Settings(BaseSettings):
     max_api_requests: int = Field(default=16, ge=1)
     max_tool_calls: int = Field(default=12, ge=1)
     max_retrieval_calls: int = Field(default=4, ge=1)
+    # Opt-in P0: only repair an absent order-only draft from explicit current-turn evidence.
+    return_state_check_enabled: bool = False
     # Freeze the business clock for comparable evaluation runs; live queries use today.
     reference_date: date | None = None
 

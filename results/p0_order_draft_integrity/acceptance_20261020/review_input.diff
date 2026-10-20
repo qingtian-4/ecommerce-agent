@@ -1,0 +1,301 @@
+diff --git a/.env.example b/.env.example
+index 46c4e9c..036d3a5 100644
+--- a/.env.example
++++ b/.env.example
+@@ -33,6 +33,9 @@ ACS_CONTEXT_MAX_CHARS=24000
+ ACS_MAX_API_REQUESTS=16
+ ACS_MAX_TOOL_CALLS=12
+ ACS_MAX_RETRIEVAL_CALLS=4
++# Opt-in P0 check; false restores the original runtime. No extra model requests.
++# Only explicit "我想退/我要退 + order_id" plus a successful owned order read can repair.
++ACS_RETURN_STATE_CHECK_ENABLED=false
+ 
+ # ---------- Embedding ----------
+ # Phase 1 uses the API provider; Phase 2 will add a local BGE-M3 backend.
+diff --git a/app.py b/app.py
+index 9f5e61b..f7be7ac 100644
+--- a/app.py
++++ b/app.py
+@@ -317,7 +317,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
+         )
+ 
+     running = result.stop_reason == "running"
+-    badge = {"running": "warn", "answered": "ok", "max_steps": "warn", "llm_error": "bad"}.get(
++    badge = {"running": "warn", "answered": "ok", "max_steps": "warn", "llm_error": "bad",
++             "state_check_error": "bad"}.get(
+         result.stop_reason, ""
+     )
+     parts: list[str] = ["<div class='trace-panel'>"]
+@@ -347,6 +348,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
+             title = f"Step {step_no} · 错误 <code>{html.escape(event.label)}</code>"
+         elif event.type == "ui_action":
+             title = f"Step {step_no} · 页面操作 <code>{html.escape(event.label)}</code>"
++        elif event.type == "state_check":
++            title = f"Step {step_no} · 服务端状态检查 <code>{html.escape(event.label)}</code>"
+         else:
+             title = f"Step {step_no} · 最终回答"
+ 
+@@ -371,7 +374,7 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
+             body = _truncate(detail.get("result", detail))
+ 
+         css_class = event.type.replace("_", "-")
+-        if css_class not in {"call", "result", "retrieval", "error", "final"}:
++        if css_class not in {"call", "result", "retrieval", "error", "final", "state-check"}:
+             css_class = ""
+         parts.append(
+             f"<div class='trace-step {css_class}'>"
+@@ -511,7 +514,9 @@ def pack(
+ 
+ def render_return_task(view: dict | None) -> str:
+     task = (view or {}).get("task")
+-    if not task:
++    if (view or {}).get("state_unavailable"):
++        content = "当前退货草稿状态无法读取，请重新载入核对，勿重复提交。"
++    elif not task:
+         content = "尚无退货草稿，可在对话中描述需要退货的商品。"
+     elif task["status"] == "cancelled":
+         content = "退货草稿已中止；订单未取消。"
+@@ -976,6 +981,7 @@ button.primary { background:#c64b06 !important; color:white !important; }
+ .trace-step.retrieval { border-top-color: #7c3aed; background: #f5f3ff; }
+ .trace-step.error     { border-top-color: #dc2626; background: #fef2f2; }
+ .trace-step.final     { border-top-color: #0f172a; background: #f1f5f9; }
++.trace-step.state-check { border-top-color: #b45309; background: #fffbeb; }
+ .trace-head { font-weight: 600; margin-bottom: 4px; color:#0f172a; }
+ .trace-body { white-space: pre-wrap; word-break: break-word; color: #334155; line-height:1.5; }
+ .mono-key { color: #64748b; }
+diff --git a/docs/EXECUTION_PLAN.md b/docs/EXECUTION_PLAN.md
+index ba91992..bc08cbe 100644
+--- a/docs/EXECUTION_PLAN.md
++++ b/docs/EXECUTION_PLAN.md
+@@ -96,3 +96,32 @@ PYTHONPATH=src:scripts /tmp/acs-tau-run-env/bin/python scripts/eval_tau_retail.p
+ Ruff与差异格式检查通过。详见 `results/iteration_v2_recovery/final_tests.log`、
+ `ruff.log`、`verification.json`；此前适配检查见 `results/iteration_v2/tau_bridge_tests.log`。
+ 上述检查记录对应本地评测阶段，后续提交和远程版本以 Git 历史为准。
++
++## P0 架构改进实施记录
++
++2026-10-20，按用户本轮要求从冻结提交 `3a4de7c` 创建
++`fix/order-draft-integrity` 功能分支，只实施
++[架构提案](ARCHITECTURE_IMPROVEMENT_PROPOSAL.md) 的方案 A。
++
++已迁入 orders-02 离线红测试并实施受限检查、事务内 only-if-absent、补存后权威状态
++重读、最终回答/消息/Trace 同步，以及独立服务端检查 UI。用户确认、ReturnService、
++幂等、管理员审核、业务表结构和 RAG 保持原约束。没有新增 Fact Ledger 或模型调用。
++
++8 组开关配对共 16 段离线对话中，原始遗漏仅补订单 S20017，不选择商品、不创建申请；
++负例误补存、额外 revision 和新申请均为 0。普通模型写入不重复。基线 398 项通过、
++1 项跳过；正式红测试 1 失败、3 通过，最小实现后同四项通过。最终针对性测试
++179 项通过，完整测试 453 项通过、1 项可选 τ 适配跳过，Ruff 通过；完整工程与恢复
++证据见 [本轮报告](../results/p0_order_draft_integrity/REPORT.md)。
++
++条件补存与读回本次约 405 ms，未达到提案的 20 ms 候选延迟目标；样本仅 4 次，
++不报告稳定提速。后续上下文增加，未调用真实模型，不能报告 Token 节省或整体成功率
++提升。开关默认 false；显式设置 `ACS_RETURN_STATE_CHECK_ENABLED=true` 并重启才启用，
++回退设为 false，不删除合法草稿、不迁移数据库。用户已有修改和历史实验保持原样。
++
++后续先汇报本轮结果，等待用户决定：
++
++1. 是否接受窄入口及已披露的延迟代价，或先在隔离、无网络条件下拆分延迟来源。
++2. 是否需要另行授权真实模型的小规模同条件验证；未经授权不调用付费 API。
++3. 是否继续 P1/P2。当前不自动实施，也不运行全量 τ Benchmark。
++
++本轮未自动提交、推送、合并或发布；实现、测试和必要文档保留为一个完整待审改动。
+diff --git a/docs/PROBLEM_SOLVING.md b/docs/PROBLEM_SOLVING.md
+index b90b2b1..e94704a 100644
+--- a/docs/PROBLEM_SOLVING.md
++++ b/docs/PROBLEM_SOLVING.md
+@@ -893,3 +893,40 @@ deepseek-flash，公开配置、候选核心源码、基线共享评测工具与
+ [本地复核](../results/iteration_v2_recovery/LOCAL_FINDINGS.md)、
+ [失败索引](../results/iteration_v2_recovery/final/failure_index.json)、
+ [来源](../results/iteration_v2_recovery/provenance.json)。
++
++## 18. 模型已经查到订单，却没有把已知字段保存到草稿
++
++**问题与根因。** `orders-02 / trial=1` 中用户明确说 `我想退S20017。`，
++工具已查到本人订单，但模型四轮只追问商品，没有调用草稿更新工具。Loop 把无工具
++回复标记为 answered，ChatService 随即结束轮次，没有验证最小业务状态是否落库。
++现有 SessionStore 支持只存订单，问题不在缺少商品或数据库能力；此前的提示要求未能
++可靠避免遗漏。
++
++**最小修复。** 仅实施 P0 方案 A：完整匹配当前原话的有限退货表达，要求同轮实际
++订单查询成功且对象、用户一致，在没有任何任务记录时通过既有事务仅补 order_id。
++only-if-absent 在 SQLite 写事务内判断，不覆盖不同订单、空订单草稿、取消态或提交态；
++重复进入不增加 revision。获取写锁后和写入前检查原预算。
++
++补存后独立重读真实任务，更新最终 TurnUpdate；回答、最后 assistant message 和
++final trace 同步。state_check 独立渲染为服务端检查，不能算模型工具调用或最终回答。
++响应丢失后按实际读回结果说明，读取失败显示未知；错误终轮不补写，已流出的文字在
++终态显式更正。ReturnService、用户确认、权限、幂等和审核均未改变。
++
++**证据与结果。** 基线完整测试 398 通过、1 跳过。正式回放先得到 1 项预期失败、
++3 项对照通过，最小修复后同四项全部通过。8 组开关配对共 16 段离线对话中，
++原始遗漏从无草稿变为 S20017、item=null、revision=1；6 组负例误补存为 0，
++正常模型写入不重复。申请、确认、审计和业务事实前后不变，两侧假模型调用数相同，
++真实网络和付费 API 请求为 0。最终针对性测试 179 项通过，完整测试 453 项通过、
++1 项可选 τ 适配跳过，Ruff 通过；含 55 项新增 P0 探针，详见本轮报告及日志。
++
++**代价与限制。** 条件补存加读回本次约 405 ms，另外三个无写检查约 0.6 至 0.9 ms；
++4 个样本的最近秩 p95 未达到提案 20 ms 候选目标，不能宣称延迟改善。
++原始四轮后三轮每次模型输入增加 1,207 字符，不能把没有额外模型调用说成节省 Token。
++窄入口不解决任意更正、模型主动错写或回答语义一致性；历史 140/160 不算本轮提升证据。
++机制默认关闭，可通过 ACS_RETURN_STATE_CHECK_ENABLED 启用或回退，无数据库迁移。
++本轮不自动继续 P1/P2，也不启动付费评测。
++
++证据：[完整报告与复现](../results/p0_order_draft_integrity/REPORT.md)、
++[配对结果](../results/p0_order_draft_integrity/paired_verified/summary.json)、
++[红测试](../results/p0_order_draft_integrity/red_pytest.log)、
++[UI 验证](../results/p0_order_draft_integrity/ui_verification.json)。
+diff --git a/src/acs/chat_service.py b/src/acs/chat_service.py
+index 2cb5b57..3d664e7 100644
+--- a/src/acs/chat_service.py
++++ b/src/acs/chat_service.py
+@@ -15,6 +15,7 @@ from time import perf_counter
+ 
+ from .config import Settings
+ from .context import ContextLimitExceeded, bounded_context
++from .return_state_check import check_order_draft, state_notice
+ from .runtime import BudgetExceeded, RunBudget
+ from .service_agent import AgentResult, CustomerServiceAgent, build_system_prompt
+ from .sessions import SessionStore
+@@ -105,6 +106,51 @@ class ChatService:
+                         task = self.store.get_return_task(sid, user_id)
+                         task_events = updates
+                     if result.stop_reason != "running":
++                        if self.settings.return_state_check_enabled:
++                            checked_at = perf_counter()
++                            event = check_order_draft(
++                                self.store, sid, user_id, tid, message,
++                                result.trace, result.stop_reason, budget,
++                            )
++                            if event is not None:
++                                # Read again even after a write error: it may have committed.
++                                try:
++                                    task = self.store.get_return_task(sid, user_id)
++                                    actual = task["task"]
++                                    event.detail["after_revision"] = (
++                                        actual["revision"] if actual else None
++                                    )
++                                    event.detail["observed_status"] = (
++                                        actual["status"] if actual else "absent"
++                                    )
++                                    if (event.detail["status"] in {"repaired", "satisfied"}
++                                            and (not actual or actual["status"] != "draft"
++                                                 or actual["order_id"]
++                                                 != event.detail["order_id"])):
++                                        event.detail.update(status="error",
++                                                            reason="postcondition_failed")
++                                except Exception as exc:  # noqa: BLE001 - never show stale success
++                                    task = {"state_unavailable": True}
++                                    event.detail.update(status="error", reason="state_read_failed",
++                                                        error_type=type(exc).__name__)
++                                if event.detail["status"] == "error":
++                                    result.errors.append("state_check:" + event.detail["reason"])
++                                    if result.stop_reason == "answered":
++                                        result.stop_reason = "state_check_error"
++                                elif event.detail["reason"] == "budget_expired":
++                                    result.stop_reason = "budget_exceeded"
++                                    result.errors.append("state_check:budget_expired")
++                                result.answer += "\n\n" + state_notice(event, task)
++                                agent.messages[-1]["content"] = result.answer
++                                finals = [e for e in result.trace if e.type == "final"]
++                                if finals:
++                                    finals[-1].detail["text"] = result.answer
++                                event.duration_ms = (perf_counter() - checked_at) * 1000
++                                result.totals["state_check_ms"] = event.duration_ms
++                                result.totals["latency_ms"] = (
++                                    result.totals.get("latency_ms", 0) + event.duration_ms
++                                )
++                                result.trace.insert(len(result.trace) - bool(finals), event)
+                         self.store.finish_turn(
+                             sid, user_id, tid, agent.messages[offset:], asdict(result),
+                         )
+diff --git a/src/acs/config.py b/src/acs/config.py
+index 62a1395..4cb09d3 100644
+--- a/src/acs/config.py
++++ b/src/acs/config.py
+@@ -145,6 +145,8 @@ class Settings(BaseSettings):
+     max_api_requests: int = Field(default=16, ge=1)
+     max_tool_calls: int = Field(default=12, ge=1)
+     max_retrieval_calls: int = Field(default=4, ge=1)
++    # Opt-in P0: only repair an absent order-only draft from explicit current-turn evidence.
++    return_state_check_enabled: bool = False
+     # Freeze the business clock for comparable evaluation runs; live queries use today.
+     reference_date: date | None = None
+ 
+diff --git a/src/acs/service_agent.py b/src/acs/service_agent.py
+index 19a9bcf..3d4d94b 100644
+--- a/src/acs/service_agent.py
++++ b/src/acs/service_agent.py
+@@ -162,6 +162,8 @@ class AgentResult:
+         Derived purely from which tools ran -- it says what the agent did, which
+         is already visible in the trace, never why in the model's own words.
+         """
++        if self.stop_reason == "state_check_error":
++            return "状态检查异常，请重新载入核对草稿；本次回复不能作为办理完成凭证。"
+         if self.stop_reason == "interrupted":
+             return "上次请求已中断，未完成回答；可重新提问。"
+         if self.stop_reason == "max_steps":
+diff --git a/src/acs/sessions.py b/src/acs/sessions.py
+index cc5346f..1f4523f 100644
+--- a/src/acs/sessions.py
++++ b/src/acs/sessions.py
+@@ -11,6 +11,7 @@ from pathlib import Path
+ from uuid import uuid4
+ 
+ from .database import item_sku
++from .runtime import RunBudget
+ 
+ 
+ class ConversationBusy(RuntimeError):
+@@ -295,14 +296,20 @@ class SessionStore:
+             return self._task_view(conn, self._task(conn, sid), user_id)
+ 
+     def update_return_task(self, sid: str, user_id: str, tid: str, patch: dict,
+-                           *, cancel: bool = False) -> dict:
++                           *, cancel: bool = False, only_if_absent: bool = False,
++                           budget: RunBudget | None = None) -> dict:
+         """Save model-extracted claims with their original user turn, not verified eligibility."""
+         fields = ("order_id", "item_id", "quantity", "reason", "condition", "problem_description",
+                   "secondary_sale_ok", "quality_non_user_damage")
+         if set(patch) - set(fields) or (not patch and not cancel):
+             raise TaskValidationError("草稿字段无效或为空")
++        if only_if_absent and (cancel or set(patch) != {"order_id"}
++                               or not isinstance(patch["order_id"], str)):
++            raise TaskValidationError("受限补存只允许订单字段，不能取消或补充其他字段")
+         with closing(self._connect()) as conn, conn:
+             conn.execute("BEGIN IMMEDIATE")
++            if budget is not None:
++                budget.remaining()
+             self._require_owner(conn, sid, user_id)
+             turn = conn.execute("SELECT user_text FROM conversation_turns WHERE session_id=? "
+                                 "AND turn_id=? AND status='running'", (sid, tid)).fetchone()
+@@ -317,6 +324,12 @@ class SessionStore:
+                         "暂停话题不清空草稿。确需中止请明确说“中止退货草稿”。"
+                     )
+             previous = self._task(conn, sid)
++            if only_if_absent and previous is not None:
++                satisfied = (previous["status"] == "draft"
++                             and previous["order_id"] == patch["order_id"])
++                return self._task_view(conn, previous, user_id) | {
++                    "state_write": "satisfied" if satisfied else "conflict",
++                }
+             if previous and previous["status"] == "submitted":
+                 raise TaskValidationError("申请已经提交，不能修改或用中止草稿撤销；"
+                                           "请查询结果，新申请请新建会话。")
+@@ -375,12 +388,15 @@ class SessionStore:
+             if description is not None and (not isinstance(description, str)
+                                             or not description.strip() or len(description) > 1000):
+                 raise TaskValidationError("问题描述须为1到1000字的文本")
++            if budget is not None:
++                budget.remaining()
+             task["revision"] += 1
+             conn.execute("INSERT INTO return_tasks VALUES(?,?,?) ON CONFLICT(session_id) "
+                          "DO UPDATE SET data_json=excluded.data_json,"
+                          "updated_at=excluded.updated_at",
+                          (sid, json.dumps(task, ensure_ascii=False), _now()))
+-            return self._task_view(conn, task, user_id)
++            view = self._task_view(conn, task, user_id)
++            return view | {"state_write": "created"} if only_if_absent else view
+ 
+     def cancel_return_task(self, sid: str, user_id: str, tid: str) -> dict:
+         return self.update_return_task(sid, user_id, tid, {}, cancel=True)

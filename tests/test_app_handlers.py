@@ -396,7 +396,11 @@ def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch, partial) 
         "你好", [], state, MOCK_USERS[0]
     ))[-1]
 
-    assert "系统出现异常" in history[-1]["content"]
+    snapshot = app_module.session_store().load(state["session_id"], "USER001")
+    assert history == snapshot["history"]
+    assert snapshot["last_result"]["stop_reason"] == "interrupted"
+    assert "本次回答中断" in history[-1]["content"]
+    assert "尚未完成" in history[-1]["content"]
     assert len(history) == 2
     if partial:
         assert history[-1]["content"].startswith("已生成的内容")
