@@ -27,7 +27,8 @@ import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
-from .config import get_settings
+from .config import Settings, get_settings
+from .database import business_today
 
 # --------------------------------------------------------------------------- #
 # Reference data
@@ -241,7 +242,7 @@ def _iso(days_ago: int, today: date) -> str:
 
 
 def build(db_path: Path, *, reference_date: date | None = None) -> dict[str, int]:
-    today = reference_date or date.today()
+    today = business_today(Settings(_env_file=None, reference_date=reference_date))
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     try:

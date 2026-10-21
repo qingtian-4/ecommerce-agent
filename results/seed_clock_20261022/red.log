@@ -1,0 +1,44 @@
+.F..                                                                     [100%]
+=================================== FAILURES ===================================
+___________ test_seed_and_order_query_share_business_clock[None-16] ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-57/test_seed_and_order_query_shar1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x70a63d4f0d60>
+hour = 16, reference_date = None
+
+    @pytest.mark.parametrize("hour", [15, 16])
+    @pytest.mark.parametrize("reference_date", [None, date(2026, 1, 5)])
+    def test_seed_and_order_query_share_business_clock(tmp_path, monkeypatch, hour, reference_date):
+        # UTC hosts differ from Shanghai after 16:00 UTC, regardless of the test runner's TZ.
+        instant = datetime(2026, 10, 21, hour, 30, tzinfo=UTC)
+    
+        class HostDate(date):
+            @classmethod
+            def today(cls):
+                return instant.date()
+    
+        class FrozenDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
+    
+        monkeypatch.setattr(db_seed, "date", HostDate)
+        monkeypatch.setattr(database, "datetime", FrozenDateTime)
+        settings = Settings(_env_file=None, db_path=tmp_path / "business.db",
+                            reference_date=reference_date)
+        db_seed.build(settings.db_path, reference_date=reference_date)
+    
+        order = database.BusinessDB(settings).get_order("O10024", "USER001")
+        expected = reference_date or instant.astimezone(database.ZoneInfo("Asia/Shanghai")).date()
+        assert order["today"] == expected.isoformat()
+>       assert order["created_at"] == (expected - timedelta(days=4)).isoformat()
+E       AssertionError: assert '2026-10-17' == '2026-10-18'
+E         
+E         - 2026-10-18
+E         ?          ^
+E         + 2026-10-17
+E         ?          ^
+
+tests/test_seed_clock.py:36: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_seed_clock.py::test_seed_and_order_query_share_business_clock[None-16]
