@@ -21,7 +21,7 @@ import json
 from collections.abc import Iterator
 from contextlib import closing
 from dataclasses import dataclass, field, replace
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import Any
 
 from .capabilities import capability_notice
@@ -31,6 +31,7 @@ from .cs_tools import ToolRegistry, TraceEvent
 from .database import business_today
 from .knowledge_context import load_source_documents
 from .llm import LLMClient
+from .recovery import WRITES, IncompleteResponse, classify_failure, retry_delay
 from .routing import route_request
 from .runtime import BudgetExceeded, RunBudget
 
@@ -253,10 +254,12 @@ class CustomerServiceAgent:
         schemas = [s for s in self.registry.schemas()
                    if route is None or s['function']['name'] in route['allowed_tools']]
         retrievals = 0
+        previous_signature, repeated = None, 0
 
         for step in range(1, self.max_steps + 1):
             result.steps = step
             yield self._snapshot(result, started)
+            retry_exhausted = False
             try:
                 if budget:
                     budget.remaining()
@@ -264,23 +267,52 @@ class CustomerServiceAgent:
                     self.messages, current_start, schemas, self.settings.context_max_chars,
                 )
                 result.totals["model_input_chars"].append(input_chars(model_messages, schemas))
-                if stream_text:
-                    response = None
-                    with closing(self.llm.chat_stream(
-                        model_messages, tools=schemas, stage=f"agent_step_{step}",
-                    )) as events:
-                        for event in events:
-                            if isinstance(event, str):
-                                result.answer += event
-                                yield self._snapshot(result, started)
-                            else:
-                                response = event
-                    if response is None:
-                        raise RuntimeError("模型未返回完整响应")
-                else:
-                    response = self.llm.chat(
-                        model_messages, tools=schemas, stage=f"agent_step_{step}",
-                    )
+                retry_exhausted = False
+                for attempt in range(self.settings.transient_retries + 1):
+                    content_seen = False
+                    try:
+                        if stream_text:
+                            response = None
+                            with closing(self.llm.chat_stream(
+                                model_messages, tools=schemas, stage=f"agent_step_{step}",
+                            )) as events:
+                                for event in events:
+                                    if isinstance(event, str):
+                                        content_seen = content_seen or bool(event)
+                                        result.answer += event
+                                        yield self._snapshot(result, started)
+                                    else:
+                                        response = event
+                            if response is None:
+                                raise IncompleteResponse("模型未返回完整响应")
+                        else:
+                            response = self.llm.chat(
+                                model_messages, tools=schemas, stage=f"agent_step_{step}",
+                            )
+                        if self.settings.runtime_recovery_enabled and (
+                                getattr(response, 'finish_reason', None) == 'length'
+                                or (not response.wants_tools and not response.text.strip())
+                                or (response.wants_tools and not response.tool_calls)):
+                            raise IncompleteResponse("模型响应为空、截断或缺少工具调用")
+                        break
+                    except Exception as exc:
+                        failure = classify_failure(exc=exc)
+                        eligible = (self.settings.runtime_recovery_enabled
+                                    and failure['retryable'] and not content_seen)
+                        if eligible and attempt < self.settings.transient_retries:
+                            delay = retry_delay(exc, attempt)
+                            if budget and delay >= budget.remaining():
+                                raise BudgetExceeded("重试等待超过本轮剩余预算") from exc
+                            result.trace.append(TraceEvent('retry_scheduled', 'llm', {
+                                **failure, 'attempt': attempt + 1, 'delay_s': delay,
+                            }))
+                            yield self._snapshot(result, started)
+                            sleep(delay)
+                            if budget:
+                                budget.remaining()
+                            continue
+                        retry_exhausted = eligible
+                        raise
             except Exception as exc:  # noqa: BLE001 - must surface, not crash the UI
                 message = f"{type(exc).__name__}: {exc}"
                 result.errors.append(f"llm_error: {message}")
@@ -299,7 +331,10 @@ class CustomerServiceAgent:
                     )
                     result.trace[-1].detail["error_type"] = result.stop_reason
                 else:
-                    result.stop_reason = "llm_error"
+                    failure = classify_failure(exc=exc)
+                    result.trace[-1].detail['recovery'] = failure
+                    result.stop_reason = ('retry_exhausted' if retry_exhausted
+                                          else 'llm_error')
                     if result.answer:
                         result.answer += "\n\n⚠️ 回答中断，以上内容尚未完成，请重试。"
                     else:
@@ -372,6 +407,31 @@ class CustomerServiceAgent:
                     events = [result.trace[-1], TraceEvent(type="error", label=call.name,
                                                           detail=payload)]
                     error = limit_reason
+                if self.settings.runtime_recovery_enabled:
+                    failure_payload = payload
+                    if error:
+                        detail = next((e.detail for e in reversed(events) if e.type == 'error'), {})
+                        failure_payload = payload | {
+                            'error_type': detail.get('recovery_category',
+                                                     detail.get('error_type', 'tool_exception')),
+                        }
+                    failure = classify_failure(payload=failure_payload, write=call.name in WRITES)
+                    if failure['category'] != 'ok':
+                        events.append(TraceEvent('runtime_failure', call.name, failure))
+                    try:
+                        arguments = json.loads(call.arguments or '{}')
+                    except ValueError:
+                        arguments = call.arguments
+                    signature = json.dumps([call.name, arguments, payload], sort_keys=True,
+                                           ensure_ascii=False, default=str)
+                    repeated = repeated + 1 if signature == previous_signature else 1
+                    previous_signature = signature
+                    if repeated >= self.settings.no_progress_limit:
+                        stopped, limit_reason = '连续相同调用未获得新信息', 'no_progress'
+                        events.append(TraceEvent('runtime_failure', call.name, {
+                            'category': 'no_progress', 'repetitions': repeated,
+                            'retryable': False, 'side_effect': 'none', 'action': 'stop',
+                        }))
                 # The registry's first event is the call already published above.
                 result.trace.extend(events[1:])
                 if error:

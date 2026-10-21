@@ -405,7 +405,8 @@ class ToolRegistry:
         except TaskValidationError as exc:
             events.append(TraceEvent(
                 type="error", label=name,
-                detail={"error_type": "invalid_arguments", "message": str(exc)},
+                detail={"error_type": "invalid_arguments", "recovery_category": "business_rejected",
+                        "message": str(exc)},
             ))
             return {"error": str(exc)}, events, f"invalid_arguments: {exc}"
         except (BudgetExceeded, ContextLimitExceeded):

@@ -1,0 +1,102 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+__ test_committed_write_with_lost_response_is_reconciled_not_replayed[False] ___
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...low_router_enabled=False, runtime_recovery_enabled=True, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7a24ce73f820>
+read_fails = False
+
+    @pytest.mark.parametrize('read_fails', [False, True])
+    def test_committed_write_with_lost_response_is_reconciled_not_replayed(settings, monkeypatch,
+                                                                          read_fails):
+        from acs.sessions import SessionStore
+    
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        store = SessionStore(settings.db_path)
+        original = store.update_return_task
+        writes = []
+    
+        def lost(*args, **kwargs):
+            writes.append(1)
+            original(*args, **kwargs)
+            raise RuntimeError('response lost after commit')
+    
+        monkeypatch.setattr(store, 'update_return_task', lost)
+        read = store.get_return_task
+        reads = []
+    
+        def observed(*args, **kwargs):
+            reads.append(1)
+            if read_fails and len(reads) > 1:
+                raise OSError('read unavailable')
+            return read(*args, **kwargs)
+    
+        monkeypatch.setattr(store, 'get_return_task', observed)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[ScriptedToolCall(
+                'write', 'update_return_task', '{"order_id":"O10024"}'
+            )]), ScriptedResponse(text='退款已到账'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn('我想退O10024', 'USER001',
+                                                           agent=agent))[-1]
+        assert len(writes) == 1
+>       assert '退款已到账' not in final.result.answer
+E       AssertionError: assert '\u9000\u6b3...\u5230\u8d26' not in '\u9000\u6b3...\u5230\u8d26'
+E         
+E         '退款已到账' is contained here:
+E           退款已到账
+
+tests/test_recovery_v2.py:142: AssertionError
+___ test_committed_write_with_lost_response_is_reconciled_not_replayed[True] ___
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...low_router_enabled=False, runtime_recovery_enabled=True, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7a24ce73fbb0>
+read_fails = True
+
+    @pytest.mark.parametrize('read_fails', [False, True])
+    def test_committed_write_with_lost_response_is_reconciled_not_replayed(settings, monkeypatch,
+                                                                          read_fails):
+        from acs.sessions import SessionStore
+    
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        store = SessionStore(settings.db_path)
+        original = store.update_return_task
+        writes = []
+    
+        def lost(*args, **kwargs):
+            writes.append(1)
+            original(*args, **kwargs)
+            raise RuntimeError('response lost after commit')
+    
+        monkeypatch.setattr(store, 'update_return_task', lost)
+        read = store.get_return_task
+        reads = []
+    
+        def observed(*args, **kwargs):
+            reads.append(1)
+            if read_fails and len(reads) > 1:
+                raise OSError('read unavailable')
+            return read(*args, **kwargs)
+    
+        monkeypatch.setattr(store, 'get_return_task', observed)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[ScriptedToolCall(
+                'write', 'update_return_task', '{"order_id":"O10024"}'
+            )]), ScriptedResponse(text='退款已到账'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn('我想退O10024', 'USER001',
+                                                           agent=agent))[-1]
+        assert len(writes) == 1
+>       assert '退款已到账' not in final.result.answer
+E       AssertionError: assert '\u9000\u6b3...\u5230\u8d26' not in '\u9000\u6b3...\u5230\u8d26'
+E         
+E         '退款已到账' is contained here:
+E           退款已到账
+
+tests/test_recovery_v2.py:142: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_recovery_v2.py::test_committed_write_with_lost_response_is_reconciled_not_replayed[False]
+FAILED tests/test_recovery_v2.py::test_committed_write_with_lost_response_is_reconciled_not_replayed[True]
+2 failed, 16 deselected in 3.73s

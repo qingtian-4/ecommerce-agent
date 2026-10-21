@@ -128,7 +128,12 @@ class ChatService:
                         e.type == "tool_call" and e.label == "cancel_return_task"
                         for e in result.trace
                     )
-                    guarded = guarded or cancel_guarded
+                    uncertain_write = (self.settings.runtime_recovery_enabled and any(
+                        e.type == 'runtime_failure' and e.detail.get('side_effect') == 'possible'
+                        and e.detail.get('category') in {'tool_failure', 'internal_error'}
+                        for e in result.trace
+                    ))
+                    guarded = guarded or cancel_guarded or uncertain_write
                     result.totals["context"] = context_stats
                     result.totals["budget"] = budget.as_dict()
                     updates = sum(e.type == "tool_result" and e.label in {
@@ -255,6 +260,36 @@ class ChatService:
                                     result.totals.get("latency_ms", 0) + event.duration_ms
                                 )
                                 result.trace.insert(len(result.trace) - bool(finals), event)
+                        if uncertain_write:
+                            try:
+                                task = self.store.get_return_task(sid, user_id)
+                                actual = task['task'] or {}
+                                observed = actual.get('status', 'absent')
+                                result.answer = '工具响应异常，已核对后台：' + {
+                                    'absent': '当前无退货草稿，未确认本次操作成功。',
+                                    'draft': '退货草稿已保存，尚未提交申请。',
+                                    'cancelled': '草稿已中止；订单未取消。',
+                                    'submitted': '已有申请记录，请查询实际审核结果；尚未退款。',
+                                }[observed]
+                                result.stop_reason = 'tool_error'
+                            except Exception:
+                                task = {'state_unavailable': True}
+                                observed = 'unknown'
+                                result.answer = ('工具响应异常，实际状态待核实，'
+                                                 '请重新载入查询，勿重复办理。')
+                                result.stop_reason = 'state_uncertain'
+                            result.trace.append(TraceEvent('state_check', 'write_reconciliation', {
+                                'status': observed, 'reason': 'write_response_uncertain',
+                                'replayed': False,
+                            }))
+                            agent.messages[-1]['content'] = result.answer
+                            finals = [e for e in result.trace if e.type == 'final']
+                            if finals:
+                                finals[-1].detail['text'] = result.answer
+                            else:
+                                result.trace.append(TraceEvent('final', 'answer', {
+                                    'text': result.answer,
+                                }))
                         self.store.finish_turn(
                             sid, user_id, tid, agent.messages[offset:], asdict(result),
                         )
