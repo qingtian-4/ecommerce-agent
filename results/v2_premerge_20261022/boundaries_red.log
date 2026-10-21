@@ -1,0 +1,276 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_diagnostic_failure_does_not_abort_business_or_final_history[projection] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=False, execution_progress_enabled=True, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d7950ca8050>
+fault = 'projection'
+
+    @pytest.mark.parametrize('fault', ['projection', 'checkpoint', 'final_projection'])
+    def test_diagnostic_failure_does_not_abort_business_or_final_history(settings, monkeypatch, fault):
+        import acs.chat_service as module
+    
+        settings = settings.model_copy(update={'execution_progress_enabled': True})
+        store = SessionStore(settings.db_path)
+        project = module.progress_events
+    
+        def broken(*args):
+            if fault == 'projection' or (fault == 'final_projection' and args[-1] == 'completed'):
+                raise RuntimeError('diagnostic failure private-sentinel')
+            return project(*args)
+    
+        def fail_save(*args):
+            raise OSError('diagnostic failure private-sentinel')
+    
+        monkeypatch.setattr(module, 'progress_events', broken)
+        if fault == 'checkpoint':
+            monkeypatch.setattr(store, 'save_progress', fail_save)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('write', 'update_return_task', '{"order_id":"O10024"}'),
+            ]), ScriptedResponse(text='仅草稿已记录，尚未提交。'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+>       updates = list(ChatService(settings, store).run_turn('我想退O10024', 'USER001', agent=agent))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_v2_premerge.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/chat_service.py:107: in run_turn
+    yield update("running" if acquired else "queued")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/acs/chat_service.py:72: in update
+    events = progress_events(sid, tid, result, phase)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ('413a1409d9084d4689c6f7e451c2b4b7', '526196b739b54224aea9956cb9818633', AgentResult(answer='', trace=[], steps=0, tool_calls=0, retrieval_queries=[], retrieved_documents=[], errors=[], stop_reason='running', totals={}), 'running')
+
+    def broken(*args):
+        if fault == 'projection' or (fault == 'final_projection' and args[-1] == 'completed'):
+>           raise RuntimeError('diagnostic failure private-sentinel')
+E           RuntimeError: diagnostic failure private-sentinel
+
+tests/test_v2_premerge.py:26: RuntimeError
+_ test_diagnostic_failure_does_not_abort_business_or_final_history[checkpoint] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=False, execution_progress_enabled=True, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d7950d3be10>
+fault = 'checkpoint'
+
+    @pytest.mark.parametrize('fault', ['projection', 'checkpoint', 'final_projection'])
+    def test_diagnostic_failure_does_not_abort_business_or_final_history(settings, monkeypatch, fault):
+        import acs.chat_service as module
+    
+        settings = settings.model_copy(update={'execution_progress_enabled': True})
+        store = SessionStore(settings.db_path)
+        project = module.progress_events
+    
+        def broken(*args):
+            if fault == 'projection' or (fault == 'final_projection' and args[-1] == 'completed'):
+                raise RuntimeError('diagnostic failure private-sentinel')
+            return project(*args)
+    
+        def fail_save(*args):
+            raise OSError('diagnostic failure private-sentinel')
+    
+        monkeypatch.setattr(module, 'progress_events', broken)
+        if fault == 'checkpoint':
+            monkeypatch.setattr(store, 'save_progress', fail_save)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('write', 'update_return_task', '{"order_id":"O10024"}'),
+            ]), ScriptedResponse(text='仅草稿已记录，尚未提交。'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+>       updates = list(ChatService(settings, store).run_turn('我想退O10024', 'USER001', agent=agent))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_v2_premerge.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/chat_service.py:107: in run_turn
+    yield update("running" if acquired else "queued")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/acs/chat_service.py:79: in update
+    self.store.save_progress(sid, user_id, tid, events)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ('a2a476ebc45d41009e3660da99da79ee', 'USER001', '4e01053b409a43a1af2495ef38bdd7b7', [{'event_id': '4e01053b409a43a1af2...7:0', 'session_id': 'a2a476ebc45d41009e3660da99da79ee', 'turn_id': '4e01053b409a43a1af2495ef38bdd7b7', 'seq': 0, ...}])
+
+    def fail_save(*args):
+>       raise OSError('diagnostic failure private-sentinel')
+E       OSError: diagnostic failure private-sentinel
+
+tests/test_v2_premerge.py:30: OSError
+_ test_diagnostic_failure_does_not_abort_business_or_final_history[final_projection] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=False, execution_progress_enabled=True, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d7950c91fd0>
+fault = 'final_projection'
+
+    @pytest.mark.parametrize('fault', ['projection', 'checkpoint', 'final_projection'])
+    def test_diagnostic_failure_does_not_abort_business_or_final_history(settings, monkeypatch, fault):
+        import acs.chat_service as module
+    
+        settings = settings.model_copy(update={'execution_progress_enabled': True})
+        store = SessionStore(settings.db_path)
+        project = module.progress_events
+    
+        def broken(*args):
+            if fault == 'projection' or (fault == 'final_projection' and args[-1] == 'completed'):
+                raise RuntimeError('diagnostic failure private-sentinel')
+            return project(*args)
+    
+        def fail_save(*args):
+            raise OSError('diagnostic failure private-sentinel')
+    
+        monkeypatch.setattr(module, 'progress_events', broken)
+        if fault == 'checkpoint':
+            monkeypatch.setattr(store, 'save_progress', fail_save)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('write', 'update_return_task', '{"order_id":"O10024"}'),
+            ]), ScriptedResponse(text='仅草稿已记录，尚未提交。'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+>       updates = list(ChatService(settings, store).run_turn('我想退O10024', 'USER001', agent=agent))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_v2_premerge.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/chat_service.py:307: in run_turn
+    result.totals['progress'] = progress_events(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ('a4f738fcf927414e917bce791df9b1e2', 'b654f41398b748a7b43463b336944c53', AgentResult(answer='仅草稿已记录，尚未提交。', trace=[Tra...rns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}), 'completed')
+
+    def broken(*args):
+        if fault == 'projection' or (fault == 'final_projection' and args[-1] == 'completed'):
+>           raise RuntimeError('diagnostic failure private-sentinel')
+E           RuntimeError: diagnostic failure private-sentinel
+
+tests/test_v2_premerge.py:26: RuntimeError
+_ test_lost_update_response_compares_this_turn_fields_with_existing_draft[False] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d7950c39370>
+committed = False
+
+    @pytest.mark.parametrize('committed', [False, True])
+    def test_lost_update_response_compares_this_turn_fields_with_existing_draft(
+        settings, monkeypatch, committed,
+    ):
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '左侧断音')
+        before = store.update_return_task(sid, 'USER001', tid, {
+            'order_id': 'O10024', 'reason': 'quality', 'problem_description': '左侧断音',
+        })['task']
+        store.finish_turn(sid, 'USER001', tid, [
+            {'role': 'user', 'content': '左侧断音'}, {'role': 'assistant', 'content': '草稿已存'},
+        ], asdict(AgentResult(answer='草稿已存')))
+        original, writes = store.update_return_task, []
+    
+        def lost(*args, **kwargs):
+            writes.append(1)
+            if committed:
+                original(*args, **kwargs)
+            raise OSError('write response unavailable')
+    
+        monkeypatch.setattr(store, 'update_return_task', lost)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[ScriptedToolCall(
+                'correction', 'update_return_task', '{"problem_description":"右侧断音"}',
+            )]), ScriptedResponse(text='右侧断音已更正并退款'),
+        ])
+        final = list(ChatService(settings, store).run_turn(
+            '更正问题描述为右侧断音', 'USER001', sid,
+            agent=CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings)),
+        ))[-1]
+        task = final.task_view['task']
+        assert task['problem_description'] == ('右侧断音' if committed else '左侧断音')
+        assert task['revision'] == before['revision'] + int(committed) and len(writes) == 1
+        check = next(e for e in final.result.trace if e.label == 'write_reconciliation')
+>       attempt = check.detail['attempts'][0]
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'attempts'
+
+tests/test_v2_premerge.py:90: KeyError
+_ test_lost_update_response_compares_this_turn_fields_with_existing_draft[True] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d7950c39d00>
+committed = True
+
+    @pytest.mark.parametrize('committed', [False, True])
+    def test_lost_update_response_compares_this_turn_fields_with_existing_draft(
+        settings, monkeypatch, committed,
+    ):
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '左侧断音')
+        before = store.update_return_task(sid, 'USER001', tid, {
+            'order_id': 'O10024', 'reason': 'quality', 'problem_description': '左侧断音',
+        })['task']
+        store.finish_turn(sid, 'USER001', tid, [
+            {'role': 'user', 'content': '左侧断音'}, {'role': 'assistant', 'content': '草稿已存'},
+        ], asdict(AgentResult(answer='草稿已存')))
+        original, writes = store.update_return_task, []
+    
+        def lost(*args, **kwargs):
+            writes.append(1)
+            if committed:
+                original(*args, **kwargs)
+            raise OSError('write response unavailable')
+    
+        monkeypatch.setattr(store, 'update_return_task', lost)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[ScriptedToolCall(
+                'correction', 'update_return_task', '{"problem_description":"右侧断音"}',
+            )]), ScriptedResponse(text='右侧断音已更正并退款'),
+        ])
+        final = list(ChatService(settings, store).run_turn(
+            '更正问题描述为右侧断音', 'USER001', sid,
+            agent=CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings)),
+        ))[-1]
+        task = final.task_view['task']
+        assert task['problem_description'] == ('右侧断音' if committed else '左侧断音')
+        assert task['revision'] == before['revision'] + int(committed) and len(writes) == 1
+        check = next(e for e in final.result.trace if e.label == 'write_reconciliation')
+>       attempt = check.detail['attempts'][0]
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'attempts'
+
+tests/test_v2_premerge.py:90: KeyError
+_________ test_readonly_progress_has_no_intermediate_persistent_writes _________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=False, execution_progress_enabled=True, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d7950b98050>
+
+    def test_readonly_progress_has_no_intermediate_persistent_writes(settings, monkeypatch):
+        settings = settings.model_copy(update={'execution_progress_enabled': True})
+        store = SessionStore(settings.db_path)
+        writes = []
+        monkeypatch.setattr(store, 'save_progress', lambda *args: writes.append(args))
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('order', 'get_order', '{"order_id":"O10024"}'),
+            ]), ScriptedResponse(text='查询完成'),
+        ])
+        updates = list(ChatService(settings, store).run_turn(
+            '查订单', 'USER001',
+            agent=CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings)),
+        ))
+>       assert not writes
+E       AssertionError: assert not [('6e5bdef304c642509d5d6e650809ead6', 'USER001', 'c3d6c8bb6eae42a3ac3dd0fedb075f1b', [{'event_id': 'c3d6c8bb6eae42a3ac...:2', 'session_id': '6e5bdef304c642509d5d6e650809ead6', 'turn_id': 'c3d6c8bb6eae42a3ac3dd0fedb075f1b', 'seq': 2, ...}])]
+
+tests/test_v2_premerge.py:113: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_diagnostic_failure_does_not_abort_business_or_final_history[projection]
+FAILED tests/test_v2_premerge.py::test_diagnostic_failure_does_not_abort_business_or_final_history[checkpoint]
+FAILED tests/test_v2_premerge.py::test_diagnostic_failure_does_not_abort_business_or_final_history[final_projection]
+FAILED tests/test_v2_premerge.py::test_lost_update_response_compares_this_turn_fields_with_existing_draft[False]
+FAILED tests/test_v2_premerge.py::test_lost_update_response_compares_this_turn_fields_with_existing_draft[True]
+FAILED tests/test_v2_premerge.py::test_readonly_progress_has_no_intermediate_persistent_writes

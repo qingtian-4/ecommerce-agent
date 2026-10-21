@@ -143,3 +143,36 @@ uv run python scripts/check_delivery_ui.py --serve --scenario /tmp/acs-ui-new-ba
 浏览器命令加`--faults --url http://127.0.0.1:7895 --out /tmp/acs-ui-new-faults`。
 以上模型均为故意注错脚本，不消耗 API；仅浏览器访问本机网络。
 在线脚本的`--live`确实付费，未来实验必须另定任务/总预算，不自动延续本轮剩余额度。
+
+## V2分支的显式演示
+
+V2实现与验收见[PHASE_V2_PLAN_AND_ACCEPTANCE](PHASE_V2_PLAN_AND_ACCEPTANCE.md)。
+`feat/runtime-v2`保留同一启动命令，`--demo`现在显式启用原四保护以及轻量Router、有限恢复和
+客户执行进度；不加--demo时这些实验配置仍为false。没有额外分类器或Reviewer模型。
+
+**首次升级请用全新场景目录，或先停服务备份旧数据库**。V2增加独立反馈表并迁移至SQLite v6，
+V1不能直接打开v6库，回退应恢复升级前备份，不能修改迁移号假装兼容。示例：
+
+```bash
+# 两终端使用相同的新目录，先等客户入口就绪再启动管理员
+uv run python scripts/workbench.py --demo --scenario /tmp/acs-v2-interview-new --port 7862
+uv run python scripts/workbench.py --demo --admin --scenario /tmp/acs-v2-interview-new --port 7863
+```
+
+普通真实模型发送仍会付费。本轮只运行脚本模型和故障注入，不新增在线试验。
+客户默认区域展示可展开的真实处理进度、精简事实/来源及当前轮状态，JSON和原答仍在开发观察。
+“有帮助/没解决”反馈单独保存，不修改回答策略。“手动选择退货对象”仅绑定本人订单/明细，
+不会自动填数量、原因或创建申请，明确提交按钮仍是唯一确认路径。
+
+照原五分钟脚本操作，再展示V2的业务路径、工具进度、预览等待确认和恢复状态。
+[最新桌面与业务截图](../results/phase_v2/browser_final/summary.json)、
+[移动/重试/反馈验收](../results/phase_v2/ui_layout_final/summary.json)、
+[故障帧](../results/phase_v2/browser_faults_final/summary.json)、
+[客户录屏](../results/phase_v2/browser_final/video/customer-demo.webm)、
+[管理员录屏](../results/phase_v2/browser_final/video/admin-demo.webm)。
+这些是脚本模型的真实页面操作，不能冒充真实LLM成功率或实际付费Token。
+
+重新跑无网络页面时，先用`check_delivery_ui.py --serve --candidate`启动同场景客户/管理员，
+另起基线和faults入口，再使用原浏览器命令；输出目录必须是新目录。
+`results/phase_v2/ui_acceptance.py`为额外390px、重试和反馈驱动，默认访问7930端口；
+它依赖本机Playwright环境，使用独立输出目录，重新运行前修改输出路径，不能覆盖冻结证据。

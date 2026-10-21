@@ -1,0 +1,97 @@
+..................................FF.................................... [ 73%]
+..........................                                               [100%]
+=================================== FAILURES ===================================
+_________ test_workbench_recovery_ablation_is_bound_at_startup[False] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x758d2153bee0>
+enabled = False
+
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_workbench_recovery_ablation_is_bound_at_startup(settings, monkeypatch, enabled):
+        import app
+    
+        settings = settings.model_copy(update={
+            'runtime_recovery_enabled': enabled, 'knowledge_mode': 'documents',
+        })
+        store, calls = SessionStore(settings.db_path), []
+        monkeypatch.setattr(app, 'SETTINGS', settings)
+>       monkeypatch.setattr(app, '_SESSION_STORE', store)
+        ^^^^^^^^^^^^^^^
+
+tests/test_v2_premerge.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app.py:1106: in build_app
+    KnowledgeBase(SETTINGS).build()
+src/acs/rag.py:235: in build
+    vectors = self.llm.embed(
+              ^^^^^^^^
+src/acs/rag.py:196: in llm
+    self._llm = LLMClient(settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:6: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = LLMClient(settings=Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_m...ecution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None), usages=[], budget=None)
+
+    def __post_init__(self) -> None:
+        if not self.settings.has_llm_key:
+>           raise RuntimeError(
+                "No LLM API key configured. Copy .env.example to .env and set "
+                "ACS_LLM_API_KEY before making real calls."
+            )
+E           RuntimeError: No LLM API key configured. Copy .env.example to .env and set ACS_LLM_API_KEY before making real calls.
+
+src/acs/llm.py:99: RuntimeError
+----------------------------- Captured stdout call -----------------------------
+knowledge index missing - building it now (one-off) ...
+__________ test_workbench_recovery_ablation_is_bound_at_startup[True] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x758d1d75f9d0>
+enabled = True
+
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_workbench_recovery_ablation_is_bound_at_startup(settings, monkeypatch, enabled):
+        import app
+    
+        settings = settings.model_copy(update={
+            'runtime_recovery_enabled': enabled, 'knowledge_mode': 'documents',
+        })
+        store, calls = SessionStore(settings.db_path), []
+        monkeypatch.setattr(app, 'SETTINGS', settings)
+>       monkeypatch.setattr(app, '_SESSION_STORE', store)
+        ^^^^^^^^^^^^^^^
+
+tests/test_v2_premerge.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app.py:1106: in build_app
+    KnowledgeBase(SETTINGS).build()
+src/acs/rag.py:235: in build
+    vectors = self.llm.embed(
+              ^^^^^^^^
+src/acs/rag.py:196: in llm
+    self._llm = LLMClient(settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:6: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = LLMClient(settings=Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_m...ecution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None), usages=[], budget=None)
+
+    def __post_init__(self) -> None:
+        if not self.settings.has_llm_key:
+>           raise RuntimeError(
+                "No LLM API key configured. Copy .env.example to .env and set "
+                "ACS_LLM_API_KEY before making real calls."
+            )
+E           RuntimeError: No LLM API key configured. Copy .env.example to .env and set ACS_LLM_API_KEY before making real calls.
+
+src/acs/llm.py:99: RuntimeError
+----------------------------- Captured stdout call -----------------------------
+knowledge index missing - building it now (one-off) ...
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_workbench_recovery_ablation_is_bound_at_startup[False]
+FAILED tests/test_v2_premerge.py::test_workbench_recovery_ablation_is_bound_at_startup[True]
+2 failed, 96 passed in 84.17s (0:01:24)

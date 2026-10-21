@@ -22,11 +22,11 @@ def check_ready(settings: Settings) -> dict:
         )}
         required = {"users", "products", "orders", "order_items", "price_history", "logistics",
                     "conversations", "conversation_turns", "return_requests", "return_reviews",
-                    "product_skus", "order_item_skus", "acs_migrations"}
+                    "product_skus", "order_item_skus", "acs_migrations", "conversation_feedback"}
         if not required <= tables:
             raise RuntimeError("数据库尚未完成迁移")
         version = conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0]
-        if version != 5:
+        if version != 6:
             raise RuntimeError("数据库版本不匹配")
     documents = load_source_documents(settings)
     return_policy(settings)

@@ -39,8 +39,10 @@ from acs.sessions import SessionStore  # noqa: E402
 class Ledger:
     """Reserve a worst-case call before sending it; unknown usage stops the experiment."""
 
-    def __init__(self, path, *, limit=Decimal("1"), max_requests=72):
+    def __init__(self, path, *, limit=Decimal("1"), max_requests=72,
+                 input_guard=Decimal("3"), output_guard=Decimal("10")):
         self.path, self.limit, self.max_requests = path, limit, max_requests
+        self.input_guard, self.output_guard = input_guard, output_guard
         self.spent = Decimal(0)
         self.calls = []
         self.halted = None
@@ -54,7 +56,8 @@ class Ledger:
         # UTF-8 bytes exceed BPE text tokens; extra headroom covers tool/chat framing.
         request = json.dumps(kwargs, ensure_ascii=False)
         input_bound = len(request.encode()) + 4096
-        reserve = Decimal(input_bound * 3 + kwargs["max_tokens"] * 10) / 1_000_000
+        reserve = (input_bound * self.input_guard
+                   + kwargs["max_tokens"] * self.output_guard) / 1_000_000
         if self.halted or len(self.calls) >= self.max_requests or self.spent + reserve > self.limit:
             self.halted = self.halted or "request_or_money_limit"
             self.save()
@@ -73,7 +76,8 @@ class Ledger:
             self.halted = "usage_missing_or_request_failed"
             record.update(usage_missing=True, charge_guard_cny=record["reserved_cny"])
         else:
-            charge = Decimal(usage.prompt_tokens * 3 + usage.completion_tokens * 10) / 1_000_000
+            charge = (usage.prompt_tokens * self.input_guard
+                      + usage.completion_tokens * self.output_guard) / 1_000_000
             self.spent += charge
             record.update(usage=usage.as_dict(), provider_usage=provider_usage,
                           charge_guard_cny=str(charge))

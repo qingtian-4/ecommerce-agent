@@ -76,7 +76,7 @@ def test_legacy_database_stays_unknown_and_migration_preserves_conversations(set
     assert store.list("USER001")[0]["session_id"] == sid
     with closing(sqlite3.connect(settings.db_path)) as conn:
         assert conn.execute("SELECT * FROM orders").fetchall() == before
-        assert conn.execute("SELECT max(version) FROM acs_migrations").fetchone()[0] == 5
+        assert conn.execute("SELECT max(version) FROM acs_migrations").fetchone()[0] == 6
     assert not db.get_product("P001")["skus"]
 
 

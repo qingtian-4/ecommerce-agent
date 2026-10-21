@@ -1,0 +1,254 @@
+FFFFFFFFFF                                                               [100%]
+=================================== FAILURES ===================================
+__ test_process_death_reconciles_authoritative_state_without_replay[received] __
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'received'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+_ test_process_death_reconciles_authoritative_state_without_replay[model_decision] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'model_decision'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+____ test_process_death_reconciles_authoritative_state_without_replay[read] ____
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'read'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+___ test_process_death_reconciles_authoritative_state_without_replay[draft] ____
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'draft'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+__ test_process_death_reconciles_authoritative_state_without_replay[preview] ___
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'preview'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+_ test_process_death_reconciles_authoritative_state_without_replay[submit_before] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'submit_before'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+_ test_process_death_reconciles_authoritative_state_without_replay[submit_after] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'submit_after'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+_ test_process_death_reconciles_authoritative_state_without_replay[review_before] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'review_before'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+_ test_process_death_reconciles_authoritative_state_without_replay[review_after] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'review_after'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+___ test_process_death_reconciles_authoritative_state_without_replay[stream] ___
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ow_router_enabled=False, runtime_recovery_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+mode = 'stream'
+
+    @pytest.mark.parametrize('mode', CASES)
+    def test_process_death_reconciles_authoritative_state_without_replay(settings, mode):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+                                str(settings.docs_dir)], capture_output=True, text=True,
+                               env={**os.environ, 'PYTHONPATH': str(Path('src').resolve())}, timeout=20)
+        assert child.returncode == 91, child.stderr
+        restarted = SessionStore(settings.db_path)
+        assert restarted.recover_interrupted() == 1
+        assert restarted.recover_interrupted() == 0
+        state = restarted.load(sid, 'USER001')
+        assert state['last_result']['stop_reason'] == 'interrupted'
+        assert not state['running']
+>       receipt = state['last_result']['totals']['recovery']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'totals'
+
+tests/test_crash_recovery_v2.py:71: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[received]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[model_decision]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[read]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[draft]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[preview]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[submit_before]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[submit_after]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[review_before]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[review_after]
+FAILED tests/test_crash_recovery_v2.py::test_process_death_reconciles_authoritative_state_without_replay[stream]
+10 failed in 12.19s

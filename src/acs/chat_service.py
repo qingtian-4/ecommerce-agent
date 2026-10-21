@@ -23,7 +23,10 @@ from .order_reliability import (
     color_constraint,
     constrained_response,
 )
+from .progress import progress_events
+from .recovery import WRITES, reconcile_update
 from .return_state_check import check_order_draft, state_notice
+from .routing import route_request
 from .runtime import BudgetExceeded, RunBudget
 from .service_agent import AgentResult, CustomerServiceAgent, build_system_prompt
 from .sessions import SessionStore
@@ -62,8 +65,52 @@ class ChatService:
         acquired, finished = False, False
         result = AgentResult(answer="", stop_reason="running")
         guarded, cancel_guarded = False, False
+        progress_signature = None
+        progress_projection_failed = progress_write_failed = False
+        trace_seen, pending_write = 0, None
+        uncertain_attempts = []
+        diagnostic_errors = []
+        readback_failed = False
+
+        def project_progress(phase: str, *, checkpoint: bool = False) -> None:
+            nonlocal progress_signature, progress_projection_failed, progress_write_failed
+            if diagnostic_errors:
+                result.totals['diagnostic_errors'] = diagnostic_errors
+            if not self.settings.execution_progress_enabled or progress_projection_failed:
+                return
+            try:
+                events = progress_events(sid, tid, result, phase)
+                result.totals['progress'] = events
+                signature = json.dumps(events, ensure_ascii=False)
+            except Exception as exc:  # Diagnostic projection must not abort business execution.
+                progress_projection_failed = True
+                result.totals.pop('progress', None)
+                diagnostic_errors.append({
+                    'stage': 'progress_projection', 'error_type': type(exc).__name__,
+                })
+                result.totals['diagnostic_errors'] = diagnostic_errors
+                return
+            critical = any(e.type == 'retry_scheduled' or (
+                e.type in {'tool_result', 'runtime_failure'} and e.label in WRITES
+            ) for e in result.trace[progress_checkpoint_index:])
+            if (checkpoint and critical and not progress_write_failed
+                    and signature != progress_signature):
+                try:
+                    self.store.save_progress(sid, user_id, tid, events)
+                    progress_signature = signature
+                except Exception as exc:  # Authority is still saved by finish_turn below.
+                    progress_write_failed = True
+                    diagnostic_errors.append({
+                        'stage': 'progress_checkpoint', 'error_type': type(exc).__name__,
+                    })
+                    result.totals['diagnostic_errors'] = diagnostic_errors
+
+        progress_checkpoint_index = 0
 
         def update(phase: str) -> TurnUpdate:
+            nonlocal progress_checkpoint_index
+            project_progress(phase, checkpoint=phase != 'completed')
+            progress_checkpoint_index = len(result.trace)
             visible = replace(result, answer="") if guarded and phase != "completed" else result
             history[reply_index:] = ([{"role": "assistant", "content": visible.answer}]
                                      if visible.answer else [])
@@ -100,6 +147,8 @@ class ChatService:
             agent = agent or CustomerServiceAgent(settings=self.settings, current_user_id=user_id)
             agent.set_user(user_id)
             agent.registry.bind_return_task(self.store, sid, tid)
+            if self.settings.workflow_router_enabled:
+                agent.route = route_request(message, agent.registry.names, bool(task['task']))
             required = [{"role": "system", "content": build_system_prompt(self.settings)}]
             if snapshot["messages"]:
                 required.append({"role": "system", "content": (
@@ -121,18 +170,69 @@ class ChatService:
             task_events = 0
             with closing(agent.chat_stream(message, budget=budget)) as stream:
                 for result in stream:
+                    if self.settings.runtime_recovery_enabled:
+                        for event in result.trace[trace_seen:]:
+                            if event.type == 'tool_call' and event.label in WRITES:
+                                try:
+                                    arguments = json.loads(event.detail['arguments'])
+                                except (ValueError, KeyError, TypeError):
+                                    arguments = {}
+                                pending_write = {
+                                    'tool': event.label, 'arguments': arguments,
+                                    'before': task.get('task'),
+                                }
+                            if (event.type == 'runtime_failure' and pending_write
+                                    and event.label == pending_write['tool']
+                                    and event.detail.get('category') in {
+                                        'tool_failure', 'internal_error',
+                                    }):
+                                uncertain_attempts.append(pending_write)
+                        trace_seen = len(result.trace)
                     cancel_guarded = cancel_guarded or any(
                         e.type == "tool_call" and e.label == "cancel_return_task"
                         for e in result.trace
                     )
-                    guarded = guarded or cancel_guarded
+                    uncertain_write = (self.settings.runtime_recovery_enabled and any(
+                        e.type == 'runtime_failure' and e.detail.get('side_effect') == 'possible'
+                        and e.detail.get('category') in {'tool_failure', 'internal_error'}
+                        for e in result.trace
+                    ))
+                    guarded = guarded or cancel_guarded or uncertain_write
                     result.totals["context"] = context_stats
                     result.totals["budget"] = budget.as_dict()
                     updates = sum(e.type == "tool_result" and e.label in {
                         "update_return_task", "cancel_return_task",
                     } for e in result.trace)
                     if updates != task_events:
-                        task = self.store.get_return_task(sid, user_id)
+                        try:
+                            task = self.store.get_return_task(sid, user_id)
+                        except Exception:
+                            if not self.settings.runtime_recovery_enabled:
+                                raise
+                            readback_failed = True
+                            uncertain_write = guarded = True
+                            if pending_write:
+                                uncertain_attempts.append(pending_write)
+                            task = {'state_unavailable': True}
+                            result.stop_reason = 'state_uncertain'
+                            result.answer = '实际状态待核实。'
+                            result.errors.append('state_read_failed')
+                            pending = {}
+                            for item in agent.messages[offset:]:
+                                for call in item.get('tool_calls', []):
+                                    pending[call['id']] = call
+                                if item['role'] == 'tool':
+                                    pending.pop(item['tool_call_id'], None)
+                            for call_id in pending:
+                                agent.messages.append({
+                                    'role': 'tool', 'tool_call_id': call_id,
+                                    'content': json.dumps({'executed': False,
+                                                          'error_type': 'state_uncertain'}),
+                                })
+                            agent.messages.append({'role': 'assistant', 'content': result.answer})
+                            result.trace.append(TraceEvent('final', 'answer', {
+                                'text': result.answer,
+                            }))
                         task_events = updates
                     if result.stop_reason != "running":
                         model_answer = result.answer
@@ -177,7 +277,7 @@ class ChatService:
                         if guarded:
                             original = model_answer
                             verified = rendered is not None
-                            if cancel_guarded:
+                            if cancel_guarded and not uncertain_write:
                                 task = self.store.get_return_task(sid, user_id)
                                 actual = task["task"]
                                 status = actual["status"] if actual else "absent"
@@ -252,11 +352,69 @@ class ChatService:
                                     result.totals.get("latency_ms", 0) + event.duration_ms
                                 )
                                 result.trace.insert(len(result.trace) - bool(finals), event)
+                        if uncertain_write:
+                            attempts = []
+                            try:
+                                task = self.store.get_return_task(sid, user_id)
+                                actual = task['task'] or {}
+                                observed = actual.get('status', 'absent')
+                                result.answer = '工具响应异常，已核对后台：' + {
+                                    'absent': '当前无退货草稿，未确认本次操作成功。',
+                                    'draft': '退货草稿已保存，尚未提交申请。',
+                                    'cancelled': '草稿已中止；订单未取消。',
+                                    'submitted': '已有申请记录，请查询实际审核结果；尚未退款。',
+                                }[observed]
+                                for attempt in uncertain_attempts:
+                                    if attempt['tool'] == 'update_return_task':
+                                        checked = reconcile_update(
+                                            attempt['before'], actual,
+                                            attempt['arguments'], tid,
+                                        )
+                                        attempts.append(checked)
+                                        result.answer += '\n' + {
+                                            'applied': '本轮字段更正已核实。',
+                                            'not_applied': '本轮字段更正未生效，保留原草稿。',
+                                            'uncertain': '本轮字段更正尚未核实，请勿重复办理。',
+                                        }[checked['outcome']]
+                                        labels = {'order_id': '订单', 'item_id': '商品明细',
+                                                  'quantity': '数量', 'reason': '退货原因',
+                                                  'condition': '商品状况',
+                                                  'problem_description': '问题描述',
+                                                  'secondary_sale_ok': '二次销售条件',
+                                                  'quality_non_user_damage': '非人为损坏声明'}
+                                        result.answer += ' 当前记录：' + '；'.join(
+                                            labels[k] + '：' + str(
+                                                v['actual'] if v['actual'] is not None else '未提供'
+                                            )
+                                            for k, v in checked['fields'].items()
+                                        )
+                                result.stop_reason = 'tool_error'
+                            except Exception:
+                                task = {'state_unavailable': True}
+                                observed = 'unknown'
+                                result.answer = ('工具响应异常，实际状态待核实，'
+                                                 '请重新载入查询，勿重复办理。')
+                                result.stop_reason = 'state_uncertain'
+                            result.trace.append(TraceEvent('state_check', 'write_reconciliation', {
+                                'status': observed, 'reason': 'write_response_uncertain',
+                                'replayed': False, 'attempts': attempts,
+                            }))
+                            agent.messages[-1]['content'] = result.answer
+                            finals = [e for e in result.trace if e.type == 'final']
+                            if finals:
+                                finals[-1].detail['text'] = result.answer
+                            else:
+                                result.trace.append(TraceEvent('final', 'answer', {
+                                    'text': result.answer,
+                                }))
+                        project_progress('completed')
                         self.store.finish_turn(
                             sid, user_id, tid, agent.messages[offset:], asdict(result),
                         )
                         finished = True
                     yield update("running" if result.stop_reason == "running" else "completed")
+                    if readback_failed:
+                        break  # Close the Loop before another model decision or tool execution.
             if not finished:
                 raise RuntimeError("模型未返回完整轮次")
         except (ContextLimitExceeded, BudgetExceeded) as exc:
@@ -264,6 +422,7 @@ class ChatService:
             result = AgentResult(answer=str(exc) + "，本次回答未完成，请重新提问。",
                                  stop_reason=reason, errors=[reason],
                                  totals={"budget": budget.as_dict()})
+            project_progress('completed')
             self.store.finish_turn(sid, user_id, tid, [
                 {"role": "user", "content": message},
                 {"role": "assistant", "content": result.answer},

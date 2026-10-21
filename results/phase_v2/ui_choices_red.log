@@ -1,0 +1,32 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_candidate_choices_expand_owned_items_from_data_layer ___________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x72d3a234f230>
+
+    def test_candidate_choices_expand_owned_items_from_data_layer(settings, monkeypatch):
+        import app
+    
+        monkeypatch.setattr(app, 'SETTINGS', settings)
+>       choices = app.order_selection_choices('USER001')['choices']
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_progress_v2.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+user_key = 'USER001'
+
+    def order_selection_choices(user_key: str):
+        rows = BusinessDB(SETTINGS).list_orders(user_id_from_key(user_key))
+        return gr.update(choices=[
+            (f"{o['order_id']} · {i['product_name']} · 明细{i['id']}", f"{o['order_id']}:{i['id']}")
+>           for o in rows for i in o['items']
+                                   ^^^^^^^^^^
+        ], value=None)
+E       KeyError: 'items'
+
+app.py:896: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_progress_v2.py::test_candidate_choices_expand_owned_items_from_data_layer
+1 failed, 6 deselected in 4.75s

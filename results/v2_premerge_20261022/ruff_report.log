@@ -1,0 +1,12 @@
+E501 Line too long (101 > 100)
+  --> results/v2_premerge_20261022/analyze_live.py:59:101
+   |
+57 |         'all_business_safe': all(r['business_safe'] for r in arm),
+58 |         'all_synchronized': all(t.get('synchronized', False) for t in turns),
+59 |         'conversation_ms': quantiles([sum(t.get('elapsed_ms', 0) for t in r['turns']) for r in arm]),
+   |                                                                                                     ^
+60 |         'turn_ms': quantiles([t['elapsed_ms'] for t in turns if 'elapsed_ms' in t]),
+61 |         'first_visible_ms': quantiles([t['first_visible_ms'] for t in turns
+   |
+
+Found 1 error.

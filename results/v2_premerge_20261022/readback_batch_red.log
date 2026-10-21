@@ -1,0 +1,59 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+__ test_successful_write_followed_by_failed_state_read_finishes_safely[True] ___
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x70cb93f9c3e0>
+batch = True
+
+    @pytest.mark.parametrize('batch', [False, True])
+    def test_successful_write_followed_by_failed_state_read_finishes_safely(
+        settings, monkeypatch, batch,
+    ):
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        store = SessionStore(settings.db_path)
+        read = store.get_return_task
+        reads = []
+    
+        def failed_read(*args):
+            reads.append(1)
+            if len(reads) > 1:
+                raise OSError('read unavailable after successful write')
+            return read(*args)
+    
+        monkeypatch.setattr(store, 'get_return_task', failed_read)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('write', 'update_return_task', '{"order_id":"O10024"}'),
+            ] + ([ScriptedToolCall('later', 'get_order', '{"order_id":"O10023"}')]
+                 if batch else [])), ScriptedResponse(text='不应该再调用模型'),
+        ])
+>       final = list(ChatService(settings, store).run_turn(
+            '退O10024', 'USER001',
+            agent=CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings)),
+        ))[-1]
+
+tests/test_v2_premerge.py:294: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/chat_service.py:399: in run_turn
+    self.store.finish_turn(
+src/acs/sessions.py:244: in finish_turn
+    _validate_messages(messages)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+messages = [{'role': 'user', 'content': '退O10024'}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'write', 'type':...nditions": [], "requires_uploaded_media": false}}'}, {'role': 'assistant', 'content': '工具响应异常，实际状态待核实，请重新载入查询，勿重复办理。'}]
+
+    def _validate_messages(messages: list[dict]) -> None:
+        if not messages or messages[0].get("role") != "user":
+            raise ValueError("一轮对话必须从用户消息开始")
+        pending = set()
+        for message in messages[1:]:
+            if message.get("role") == "assistant":
+                if pending:
+>                   raise ValueError("工具调用与返回未完整配对")
+E                   ValueError: 工具调用与返回未完整配对
+
+src/acs/sessions.py:36: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_successful_write_followed_by_failed_state_read_finishes_safely[True]
+1 failed, 1 passed, 36 deselected in 6.95s

@@ -1,0 +1,53 @@
+E501 Line too long (102 > 100)
+   --> src/acs/chat_service.py:304:101
+    |
+302 |                                 }))
+303 |                         if self.settings.execution_progress_enabled:
+304 |                             result.totals['progress'] = progress_events(sid, tid, result, 'completed')
+    |                                                                                                     ^^
+305 |                         self.store.finish_turn(
+306 |                             sid, user_id, tid, agent.messages[offset:], asdict(result),
+    |
+
+E501 Line too long (108 > 100)
+  --> src/acs/progress.py:18:86
+   |
+16 | }
+17 | ROUTES = {'presales': '商品咨询', 'orders': '订单查询', 'logistics': '物流查询',
+18 |           'returns': '售后办理', 'price_policy': '价保政策', 'mixed': '组合业务', 'unknown': '继续核实诉求'}
+   |                                                                                                     ^^^^^^^^
+
+E501 Line too long (101 > 100)
+  --> src/acs/progress.py:25:101
+   |
+23 |     cards = []
+24 |     if name == 'get_order' and payload.get('found') is True:
+25 |         cards.append({k: payload[k] for k in ('order_id', 'status', 'total_amount') if k in payload})
+   |                                                                                                     ^
+26 |         items = payload.get('items')
+27 |         for item in (items[:3] if isinstance(items, list) else []):
+   |
+
+E501 Line too long (102 > 100)
+  --> src/acs/progress.py:35:101
+   |
+33 |                 cards.append(card)
+34 |     elif name == 'get_product' and payload.get('found') is True:
+35 |         cards.append({k: payload[k] for k in ('product_id', 'name', 'current_price') if k in payload})
+   |                                                                                                     ^^
+36 |     elif name == 'get_knowledge_documents':
+37 |         docs = payload.get('documents')
+   |
+
+E501 Line too long (103 > 100)
+  --> src/acs/progress.py:71:91
+   |
+69 |             failed = bool(payload.get('error')) or payload.get('found') is False
+70 |             add(index, 'tool_failed' if failed else 'tool_completed',
+71 |                 name + ('未取得可用结果' if failed else '已返回'), 'blocked' if failed else 'observed',
+   |                                                                                                     ^^^
+72 |                 evidence(event.label, payload) if not failed else [])
+73 |             preview_ready = preview_ready or (event.label == 'preview_return'
+   |
+
+Found 5 errors.

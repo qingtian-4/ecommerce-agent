@@ -1,0 +1,114 @@
+E731 Do not assign a `lambda` expression, use a `def`
+  --> scripts/eval_v2_premerge.py:53:5
+   |
+51 | def run(cases_path, out, *, live=False, preflight=None):
+52 |     cases = json.loads(cases_path.read_text())
+53 |     digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+54 |     sources = {str(p.relative_to(ROOT)): digest(p) for p in [
+55 |         *sorted((ROOT / 'src/acs').glob('*.py')), Path(__file__),
+   |
+help: Rewrite `digest` as a `def`
+
+B023 Function definition does not bind loop variable `attempts`
+   --> scripts/eval_v2_premerge.py:137:29
+    |
+136 |                         def stream_with_fault(*args, **kwargs):
+137 |                             attempts.append(1)
+    |                             ^^^^^^^^
+138 |                             trigger = 1 if case['fault'] == 'initial_503' else 2
+139 |                             if len(attempts) == trigger:
+    |
+
+B023 Function definition does not bind loop variable `case`
+   --> scripts/eval_v2_premerge.py:138:44
+    |
+136 |                         def stream_with_fault(*args, **kwargs):
+137 |                             attempts.append(1)
+138 |                             trigger = 1 if case['fault'] == 'initial_503' else 2
+    |                                            ^^^^
+139 |                             if len(attempts) == trigger:
+140 |                                 error = RuntimeError('controlled pre-send HTTP 503')
+    |
+
+B023 Function definition does not bind loop variable `attempts`
+   --> scripts/eval_v2_premerge.py:139:36
+    |
+137 | …                     attempts.append(1)
+138 | …                     trigger = 1 if case['fault'] == 'initial_503' else 2
+139 | …                     if len(attempts) == trigger:
+    |                              ^^^^^^^^
+140 | …                         error = RuntimeError('controlled pre-send HTTP 503')
+141 | …                         error.status_code = 503
+    |
+
+B023 Function definition does not bind loop variable `original_stream`
+   --> scripts/eval_v2_premerge.py:143:40
+    |
+141 |                                 error.status_code = 503
+142 |                                 raise error
+143 |                             yield from original_stream(*args, **kwargs)
+    |                                        ^^^^^^^^^^^^^^^
+144 |
+145 |                         delegate.chat_stream = stream_with_fault
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> scripts/probe_v2_progress.py:18:1
+   |
+16 |   sys.path[:0] = [str(ROOT), str(ROOT / "src")]
+17 |
+18 | / from acs.chat_service import ChatService  # noqa: E402
+19 | | from acs.config import Settings  # noqa: E402
+20 | | from acs.cs_tools import ToolRegistry  # noqa: E402
+21 | | from acs.scenarios import build_scenario, scenario_settings  # noqa: E402
+22 | | from acs.service_agent import CustomerServiceAgent  # noqa: E402
+23 | | from acs.sessions import SessionStore  # noqa: E402
+24 | | from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall  # noqa: E402
+   | |__________________________________________________________________________^
+help: Organize imports
+   |
+17 |
+18 + from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall  # noqa: E402
+19 +
+20 | from acs.chat_service import ChatService  # noqa: E402
+--------------------------------------------------------------------------------
+25 | from acs.sessions import SessionStore  # noqa: E402
+   - from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall  # noqa: E402
+26 |
+   |
+
+B023 Function definition does not bind loop variable `save`
+  --> scripts/probe_v2_progress.py:60:25
+   |
+58 |                     def observed(*args):
+59 |                         started = perf_counter()
+60 |                         save(*args)
+   |                         ^^^^
+61 |                         writes.append((perf_counter() - started) * 1000)
+   |
+
+B023 Function definition does not bind loop variable `writes`
+  --> scripts/probe_v2_progress.py:61:25
+   |
+59 |                         started = perf_counter()
+60 |                         save(*args)
+61 |                         writes.append((perf_counter() - started) * 1000)
+   |                         ^^^^^^
+62 |
+63 |                     with patch.object(store, 'save_progress', observed):
+   |
+
+E501 Line too long (104 > 100)
+   --> src/acs/chat_service.py:358:99
+    |
+356 | …                     result.answer += ' 当前记录：' + '；'.join(
+357 | …                         labels[k] + '：' + str(v['actual'] if
+358 | …                                               v['actual'] is not None else '未提供')
+    |                                                                                   ^^^^
+359 | …                         for k, v in checked['fields'].items()
+360 | …                     )
+    |
+
+Found 9 errors.
+[*] 1 fixable with the `--fix` option (1 hidden fix can be enabled with the `--unsafe-fixes` option).

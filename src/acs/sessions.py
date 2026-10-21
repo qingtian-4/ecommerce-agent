@@ -66,7 +66,7 @@ class SessionStore:
             conn.execute("CREATE TABLE IF NOT EXISTS acs_migrations "
                          "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
             version = conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] or 0
-            if version > 5:
+            if version > 6:
                 raise RuntimeError("数据库迁移版本比当前程序新，不能自动降级")
             conn.execute("CREATE TABLE IF NOT EXISTS conversations ("
                          "session_id TEXT PRIMARY KEY,"
@@ -149,6 +149,13 @@ class SessionStore:
                          "item_id INTEGER PRIMARY KEY REFERENCES order_items(id),"
                          "sku_id TEXT NOT NULL REFERENCES product_skus(sku_id))")
             conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(5, ?)", (_now(),))
+            conn.execute("CREATE TABLE IF NOT EXISTS conversation_feedback ("
+                         "feedback_id TEXT PRIMARY KEY, session_id TEXT NOT NULL "
+                         "REFERENCES conversations(session_id), turn_id TEXT NOT NULL "
+                         "REFERENCES conversation_turns(turn_id), user_id TEXT NOT NULL "
+                         "REFERENCES users(user_id), value TEXT NOT NULL "
+                         "CHECK(value IN ('helpful','unresolved')), created_at TEXT NOT NULL)")
+            conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(6, ?)", (_now(),))
 
     @staticmethod
     def _require_owner(conn, sid: str, user_id: str) -> sqlite3.Row:
@@ -184,7 +191,10 @@ class SessionStore:
                 history.append({"role": "assistant", "content": row["answer"]})
                 messages.extend(json.loads(row["messages_json"]))
                 last_result = json.loads(row["result_json"])
+        if turns and turns[-1]['status'] == 'running':
+            last_result = json.loads(turns[-1]['result_json']) if turns[-1]['result_json'] else None
         return {"history": history, "messages": messages, "last_result": last_result,
+                "turn_id": turns[-1]['turn_id'] if turns else None,
                 "running": bool(turns and turns[-1]["status"] == "running")}
 
     def begin_turn(self, sid: str, user_id: str, text: str) -> str:
@@ -207,6 +217,29 @@ class SessionStore:
                          (title, _now(), sid))
         return tid
 
+    def save_progress(self, sid: str, user_id: str, tid: str, events: list[dict]) -> None:
+        """Diagnostic checkpoint only; no answer/tool messages or execution replay."""
+        if any(e.get('session_id') != sid or e.get('turn_id') != tid for e in events):
+            raise ValueError('进度关联错误')
+        with closing(self._connect()) as conn, conn:
+            self._require_owner(conn, sid, user_id)
+            conn.execute("UPDATE conversation_turns SET result_json=? WHERE session_id=? "
+                         "AND turn_id=? AND status='running'", (json.dumps({
+                             'answer': '', 'stop_reason': 'running',
+                             'totals': {'progress': events},
+                         }, ensure_ascii=False), sid, tid))
+
+    def add_feedback(self, sid: str, uid: str, tid: str, value: str) -> None:
+        if value not in {'helpful', 'unresolved'}:
+            raise ValueError('反馈类型无效')
+        with closing(self._connect()) as conn, conn:
+            self._require_owner(conn, sid, uid)
+            if not conn.execute("SELECT 1 FROM conversation_turns WHERE session_id=? "
+                                "AND turn_id=? AND status<>'running'", (sid, tid)).fetchone():
+                raise ValueError('请等待本轮结束再反馈')
+            conn.execute('INSERT INTO conversation_feedback VALUES(?,?,?,?,?,?)',
+                         (uuid4().hex, sid, tid, uid, value, _now()))
+
     def finish_turn(self, sid: str, user_id: str, tid: str, messages: list[dict], result: dict):
         _validate_messages(messages)
         with closing(self._connect()) as conn, conn:
@@ -225,29 +258,77 @@ class SessionStore:
             conn.execute("UPDATE conversations SET updated_at=? WHERE session_id=?", (_now(), sid))
 
     def interrupt_turn(self, sid: str, user_id: str, tid: str,
-                       answer: str = "上次请求已中断，回答未完成，请重新提问。") -> None:
+                       answer: str = "上次请求已中断，回答未完成，请重新提问。", *,
+                       reconcile: bool = False) -> None:
         with closing(self._connect()) as conn, conn:
             conn.execute("BEGIN IMMEDIATE")
             self._require_owner(conn, sid, user_id)
-            row = conn.execute("SELECT user_text FROM conversation_turns WHERE turn_id=? "
+            row = conn.execute("SELECT user_text,result_json FROM conversation_turns "
+                               "WHERE turn_id=? "
                                "AND session_id=? AND status='running'", (tid, sid)).fetchone()
             if row:
+                previous = json.loads(row['result_json']) if row['result_json'] else {}
+                prior_progress = previous.get('totals', {}).get('progress', [])
+                result = {'answer': answer, 'stop_reason': 'interrupted'}
+                if reconcile:
+                    task = self._task(conn, sid)
+                    request = conn.execute(
+                        'SELECT r.request_id,r.status,v.reason AS review_reason '
+                        'FROM return_requests r LEFT JOIN return_reviews v USING(request_id) '
+                        'WHERE r.session_id=? AND r.user_id=? ORDER BY r.created_at DESC LIMIT 1',
+                        (sid, user_id),
+                    ).fetchone()
+                    preview = conn.execute('SELECT preview_id FROM return_previews '
+                                           'WHERE session_id=? ORDER BY created_at DESC LIMIT 1',
+                                           (sid,)).fetchone()
+                    state = {'replayed': False, 'task_status': task['status'] if task else 'absent',
+                             'order_id': task['order_id'] if task else None,
+                             'revision': task['revision'] if task else None,
+                             'request': dict(request) if request else None,
+                             'preview_requires_revalidation': bool(preview)}
+                    answer = '上次请求已中断，回答未完成。已重新核对后台：'
+                    if request:
+                        label = {'pending_review': '待审核', 'approved': '允许退回商品',
+                                 'rejected': '未通过审核'}[request['status']]
+                        answer += f"申请 {request['request_id']} 当前{label}，尚未退款。"
+                    elif task and task['status'] == 'draft':
+                        answer += (f"订单 {task['order_id'] or '未指定'} 的退货草稿仍在，"
+                                   "尚未提交申请。")
+                    elif task and task['status'] == 'cancelled':
+                        answer += '草稿已中止，订单未取消。'
+                    else:
+                        answer += '当前未查到本会话已提交的申请，请继续核对。'
+                    answer += ' 不会自动重复执行；旧预览请重新核查。'
+                    result = {'answer': answer, 'stop_reason': 'interrupted',
+                              'totals': {'recovery': state}, 'trace': [{
+                                  'type': 'recovered', 'label': 'authoritative_state',
+                                  'detail': state,
+                              }]}
+                if prior_progress:
+                    seq = max(e['seq'] for e in prior_progress) + 1
+                    prior_progress.append({'event_id': f'{tid}:{seq}', 'session_id': sid,
+                                           'turn_id': tid, 'seq': seq, 'kind': 'turn_interrupted',
+                                           'label': ('上次请求已中断，已核对后台，请继续确认'
+                                                     if reconcile else
+                                                     '上次请求已中断，请重新核对后台状态'),
+                                           'status': 'incomplete', 'facts': []})
+                    result.setdefault('totals', {})['progress'] = prior_progress
                 messages = [{"role": "user", "content": row["user_text"]},
                             {"role": "assistant", "content": answer}]
                 conn.execute("UPDATE conversation_turns SET status='interrupted', answer=?,"
                              "messages_json=?,result_json=?,finished_at=? WHERE turn_id=?",
                              (answer, json.dumps(messages, ensure_ascii=False),
-                              json.dumps({"answer": answer, "stop_reason": "interrupted"},
-                                         ensure_ascii=False), _now(), tid))
+                              json.dumps(result, ensure_ascii=False), _now(), tid))
 
-    def recover_interrupted(self) -> int:
+    def recover_interrupted(self, *, reconcile: bool = True) -> int:
         """Call once at single-process server startup, never on a per-request load."""
         with closing(self._connect()) as conn:
             rows = conn.execute("SELECT t.turn_id,t.session_id,c.user_id FROM conversation_turns t "
                                 "JOIN conversations c USING(session_id) "
                                 "WHERE status='running'").fetchall()
         for row in rows:
-            self.interrupt_turn(row["session_id"], row["user_id"], row["turn_id"])
+            self.interrupt_turn(row["session_id"], row["user_id"], row["turn_id"],
+                                reconcile=reconcile)
         return len(rows)
 
     @staticmethod

@@ -184,5 +184,5 @@ def test_migration_preserves_v1_history_and_business_tables(task_context):
     migrated = SessionStore(store.db_path)
     assert migrated.load(sid, "USER001") == before
     with closing(migrated._connect()) as conn:
-        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 5
+        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 6
         assert conn.execute("SELECT COUNT(*) FROM order_items").fetchone()[0] == counts

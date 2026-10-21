@@ -1,0 +1,98 @@
+offline	Run uv run pytest	﻿2026-10-21T16:15:31.0987075Z ##[group]Run uv run pytest
+offline	Run uv run pytest	2026-10-21T16:15:31.0987385Z ^[[36;1muv run pytest^[[0m
+offline	Run uv run pytest	2026-10-21T16:15:31.1057884Z shell: /usr/bin/bash -e {0}
+offline	Run uv run pytest	2026-10-21T16:15:31.1058157Z env:
+offline	Run uv run pytest	2026-10-21T16:15:31.1058368Z   GRADIO_ANALYTICS_ENABLED: False
+offline	Run uv run pytest	2026-10-21T16:15:31.1058634Z   ACS_LLM_API_KEY: 
+offline	Run uv run pytest	2026-10-21T16:15:31.1058854Z   ACS_EMBEDDING_API_KEY: 
+offline	Run uv run pytest	2026-10-21T16:15:31.1059162Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+offline	Run uv run pytest	2026-10-21T16:15:31.1059600Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+offline	Run uv run pytest	2026-10-21T16:15:31.1060015Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+offline	Run uv run pytest	2026-10-21T16:15:31.1060387Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+offline	Run uv run pytest	2026-10-21T16:15:31.1060763Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+offline	Run uv run pytest	2026-10-21T16:15:31.1061139Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+offline	Run uv run pytest	2026-10-21T16:15:31.1061478Z ##[endgroup]
+offline	Run uv run pytest	2026-10-21T16:15:40.8995594Z ........................................................................ [ 10%]
+offline	Run uv run pytest	2026-10-21T16:15:41.8831437Z ...............................F........................................ [ 20%]
+offline	Run uv run pytest	2026-10-21T16:15:44.1704447Z ......................F................................................. [ 31%]
+offline	Run uv run pytest	2026-10-21T16:15:45.0958515Z ........................................................................ [ 41%]
+offline	Run uv run pytest	2026-10-21T16:15:46.1773252Z ........................................................................ [ 51%]
+offline	Run uv run pytest	2026-10-21T16:15:49.9789493Z ........................................................................ [ 62%]
+offline	Run uv run pytest	2026-10-21T16:15:51.0715783Z ........................................................................ [ 72%]
+offline	Run uv run pytest	2026-10-21T16:15:53.1320962Z ........................................................................ [ 82%]
+offline	Run uv run pytest	2026-10-21T16:15:54.4867282Z ........................................................................ [ 93%]
+offline	Run uv run pytest	2026-10-21T16:15:58.8949625Z ...............................................                          [100%]
+offline	Run uv run pytest	2026-10-21T16:15:58.8950152Z =================================== FAILURES ===================================
+offline	Run uv run pytest	2026-10-21T16:15:58.8950714Z ____________ test_return_example_was_delivered_exactly_two_days_ago ____________
+offline	Run uv run pytest	2026-10-21T16:15:58.8951136Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8952421Z settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+offline	Run uv run pytest	2026-10-21T16:15:58.8953824Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8954126Z     def test_return_example_was_delivered_exactly_two_days_ago(settings):
+offline	Run uv run pytest	2026-10-21T16:15:58.8954814Z         order = BusinessDB(settings).get_order("O10024", "USER001")
+offline	Run uv run pytest	2026-10-21T16:15:58.8955414Z >       assert order["delivered_days_ago"] == 2
+offline	Run uv run pytest	2026-10-21T16:15:58.8955860Z E       assert 3 == 2
+offline	Run uv run pytest	2026-10-21T16:15:58.8956057Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8956262Z tests/test_data_consistency.py:10: AssertionError
+offline	Run uv run pytest	2026-10-21T16:15:58.8956958Z _ test_development_distribution_preserves_frozen_cases_and_adds_missing_coverage _
+offline	Run uv run pytest	2026-10-21T16:15:58.8957490Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8958617Z settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+offline	Run uv run pytest	2026-10-21T16:15:58.8959774Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8960049Z     def test_development_distribution_preserves_frozen_cases_and_adds_missing_coverage(settings):
+offline	Run uv run pytest	2026-10-21T16:15:58.8960534Z         cases = load("development.yaml")
+offline	Run uv run pytest	2026-10-21T16:15:58.8960833Z         assert cases[:35] == load("cases.yaml")
+offline	Run uv run pytest	2026-10-21T16:15:58.8961174Z         assert len(cases) == len({c["id"] for c in cases}) == 70
+offline	Run uv run pytest	2026-10-21T16:15:58.8961534Z         assert sum("turns" in c for c in cases) == 10
+offline	Run uv run pytest	2026-10-21T16:15:58.8961904Z         assert sum(c["user"] == "USER003" for c in cases) >= 8
+offline	Run uv run pytest	2026-10-21T16:15:58.8962300Z         assert sum(bool(c.get("forbidden_tools")) for c in cases) >= 30
+offline	Run uv run pytest	2026-10-21T16:15:58.8963006Z         products = Counter(p for c in cases for p in c.get("product_ids", []))
+offline	Run uv run pytest	2026-10-21T16:15:58.8963459Z         assert all(products[p] >= 3 for p in ("P001", "P002", "P003", "P004"))
+offline	Run uv run pytest	2026-10-21T16:15:58.8963829Z         db = BusinessDB(settings)
+offline	Run uv run pytest	2026-10-21T16:15:58.8964084Z         states = Counter()
+offline	Run uv run pytest	2026-10-21T16:15:58.8964419Z         chunks = {c.chunk_id for c in KnowledgeBase(settings).load_documents()}
+offline	Run uv run pytest	2026-10-21T16:15:58.8964816Z         for case in cases:
+offline	Run uv run pytest	2026-10-21T16:15:58.8965072Z             for turn in case.get("turns") or [case]:
+offline	Run uv run pytest	2026-10-21T16:15:58.8965511Z                 assert not set(turn.get("required_tools", [])) & set(turn.get("forbidden_tools", []))
+offline	Run uv run pytest	2026-10-21T16:15:58.8965970Z                 facts = dict(turn.get("order_facts") or {})
+offline	Run uv run pytest	2026-10-21T16:15:58.8966278Z                 if facts:
+offline	Run uv run pytest	2026-10-21T16:15:58.8966598Z                     order = db.get_order(facts.pop("order_id"), case["user"])
+offline	Run uv run pytest	2026-10-21T16:15:58.8966956Z                     assert order["found"]
+offline	Run uv run pytest	2026-10-21T16:15:58.8967352Z >                   assert all(order[k] == v for k, v in facts.items()), (case["id"], facts)
+offline	Run uv run pytest	2026-10-21T16:15:58.8968260Z E                   AssertionError: ('u2-shipped-status', {'status': 'shipped', 'paid_amount': 899.0, 'created_days_ago': 4, 'delivered_days_ago': None})
+offline	Run uv run pytest	2026-10-21T16:15:58.8968830Z E                   assert False
+offline	Run uv run pytest	2026-10-21T16:15:58.8969519Z E                    +  where False = all(<generator object test_development_distribution_preserves_frozen_cases_and_adds_missing_coverage.<locals>.<genexpr> at 0x7fe5d5642c00>)
+offline	Run uv run pytest	2026-10-21T16:15:58.8970086Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8970211Z tests/test_eval_datasets.py:43: AssertionError
+offline	Run uv run pytest	2026-10-21T16:15:58.8970565Z =============================== warnings summary ===============================
+offline	Run uv run pytest	2026-10-21T16:15:58.8970955Z .venv/lib/python3.13/site-packages/jieba/__init__.py:44
+offline	Run uv run pytest	2026-10-21T16:15:58.8971672Z   /home/runner/work/ecommerce-agent/ecommerce-agent/.venv/lib/python3.13/site-packages/jieba/__init__.py:44: SyntaxWarning: invalid escape sequence '\.'
+offline	Run uv run pytest	2026-10-21T16:15:58.8972409Z     re_han_default = re.compile("([\u4E00-\u9FD5a-zA-Z0-9+#&\._%\-]+)", re.U)
+offline	Run uv run pytest	2026-10-21T16:15:58.8972684Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8972825Z .venv/lib/python3.13/site-packages/jieba/__init__.py:46
+offline	Run uv run pytest	2026-10-21T16:15:58.8973477Z   /home/runner/work/ecommerce-agent/ecommerce-agent/.venv/lib/python3.13/site-packages/jieba/__init__.py:46: SyntaxWarning: invalid escape sequence '\s'
+offline	Run uv run pytest	2026-10-21T16:15:58.8974122Z     re_skip_default = re.compile("(\r\n|\s)", re.U)
+offline	Run uv run pytest	2026-10-21T16:15:58.8974333Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8974508Z .venv/lib/python3.13/site-packages/jieba/finalseg/__init__.py:78
+offline	Run uv run pytest	2026-10-21T16:15:58.8975225Z   /home/runner/work/ecommerce-agent/ecommerce-agent/.venv/lib/python3.13/site-packages/jieba/finalseg/__init__.py:78: SyntaxWarning: invalid escape sequence '\.'
+offline	Run uv run pytest	2026-10-21T16:15:58.8975907Z     re_skip = re.compile("([a-zA-Z0-9]+(?:\.\d+)?%?)")
+offline	Run uv run pytest	2026-10-21T16:15:58.8976133Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8976509Z tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+offline	Run uv run pytest	2026-10-21T16:15:58.8977119Z tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+offline	Run uv run pytest	2026-10-21T16:15:58.8978293Z   /opt/hostedtoolcache/Python/3.13.16/x64/lib/python3.13/contextlib.py:141: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+offline	Run uv run pytest	2026-10-21T16:15:58.8979145Z     return next(self.gen)
+offline	Run uv run pytest	2026-10-21T16:15:58.8979294Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8979564Z tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+offline	Run uv run pytest	2026-10-21T16:15:58.8981023Z   /home/runner/work/ecommerce-agent/ecommerce-agent/.venv/lib/python3.13/site-packages/gradio/queueing.py:178: Pandas4Warning: The copy keyword is deprecated and will be removed in a future version. Copy-on-Write is active in pandas since 3.0 which utilizes a lazy copy mechanism that defers copies until necessary. Use .copy() to make an eager copy if necessary.
+offline	Run uv run pytest	2026-10-21T16:15:58.8982611Z     pd.DataFrame(records).fillna(value=np.nan).infer_objects(copy=False)  # type: ignore
+offline	Run uv run pytest	2026-10-21T16:15:58.8982942Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8983201Z tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+offline	Run uv run pytest	2026-10-21T16:15:58.8984031Z   /opt/hostedtoolcache/Python/3.13.16/x64/lib/python3.13/contextlib.py:148: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+offline	Run uv run pytest	2026-10-21T16:15:58.8984684Z     next(self.gen)
+offline	Run uv run pytest	2026-10-21T16:15:58.8984809Z 
+offline	Run uv run pytest	2026-10-21T16:15:58.8985022Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+offline	Run uv run pytest	2026-10-21T16:15:58.8985470Z =========================== short test summary info ============================
+offline	Run uv run pytest	2026-10-21T16:15:58.8986060Z FAILED tests/test_data_consistency.py::test_return_example_was_delivered_exactly_two_days_ago - assert 3 == 2
+offline	Run uv run pytest	2026-10-21T16:15:58.8987216Z FAILED tests/test_eval_datasets.py::test_development_distribution_preserves_frozen_cases_and_adds_missing_coverage - AssertionError: ('u2-shipped-status', {'status': 'shipped', 'paid_amount': 899.0, 'created_days_ago': 4, 'delivered_days_ago': None})
+offline	Run uv run pytest	2026-10-21T16:15:58.8988319Z assert False
+offline	Run uv run pytest	2026-10-21T16:15:58.8988917Z  +  where False = all(<generator object test_development_distribution_preserves_frozen_cases_and_adds_missing_coverage.<locals>.<genexpr> at 0x7fe5d5642c00>)
+offline	Run uv run pytest	2026-10-21T16:15:58.8989610Z 2 failed, 693 passed, 1 skipped, 7 warnings in 25.71s
+offline	Run uv run pytest	2026-10-21T16:15:59.8715722Z ##[error]Process completed with exit code 1.

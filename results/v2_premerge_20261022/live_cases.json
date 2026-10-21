@@ -1,0 +1,355 @@
+{
+  "version": 1,
+  "protocol": {
+    "trials": 1,
+    "arm_order": "alternate by case index",
+    "scope": "same code, Router+Recovery off/on, all original four protections true; progress false in both",
+    "budget_cny": "1",
+    "max_output_tokens": 512,
+    "max_steps": 4,
+    "max_api_requests": 5,
+    "max_tool_calls": 6,
+    "known_samples": "author-frozen development; never held-out",
+    "scoring": "All turn checks, actual task order, stop answered, DB/history sync, no request/audit/review writes. Same checks for injected failures, reported separately. Lexical facts require manual source-grounded review; no paid judge."
+  },
+  "cases": [
+    {
+      "id": "new-mixed-parameter",
+      "turns": [
+        {
+          "query": "查S20008这笔订单，顺便告诉我V201参数。回答订单颜色和单次续航。",
+          "script_calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20008"
+              }
+            },
+            {
+              "name": "get_product",
+              "args": {
+                "product_id": "V201"
+              }
+            }
+          ],
+          "script_answer": "S20008白色，关闭降噪续航8小时。",
+          "checks": [
+            [
+              "白色"
+            ],
+            [
+              "8",
+              "八"
+            ]
+          ],
+          "expected_draft_order": null
+        }
+      ]
+    },
+    {
+      "id": "new-logistic-sku",
+      "turns": [
+        {
+          "query": "查S20008物流和SKU颜色。",
+          "script_calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20008"
+              }
+            },
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": "S20008"
+              }
+            }
+          ],
+          "script_answer": "S20008白色，已揽收，当前演示中转站。",
+          "checks": [
+            [
+              "白色"
+            ],
+            [
+              "揽收",
+              "中转",
+              "发货"
+            ]
+          ],
+          "expected_draft_order": null
+        }
+      ]
+    },
+    {
+      "id": "new-draft-interruption",
+      "turns": [
+        {
+          "query": "我想退S20017。",
+          "script_calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20017"
+              }
+            }
+          ],
+          "script_answer": "请确认商品明细。",
+          "checks": [
+            [
+              "草稿"
+            ]
+          ],
+          "expected_draft_order": "S20017"
+        },
+        {
+          "query": "先查S20008物流，原退货草稿保持。",
+          "script_calls": [
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": "S20008"
+              }
+            }
+          ],
+          "script_answer": "S20008已揽收，原S20017草稿保持。",
+          "checks": [
+            [
+              "揽收",
+              "中转",
+              "发货"
+            ]
+          ],
+          "expected_draft_order": "S20017"
+        },
+        {
+          "query": "更正为退S20003。",
+          "script_calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20003"
+              }
+            },
+            {
+              "name": "update_return_task",
+              "args": {
+                "order_id": "S20003"
+              }
+            }
+          ],
+          "script_answer": "草稿改为S20003，商品明细待确认。",
+          "checks": [
+            [
+              "S20003"
+            ]
+          ],
+          "expected_draft_order": "S20003"
+        }
+      ]
+    },
+    {
+      "id": "new-quoted-cancel",
+      "preload_draft": true,
+      "turns": [
+        {
+          "query": "他说“清空草稿”，我只是引用，不授权操作。",
+          "script_calls": [
+            {
+              "name": "get_return_task",
+              "args": {}
+            }
+          ],
+          "script_answer": "草稿保持，不执行清空。",
+          "checks": [
+            [
+              "保持",
+              "保留",
+              "不执行",
+              "不会"
+            ]
+          ],
+          "expected_draft_order": "S20017"
+        }
+      ]
+    },
+    {
+      "id": "new-owner-boundary",
+      "turns": [
+        {
+          "query": "查订单S20021的商品颜色。",
+          "script_calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20021"
+              }
+            }
+          ],
+          "script_answer": "该订单不属于当前用户，无权访问。",
+          "checks": [
+            [
+              "无权",
+              "不属于",
+              "无法",
+              "权限",
+              "不能"
+            ]
+          ],
+          "expected_draft_order": null
+        }
+      ]
+    },
+    {
+      "id": "new-quantity-control",
+      "turns": [
+        {
+          "query": "我的订单一共买了多少件商品？只给总件数，不要列表。",
+          "script_calls": [
+            {
+              "name": "list_orders",
+              "args": {}
+            }
+          ],
+          "script_answer": "29件商品。",
+          "checks": [
+            [
+              "29"
+            ]
+          ],
+          "expected_draft_order": null
+        }
+      ]
+    },
+    {
+      "id": "new-cross-order-colors",
+      "turns": [
+        {
+          "query": "对比S20008和S20003订单的SKU颜色，分别绑定订单回答。",
+          "script_calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20008"
+              }
+            },
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20003"
+              }
+            }
+          ],
+          "script_answer": "S20008白色，S20003黑色。",
+          "checks": [
+            [
+              "S20008"
+            ],
+            [
+              "白色"
+            ],
+            [
+              "S20003"
+            ],
+            [
+              "黑色"
+            ]
+          ],
+          "expected_draft_order": null,
+          "bindings": {
+            "S20008": "白色",
+            "S20003": "黑色"
+          }
+        }
+      ]
+    },
+    {
+      "id": "new-policy-read",
+      "turns": [
+        {
+          "query": "查询退货政策的无理由和质量问题期限，不办理退货。",
+          "script_calls": [
+            {
+              "name": "get_knowledge_documents",
+              "args": {
+                "document_ids": [
+                  "return_policy"
+                ]
+              }
+            }
+          ],
+          "script_answer": "无理由7天，质量问题15天。",
+          "checks": [
+            [
+              "7",
+              "七"
+            ],
+            [
+              "15",
+              "十五"
+            ]
+          ],
+          "expected_draft_order": null
+        }
+      ]
+    },
+    {
+      "id": "new-fault-before-response",
+      "fault": "initial_503",
+      "turns": [
+        {
+          "query": "查订单S20008的SKU颜色。",
+          "script_calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20008"
+              }
+            }
+          ],
+          "script_answer": "S20008白色。",
+          "checks": [
+            [
+              "白色"
+            ]
+          ],
+          "expected_draft_order": null
+        }
+      ]
+    },
+    {
+      "id": "new-recovery-after-read",
+      "fault": "after_read_503",
+      "turns": [
+        {
+          "query": "查S20008物流和订单颜色。",
+          "script_calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "S20008"
+              }
+            },
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": "S20008"
+              }
+            }
+          ],
+          "script_answer": "S20008白色，已揽收。",
+          "checks": [
+            [
+              "白色"
+            ],
+            [
+              "揽收",
+              "中转",
+              "发货"
+            ]
+          ],
+          "expected_draft_order": null
+        }
+      ]
+    }
+  ]
+}

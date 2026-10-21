@@ -9,16 +9,10 @@ The whole control flow, deliberately:
         else:
             return response.text as the final answer
 
-Why hand-written rather than a framework: the loop is the thing under study.
-When a router is added later, "which path did this request take" has to be
-answerable by reading this file. A graph framework would hide that in edge
-declarations, and the request would not be unit-testable without executing the
-whole graph.
+The loop remains explicit and testable. An opt-in finite workflow router may
+restrict the tool scope before execution; it never grants business authority.
+There is no planner, reflection model or long-term memory framework.
 
-What this loop deliberately does NOT do: no router, no planner, no reflection,
-no self-critique, no long-term memory. The model decides whether to call tools,
-which ones, how many, and when to stop -- that is the baseline everything later
-is measured against.
 """
 
 from __future__ import annotations
@@ -27,7 +21,7 @@ import json
 from collections.abc import Iterator
 from contextlib import closing
 from dataclasses import dataclass, field, replace
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import Any
 
 from .capabilities import capability_notice
@@ -37,6 +31,8 @@ from .cs_tools import ToolRegistry, TraceEvent
 from .database import business_today
 from .knowledge_context import load_source_documents
 from .llm import LLMClient
+from .recovery import WRITES, IncompleteResponse, classify_failure, retry_delay
+from .routing import route_request
 from .runtime import BudgetExceeded, RunBudget
 
 SYSTEM_PROMPT = """你是一名专业的电商客服助手，服务于一家销售无线耳机与充电配件的店铺。
@@ -201,6 +197,7 @@ class CustomerServiceAgent:
         self.settings = settings or get_settings()
         self.llm = llm or LLMClient(settings=self.settings)
         self.registry = registry or ToolRegistry(self.settings, llm=self.llm)
+        self.route: dict | None = None
         self.current_user_id = current_user_id
         self.max_steps = max_steps or self.settings.max_steps
         self.messages: list[dict[str, Any]] = [
@@ -250,12 +247,19 @@ class CustomerServiceAgent:
         self.messages.append({"role": "user", "content": user_message})
 
         result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
-        schemas = self.registry.schemas()
+        route = None
+        if self.settings.workflow_router_enabled:
+            route = self.route or route_request(user_message, self.registry.names, False)
+            result.trace.append(TraceEvent('route_selected', route['intent'], route))
+        schemas = [s for s in self.registry.schemas()
+                   if route is None or s['function']['name'] in route['allowed_tools']]
         retrievals = 0
+        previous_signature, repeated = None, 0
 
         for step in range(1, self.max_steps + 1):
             result.steps = step
             yield self._snapshot(result, started)
+            retry_exhausted = False
             try:
                 if budget:
                     budget.remaining()
@@ -263,23 +267,52 @@ class CustomerServiceAgent:
                     self.messages, current_start, schemas, self.settings.context_max_chars,
                 )
                 result.totals["model_input_chars"].append(input_chars(model_messages, schemas))
-                if stream_text:
-                    response = None
-                    with closing(self.llm.chat_stream(
-                        model_messages, tools=schemas, stage=f"agent_step_{step}",
-                    )) as events:
-                        for event in events:
-                            if isinstance(event, str):
-                                result.answer += event
-                                yield self._snapshot(result, started)
-                            else:
-                                response = event
-                    if response is None:
-                        raise RuntimeError("模型未返回完整响应")
-                else:
-                    response = self.llm.chat(
-                        model_messages, tools=schemas, stage=f"agent_step_{step}",
-                    )
+                retry_exhausted = False
+                for attempt in range(self.settings.transient_retries + 1):
+                    content_seen = False
+                    try:
+                        if stream_text:
+                            response = None
+                            with closing(self.llm.chat_stream(
+                                model_messages, tools=schemas, stage=f"agent_step_{step}",
+                            )) as events:
+                                for event in events:
+                                    if isinstance(event, str):
+                                        content_seen = content_seen or bool(event)
+                                        result.answer += event
+                                        yield self._snapshot(result, started)
+                                    else:
+                                        response = event
+                            if response is None:
+                                raise IncompleteResponse("模型未返回完整响应")
+                        else:
+                            response = self.llm.chat(
+                                model_messages, tools=schemas, stage=f"agent_step_{step}",
+                            )
+                        if self.settings.runtime_recovery_enabled and (
+                                getattr(response, 'finish_reason', None) == 'length'
+                                or (not response.wants_tools and not response.text.strip())
+                                or (response.wants_tools and not response.tool_calls)):
+                            raise IncompleteResponse("模型响应为空、截断或缺少工具调用")
+                        break
+                    except Exception as exc:
+                        failure = classify_failure(exc=exc)
+                        eligible = (self.settings.runtime_recovery_enabled and budget is not None
+                                    and failure['retryable'] and not content_seen)
+                        if eligible and attempt < self.settings.transient_retries:
+                            delay = retry_delay(exc, attempt)
+                            if budget and delay >= budget.remaining():
+                                raise BudgetExceeded("重试等待超过本轮剩余预算") from exc
+                            result.trace.append(TraceEvent('retry_scheduled', 'llm', {
+                                **failure, 'attempt': attempt + 1, 'delay_s': delay,
+                            }))
+                            yield self._snapshot(result, started)
+                            sleep(delay)
+                            if budget:
+                                budget.remaining()
+                            continue
+                        retry_exhausted = eligible
+                        raise
             except Exception as exc:  # noqa: BLE001 - must surface, not crash the UI
                 message = f"{type(exc).__name__}: {exc}"
                 result.errors.append(f"llm_error: {message}")
@@ -298,7 +331,10 @@ class CustomerServiceAgent:
                     )
                     result.trace[-1].detail["error_type"] = result.stop_reason
                 else:
-                    result.stop_reason = "llm_error"
+                    failure = classify_failure(exc=exc)
+                    result.trace[-1].detail['recovery'] = failure
+                    result.stop_reason = ('retry_exhausted' if retry_exhausted
+                                          else 'llm_error')
                     if result.answer:
                         result.answer += "\n\n⚠️ 回答中断，以上内容尚未完成，请重试。"
                     else:
@@ -354,9 +390,15 @@ class CustomerServiceAgent:
                 ))
                 yield self._snapshot(result, started)
                 try:
-                    payload, events, error = self.registry.run(
-                        call.name, call.arguments, current_user_id=self.current_user_id
-                    )
+                    if route is not None and call.name not in route['allowed_tools']:
+                        payload = {'error_type': 'route_scope', 'executed': False,
+                                   'message': '工具不属于本轮业务范围，未执行'}
+                        events = [result.trace[-1], TraceEvent('error', call.name, payload)]
+                        error = 'route_scope'
+                    else:
+                        payload, events, error = self.registry.run(
+                            call.name, call.arguments, current_user_id=self.current_user_id
+                        )
                 except (BudgetExceeded, ContextLimitExceeded) as exc:
                     stopped = str(exc)
                     limit_reason = ("context_limit" if isinstance(exc, ContextLimitExceeded)
@@ -365,6 +407,39 @@ class CustomerServiceAgent:
                     events = [result.trace[-1], TraceEvent(type="error", label=call.name,
                                                           detail=payload)]
                     error = limit_reason
+                if self.settings.runtime_recovery_enabled:
+                    failure_payload = payload
+                    if error:
+                        detail = next((e.detail for e in reversed(events) if e.type == 'error'), {})
+                        failure_payload = payload | {
+                            'error_type': detail.get('recovery_category',
+                                                     detail.get('error_type', 'tool_exception')),
+                        }
+                    failure = classify_failure(payload=failure_payload, write=call.name in WRITES)
+                    if failure['category'] != 'ok':
+                        events.append(TraceEvent('runtime_failure', call.name, failure))
+                    if (call.name in WRITES and failure['category'] in {
+                            'tool_failure', 'internal_error',
+                    }):
+                        # Stop before another model decision can replay an uncertain mutation.
+                        stopped = '工具写入回执异常，实际状态需核对'
+                        limit_reason = 'state_uncertain'
+                    try:
+                        arguments = json.loads(call.arguments or '{}')
+                    except ValueError:
+                        arguments = call.arguments
+                    stable_payload = ({k: v for k, v in payload.items() if k != 'queried_at'}
+                                      if isinstance(payload, dict) else payload)
+                    signature = json.dumps([call.name, arguments, stable_payload], sort_keys=True,
+                                           ensure_ascii=False, default=str)
+                    repeated = repeated + 1 if signature == previous_signature else 1
+                    previous_signature = signature
+                    if repeated >= self.settings.no_progress_limit:
+                        stopped, limit_reason = '连续相同调用未获得新信息', 'no_progress'
+                        events.append(TraceEvent('runtime_failure', call.name, {
+                            'category': 'no_progress', 'repetitions': repeated,
+                            'retryable': False, 'side_effect': 'none', 'action': 'stop',
+                        }))
                 # The registry's first event is the call already published above.
                 result.trace.extend(events[1:])
                 if error:

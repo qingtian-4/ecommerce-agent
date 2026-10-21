@@ -1,0 +1,52 @@
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_state_progress_never_claims_readback_without_receipt[return_order_draft-detail0-False] _
+
+label = 'return_order_draft'
+detail = {'status': 'error', 'reason': 'state_read_failed'}, verified = False
+
+    @pytest.mark.parametrize('label,detail,verified', [
+        ('return_order_draft', {'status': 'error', 'reason': 'state_read_failed'}, False),
+        ('write_reconciliation', {'status': 'unknown'}, False),
+        ('return_order_draft', {'status': 'repaired', 'observed_status': 'draft'}, True),
+    ])
+    def test_state_progress_never_claims_readback_without_receipt(label, detail, verified):
+        result = AgentResult(answer='', stop_reason='state_uncertain', trace=[
+            TraceEvent('state_check', label, detail),
+        ])
+        events = progress_events('sid', 'tid', result, 'completed')
+        text = render_progress(events)
+>       assert ('已重新核对后台状态' in text) is verified
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/test_progress_v2.py:186: AssertionError
+_ test_state_progress_never_claims_readback_without_receipt[write_reconciliation-detail1-False] _
+
+label = 'write_reconciliation', detail = {'status': 'unknown'}, verified = False
+
+    @pytest.mark.parametrize('label,detail,verified', [
+        ('return_order_draft', {'status': 'error', 'reason': 'state_read_failed'}, False),
+        ('write_reconciliation', {'status': 'unknown'}, False),
+        ('return_order_draft', {'status': 'repaired', 'observed_status': 'draft'}, True),
+    ])
+    def test_state_progress_never_claims_readback_without_receipt(label, detail, verified):
+        result = AgentResult(answer='', stop_reason='state_uncertain', trace=[
+            TraceEvent('state_check', label, detail),
+        ])
+        events = progress_events('sid', 'tid', result, 'completed')
+        text = render_progress(events)
+>       assert ('已重新核对后台状态' in text) is verified
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError
+
+tests/test_progress_v2.py:186: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/_pytest/config/__init__.py:1345
+  /home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio
+    self._mark_plugins_for_rewrite(hook, disable_autoload)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_progress_v2.py::test_state_progress_never_claims_readback_without_receipt[return_order_draft-detail0-False]
+FAILED tests/test_progress_v2.py::test_state_progress_never_claims_readback_without_receipt[write_reconciliation-detail1-False]

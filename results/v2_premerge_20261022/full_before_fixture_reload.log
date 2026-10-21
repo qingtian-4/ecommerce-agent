@@ -1,0 +1,122 @@
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 26%]
+........................................................................ [ 35%]
+........................................................................ [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 62%]
+........................................................................ [ 71%]
+........................................................................ [ 80%]
+........................................................................ [ 89%]
+........................................................................ [ 98%]
+.............FF.                                                         [100%]
+=================================== FAILURES ===================================
+_________ test_workbench_recovery_ablation_is_bound_at_startup[False] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b9bcb30fbd0>
+enabled = False
+
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_workbench_recovery_ablation_is_bound_at_startup(settings, monkeypatch, enabled):
+        import app
+    
+        settings = settings.model_copy(update={
+            'runtime_recovery_enabled': enabled, 'knowledge_mode': 'documents',
+        })
+        store, calls = SessionStore(settings.db_path), []
+        monkeypatch.setattr(app, 'SETTINGS', settings)
+>       monkeypatch.setattr(app, '_SESSION_STORE', store)
+        ^^^^^^^^^^^^^^^
+
+tests/test_v2_premerge.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app.py:1106: in build_app
+    KnowledgeBase(SETTINGS).build()
+src/acs/rag.py:235: in build
+    vectors = self.llm.embed(
+              ^^^^^^^^
+src/acs/rag.py:196: in llm
+    self._llm = LLMClient(settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:6: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = LLMClient(settings=Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_m...ecution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None), usages=[], budget=None)
+
+    def __post_init__(self) -> None:
+        if not self.settings.has_llm_key:
+>           raise RuntimeError(
+                "No LLM API key configured. Copy .env.example to .env and set "
+                "ACS_LLM_API_KEY before making real calls."
+            )
+E           RuntimeError: No LLM API key configured. Copy .env.example to .env and set ACS_LLM_API_KEY before making real calls.
+
+src/acs/llm.py:99: RuntimeError
+----------------------------- Captured stdout call -----------------------------
+knowledge index missing - building it now (one-off) ...
+__________ test_workbench_recovery_ablation_is_bound_at_startup[True] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b9bcb30c8a0>
+enabled = True
+
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_workbench_recovery_ablation_is_bound_at_startup(settings, monkeypatch, enabled):
+        import app
+    
+        settings = settings.model_copy(update={
+            'runtime_recovery_enabled': enabled, 'knowledge_mode': 'documents',
+        })
+        store, calls = SessionStore(settings.db_path), []
+        monkeypatch.setattr(app, 'SETTINGS', settings)
+>       monkeypatch.setattr(app, '_SESSION_STORE', store)
+        ^^^^^^^^^^^^^^^
+
+tests/test_v2_premerge.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app.py:1106: in build_app
+    KnowledgeBase(SETTINGS).build()
+src/acs/rag.py:235: in build
+    vectors = self.llm.embed(
+              ^^^^^^^^
+src/acs/rag.py:196: in llm
+    self._llm = LLMClient(settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:6: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = LLMClient(settings=Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_m...ecution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None), usages=[], budget=None)
+
+    def __post_init__(self) -> None:
+        if not self.settings.has_llm_key:
+>           raise RuntimeError(
+                "No LLM API key configured. Copy .env.example to .env and set "
+                "ACS_LLM_API_KEY before making real calls."
+            )
+E           RuntimeError: No LLM API key configured. Copy .env.example to .env and set ACS_LLM_API_KEY before making real calls.
+
+src/acs/llm.py:99: RuntimeError
+----------------------------- Captured stdout call -----------------------------
+knowledge index missing - building it now (one-off) ...
+=============================== warnings summary ===============================
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/contextlib.py:141: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    return next(self.gen)
+
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/site-packages/gradio/queueing.py:178: Pandas4Warning: The copy keyword is deprecated and will be removed in a future version. Copy-on-Write is active in pandas since 3.0 which utilizes a lazy copy mechanism that defers copies until necessary. Use .copy() to make an eager copy if necessary.
+    pd.DataFrame(records).fillna(value=np.nan).infer_objects(copy=False)  # type: ignore
+
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/contextlib.py:148: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    next(self.gen)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_workbench_recovery_ablation_is_bound_at_startup[False]
+FAILED tests/test_v2_premerge.py::test_workbench_recovery_ablation_is_bound_at_startup[True]
+2 failed, 806 passed, 1 skipped, 4 warnings in 542.47s (0:09:02)

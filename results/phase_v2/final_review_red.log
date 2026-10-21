@@ -1,0 +1,49 @@
+F.F                                                                      [100%]
+=================================== FAILURES ===================================
+______________ test_repeated_task_reads_ignore_observation_clock _______________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_repeated_task_reads_ignore_observation_clock(settings):
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        model = ScriptedLLM([ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall(str(i), 'get_return_task', '{}'),
+        ]) for i in range(4)] + [ScriptedResponse(text='读取结束')])
+        final = list(ChatService(settings).run_turn('查看草稿', 'USER001', agent=(
+            CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        )))[-1]
+>       assert final.result.stop_reason == 'no_progress'
+E       AssertionError: assert 'answered' == 'no_progress'
+E         
+E         - no_progress
+E         + answered
+
+tests/test_recovery_v2.py:222: AssertionError
+________ test_direct_unbudgeted_api_does_not_schedule_automatic_retries ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d45b07c8510>
+
+    def test_direct_unbudgeted_api_does_not_schedule_automatic_retries(settings, monkeypatch):
+        class Broken(ScriptedLLM):
+            def chat(self, *args, **kwargs):
+                exc = RuntimeError('injected 503')
+                exc.status_code = 503
+                raise exc
+    
+        waits = []
+        monkeypatch.setattr('acs.service_agent.sleep', waits.append)
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        final = CustomerServiceAgent(settings=settings, llm=Broken([]),
+                                     registry=ToolRegistry(settings)).chat('查询')
+>       assert final.stop_reason == 'llm_error' and not waits
+E       AssertionError: assert ('retry_exhausted' == 'llm_error'
+E         
+E         - llm_error
+E         + retry_exhausted)
+
+tests/test_recovery_v2.py:252: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_recovery_v2.py::test_repeated_task_reads_ignore_observation_clock
+FAILED tests/test_recovery_v2.py::test_direct_unbudgeted_api_does_not_schedule_automatic_retries
+2 failed, 1 passed, 20 deselected in 4.73s

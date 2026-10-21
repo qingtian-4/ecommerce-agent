@@ -453,5 +453,5 @@ def test_v3_migration_preserves_existing_v2_messages_and_draft(settings):
     assert upgraded.load(sid, "USER001") == before
     assert upgraded.get_return_task(sid, "USER001")["task"] == task
     with closing(upgraded._connect()) as conn:
-        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 5
+        assert conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] == 6
         assert conn.execute("SELECT * FROM order_items ORDER BY id").fetchall() == business
