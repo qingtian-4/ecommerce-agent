@@ -171,41 +171,145 @@ def test_committed_write_with_lost_response_is_reconciled_not_replayed(
 def test_real_client_counts_every_failed_attempt_and_unknown_usage(settings, monkeypatch):
     from acs.llm import LLMClient
 
-    settings = settings.model_copy(update={'runtime_recovery_enabled': True,
-                                           'llm_api_key': 'local-test-only'})
+    settings = settings.model_copy(
+        update={"runtime_recovery_enabled": True, "llm_api_key": "local-test-only"}
+    )
     client = LLMClient(settings)
     attempts = []
 
     def provider(kwargs, remaining):
         attempts.append(1)
         if len(attempts) == 1:
-            exc = RuntimeError('injected 429')
+            exc = RuntimeError("injected 429")
             exc.status_code = 429
             raise exc
         yield SimpleNamespace(
-            choices=[SimpleNamespace(
-                delta=SimpleNamespace(content='恢复完成', tool_calls=[],
-                                      reasoning_content='hidden-thought-sentinel'),
-                finish_reason='stop',
-            )], usage=SimpleNamespace(prompt_tokens=12, completion_tokens=5, total_tokens=17),
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(
+                        content="恢复完成",
+                        tool_calls=[],
+                        reasoning_content="hidden-thought-sentinel",
+                    ),
+                    finish_reason="stop",
+                )
+            ],
+            usage=SimpleNamespace(prompt_tokens=12, completion_tokens=5, total_tokens=17),
         )
 
-    monkeypatch.setattr(client, '_async_chat', provider)
-    monkeypatch.setattr('acs.service_agent.sleep', lambda delay: None)
+    monkeypatch.setattr(client, "_async_chat", provider)
+    monkeypatch.setattr("acs.service_agent.sleep", lambda delay: None)
     agent = CustomerServiceAgent(settings=settings, llm=client, registry=ToolRegistry(settings))
-    final = list(agent.chat_stream('问候', budget=RunBudget(5, 3)))[-1]
-    assert len(attempts) == final.totals['calls'] == 2
-    assert final.totals['tokens_are_partial'] and final.totals['cost_is_partial']
-    assert final.stop_reason == 'answered' and final.answer == '恢复完成'
-    assert 'hidden-thought-sentinel' not in json.dumps(final.trace, default=str)
+    final = list(agent.chat_stream("问候", budget=RunBudget(5, 3)))[-1]
+    assert len(attempts) == final.totals["calls"] == 2
+    assert final.totals["tokens_are_partial"] and final.totals["cost_is_partial"]
+    assert final.stop_reason == "answered" and final.answer == "恢复完成"
+    assert "hidden-thought-sentinel" not in json.dumps(final.trace, default=str)
 
 
 def test_retry_after_longer_than_remaining_budget_never_sleeps(settings, monkeypatch):
     model = FaultModel(5)
-    settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+    settings = settings.model_copy(update={"runtime_recovery_enabled": True})
     waits = []
-    monkeypatch.setattr('acs.service_agent.retry_delay', lambda *args: 120)
-    monkeypatch.setattr('acs.service_agent.sleep', waits.append)
+    monkeypatch.setattr("acs.service_agent.retry_delay", lambda *args: 120)
+    monkeypatch.setattr("acs.service_agent.sleep", waits.append)
     agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
-    final = list(agent.chat_stream('问候', budget=RunBudget(5, 3)))[-1]
-    assert final.stop_reason == 'budget_exceeded' and not waits and model.attempts == 1
+    final = list(agent.chat_stream("问候", budget=RunBudget(5, 3)))[-1]
+    assert final.stop_reason == "budget_exceeded" and not waits and model.attempts == 1
+
+
+def test_repeated_task_reads_ignore_observation_clock(settings):
+    settings = settings.model_copy(update={"runtime_recovery_enabled": True})
+    model = ScriptedLLM(
+        [
+            ScriptedResponse(
+                wants_tools=True,
+                tool_calls=[
+                    ScriptedToolCall(str(i), "get_return_task", "{}"),
+                ],
+            )
+            for i in range(4)
+        ]
+        + [ScriptedResponse(text="读取结束")]
+    )
+    final = list(
+        ChatService(settings).run_turn(
+            "查看草稿",
+            "USER001",
+            agent=(
+                CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+            ),
+        )
+    )[-1]
+    assert final.result.stop_reason == "no_progress"
+    assert final.result.tool_calls == 3
+
+
+def test_changed_result_for_same_arguments_is_real_progress(settings):
+    settings = settings.model_copy(update={"runtime_recovery_enabled": True})
+    registry = ToolRegistry(settings)
+    ticks = iter(range(10))
+    registry._tools["get_order"].func = lambda **kwargs: {"state_revision": next(ticks)}
+    model = ScriptedLLM(
+        [
+            ScriptedResponse(
+                wants_tools=True,
+                tool_calls=[
+                    ScriptedToolCall(str(i), "get_order", '{"order_id":"O10024"}'),
+                ],
+            )
+            for i in range(4)
+        ]
+        + [ScriptedResponse(text="读取结束")]
+    )
+    final = list(
+        CustomerServiceAgent(settings=settings, llm=model, registry=registry).chat_stream(
+            "查看订单",
+            budget=RunBudget(10, 6),
+        )
+    )[-1]
+    assert final.stop_reason == "answered" and final.tool_calls == 4
+
+
+def test_direct_unbudgeted_api_does_not_schedule_automatic_retries(settings, monkeypatch):
+    class Broken(ScriptedLLM):
+        def chat(self, *args, **kwargs):
+            exc = RuntimeError("injected 503")
+            exc.status_code = 503
+            raise exc
+
+    waits = []
+    monkeypatch.setattr("acs.service_agent.sleep", waits.append)
+    settings = settings.model_copy(update={"runtime_recovery_enabled": True})
+    final = CustomerServiceAgent(
+        settings=settings, llm=Broken([]), registry=ToolRegistry(settings)
+    ).chat("查询")
+    assert final.stop_reason == "llm_error" and not waits
+
+
+def test_non_object_tool_result_is_classified_without_crashing(settings):
+    settings = settings.model_copy(update={"runtime_recovery_enabled": True})
+    registry = ToolRegistry(settings)
+    registry._tools["get_order"].func = lambda **kwargs: ["invalid envelope"]
+    model = ScriptedLLM(
+        [
+            ScriptedResponse(
+                wants_tools=True,
+                tool_calls=[
+                    ScriptedToolCall("bad", "get_order", '{"order_id":"O10024"}'),
+                ],
+            ),
+            ScriptedResponse(text="结果未核实"),
+        ]
+    )
+    result = list(
+        CustomerServiceAgent(settings=settings, llm=model, registry=registry).chat_stream(
+            "查询",
+            budget=RunBudget(5, 3),
+        )
+    )[-1]
+    assert any(
+        e.type == "runtime_failure" and e.detail["category"] == "invalid_result"
+        for e in result.trace
+    )
+    assert result.answer == "结果未核实"

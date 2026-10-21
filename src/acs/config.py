@@ -154,6 +154,7 @@ class Settings(BaseSettings):
     order_aggregation_enabled: bool = False
     workflow_router_enabled: bool = False
     runtime_recovery_enabled: bool = False
+    execution_progress_enabled: bool = False
     transient_retries: int = Field(default=1, ge=0, le=2)
     no_progress_limit: int = Field(default=3, ge=2, le=6)
     # Freeze the business clock for comparable evaluation runs; live queries use today.

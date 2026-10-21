@@ -297,7 +297,7 @@ class CustomerServiceAgent:
                         break
                     except Exception as exc:
                         failure = classify_failure(exc=exc)
-                        eligible = (self.settings.runtime_recovery_enabled
+                        eligible = (self.settings.runtime_recovery_enabled and budget is not None
                                     and failure['retryable'] and not content_seen)
                         if eligible and attempt < self.settings.transient_retries:
                             delay = retry_delay(exc, attempt)
@@ -422,7 +422,9 @@ class CustomerServiceAgent:
                         arguments = json.loads(call.arguments or '{}')
                     except ValueError:
                         arguments = call.arguments
-                    signature = json.dumps([call.name, arguments, payload], sort_keys=True,
+                    stable_payload = ({k: v for k, v in payload.items() if k != 'queried_at'}
+                                      if isinstance(payload, dict) else payload)
+                    signature = json.dumps([call.name, arguments, stable_payload], sort_keys=True,
                                            ensure_ascii=False, default=str)
                     repeated = repeated + 1 if signature == previous_signature else 1
                     previous_signature = signature

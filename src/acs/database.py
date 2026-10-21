@@ -122,6 +122,14 @@ class BusinessDB:
         )]
 
     # ------------------------------------------------------------------ #
+    def order_item_choices(self, current_user_id: str) -> list[dict]:
+        return [dict(row) for row in self._query(
+            "SELECT o.order_id,i.id,p.name AS product_name FROM orders o "
+            "JOIN order_items i ON i.order_id=o.order_id JOIN products p USING(product_id) "
+            "WHERE o.user_id=? ORDER BY o.created_at DESC,o.order_id,i.id",
+            (current_user_id,),
+        )]
+
     def get_order(self, order_id: str, current_user_id: str) -> dict[str, Any]:
         rows = self._query(
             "SELECT o.*, u.name AS user_name FROM orders o"

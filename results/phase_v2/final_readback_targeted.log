@@ -1,0 +1,57 @@
+.......FFF........................                                       [100%]
+=================================== FAILURES ===================================
+_ test_state_progress_never_claims_readback_without_receipt[return_order_draft-detail0-False] _
+
+label = 'return_order_draft'
+detail = {'status': 'error', 'reason': 'state_read_failed'}, verified = False
+
+    @pytest.mark.parametrize('label,detail,verified', [
+        ('return_order_draft', {'status': 'error', 'reason': 'state_read_failed'}, False),
+        ('write_reconciliation', {'status': 'unknown'}, False),
+        ('return_order_draft', {'status': 'repaired', 'observed_status': 'draft'}, True),
+    ])
+    def test_state_progress_never_claims_readback_without_receipt(label, detail, verified):
+>       result = AgentResult(stop_reason='state_uncertain', trace=[
+            TraceEvent('state_check', label, detail),
+        ])
+E       TypeError: AgentResult.__init__() missing 1 required positional argument: 'answer'
+
+tests/test_progress_v2.py:181: TypeError
+_ test_state_progress_never_claims_readback_without_receipt[write_reconciliation-detail1-False] _
+
+label = 'write_reconciliation', detail = {'status': 'unknown'}, verified = False
+
+    @pytest.mark.parametrize('label,detail,verified', [
+        ('return_order_draft', {'status': 'error', 'reason': 'state_read_failed'}, False),
+        ('write_reconciliation', {'status': 'unknown'}, False),
+        ('return_order_draft', {'status': 'repaired', 'observed_status': 'draft'}, True),
+    ])
+    def test_state_progress_never_claims_readback_without_receipt(label, detail, verified):
+>       result = AgentResult(stop_reason='state_uncertain', trace=[
+            TraceEvent('state_check', label, detail),
+        ])
+E       TypeError: AgentResult.__init__() missing 1 required positional argument: 'answer'
+
+tests/test_progress_v2.py:181: TypeError
+_ test_state_progress_never_claims_readback_without_receipt[return_order_draft-detail2-True] _
+
+label = 'return_order_draft'
+detail = {'status': 'repaired', 'observed_status': 'draft'}, verified = True
+
+    @pytest.mark.parametrize('label,detail,verified', [
+        ('return_order_draft', {'status': 'error', 'reason': 'state_read_failed'}, False),
+        ('write_reconciliation', {'status': 'unknown'}, False),
+        ('return_order_draft', {'status': 'repaired', 'observed_status': 'draft'}, True),
+    ])
+    def test_state_progress_never_claims_readback_without_receipt(label, detail, verified):
+>       result = AgentResult(stop_reason='state_uncertain', trace=[
+            TraceEvent('state_check', label, detail),
+        ])
+E       TypeError: AgentResult.__init__() missing 1 required positional argument: 'answer'
+
+tests/test_progress_v2.py:181: TypeError
+=========================== short test summary info ============================
+FAILED tests/test_progress_v2.py::test_state_progress_never_claims_readback_without_receipt[return_order_draft-detail0-False]
+FAILED tests/test_progress_v2.py::test_state_progress_never_claims_readback_without_receipt[write_reconciliation-detail1-False]
+FAILED tests/test_progress_v2.py::test_state_progress_never_claims_readback_without_receipt[return_order_draft-detail2-True]
+3 failed, 31 passed in 18.05s

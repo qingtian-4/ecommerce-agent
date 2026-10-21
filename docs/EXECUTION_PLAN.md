@@ -285,3 +285,12 @@ F6只改善无歧义确认词，保留有限表达边界。统一Demo、架构�
 参见[交付报告](../results/project_handoff_babbfab/REPORT.md)、[项目材料](INTERNSHIP_PROJECT.md)、
 [PR收尾](PR_HANDOFF.md)。接下来只处理已复现的演示阻塞、维护和授权后的PR/许可证决定。
 GitHub PR写入若仍因登录失效阻塞，不视为已完成；不因此扩展功能或自动合并main。
+
+## 用户新授权的V2阶段
+
+用户附件授权继续分阶段升级，原“维护/停止扩展”适用于V1交付，不阻止本轮明确V2范围。
+完整V1尚未进入main，整合PR #3已创建但不自动合并；V2在feat/runtime-v2独立提交。
+轻量Router、有限恢复、强制进程退出后的权威状态恢复、Gradio客户进度按顺序实现，
+不迁移框架，不增加多个模型Agent。方案、开关、v6反馈迁移/回退与测量见
+[PHASE_V2_PLAN_AND_ACCEPTANCE](PHASE_V2_PLAN_AND_ACCEPTANCE.md)。
+本轮无付费API或大Benchmark；最终验收后停止增加新机制，按已知技术债决定未来授权。

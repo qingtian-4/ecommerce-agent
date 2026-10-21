@@ -28,6 +28,9 @@ def serve(scenario, port, candidate, admin, faults=False):
     settings = scenario_settings(Settings(_env_file=None, llm_api_key=""), scenario).model_copy(
         update={
             "return_state_check_enabled": True,
+            "workflow_router_enabled": candidate,
+            "runtime_recovery_enabled": candidate,
+            "execution_progress_enabled": True,
             "order_candidate_render_enabled": True,
             "order_constraint_enabled": candidate,
             "order_aggregation_enabled": candidate,
@@ -56,6 +59,11 @@ def serve(scenario, port, candidate, admin, faults=False):
         def chat_stream(self, messages, **kwargs):
             query = next(m["content"] for m in reversed(messages) if m["role"] == "user")
             first = not self.calls
+            if '重试演示' in query and not getattr(self, 'retried', False):
+                self.retried = True
+                exc = RuntimeError('injected temporary provider failure')
+                exc.status_code = 503
+                raise exc
             calls = []
             if faults and "多少笔" in query:
                 text = "合计25笔订单。"
@@ -137,6 +145,7 @@ def browser_faults(output, url):
         page = instance.new_page(viewport={"width": 1440, "height": 1000})
         page.goto(url, wait_until="domcontentloaded")
         page.locator("#message-input textarea").wait_for()
+        page.locator("#return-task").wait_for()
         snapshots = {}
         queries = {
             "no_tool": "我的订单一共有多少笔订单？",
@@ -146,6 +155,9 @@ def browser_faults(output, url):
         }
         for name, query in queries.items():
             page.locator("#new-conversation").click()
+            page.wait_for_function(
+                "document.querySelector('#customer-chat').innerText.includes('从一个具体问题开始')"
+            )
             page.evaluate("""() => {window.frames=[];
                 let el=document.querySelector('#customer-chat');
                 window.watcher=new MutationObserver(()=>window.frames.push(el.innerText));
@@ -184,7 +196,7 @@ def browser_faults(output, url):
 
 
 def browser(output, url, baseline, admin, video=False):
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import expect, sync_playwright
 
     output.mkdir(parents=True, exist_ok=False)
     with sync_playwright() as manager:
@@ -208,11 +220,13 @@ def browser(output, url, baseline, admin, video=False):
             (output / "frames.json").write_text(json.dumps(frames, ensure_ascii=False, indent=2))
 
         def send(text):
+            expect(page.locator('#send-message')).to_be_enabled()
             page.locator("#message-input textarea").fill(text)
             page.locator("#send-message").click()
 
         page.goto(baseline, wait_until="domcontentloaded")
         page.locator("#message-input textarea").wait_for()
+        page.locator("#return-task").wait_for()
         observe("baseline")
         send("我的订单一共买了多少件商品？只给总件数，不要列表。")
         page.wait_for_function(
@@ -222,6 +236,7 @@ def browser(output, url, baseline, admin, video=False):
         page.screenshot(path=str(output / "baseline.png"), full_page=True)
         page.goto(url, wait_until="domcontentloaded")
         page.locator("#message-input textarea").wait_for()
+        page.locator("#return-task").wait_for()
         observe("candidate")
         send("我的订单一共买了多少件商品？只给总件数，不要列表。")
         page.wait_for_function(
@@ -231,8 +246,11 @@ def browser(output, url, baseline, admin, video=False):
         assert frames["candidate"] and not any("25件" in f for f in frames["candidate"])
         page.screenshot(path=str(output / "candidate.png"), full_page=True)
         page.locator("#new-conversation").click()
+        page.wait_for_function(
+            "document.querySelector('#customer-chat').innerText.includes('从一个具体问题开始')"
+        )
         for query, expected in (
-            ("查询商品V201的规格。", "商品V201的规格"),
+            ("查询商品V201的规格。", "商品V201的规格请以本轮商品工具记录为准"),
             ("退货政策的期限是什么？", "质量问题15天"),
             ("查S20008的颜色和状态。", "V201-2商品为白色"),
         ):
@@ -243,6 +261,9 @@ def browser(output, url, baseline, admin, video=False):
             )
         page.screenshot(path=str(output / "knowledge.png"), full_page=True)
         page.locator("#new-conversation").click()
+        page.wait_for_function(
+            "document.querySelector('#customer-chat').innerText.includes('从一个具体问题开始')"
+        )
         send("我想退S20017。")
         page.wait_for_function(
             "document.querySelector('#return-task').innerText.includes('S20017')"
@@ -285,8 +306,6 @@ def browser(output, url, baseline, admin, video=False):
         reviewer.locator("#review-selector input").wait_for()
         reviewer.locator("#review-selector input").click()
         reviewer.get_by_role("option").filter(has_text="S20002").last.click()
-        from playwright.sync_api import expect
-
         expect(reviewer.get_by_role("button", name="通过：允许退回")).to_be_enabled()
         reviewer.wait_for_function("document.body.innerText.includes('S20002 / 3')")
         reviewer.get_by_label("审核原因（必填，客户可见）").fill(

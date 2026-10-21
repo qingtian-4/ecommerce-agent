@@ -4,7 +4,8 @@
 Gradio、SQLite 和 RAG，将订单查询、退货草稿、明确确认、申请审核与结果查询连成可恢复流程。
 重点是业务事实有来源、写操作有授权、失败有轨迹、改进有对照证据。
 
-当前进入**维护与面试准备阶段**。保护机制仅覆盖已验证的有限请求，默认四开关关闭，
+V1已完成交付；当前独立V2分支增加轻量业务路由、有限故障恢复、安全重启核对和客户可读进度。
+[分阶段方案与验收](docs/PHASE_V2_PLAN_AND_ACCEPTANCE.md)记录范围与开销；机制仅覆盖有限请求，默认关闭，
 本地 Demo 显式开启。数据为合成场景，不提供真实退款、换货、订单修改或人工接管。
 
 [五分钟 Demo](docs/DEMO.md) · [架构与证据](docs/DELIVERY_ARCHITECTURE.md) ·
@@ -64,9 +65,12 @@ uv run python scripts/workbench.py --demo --admin
 默认演示目录 `~/.local/share/ecommerce-agent/workbench-v2`，不存在才生成，重启保留申请和会话。
 可用 `--scenario /新的绝对路径 --port 7862` 指定隔离数据和端口；两入口必须使用同一场景。
 
-`--demo` 只对当前进程显式开启四保护，不修改 `.env`。管理员配置为空时使用文档明确标注的
+`--demo` 只对当前进程显式开启原四保护及V2路由/恢复/进度，不修改 `.env`。管理员配置为空时使用文档明确标注的
 本机合成演示账号，详见 [Demo](docs/DEMO.md)。不加 `--demo` 遵循原配置，四开关默认 false。
 **发送真实对话会调用付费模型**；页面历史回放和脚本模型验收不收费。
+
+V2代码新增独立反馈表并迁移至SQLite v6。升级前停服务备份，演示建议新场景目录；
+回退V1需恢复升级前副本，不能直接用V1写v6库。详见[Demo](docs/DEMO.md)。
 
 v2 演示使用 `get_knowledge_documents` 选择整篇版本化文档，无需 Embedding Key 或建索引；
 它不是向量检索演示。原始按需 RAG 入口为 `uv run python app.py`，需要原业务库和匹配索引。

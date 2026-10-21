@@ -61,6 +61,7 @@ from acs.eval_view import (  # noqa: E402
     retrieval_comparison_rows,
     review_run_rows,
 )
+from acs.progress import progress_events, render_progress  # noqa: E402
 from acs.rag import INDEX_FILE, KnowledgeBase  # noqa: E402
 from acs.returns import ReturnService, return_policy  # noqa: E402
 from acs.scenarios import scenario_settings  # noqa: E402
@@ -348,6 +349,14 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             title = f"Step {step_no} · 错误 <code>{html.escape(event.label)}</code>"
         elif event.type == "ui_action":
             title = f"Step {step_no} · 页面操作 <code>{html.escape(event.label)}</code>"
+        elif event.type == 'route_selected':
+            title = f"Step {step_no} · 业务路径 <code>{html.escape(event.label)}</code>"
+        elif event.type == 'retry_scheduled':
+            title = f"Step {step_no} · 有限重试"
+        elif event.type == 'runtime_failure':
+            title = f"Step {step_no} · 运行限制"
+        elif event.type == 'recovered':
+            title = f"Step {step_no} · 重启状态核对"
         elif event.type == "state_check":
             title = f"Step {step_no} · 服务端状态检查 <code>{html.escape(event.label)}</code>"
         elif event.type == "output_gate":
@@ -598,6 +607,8 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
                               update.elapsed_ms, running=update.phase == "running",
                               failed=result.stop_reason not in {"running", "answered"},
                           ))
+                if SETTINGS.execution_progress_enabled:
+                    status += render_progress(result.totals.get('progress', []))
                 yield pack(history, render_trace(result), state_dict, render_stats(result),
                            card, render_header(user_key), status)
     except (PermissionError, ConversationBusy) as exc:
@@ -666,6 +677,8 @@ def on_restore(sid: str | None, state_dict: dict, user_key: str):
     record = snapshot["last_result"]
     result = AgentResult(**(record | {"trace": [TraceEvent(**e) for e in record.get("trace", [])]})) if record else None
     status = "会话已恢复，可继续提问。" if not snapshot["running"] else "此会话仍在处理，请稍后重新载入。"
+    if SETTINGS.execution_progress_enabled and result:
+        status += render_progress(result.totals.get('progress', []))
     return pack(snapshot["history"], render_trace(result), state_dict, render_stats(result),
                 _card_for(user_key, session_store().get_return_task(sid, user_id_from_key(user_key))),
                 render_header(user_key), status)
@@ -766,6 +779,8 @@ def _local_return_action(state_dict: dict, user_key: str, text: str, operation, 
     result.answer = answer
     result.totals = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0,
                      "cost_cny": "0", "latency_ms": (perf_counter() - started) * 1000}
+    if SETTINGS.execution_progress_enabled and tid:
+        result.totals['progress'] = progress_events(sid, tid, result, 'completed')
     try:
         if tid:
             store.finish_turn(sid, uid, tid, [{"role": "user", "content": text},
@@ -778,7 +793,9 @@ def _local_return_action(state_dict: dict, user_key: str, text: str, operation, 
     packed = list(pack(history, render_trace(result), state_dict, render_stats(result),
                        _card_for(user_key, store.get_return_task(sid, uid)), render_header(user_key),
                        render_reply_status((perf_counter() - started) * 1000,
-                                           failed=result.stop_reason in {"blocked", "interrupted"})))
+                                           failed=result.stop_reason in {"blocked", "interrupted"})
+                       + (render_progress(result.totals.get('progress', []))
+                          if SETTINGS.execution_progress_enabled else '')))
     packed[1] = gr.update()  # A form action must preserve an unsent chat message.
     return tuple(packed)
 
@@ -872,10 +889,60 @@ def on_return_query(state_dict: dict, user_key: str):
     )
 
 
+def order_selection_choices(user_key: str):
+    rows = BusinessDB(SETTINGS).order_item_choices(user_id_from_key(user_key))
+    return gr.update(choices=[
+        (f"{i['order_id']} · {i['product_name']} · 明细{i['id']}", f"{i['order_id']}:{i['id']}")
+        for i in rows
+    ], value=None)
+
+
+def on_select_return_object(selection: str | None, state_dict: dict, user_key: str):
+    def select(service, sid, uid, tid):
+        if not selection or ':' not in selection:
+            raise TaskValidationError('请先明确选择本人订单及商品明细')
+        oid, item = selection.split(':', 1)
+        try:
+            item_id = int(item)
+        except ValueError as exc:
+            raise TaskValidationError('商品明细编号无效') from exc
+        return service.store.update_return_task(sid, uid, tid, {
+            'order_id': oid, 'item_id': item_id,
+        })
+    return _local_return_action(
+        state_dict, user_key, f'[操作] 明确选择退货对象 {selection or "未选择"}', select,
+        lambda _: '退货对象已记录；请补充数量和原因，尚未提交申请。',
+    )
+
+
+def on_feedback(value: str, state_dict: dict, user_key: str):
+    try:
+        sid = state_dict.get('session_id')
+        if not sid:
+            return '请先完成一轮对话。'
+        store = session_store()
+        snapshot = store.load(sid, user_id_from_key(user_key))
+        store.add_feedback(sid, user_id_from_key(user_key), snapshot['turn_id'], value)
+        return '反馈已记录，供后续复盘；不会自动改知识或回答规则。'
+    except (PermissionError, ValueError):
+        return '本次反馈未记录，请等待回复完成或重新选择本人会话。'
+
+
 # --------------------------------------------------------------------------- #
 # layout
 # --------------------------------------------------------------------------- #
 CSS = """
+.execution-progress { color:#344054; background:#f8fafc; border:1px solid #e2e8f0;
+  padding:12px 14px; border-radius:8px; margin:8px 0; font:14px/1.6 sans-serif; }
+.execution-progress summary { cursor:pointer; font-weight:600; }
+.execution-progress ol { max-height:210px; overflow:auto; padding-left:22px; }
+.execution-progress li { padding:3px 0; overflow-wrap:anywhere; }
+.evidence-fact { color:#475467; font-size:13px; margin:3px 0 6px; }
+.execution-progress :focus-visible { outline:2px solid #c64c00; outline-offset:3px; }
+@media (prefers-reduced-motion: no-preference) {
+  button:active { transform:scale(.99); }
+}
+
 .gradio-container {
   max-width: 1600px !important; padding: clamp(8px, 2vw, 24px) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -886,7 +953,7 @@ CSS = """
 .skip-link:focus { top:8px; }
 #skip-navigation { position:absolute; height:0; min-height:0; padding:0; }
 #shop-header, #chat-title { padding:0; min-height:0; }
-#reply-status { padding:0; min-height:20px; font-size:12px; color:#536174; }
+#reply-status { flex:0 0 auto; padding:0; min-height:20px; font-size:12px; color:#536174; }
 button { min-height:40px; border-radius:8px !important; }
 button:active:not(:disabled) { transform:scale(.96); }
 button:focus-visible, input:focus-visible, textarea:focus-visible {
@@ -919,6 +986,7 @@ button.primary { background:#c64b06 !important; color:white !important; }
                       flex-wrap:nowrap; overflow-y:auto; overscroll-behavior:contain; }
 #business-inspector > * { flex:0 0 auto; }
 #chat-workspace { padding:16px !important; background:#fff; flex-wrap:nowrap; }
+#chat-workspace:has(.execution-progress) { overflow-y:auto; }
 .cs-section-label { font-size:12px; color:#536174; font-weight:650; }
 #conversation-history { background:transparent; border:0; padding:0; }
 #conversation-history .wrap { flex-direction:column; max-height:calc(100dvh - 440px); overflow-y:auto; }
@@ -977,6 +1045,10 @@ button.primary { background:#c64b06 !important; color:white !important; }
   #conversation-history .wrap { max-height:100px; }
   #history-note { display:none; }
   #chat-workspace { height:720px; min-width:0 !important; }
+  #chat-workspace:has(.execution-progress) { height:auto; overflow:visible; }
+  #chat-workspace:has(.execution-progress) #customer-chat {
+    height:360px !important; flex:0 0 360px;
+  }
   #business-inspector { overflow:visible; border-left:0; border-top:1px solid #dbe1e8; }
   .cs-header { align-items:flex-start; flex-wrap:wrap; }
   .cs-header .meta { flex-direction:row; align-items:center; flex-wrap:wrap; }
@@ -1071,6 +1143,11 @@ def build_app() -> gr.Blocks:
                                 "<small>退货申请需要您检查并确认，提交后仍待审核。</small></div>"
                             ),
                         )
+                        if SETTINGS.execution_progress_enabled:
+                            with gr.Row():
+                                feedback_yes = gr.Button('有帮助', size='sm')
+                                feedback_no = gr.Button('没解决', size='sm')
+                            feedback_status = gr.Markdown('')
                         with gr.Column(elem_id="composer", min_width=0):
                             with gr.Row(elem_id="composer-row"):
                                 message_box = gr.Textbox(
@@ -1093,6 +1170,10 @@ def build_app() -> gr.Blocks:
                     with gr.Column(scale=3, min_width=285, elem_id="business-inspector"):
                         gr.HTML("<div class='cs-section-label'>业务信息</div>")
                         user_card = gr.HTML()
+                        if SETTINGS.execution_progress_enabled:
+                            with gr.Accordion('手动选择退货对象（本人完整列表，非推荐）', open=False):
+                                candidate_selector = gr.Dropdown(choices=[], label='订单及商品明细')
+                                select_candidate = gr.Button('明确选择此退货对象')
                         with gr.Accordion("退货申请 · 检查并确认", open=True):
                             policy = return_policy(SETTINGS)
                             gr.Markdown("无理由退货的二次销售条件：\n" + "\n".join(
@@ -1406,6 +1487,20 @@ def build_app() -> gr.Blocks:
             ).then(return_panel, inputs=[state, user_selector], outputs=panel_outputs, show_progress="hidden"
             ).then(on_history_choices, inputs=[state, user_selector], outputs=history_selector,
                    show_progress="hidden")
+        if SETTINGS.execution_progress_enabled:
+            for button, value in ((feedback_yes, 'helpful'), (feedback_no, 'unresolved')):
+                button.click(lambda state, user, v=value: on_feedback(v, state, user),
+                             inputs=[state, user_selector], outputs=feedback_status,
+                             show_progress='hidden', api_name=False)
+            demo.load(order_selection_choices, inputs=user_selector, outputs=candidate_selector,
+                      show_progress='hidden')
+            user_selector.input(order_selection_choices, inputs=user_selector,
+                                outputs=candidate_selector, show_progress='hidden')
+            select_candidate.click(on_select_return_object,
+                                   inputs=[candidate_selector, state, user_selector], outputs=outputs,
+                                   show_progress='hidden', api_name=False
+                                   ).then(return_panel, inputs=[state, user_selector],
+                                          outputs=panel_outputs, show_progress='hidden')
         order_selector.change(
             on_order_change, inputs=[order_selector, user_selector],
             outputs=[order_detail, items_table, logistics_table],

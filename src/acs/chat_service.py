@@ -23,6 +23,7 @@ from .order_reliability import (
     color_constraint,
     constrained_response,
 )
+from .progress import progress_events
 from .return_state_check import check_order_draft, state_notice
 from .routing import route_request
 from .runtime import BudgetExceeded, RunBudget
@@ -63,8 +64,20 @@ class ChatService:
         acquired, finished = False, False
         result = AgentResult(answer="", stop_reason="running")
         guarded, cancel_guarded = False, False
+        progress_signature = None
 
         def update(phase: str) -> TurnUpdate:
+            nonlocal progress_signature
+            if self.settings.execution_progress_enabled:
+                events = progress_events(sid, tid, result, phase)
+                result.totals['progress'] = events
+                signature = json.dumps(events, ensure_ascii=False)
+                checkpoint = events[-1]['kind'] in {
+                    'received', 'tool_completed', 'tool_failed', 'retry_scheduled',
+                }
+                if phase != 'completed' and checkpoint and signature != progress_signature:
+                    self.store.save_progress(sid, user_id, tid, events)
+                    progress_signature = signature
             visible = replace(result, answer="") if guarded and phase != "completed" else result
             history[reply_index:] = ([{"role": "assistant", "content": visible.answer}]
                                      if visible.answer else [])
@@ -290,6 +303,10 @@ class ChatService:
                                 result.trace.append(TraceEvent('final', 'answer', {
                                     'text': result.answer,
                                 }))
+                        if self.settings.execution_progress_enabled:
+                            result.totals['progress'] = progress_events(
+                                sid, tid, result, 'completed',
+                            )
                         self.store.finish_turn(
                             sid, user_id, tid, agent.messages[offset:], asdict(result),
                         )
@@ -302,6 +319,8 @@ class ChatService:
             result = AgentResult(answer=str(exc) + "，本次回答未完成，请重新提问。",
                                  stop_reason=reason, errors=[reason],
                                  totals={"budget": budget.as_dict()})
+            if self.settings.execution_progress_enabled:
+                result.totals['progress'] = progress_events(sid, tid, result, 'completed')
             self.store.finish_turn(sid, user_id, tid, [
                 {"role": "user", "content": message},
                 {"role": "assistant", "content": result.answer},

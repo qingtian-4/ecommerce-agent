@@ -18,7 +18,7 @@ from acs.scenarios import build_scenario  # noqa: E402
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--demo", action="store_true", help="Explicitly enable all four protections"
+        "--demo", action="store_true", help="Explicitly enable reliability and V2 demo features"
     )
     parser.add_argument("--admin", action="store_true")
     parser.add_argument("--port", type=int)
@@ -35,6 +35,9 @@ def main():
             "ORDER_CANDIDATE_RENDER",
             "ORDER_CONSTRAINT",
             "ORDER_AGGREGATION",
+            "WORKFLOW_ROUTER",
+            "RUNTIME_RECOVERY",
+            "EXECUTION_PROGRESS",
         ):
             os.environ["ACS_" + flag + "_ENABLED"] = "true"
         if not original.admin_username or not original.admin_password.get_secret_value():

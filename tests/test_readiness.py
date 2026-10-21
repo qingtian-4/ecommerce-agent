@@ -10,7 +10,7 @@ def test_document_mode_readiness_does_not_require_embedding_key_or_index(setting
     with pytest.raises(RuntimeError, match="迁移"):
         check_ready(settings)
     SessionStore(settings.db_path)
-    assert check_ready(settings) == {"ready": True, "schema_version": 5, "documents": 8,
+    assert check_ready(settings) == {"ready": True, "schema_version": 6, "documents": 8,
                                     "knowledge_mode": "documents", "provider_checked": False}
 
 

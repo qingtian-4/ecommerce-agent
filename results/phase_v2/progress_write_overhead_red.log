@@ -1,0 +1,41 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_progress_persisted_once_per_semantic_change_and_restored _________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=False, execution_progress_enabled=True, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b2f3334f360>
+
+    def test_progress_persisted_once_per_semantic_change_and_restored(settings, monkeypatch):
+        settings = settings.model_copy(update={"execution_progress_enabled": True})
+        store = SessionStore(settings.db_path)
+        writes = []
+        original = store.save_progress
+    
+        def observe(*args, **kwargs):
+            writes.append(1)
+            return original(*args, **kwargs)
+    
+        monkeypatch.setattr(store, "save_progress", observe)
+        model = ScriptedLLM(
+            [
+                ScriptedResponse(
+                    wants_tools=True,
+                    tool_calls=[
+                        ScriptedToolCall("order", "get_order", '{"order_id":"O10024"}'),
+                    ],
+                ),
+                ScriptedResponse(text="查询完成"),
+            ]
+        )
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        updates = list(ChatService(settings, store).run_turn("查订单", "USER001", agent=agent))
+        saved = store.load(updates[-1].session_id, "USER001")["last_result"]
+        assert saved["totals"]["progress"] == updates[-1].result.totals["progress"]
+>       assert 1 <= len(writes) <= 2
+E       assert 3 <= 2
+E        +  where 3 = len([1, 1, 1])
+
+tests/test_progress_v2.py:75: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_progress_v2.py::test_progress_persisted_once_per_semantic_change_and_restored
+1 failed, 6 deselected in 6.68s

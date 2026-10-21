@@ -1,0 +1,78 @@
+E501 Line too long (103 > 100)
+  --> results/phase_v2/progress_probe.py:39:101
+   |
+37 |             ]), ScriptedResponse(text='物流查询结束')])
+38 |             store = SessionStore(settings.db_path)
+39 |             agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+   |                                                                                                     ^^^
+40 |             with patch.object(store, 'save_progress', wraps=store.save_progress) as checkpoint:
+41 |                 started = perf_counter()
+   |
+
+E501 Line too long (109 > 100)
+  --> results/phase_v2/progress_probe.py:42:98
+   |
+40 |             with patch.object(store, 'save_progress', wraps=store.save_progress) as checkpoint:
+41 |                 started = perf_counter()
+42 |                 updates = list(ChatService(settings, store).run_turn('查S20003物流', 'USER001', agent=agent))
+   |                                                                                                     ^^^^^^^^^
+43 |                 elapsed = (perf_counter()-started)*1000
+44 |                 rows.append({'trial':trial,'enabled':enabled,'elapsed_ms':elapsed,
+   |
+
+E501 Line too long (110 > 100)
+  --> results/phase_v2/progress_probe.py:60:101
+   |
+58 | Path(__file__).with_suffix('.json').write_text(json.dumps({
+59 |     'rows':rows,'summary':summary,'paid_calls':0,'tokens':'fake usage, no real tokens',
+60 |     'timing':'Includes session reservation, reads, fake model loop, semantic progress and final persistence; '
+   |                                                                                                     ^^^^^^^^^^
+61 |              '8 alternating pairs, not a production SLA or provider-latency benchmark.',
+62 | },ensure_ascii=False,indent=2)+'\n')
+   |
+
+E501 Line too long (103 > 100)
+  --> results/phase_v2/progress_probe_optimized.py:39:101
+   |
+37 |             ]), ScriptedResponse(text='物流查询结束')])
+38 |             store = SessionStore(settings.db_path)
+39 |             agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+   |                                                                                                     ^^^
+40 |             with patch.object(store, 'save_progress', wraps=store.save_progress) as checkpoint:
+41 |                 started = perf_counter()
+   |
+
+E501 Line too long (109 > 100)
+  --> results/phase_v2/progress_probe_optimized.py:42:98
+   |
+40 |             with patch.object(store, 'save_progress', wraps=store.save_progress) as checkpoint:
+41 |                 started = perf_counter()
+42 |                 updates = list(ChatService(settings, store).run_turn('查S20003物流', 'USER001', agent=agent))
+   |                                                                                                     ^^^^^^^^^
+43 |                 elapsed = (perf_counter()-started)*1000
+44 |                 rows.append({'trial':trial,'enabled':enabled,'elapsed_ms':elapsed,
+   |
+
+E501 Line too long (110 > 100)
+  --> results/phase_v2/progress_probe_optimized.py:60:101
+   |
+58 | Path(__file__).with_suffix('.json').write_text(json.dumps({
+59 |     'rows':rows,'summary':summary,'paid_calls':0,'tokens':'fake usage, no real tokens',
+60 |     'timing':'Includes session reservation, reads, fake model loop, semantic progress and final persistence; '
+   |                                                                                                     ^^^^^^^^^^
+61 |              '8 alternating pairs, not a production SLA or provider-latency benchmark.',
+62 | },ensure_ascii=False,indent=2)+'\n')
+   |
+
+E501 Line too long (230 > 100)
+  --> results/phase_v2/ui_acceptance.py:46:101
+   |
+44 | … 复已完成')")
+45 | …
+46 | …ClientRect();let b=document.querySelector('#customer-chat').getBoundingClientRect();return {progressBottom:a.bottom,chatTop:b.top}}""")
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+47 | …
+48 | …
+   |
+
+Found 7 errors.
