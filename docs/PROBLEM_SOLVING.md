@@ -1192,3 +1192,12 @@ Ruff通过。恢复与进度定向34 passed。证据为`results/phase_v2/final_d
 固定8对/路径显示只读p50 1868→931ms、写路径1785→1526ms，但写p95 1927→2030ms。
 这只支持局部开销优化，不是稳定SLA或真实模型质量收益。
 证据、失败日志与1元新任务真实配对安排见`results/v2_premerge_20261022/REPORT.md`。
+
+## 2026-10-22：合并后 CI 的跨日时钟偏差
+
+PR #3 合并到 main 后，UTC 主机在上海已跨日的时段出现两项日期断言失败。
+播种使用主机 `date.today()`，订单查询使用上海业务日期，两者相差一天。
+`db_seed.build` 现在复用原 `business_today`，保留显式 `reference_date`，不改业务政策、
+冻结数据或原断言。UTC 15:30/16:30 与显式日期四例先复现 1 failed/3 passed；
+修复后相关 18 passed，完整离线 699 passed、1 skipped、4 warnings。
+证据见 `results/seed_clock_20261022/`。无网络或付费请求。
