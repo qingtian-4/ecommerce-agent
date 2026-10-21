@@ -1,0 +1,48 @@
+{
+  "case": "orders-01/trial=1",
+  "source": "results/iteration_v2_recovery/local_after/raw.jsonl",
+  "line": 23,
+  "sha256": "151d1419169076d50b95cdeed30c9533c06f69f03740953d7f50a372d902e9aa",
+  "user_text": "我想退最近买的耳机。",
+  "facts": [
+    {
+      "order_id": "S20008",
+      "status": "shipped",
+      "created_at": "2026-10-13",
+      "delivered_at": null,
+      "items": [
+        {
+          "id": 10,
+          "product_id": "V201",
+          "product_name": "演示 A1 入耳耳机",
+          "quantity": 1,
+          "sku": {
+            "sku_id": "V201-2",
+            "color": "白色"
+          }
+        }
+      ]
+    },
+    {
+      "order_id": "S20003",
+      "status": "shipped",
+      "created_at": "2026-10-12",
+      "delivered_at": null,
+      "items": [
+        {
+          "id": 4,
+          "product_id": "V201",
+          "product_name": "演示 A1 入耳耳机",
+          "quantity": 1,
+          "sku": {
+            "sku_id": "V201-1",
+            "color": "黑色"
+          }
+        }
+      ]
+    }
+  ],
+  "answer": "您最近的耳机订单有好几笔，需要您确认是哪一笔：\n\n**已签收的：**\n1. S20001 — 演示 H1 头戴耳机（米色）×2，签收 2026-10-15\n2. S20002 — 演示 A1 入耳耳机（黑色）×1，签收 2026-10-15\n3. S20006 — 演示 B1 骨传导耳机（黑色）×2，签收 2026-10-14\n4. S20007 — 演示 H1 头戴耳机（黑色）×1，签收 2026-10-14\n\n**还没签收的（暂不能申请退货）：**\n- S20013 — 演示 B1 骨传导耳机（黑色），已发货\n- S20008、S20003 — 演示 A1 入耳耳机（黑色），已发货\n- S20019、S20014、S20009 — 待发货\n\n请问您要退的是哪一笔？另外方便说一下退货原因吗（比如不想要了，还是耳机有故障）？",
+  "diagnosis": "S20008 的 V201-2 白色与 S20003 的 V201-1 黑色被合并描述为黑色；P0 不覆盖多对象回答事实一致性。",
+  "implemented": false
+}

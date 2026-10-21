@@ -1,0 +1,84 @@
+........................................................................ [ 73%]
+.............FF...........                                               [100%]
+=================================== FAILURES ===================================
+_________ test_on_send_surfaces_an_exception_instead_of_raising[False] _________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7c8a8e2a1cc0>
+partial = False
+
+    @pytest.mark.parametrize("partial", [False, True])
+    def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch, partial) -> None:
+        """A failing turn must produce a visible error panel, not a gradio 500."""
+        real = app_module.ensure_agent
+    
+        class _Boom:
+            def chat_stream(self, _message, *, budget=None):  # noqa: ANN001
+                if partial:
+                    yield AgentResult(answer="已生成的内容", stop_reason="running")
+                raise RuntimeError("simulated backend failure")
+    
+            def reset(self) -> None:
+                pass
+    
+            def set_user(self, _uid: str) -> None:
+                pass
+    
+        def patched(state_dict: dict, user_key: str):
+            real(state_dict, user_key)
+            boom = _Boom()
+            boom.registry = state_dict["agent"].registry
+            return boom
+    
+        monkeypatch.setattr(app_module, "ensure_agent", patched)
+        state: dict = {"user_key": MOCK_USERS[0], "agent": None}
+    
+        history, _, trace, _, stats, _, _, status = list(app_module.on_send(
+            "你好", [], state, MOCK_USERS[0]
+        ))[-1]
+    
+>       assert "系统出现异常" in history[-1]["content"]
+E       AssertionError: assert '系统出现异常' in '\n\n本次回答中断，尚未完成，请重新提问。'
+
+tests/test_app_handlers.py:399: AssertionError
+_________ test_on_send_surfaces_an_exception_instead_of_raising[True] __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7c8a8e2a3230>
+partial = True
+
+    @pytest.mark.parametrize("partial", [False, True])
+    def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch, partial) -> None:
+        """A failing turn must produce a visible error panel, not a gradio 500."""
+        real = app_module.ensure_agent
+    
+        class _Boom:
+            def chat_stream(self, _message, *, budget=None):  # noqa: ANN001
+                if partial:
+                    yield AgentResult(answer="已生成的内容", stop_reason="running")
+                raise RuntimeError("simulated backend failure")
+    
+            def reset(self) -> None:
+                pass
+    
+            def set_user(self, _uid: str) -> None:
+                pass
+    
+        def patched(state_dict: dict, user_key: str):
+            real(state_dict, user_key)
+            boom = _Boom()
+            boom.registry = state_dict["agent"].registry
+            return boom
+    
+        monkeypatch.setattr(app_module, "ensure_agent", patched)
+        state: dict = {"user_key": MOCK_USERS[0], "agent": None}
+    
+        history, _, trace, _, stats, _, _, status = list(app_module.on_send(
+            "你好", [], state, MOCK_USERS[0]
+        ))[-1]
+    
+>       assert "系统出现异常" in history[-1]["content"]
+E       AssertionError: assert '系统出现异常' in '已生成的内容\n\n本次回答中断，尚未完成，请重新提问。'
+
+tests/test_app_handlers.py:399: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_app_handlers.py::test_on_send_surfaces_an_exception_instead_of_raising[False]
+FAILED tests/test_app_handlers.py::test_on_send_surfaces_an_exception_instead_of_raising[True]

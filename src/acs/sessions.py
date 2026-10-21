@@ -11,6 +11,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from .database import item_sku
+from .runtime import RunBudget
 
 
 class ConversationBusy(RuntimeError):
@@ -295,14 +296,20 @@ class SessionStore:
             return self._task_view(conn, self._task(conn, sid), user_id)
 
     def update_return_task(self, sid: str, user_id: str, tid: str, patch: dict,
-                           *, cancel: bool = False) -> dict:
+                           *, cancel: bool = False, only_if_absent: bool = False,
+                           budget: RunBudget | None = None) -> dict:
         """Save model-extracted claims with their original user turn, not verified eligibility."""
         fields = ("order_id", "item_id", "quantity", "reason", "condition", "problem_description",
                   "secondary_sale_ok", "quality_non_user_damage")
         if set(patch) - set(fields) or (not patch and not cancel):
             raise TaskValidationError("草稿字段无效或为空")
+        if only_if_absent and (cancel or set(patch) != {"order_id"}
+                               or not isinstance(patch["order_id"], str)):
+            raise TaskValidationError("受限补存只允许订单字段，不能取消或补充其他字段")
         with closing(self._connect()) as conn, conn:
             conn.execute("BEGIN IMMEDIATE")
+            if budget is not None:
+                budget.remaining()
             self._require_owner(conn, sid, user_id)
             turn = conn.execute("SELECT user_text FROM conversation_turns WHERE session_id=? "
                                 "AND turn_id=? AND status='running'", (sid, tid)).fetchone()
@@ -317,6 +324,12 @@ class SessionStore:
                         "暂停话题不清空草稿。确需中止请明确说“中止退货草稿”。"
                     )
             previous = self._task(conn, sid)
+            if only_if_absent and previous is not None:
+                satisfied = (previous["status"] == "draft"
+                             and previous["order_id"] == patch["order_id"])
+                return self._task_view(conn, previous, user_id) | {
+                    "state_write": "satisfied" if satisfied else "conflict",
+                }
             if previous and previous["status"] == "submitted":
                 raise TaskValidationError("申请已经提交，不能修改或用中止草稿撤销；"
                                           "请查询结果，新申请请新建会话。")
@@ -375,12 +388,15 @@ class SessionStore:
             if description is not None and (not isinstance(description, str)
                                             or not description.strip() or len(description) > 1000):
                 raise TaskValidationError("问题描述须为1到1000字的文本")
+            if budget is not None:
+                budget.remaining()
             task["revision"] += 1
             conn.execute("INSERT INTO return_tasks VALUES(?,?,?) ON CONFLICT(session_id) "
                          "DO UPDATE SET data_json=excluded.data_json,"
                          "updated_at=excluded.updated_at",
                          (sid, json.dumps(task, ensure_ascii=False), _now()))
-            return self._task_view(conn, task, user_id)
+            view = self._task_view(conn, task, user_id)
+            return view | {"state_write": "created"} if only_if_absent else view
 
     def cancel_return_task(self, sid: str, user_id: str, tid: str) -> dict:
         return self.update_return_task(sid, user_id, tid, {}, cancel=True)

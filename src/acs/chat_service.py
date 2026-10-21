@@ -15,6 +15,7 @@ from time import perf_counter
 
 from .config import Settings
 from .context import ContextLimitExceeded, bounded_context
+from .return_state_check import check_order_draft, state_notice
 from .runtime import BudgetExceeded, RunBudget
 from .service_agent import AgentResult, CustomerServiceAgent, build_system_prompt
 from .sessions import SessionStore
@@ -105,6 +106,51 @@ class ChatService:
                         task = self.store.get_return_task(sid, user_id)
                         task_events = updates
                     if result.stop_reason != "running":
+                        if self.settings.return_state_check_enabled:
+                            checked_at = perf_counter()
+                            event = check_order_draft(
+                                self.store, sid, user_id, tid, message,
+                                result.trace, result.stop_reason, budget,
+                            )
+                            if event is not None:
+                                # Read again even after a write error: it may have committed.
+                                try:
+                                    task = self.store.get_return_task(sid, user_id)
+                                    actual = task["task"]
+                                    event.detail["after_revision"] = (
+                                        actual["revision"] if actual else None
+                                    )
+                                    event.detail["observed_status"] = (
+                                        actual["status"] if actual else "absent"
+                                    )
+                                    if (event.detail["status"] in {"repaired", "satisfied"}
+                                            and (not actual or actual["status"] != "draft"
+                                                 or actual["order_id"]
+                                                 != event.detail["order_id"])):
+                                        event.detail.update(status="error",
+                                                            reason="postcondition_failed")
+                                except Exception as exc:  # noqa: BLE001 - never show stale success
+                                    task = {"state_unavailable": True}
+                                    event.detail.update(status="error", reason="state_read_failed",
+                                                        error_type=type(exc).__name__)
+                                if event.detail["status"] == "error":
+                                    result.errors.append("state_check:" + event.detail["reason"])
+                                    if result.stop_reason == "answered":
+                                        result.stop_reason = "state_check_error"
+                                elif event.detail["reason"] == "budget_expired":
+                                    result.stop_reason = "budget_exceeded"
+                                    result.errors.append("state_check:budget_expired")
+                                result.answer += "\n\n" + state_notice(event, task)
+                                agent.messages[-1]["content"] = result.answer
+                                finals = [e for e in result.trace if e.type == "final"]
+                                if finals:
+                                    finals[-1].detail["text"] = result.answer
+                                event.duration_ms = (perf_counter() - checked_at) * 1000
+                                result.totals["state_check_ms"] = event.duration_ms
+                                result.totals["latency_ms"] = (
+                                    result.totals.get("latency_ms", 0) + event.duration_ms
+                                )
+                                result.trace.insert(len(result.trace) - bool(finals), event)
                         self.store.finish_turn(
                             sid, user_id, tid, agent.messages[offset:], asdict(result),
                         )
@@ -128,5 +174,6 @@ class ChatService:
                 self.limiter.release()
             if not finished:
                 self.store.interrupt_turn(
-                    sid, user_id, tid, result.answer + "\n\n本次回答中断，尚未完成，请重新提问。",
+                    sid, user_id, tid, result.answer + "\n\n本次回答中断，尚未完成，请重新提问。"
+                    "当前没有人工接入此窗口的功能。",
                 )

@@ -1,0 +1,45 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/qingtian/projects/E-commerce Agent/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/qingtian/projects/E-commerce Agent
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 4 items
+
+tests/test_return_state_check.py::test_orders02_replays_frozen_omission_with_switch_pair[False] PASSED [ 25%]
+tests/test_return_state_check.py::test_orders02_replays_frozen_omission_with_switch_pair[True] FAILED [ 50%]
+tests/test_return_state_check.py::test_existing_store_accepts_order_only_claim_with_original_source PASSED [ 75%]
+tests/test_return_state_check.py::test_reading_order_is_not_authorization PASSED [100%]
+
+=================================== FAILURES ===================================
+_________ test_orders02_replays_frozen_omission_with_switch_pair[True] _________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...x_retrieval_calls=4, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x720e7539b680>)
+enabled = True
+
+    @pytest.mark.parametrize("enabled", [False, True])
+    def test_orders02_replays_frozen_omission_with_switch_pair(local, enabled):
+        settings, store = local
+        settings = settings.model_copy(update={"return_state_check_enabled": enabled})
+        with (ROOT / "results/iteration_v2_recovery/local_after/raw.jsonl").open() as handle:
+            row = next(r for r in map(json.loads, handle)
+                       if r["id"] == "orders-02" and r["trial"] == 1)
+        agent = make_agent(settings, [order_response()] + [
+            ScriptedResponse(text=e["result"]["answer"]) for e in row["events"]
+        ])
+        service, sid = ChatService(settings, store), None
+        for event in row["events"]:
+            update = list(service.run_turn(event["query"], "USER001", sid, agent=agent))[-1]
+            sid = update.session_id
+            assert update.result.stop_reason == "answered"
+        assert BusinessDB(settings).get_order("S20017", "USER001")["found"]
+        view = SessionStore(settings.db_path).get_return_task(sid, "USER001")
+        if enabled:
+>           assert view["task"] is not None, "Required partial draft is absent"
+E           AssertionError: Required partial draft is absent
+E           assert None is not None
+
+tests/test_return_state_check.py:70: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_return_state_check.py::test_orders02_replays_frozen_omission_with_switch_pair[True]
+========================= 1 failed, 3 passed in 40.15s =========================

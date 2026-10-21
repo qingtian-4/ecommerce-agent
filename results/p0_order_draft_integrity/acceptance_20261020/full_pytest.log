@@ -1,0 +1,129 @@
+ISOLATED_IMPORT /tmp/acs-p0-acceptance-wa4tfw3b/checkout/src/acs/__init__.py
+..............................................FF..............F......... [ 15%]
+........................................................................ [ 31%]
+........................................................................ [ 47%]
+........................................................................ [ 62%]
+........................................................................ [ 78%]
+........................................................................ [ 94%]
+..........................                                               [100%]
+=================================== FAILURES ===================================
+_________ test_on_send_surfaces_an_exception_instead_of_raising[False] _________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75613bd04f30>
+partial = False
+
+    @pytest.mark.parametrize("partial", [False, True])
+    def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch, partial) -> None:
+        """A failing turn must produce a visible error panel, not a gradio 500."""
+        real = app_module.ensure_agent
+    
+        class _Boom:
+            def chat_stream(self, _message, *, budget=None):  # noqa: ANN001
+                if partial:
+                    yield AgentResult(answer="已生成的内容", stop_reason="running")
+                raise RuntimeError("simulated backend failure")
+    
+            def reset(self) -> None:
+                pass
+    
+            def set_user(self, _uid: str) -> None:
+                pass
+    
+        def patched(state_dict: dict, user_key: str):
+            real(state_dict, user_key)
+            boom = _Boom()
+            boom.registry = state_dict["agent"].registry
+            return boom
+    
+        monkeypatch.setattr(app_module, "ensure_agent", patched)
+        state: dict = {"user_key": MOCK_USERS[0], "agent": None}
+    
+        history, _, trace, _, stats, _, _, status = list(app_module.on_send(
+            "你好", [], state, MOCK_USERS[0]
+        ))[-1]
+    
+>       assert "系统出现异常" in history[-1]["content"]
+E       AssertionError: assert '系统出现异常' in '\n\n本次回答中断，尚未完成，请重新提问。'
+
+tests/test_app_handlers.py:399: AssertionError
+_________ test_on_send_surfaces_an_exception_instead_of_raising[True] __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75613bd523c0>
+partial = True
+
+    @pytest.mark.parametrize("partial", [False, True])
+    def test_on_send_surfaces_an_exception_instead_of_raising(monkeypatch, partial) -> None:
+        """A failing turn must produce a visible error panel, not a gradio 500."""
+        real = app_module.ensure_agent
+    
+        class _Boom:
+            def chat_stream(self, _message, *, budget=None):  # noqa: ANN001
+                if partial:
+                    yield AgentResult(answer="已生成的内容", stop_reason="running")
+                raise RuntimeError("simulated backend failure")
+    
+            def reset(self) -> None:
+                pass
+    
+            def set_user(self, _uid: str) -> None:
+                pass
+    
+        def patched(state_dict: dict, user_key: str):
+            real(state_dict, user_key)
+            boom = _Boom()
+            boom.registry = state_dict["agent"].registry
+            return boom
+    
+        monkeypatch.setattr(app_module, "ensure_agent", patched)
+        state: dict = {"user_key": MOCK_USERS[0], "agent": None}
+    
+        history, _, trace, _, stats, _, _, status = list(app_module.on_send(
+            "你好", [], state, MOCK_USERS[0]
+        ))[-1]
+    
+>       assert "系统出现异常" in history[-1]["content"]
+E       AssertionError: assert '系统出现异常' in '已生成的内容\n\n本次回答中断，尚未完成，请重新提问。'
+
+tests/test_app_handlers.py:399: AssertionError
+_______ test_application_exception_also_reports_actual_human_capability ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas..., max_api_requests=16, max_tool_calls=12, max_retrieval_calls=4, return_state_check_enabled=False, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75613bd06e40>
+
+    def test_application_exception_also_reports_actual_human_capability(settings, monkeypatch):
+        import app
+    
+        class BrokenAgent:
+            registry = ToolRegistry(settings)
+    
+            def chat_stream(self, message):
+                raise RuntimeError("simulated handler failure")
+    
+        monkeypatch.setattr(app, "SETTINGS", settings)
+        monkeypatch.setattr(app, "_SESSION_STORE", None)
+        monkeypatch.setattr(app, "ensure_agent", lambda *_: BrokenAgent())
+        updates = list(app.on_send("需要帮助", [], {}, "USER001"))
+        answer = updates[-1][0][-1]["content"]
+>       assert "人工接入" in answer and "没有" in answer
+E       AssertionError: assert ('人工接入' in '\n\n本次回答中断，尚未完成，请重新提问。')
+
+tests/test_catalog_knowledge_modes.py:61: AssertionError
+=============================== warnings summary ===============================
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/contextlib.py:141: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    return next(self.gen)
+
+tests/test_return_state_check.py::test_orders02_replays_frozen_omission_with_switch_pair[False]
+  /home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/site-packages/gradio/queueing.py:178: Pandas4Warning: The copy keyword is deprecated and will be removed in a future version. Copy-on-Write is active in pandas since 3.0 which utilizes a lazy copy mechanism that defers copies until necessary. Use .copy() to make an eager copy if necessary.
+    pd.DataFrame(records).fillna(value=np.nan).infer_objects(copy=False)  # type: ignore
+
+tests/test_return_state_check.py::test_orders02_replays_frozen_omission_with_switch_pair[False]
+  /home/qingtian/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/contextlib.py:148: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    next(self.gen)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_app_handlers.py::test_on_send_surfaces_an_exception_instead_of_raising[False]
+FAILED tests/test_app_handlers.py::test_on_send_surfaces_an_exception_instead_of_raising[True]
+FAILED tests/test_catalog_knowledge_modes.py::test_application_exception_also_reports_actual_human_capability

@@ -1,0 +1,40 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> results/p0_order_draft_integrity/acceptance_20261020/context_probe.py:15:1
+   |
+13 |   sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
+14 |
+15 | / from acs.chat_service import ChatService  # noqa: E402
+16 | | from acs.config import Settings  # noqa: E402
+17 | | from acs.context import input_chars  # noqa: E402
+18 | | from acs.cs_tools import ToolRegistry  # noqa: E402
+19 | | from acs.scenarios import build_scenario, scenario_settings  # noqa: E402
+20 | | from acs.service_agent import CustomerServiceAgent  # noqa: E402
+21 | | from acs.sessions import SessionStore  # noqa: E402
+22 | | from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall  # noqa: E402
+   | |__________________________________________________________________________^
+help: Organize imports
+   |
+14 |
+15 + from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall  # noqa: E402
+16 +
+17 | from acs.chat_service import ChatService  # noqa: E402
+--------------------------------------------------------------------------------
+23 | from acs.sessions import SessionStore  # noqa: E402
+   - from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall  # noqa: E402
+24 |
+   |
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> results/p0_order_draft_integrity/acceptance_20261020/context_probe.py:76:45
+   |
+74 |                "history_chars": on["input_chars"] - off["input_chars"]
+75 |                - on["draft_system_chars"]}
+76 |               for i, (off, on) in enumerate(zip(runs[0]["calls"], runs[1]["calls"]))]
+   |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+77 |     output = {"runs": runs, "deltas": deltas, "extra_model_calls": 0,
+78 |               "real_tokens": None, "real_cost": None, "paid_api_calls": 0,
+   |
+help: Add explicit value for parameter `strict=`
+
+Found 2 errors.
+[*] 1 fixable with the `--fix` option (1 hidden fix can be enabled with the `--unsafe-fixes` option).

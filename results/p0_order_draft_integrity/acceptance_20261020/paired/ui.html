@@ -1,0 +1,271 @@
+<!doctype html><html lang='zh'><meta charset='utf-8'><title>P0 状态检查离线 UI 验证</title><style>
+.gradio-container {
+  max-width: 1600px !important; padding: clamp(8px, 2vw, 24px) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #172033; background: #edf0f4;
+}
+.gradio-container .main { padding:0 !important; }
+.skip-link { position:fixed; left:16px; top:-60px; z-index:100; padding:12px; background:white; }
+.skip-link:focus { top:8px; }
+#skip-navigation { position:absolute; height:0; min-height:0; padding:0; }
+#shop-header, #chat-title { padding:0; min-height:0; }
+#reply-status { padding:0; min-height:20px; font-size:12px; color:#536174; }
+button { min-height:40px; border-radius:8px !important; }
+button:active:not(:disabled) { transform:scale(.96); }
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline:2px solid #c64b06 !important; outline-offset:3px;
+}
+button.primary { background:#c64b06 !important; color:white !important; }
+.cs-header { padding:4px 0 16px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.cs-brand { display:flex; gap:12px; align-items:center; }
+.cs-mark { background:#172033; color:#fff; width:40px; height:40px; border-radius:8px;
+           display:grid; place-items:center; font-size:18px; font-weight:600; }
+.cs-header .shop { font-size:20px; font-weight:650; color:#172033; }
+.cs-header .sub { font-size:12px; color:#536174; margin-top:3px; }
+.cs-header .meta { display:flex; flex-direction:column; gap:6px; align-items:flex-end;
+                   color:#536174; font-size:12px; }
+.cs-badge { padding:3px 8px; background:#fff1e7; color:#923a0b; border-radius:99px; }
+#project-tabs { border:none; }
+#project-tabs > .tab-nav { margin-bottom:12px; border-bottom:1px solid #dbe1e8; }
+#workspace { display:grid !important; grid-template-columns:210px minmax(0,1fr) 310px;
+             align-items:stretch !important;
+             gap:0 !important; height:calc(100dvh - 200px); min-height:600px;
+             background:#fff; border:1px solid #dbe1e8; border-radius:12px; overflow:hidden; }
+#conversation-nav, #chat-workspace, #business-inspector { min-width:0 !important; min-height:0; gap:12px; }
+#conversation-nav { padding:16px !important; background:#e5e9ef; border-right:1px solid #dbe1e8;
+                    flex-wrap:nowrap; overflow-y:auto; }
+#conversation-nav .block { background:transparent; border:0; }
+#user-selector { padding:0; }
+#workspace [data-testid='block-info'], #workspace [data-testid='block-label'] {
+  background:transparent !important; color:#536174 !important; font-size:12px; }
+#business-inspector { padding:16px !important; background:#f7f8fa; border-left:1px solid #dbe1e8;
+                      flex-wrap:nowrap; overflow-y:auto; overscroll-behavior:contain; }
+#business-inspector > * { flex:0 0 auto; }
+#chat-workspace { padding:16px !important; background:#fff; flex-wrap:nowrap; }
+.cs-section-label { font-size:12px; color:#536174; font-weight:650; }
+#conversation-history { background:transparent; border:0; padding:0; }
+#conversation-history .wrap { flex-direction:column; max-height:calc(100dvh - 440px); overflow-y:auto; }
+#conversation-history label { background:transparent; border:0; box-shadow:none; width:100%;
+                              margin:0; font-size:12px; padding:9px 6px; overflow-wrap:anywhere; }
+#conversation-history label, #conversation-history label * { color:#172033 !important; }
+#conversation-history label:has(input:checked) { background:#fff1e7; }
+#conversation-history input { flex-shrink:0; }
+#history-note, #example-note { font-size:12px; color:#536174; }
+#customer-chat { overflow:hidden !important; border:0; border-radius:0;
+                 flex:1 1 0; height:auto !important; min-height:220px; background:#fff; }
+#customer-chat .bubble-wrap { overscroll-behavior:contain; }
+#customer-chat .message { font-size:14px; line-height:1.75; }
+#composer { flex:0 0 auto !important; gap:8px; background:#fff;
+            padding-top:12px; border-top:1px solid #dbe1e8; }
+#composer-row { align-items:stretch; gap:8px; }
+#message-input { min-width:0 !important; }
+#message-input textarea { font-size:14px; line-height:1.6; border-radius:8px; }
+#send-message { align-self:stretch; flex-grow:0; }
+.quick-prompts { gap:6px !important; }
+.quick-prompts button { background:#f7f8fa; font-size:12px; border:1px solid #dbe1e8;
+                        box-shadow:none; }
+.cs-welcome { padding:40px 16px; max-width:420px; margin:auto; color:#536174; }
+.cs-welcome .cs-kicker { font-size:12px; color:#923a0b; }
+.cs-welcome h2 { font-size:24px; font-weight:600; color:#172033; margin:12px 0; }
+.cs-welcome p { font-size:14px; line-height:1.8; margin-bottom:20px; }
+.cs-welcome small { font-size:12px; line-height:1.75; }
+.cs-card { padding:0 0 16px; border-bottom:1px solid #dbe1e8; margin-bottom:16px; }
+.cs-card h4 { margin:0 0 10px; font-size:14px; color:#172033; font-weight:600; }
+.cs-user { display:flex; align-items:center; gap:10px; }
+.cs-avatar { width:34px; height:34px; border-radius:50%; background:#fbe4d5; color:#923a0b;
+             display:grid; place-items:center; font-weight:600; font-size:14px; flex-shrink:0; }
+.cs-user .nm { font-size:14px; font-weight:600; color:#172033; }
+.cs-user .ph { font-size:12px; color:#536174; }
+.cs-hint { font-size:12px; color:#536174; line-height:1.7; overflow-wrap:anywhere; }
+.cs-orders { display:flex; flex-direction:column; max-height:190px; overflow-y:auto;
+             overscroll-behavior:contain; }
+.cs-order { border-bottom:1px solid #e2e6ed; padding:9px 0; flex-shrink:0; font-size:12px;
+            color:#172033; display:flex; justify-content:space-between; gap:8px; }
+.cs-order b { font-variant-numeric:tabular-nums; font-weight:600; }
+.cs-order span { color:#536174; text-align:right; }
+.cs-panel-title { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+                  gap:8px; padding-bottom:12px; border-bottom:1px solid #dbe1e8; }
+.cs-panel-title b { font-size:14px; color:#172033; }
+.cs-panel-title span { font-size:12px; color:#536174; }
+.cs-online::before { content:"●"; color:#187348; margin-right:5px; font-size:10px; }
+#developer-observations { margin-top:16px; padding:16px; background:#fff; border-radius:8px; }
+@media (max-width:1100px) {
+  #workspace { grid-template-columns:190px minmax(0,1fr) 285px; }
+}
+@media (max-width:900px) {
+  #workspace { grid-template-columns:minmax(0,1fr); height:auto; min-height:0; overflow:visible; }
+  #conversation-nav { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px;
+                       border-right:0; border-bottom:1px solid #dbe1e8; }
+  #conversation-nav > :first-child, #conversation-history { grid-column:1 / -1; }
+  #conversation-history .wrap { max-height:100px; }
+  #history-note { display:none; }
+  #chat-workspace { height:720px; min-width:0 !important; }
+  #business-inspector { overflow:visible; border-left:0; border-top:1px solid #dbe1e8; }
+  .cs-header { align-items:flex-start; flex-wrap:wrap; }
+  .cs-header .meta { flex-direction:row; align-items:center; flex-wrap:wrap; }
+  .cs-header .shop { font-size:18px; }
+}
+@media (max-width:480px) {
+  #conversation-nav, #chat-workspace, #business-inspector { padding:12px !important; }
+  #chat-workspace { height:540px; }
+  #send-message { min-width:64px !important; }
+  #composer-row { flex-wrap:nowrap; }
+  .cs-welcome { padding:24px 6px; }
+  .cs-welcome h2 { font-size:21px; }
+}
+.trace-panel { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+               padding-right: 6px; }
+.trace-step { border-top: 1px solid #dbe1e8; padding: 7px 10px; margin: 7px 0;
+              background: #f8fafc; border-radius: 8px; }
+.trace-step.call      { border-top-color: #2563eb; background: #eff6ff; }
+.trace-step.result    { border-top-color: #16a34a; background: #f0fdf4; }
+.trace-step.retrieval { border-top-color: #7c3aed; background: #f5f3ff; }
+.trace-step.error     { border-top-color: #dc2626; background: #fef2f2; }
+.trace-step.final     { border-top-color: #0f172a; background: #f1f5f9; }
+.trace-step.state-check { border-top-color: #b45309; background: #fffbeb; }
+.trace-head { font-weight: 600; margin-bottom: 4px; color:#0f172a; }
+.trace-body { white-space: pre-wrap; word-break: break-word; color: #334155; line-height:1.5; }
+.mono-key { color: #64748b; }
+.trace-empty { color:#6b7280; font-size:12.5px; line-height:1.8; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+             gap: 7px; }
+.stat { background: #f8fafc; border:1px solid #eef0f3; border-radius: 7px; padding: 6px 9px; }
+.stat small { display: block; color: #6b7280; font-size: 10.5px; margin-bottom:1px; }
+.stat strong { font-size: 13.5px; color:#111827; }
+.pill { display:inline-block; padding:1.5px 8px; border-radius:99px; font-size:11px;
+        background:#e2e8f0; color:#334155; margin-right:5px; }
+.pill.ok   { background:#dcfce7; color:#166534; }
+.pill.warn { background:#fef3c7; color:#92400e; }
+.pill.bad  { background:#fee2e2; color:#991b1b; }
+.err-box {
+  background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px;
+  padding:9px 12px; font-size:12.5px; line-height:1.7; margin-top:6px;
+  font-family: ui-monospace, Menlo, monospace; white-space:pre-wrap;
+}
+.replay-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.replay-answer { font-size:13px; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; }
+@media (max-width:900px) { .replay-grid { grid-template-columns:1fr; } }
+body{padding:20px;background:white}main{display:grid;grid-template-columns:1fr 1fr;gap:20px}.trace-panel{max-height:none}</style><body><main><section><h2>检查开关：False</h2><div class='cs-card'><h4>当前会话</h4><div class='cs-user'><div class='cs-avatar'>张</div><div><div class='nm'>张伟</div><div class='ph'>USER001 · 138****8001</div></div></div><div class='cs-hint' style='margin-top:9px'>只能查询该用户本人的订单，权限校验在数据层执行。</div></div><div class='cs-card'><h4>订单列表</h4><div class='cs-orders'><div class='cs-order'><b>S20004</b> <span>待发货 · ¥119.00</span></div><div class='cs-order'><b>S20010</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20013</b> <span>已发货 · ¥588.00</span></div><div class='cs-order'><b>S20019</b> <span>待发货 · ¥469.00</span></div><div class='cs-order'><b>S20005</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20008</b> <span>已发货 · ¥179.00</span></div><div class='cs-order'><b>S20014</b> <span>待发货 · ¥179.00</span></div><div class='cs-order'><b>S20020</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20001</b> <span>已签收 · ¥1217.00</span></div><div class='cs-order'><b>S20002</b> <span>已签收 · ¥179.00</span></div><div class='cs-order'><b>S20003</b> <span>已发货 · ¥179.00</span></div><div class='cs-order'><b>S20009</b> <span>待发货 · ¥648.00</span></div><div class='cs-order'><b>S20015</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20018</b> <span>已发货 · ¥119.00</span></div><div class='cs-order'><b>S20006</b> <span>已签收 · ¥998.00</span></div><div class='cs-order'><b>S20007</b> <span>已签收 · ¥549.00</span></div><div class='cs-order'><b>S20011</b> <span>已签收 · ¥298.00</span></div><div class='cs-order'><b>S20012</b> <span>已签收 · ¥199.00</span></div><div class='cs-order'><b>S20016</b> <span>已签收 · ¥798.00</span></div><div class='cs-order'><b>S20017</b> <span>已签收 · ¥678.00</span></div></div><div class='cs-hint' style='margin-top:8px'>共 20 个订单，可向下滚动查看全部。</div></div><div class='cs-card' id='return-task' style='overflow-wrap:anywhere'><b>当前退货办理</b><div>尚无退货草稿，可在对话中描述需要退货的商品。</div></div><div class='trace-panel'><span class='pill ok'>stop: answered</span><span class='pill'>steps: 2</span><span class='pill'>tool calls: 1</span><div class='trace-step final'><div class='trace-head'>决策摘要</div><div class='trace-body'>调用了业务工具 get_order，共 1 次工具调用。</div></div><div class='trace-step '><div class='trace-head'>Step 1 · 工具调用 <code>get_order</code></div><div class='trace-body'>{&quot;order_id&quot;: &quot;S20017&quot;}</div></div><div class='trace-step '><div class='trace-head'>Step 2 · 工具返回 <code>get_order</code></div><div class='trace-body'>{
+ &quot;order_id&quot;: &quot;S20017&quot;,
+ &quot;user_id&quot;: &quot;USER001&quot;,
+ &quot;status&quot;: &quot;delivered&quot;,
+ &quot;total_amount&quot;: 678.0,
+ &quot;paid_amount&quot;: 678.0,
+ &quot;created_at&quot;: &quot;2026-10-05&quot;,
+ &quot;shipped_at&quot;: &quot;2026-10-07&quot;,
+ &quot;delivered_at&quot;: &quot;2026-10-08&quot;,
+ &quot;cancelled_at&quot;: null,
+ &quot;user_name&quot;: &quot;张伟&quot;,
+ &quot;items&quot;: [
+  {
+   &quot;id&quot;: 21,
+   &quot;order_id&quot;: &quot;S20017&quot;,
+   &quot;product_id&quot;: &quot;V204&quot;,
+   &quot;quantity&quot;: 1,
+   &quot;purchase_price&quot;: 549.0,
+   &quot;product_name&quot;: &quot;演示 H1 头戴耳机&quot;,
+   &quot;product_category&quot;: &quot;无线耳机&quot;,
+   &quot;sku&quot;: {
+    &quot;sku_id&quot;: &quot;V204-1&quot;,
+    &quot;product_id&quot;: &quot;V204&quot;,
+    &quot;wearing_type&quot;: &quot;头戴式&quot;,
+    &quot;anc&quot;: 1,
+    &quot;color&quot;: &quot;黑色&quot;,
+    &quot;availability&quot;: &quot;available&quot;
+   },
+   &quot;current_price&quot;: 499.0,
+   &quot;price_delta&quot;: 50.0
+  },
+  {
+   &quot;id&quot;: 22,
+   &quot;order_id&quot;: &quot;S20017&quot;,
+   &quot;product_id&quot;: &quot;V209&quot;,
+   &quot;quantity&quot;: 1,
+   &quot;purchase_price&quot;: 129.0,
+   &quot;product_name&quot;: &quot;演示 C65 充电器&quot;,
+   &quot;product_category&quot;: &quot;充电配件&quot;,
+   &quot;sku&quot;: {
+    &quot;sku_id&quot;: &quot;V209-2&quot;,
+    &quot;product_id&quot;: &quot;V209&quot;,
+    &quot;w
+… (+593 chars)</div></div><div class='trace-step final'><div class='trace-head'>Step 3 · 最终回答</div><div class='trace-body'>这个订单里有两件商品，请问您想退哪一件？
+
+- 演示 H1 头戴耳机（黑色），购买价 549 元
+- 演示 C65 充电器（白色），购买价 129 元
+
+另外，方便说一下退货原因吗？是质量问题，还是无理由退货？</div></div></div><pre style='white-space:pre-wrap'>这个订单里有两件商品，请问您想退哪一件？
+
+- 演示 H1 头戴耳机（黑色），购买价 549 元
+- 演示 C65 充电器（白色），购买价 129 元
+
+另外，方便说一下退货原因吗？是质量问题，还是无理由退货？</pre></section><section><h2>检查开关：True</h2><div class='cs-card'><h4>当前会话</h4><div class='cs-user'><div class='cs-avatar'>张</div><div><div class='nm'>张伟</div><div class='ph'>USER001 · 138****8001</div></div></div><div class='cs-hint' style='margin-top:9px'>只能查询该用户本人的订单，权限校验在数据层执行。</div></div><div class='cs-card'><h4>订单列表</h4><div class='cs-orders'><div class='cs-order'><b>S20004</b> <span>待发货 · ¥119.00</span></div><div class='cs-order'><b>S20010</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20013</b> <span>已发货 · ¥588.00</span></div><div class='cs-order'><b>S20019</b> <span>待发货 · ¥469.00</span></div><div class='cs-order'><b>S20005</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20008</b> <span>已发货 · ¥179.00</span></div><div class='cs-order'><b>S20014</b> <span>待发货 · ¥179.00</span></div><div class='cs-order'><b>S20020</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20001</b> <span>已签收 · ¥1217.00</span></div><div class='cs-order'><b>S20002</b> <span>已签收 · ¥179.00</span></div><div class='cs-order'><b>S20003</b> <span>已发货 · ¥179.00</span></div><div class='cs-order'><b>S20009</b> <span>待发货 · ¥648.00</span></div><div class='cs-order'><b>S20015</b> <span>已取消 · ¥0.00</span></div><div class='cs-order'><b>S20018</b> <span>已发货 · ¥119.00</span></div><div class='cs-order'><b>S20006</b> <span>已签收 · ¥998.00</span></div><div class='cs-order'><b>S20007</b> <span>已签收 · ¥549.00</span></div><div class='cs-order'><b>S20011</b> <span>已签收 · ¥298.00</span></div><div class='cs-order'><b>S20012</b> <span>已签收 · ¥199.00</span></div><div class='cs-order'><b>S20016</b> <span>已签收 · ¥798.00</span></div><div class='cs-order'><b>S20017</b> <span>已签收 · ¥678.00</span></div></div><div class='cs-hint' style='margin-top:8px'>共 20 个订单，可向下滚动查看全部。</div></div><div class='cs-card' id='return-task' style='overflow-wrap:anywhere'><b>当前退货办理</b><div><div>订单：S20017</div><p>待补充：商品明细、数量、原因</p><small>用户自述待审核 · 尚未提交</small></div></div><div class='trace-panel'><span class='pill ok'>stop: answered</span><span class='pill'>steps: 2</span><span class='pill'>tool calls: 1</span><div class='trace-step final'><div class='trace-head'>决策摘要</div><div class='trace-body'>调用了业务工具 get_order，共 1 次工具调用。</div></div><div class='trace-step '><div class='trace-head'>Step 1 · 工具调用 <code>get_order</code></div><div class='trace-body'>{&quot;order_id&quot;: &quot;S20017&quot;}</div></div><div class='trace-step '><div class='trace-head'>Step 2 · 工具返回 <code>get_order</code></div><div class='trace-body'>{
+ &quot;order_id&quot;: &quot;S20017&quot;,
+ &quot;user_id&quot;: &quot;USER001&quot;,
+ &quot;status&quot;: &quot;delivered&quot;,
+ &quot;total_amount&quot;: 678.0,
+ &quot;paid_amount&quot;: 678.0,
+ &quot;created_at&quot;: &quot;2026-10-05&quot;,
+ &quot;shipped_at&quot;: &quot;2026-10-07&quot;,
+ &quot;delivered_at&quot;: &quot;2026-10-08&quot;,
+ &quot;cancelled_at&quot;: null,
+ &quot;user_name&quot;: &quot;张伟&quot;,
+ &quot;items&quot;: [
+  {
+   &quot;id&quot;: 21,
+   &quot;order_id&quot;: &quot;S20017&quot;,
+   &quot;product_id&quot;: &quot;V204&quot;,
+   &quot;quantity&quot;: 1,
+   &quot;purchase_price&quot;: 549.0,
+   &quot;product_name&quot;: &quot;演示 H1 头戴耳机&quot;,
+   &quot;product_category&quot;: &quot;无线耳机&quot;,
+   &quot;sku&quot;: {
+    &quot;sku_id&quot;: &quot;V204-1&quot;,
+    &quot;product_id&quot;: &quot;V204&quot;,
+    &quot;wearing_type&quot;: &quot;头戴式&quot;,
+    &quot;anc&quot;: 1,
+    &quot;color&quot;: &quot;黑色&quot;,
+    &quot;availability&quot;: &quot;available&quot;
+   },
+   &quot;current_price&quot;: 499.0,
+   &quot;price_delta&quot;: 50.0
+  },
+  {
+   &quot;id&quot;: 22,
+   &quot;order_id&quot;: &quot;S20017&quot;,
+   &quot;product_id&quot;: &quot;V209&quot;,
+   &quot;quantity&quot;: 1,
+   &quot;purchase_price&quot;: 129.0,
+   &quot;product_name&quot;: &quot;演示 C65 充电器&quot;,
+   &quot;product_category&quot;: &quot;充电配件&quot;,
+   &quot;sku&quot;: {
+    &quot;sku_id&quot;: &quot;V209-2&quot;,
+    &quot;product_id&quot;: &quot;V209&quot;,
+    &quot;w
+… (+593 chars)</div></div><div class='trace-step state-check'><div class='trace-head'>Step 3 · 服务端状态检查 <code>return_order_draft</code></div><div class='trace-body'>{
+ &quot;version&quot;: 1,
+ &quot;order_id&quot;: &quot;S20017&quot;,
+ &quot;turn_id&quot;: &quot;955df21e4928493e806d39c873899785&quot;,
+ &quot;user_text&quot;: &quot;我想退S20017。&quot;,
+ &quot;source_type&quot;: &quot;user_claim&quot;,
+ &quot;status&quot;: &quot;repaired&quot;,
+ &quot;reason&quot;: &quot;conditional_write&quot;,
+ &quot;before_revision&quot;: null,
+ &quot;after_revision&quot;: 1,
+ &quot;order_result_trace_index&quot;: 1,
+ &quot;write_status&quot;: &quot;created&quot;,
+ &quot;observed_status&quot;: &quot;draft&quot;
+}</div></div><div class='trace-step final'><div class='trace-head'>Step 4 · 最终回答</div><div class='trace-body'>这个订单里有两件商品，请问您想退哪一件？
+
+- 演示 H1 头戴耳机（黑色），购买价 549 元
+- 演示 C65 充电器（白色），购买价 129 元
+
+另外，方便说一下退货原因吗？是质量问题，还是无理由退货？
+
+状态更正（以重新读取的后台记录为准）：订单 S20017 已记录在退货草稿中，尚未提交申请。仍需由您选择商品明细，未替您选择商品。</div></div></div><pre style='white-space:pre-wrap'>这个订单里有两件商品，请问您想退哪一件？
+
+- 演示 H1 头戴耳机（黑色），购买价 549 元
+- 演示 C65 充电器（白色），购买价 129 元
+
+另外，方便说一下退货原因吗？是质量问题，还是无理由退货？
+
+状态更正（以重新读取的后台记录为准）：订单 S20017 已记录在退货草稿中，尚未提交申请。仍需由您选择商品明细，未替您选择商品。</pre></section></main><script>document.body.dataset.probeResult=JSON.stringify({stateChecks:document.querySelectorAll('.trace-step.state-check').length,finals:[...document.querySelectorAll('.trace-head')].filter(e=>e.textContent.includes('最终回答')).length,orderVisible:document.querySelectorAll('#return-task')[1].textContent.includes('S20017')});</script></body></html>
