@@ -6,7 +6,8 @@ Gradio、SQLite 和 RAG，将订单查询、退货草稿、明确确认、申请
 
 V1已完成交付；当前独立V2分支增加轻量业务路由、有限故障恢复、安全重启核对和客户可读进度。
 [分阶段方案与验收](docs/PHASE_V2_PLAN_AND_ACCEPTANCE.md)记录范围与开销；机制仅覆盖有限请求，默认关闭，
-本地 Demo 显式开启。数据为合成场景，不提供真实退款、换货、订单修改或人工接管。
+本地 Demo 显式开启。[合并前可靠性验收](results/v2_premerge_20261022/REPORT.md)另存新边界、性能与小预算配对证据。
+数据为合成场景，不提供真实退款、换货、订单修改或人工接管。
 
 [五分钟 Demo](docs/DEMO.md) · [架构与证据](docs/DELIVERY_ARCHITECTURE.md) ·
 [简历与面试材料](docs/INTERNSHIP_PROJECT.md) · [交付验收](results/project_handoff_babbfab/REPORT.md) ·
@@ -83,12 +84,16 @@ v2 演示使用 `get_knowledge_documents` 选择整篇版本化文档，无需 E
 | 工具调用优化 | 35 题各 3 次，调用 160→122，少 23.8%；统一 v4 严格判据 63.8%→95.2% | 同一已见开发集；包含事实/评分修正与提示改动，平均 Token 多 4.2%，不宣称总体提速。[原始对照](results/tool_efficiency/comparison.json) |
 | 多轮业务评价 | 历史 80 段两次共 320 段，前后均 140/160；新增开发 34/48→37/48，验证 22/24→23/24 | 状态与语义均须通过；未判定单列，作者知道任务，不是客户盲测。[完整报告](results/iteration_v2_recovery/final/REPORT.md) |
 | 官方τ零售 | 114 题×3 次×2 臂，共 684 段；项目 Loop pass^1 86.5%、pass^3 78.9%；官方同模型 87.4%、75.4% | 保留官方数据、政策、工具、模拟器和评分；不换成本店商品，不代表本地全业务成功率，内部预算不完全一致。[摘要与冻结条件](results/iteration_v2_recovery/tau_base/summary.json) |
-| 最新真实 DeepSeek | 11 个固定已见任务每臂 1 次，任务 6/11→11/11；58 请求、280628 Token，费用估算 0.143 元 | 五个同次生成错误原答被纠正，无稳定因果或总体成功率结论；最终源码另有 22 段离线重放。[分析](results/final_delivery_c9afdbf/live/analysis.json) |
+| V1 真实 DeepSeek | 11 个固定已见任务每臂 1 次，任务 6/11→11/11；58 请求、280628 Token，费用估算 0.143 元 | 五个同次生成错误原答被纠正，无稳定因果或总体成功率结论；最终源码另有 22 段离线重放。[分析](results/final_delivery_c9afdbf/live/analysis.json) |
 | 工程验收 | 完整离线测试、真实 Gradio 页面业务链路及异常帧检查 | 脚本注错不等于真实模型成功率；最新本轮结果见[交付报告](results/project_handoff_babbfab/REPORT.md)。[上一阶段 695 项通过](results/final_delivery_c9afdbf/full_pytest_clean_environment.log) |
 
 原始失败、原评分和冻结结果均保留。最新真实对照的逐例复核由编码助手按冻结契约完成，
 未经独立外部人工盲审；同供应商语义裁判也有误判。数字说明特定实验，不能互相替代。
 四开关开启不增加审查模型调用，但会增加部分后续上下文，并延迟受保护请求的首个回答文字。
+
+V2 新冻结配对：8个自然任务两臂均8/8；2个受控503任务0/2→2/2。自然输入Token少11.06%，
+模型请求21→21，费用和延迟未证实改善；不能表述为一般成功率提升。
+[完整原始记录与限制](results/v2_premerge_20261022/REPORT.md)。
 
 ## 复现与自动检查
 
