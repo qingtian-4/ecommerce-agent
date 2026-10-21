@@ -1,0 +1,26 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+___________ test_original_orders01_colour_binding_switch_pair[True] ____________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...check_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x74dbd6b41ba0>)
+enabled = True
+
+    @pytest.mark.parametrize("enabled", [False, True])
+    def test_original_orders01_colour_binding_switch_pair(local, enabled):
+        final, agent = replay(local, enabled)
+        facts = next(e.detail["result"] for e in final.result.trace if e.type == "tool_result")
+        orders = {o["order_id"]: o for o in facts["orders"]}
+        assert orders["S20008"]["items"][0]["sku"]["color"] == "白色"
+        assert orders["S20003"]["items"][0]["sku"]["color"] == "黑色"
+        if enabled:
+            rows = final.result.answer.splitlines()
+            white = next((line for line in rows if "| S20008 |" in line), "")
+            black = next((line for line in rows if "| S20003 |" in line), "")
+>           assert "| V201-2 | 白色 |" in white, "S20008 colour is not bound to its own item"
+E           AssertionError: S20008 colour is not bound to its own item
+E           assert '| V201-2 | 白色 |' in ''
+
+tests/test_order_candidate_facts.py:71: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_order_candidate_facts.py::test_original_orders01_colour_binding_switch_pair[True]
+1 failed, 1 passed in 4.46s

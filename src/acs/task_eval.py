@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
@@ -61,6 +62,14 @@ tool_results来自真实工具执行；confirmed操作成功后可以说已创�
 只有暂停或否定中止才应保留。不能因为没有UI动作而否认实际cancel_return_task工具的执行。
 facts中的物流、商品明细、政策是完整基础事实，不能将未询问的缺失细节当成否定事实。
 """
+JUDGE_SYSTEM += """
+get_return_requests由后端按当前用户过滤，列表可含该用户的其他会话申请；跨会话不等于跨用户。
+current_session_request_id为空只表示本会话未提交，不能据此判列表中的真实本人申请为越权。
+expected.preview_ready=null及no_preview表示脚本不安排UI预览，不禁止模型调用只读preview_return。
+preview_return实际ready=true时可以说预览成功；这仍不是创建申请、审核通过或退款。
+仍须拒绝没有实际回执的申请/审核/退款完成声明，不能因上述规则放宽虚假完成判定。
+"""
+TASK_JUDGE_VERSION = "task-judge-c9-delivery-v1"
 
 
 def quote_text(text: str) -> str:
@@ -71,6 +80,7 @@ def quote_text(text: str) -> str:
 def judge_record(client: LLMClient, payload: dict) -> dict:
     start = len(client.usages)
     raw_response = None
+    raw_response_text, diagnostic = None, None
     payload = dict(payload)
     events = payload.pop("events", [])
     dialogue = [
@@ -104,8 +114,11 @@ def judge_record(client: LLMClient, payload: dict) -> dict:
             max_tokens=8192,
             thinking=True,
         )
-        result = json.loads(response.text)
+        raw_response_text = response.text
+        result = json.loads(raw_response_text)
         raw_response = result
+        if not isinstance(result, dict):
+            raise ValueError("裁判JSON顶层必须是对象")
         valid = (
             type(result.get("passed")) is bool
             and isinstance(result.get("failures"), list)
@@ -126,9 +139,13 @@ def judge_record(client: LLMClient, payload: dict) -> dict:
                 for f in result["failures"]
             )
         )
-        if not valid or result["passed"] != (not result["failures"]):
-            raise ValueError("评分返回不符合冻结结构")
+        if not valid:
+            raise ValueError("裁判字段无效：passed须布尔；failures须分类/证据对象列表；"
+                             "repeated_questions须非负整数；answer_quotes须逐字引用客服原答")
+        if result["passed"] != (not result["failures"]):
+            raise ValueError("passed与failures矛盾：通过时必须没有失败项")
     except Exception as exc:
+        diagnostic = {"exception_type": type(exc).__name__, "reason": str(exc)}
         result = {
             "passed": False,
             "failures": [{"type": "judge_error", "evidence": type(exc).__name__}],
@@ -138,6 +155,11 @@ def judge_record(client: LLMClient, payload: dict) -> dict:
     return result | {
         "usage": [u.as_dict() for u in client.usages[start:]],
         "raw_response": raw_response,
+        "raw_response_text": raw_response_text, "diagnostic": diagnostic,
+        "judgment_status": ("unjudged" if diagnostic else
+                            "passed" if result["passed"] else "failed"),
+        "scorer_version": TASK_JUDGE_VERSION,
+        "judge_system_sha256": hashlib.sha256(JUDGE_SYSTEM.encode()).hexdigest(),
     }
 
 
@@ -356,7 +378,14 @@ def deterministic_checks(case, events, task, before, after, unchanged):
         ),
     }
     if expected.get("preview_ready") is not None:
-        previews = [e for e in events if e.get("action") == "preview"]
+        previews = []
+        for event in events:
+            if event.get("action") == "preview":
+                previews.append(event)
+            elif "query" in event:
+                previews.extend({"output": t["detail"]["result"], "error": None}
+                                for t in event["result"].get("trace", [])
+                                if t["type"] == "tool_result" and t["label"] == "preview_return")
         checks["preview_eligibility"] = bool(previews) and (
             previews[-1]["output"].get("ready", False if previews[-1]["error"] else None)
             is expected["preview_ready"]

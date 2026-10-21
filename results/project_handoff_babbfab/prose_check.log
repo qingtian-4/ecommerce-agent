@@ -1,0 +1,632 @@
+# 电商客服 Agent
+
+一个围绕真实 Badcase 持续改进的客服 Agent 工程项目。使用 Python、自定义 Agent Loop、
+Gradio、SQLite 和 RAG，将订单查询、退货草稿、明确确认、申请审核与结果查询连成可恢复流程。
+重点是业务事实有来源、写操作有授权、失败有轨迹、改进有对照证据。
+
+当前进入**维护与面试准备阶段**。保护机制仅覆盖已验证的有限请求，默认四开关关闭，
+本地 Demo 显式开启。数据为合成场景，不提供真实退款、换货、订单修改或人工接管。
+
+[五分钟 Demo](docs/DEMO.md) · [架构与证据](docs/DELIVERY_ARCHITECTURE.md) ·
+[简历与面试材料](docs/INTERNSHIP_PROJECT.md) · [交付验收](results/project_handoff_babbfab/REPORT.md) ·
+[范围](docs/PROJECT_SCOPE.md) · [PR 与合并计划](docs/PR_HANDOFF.md)
+
+## 功能与职责
+
+- **Agent Runtime**：手写 Function Calling 循环，工具参数校验、整轮预算、停止原因、
+  逐次 usage 和可观察 Trace；ChatService 统一服务页面与评测，同一会话串行、最多两个活动轮次。
+- **RAG 与工具**：BM25、Dense、RRF、可选 API 重排和证据核验；小知识库支持全文及整篇文档
+  对照。订单、SKU、数量和物流来自 SQLite，政策与规格来自版本化知识文档。
+- **状态化售后**：SQLite 持久会话、带来源的草稿及修订、更正与恢复；预览后由页面明确确认
+  创建待审申请，管理员独立认证审核，用户只查询本人记录。事务、幂等和剩余数量约束在服务端。
+- **有限可靠性保护**：补存遗漏的订单草稿、绑定订单商品事实、执行明确历史颜色限制、区分
+  订单数/明细数/件数。受保护答案核验后才进入聊天正文，异常结果不生成权威统计。
+
+自定义的是 Loop、业务状态协议、保护接入和评测适配；模型、Embedding、FAISS、Gradio
+及官方 Benchmark 是集成能力。详细边界见[项目材料](docs/INTERNSHIP_PROJECT.md)。
+
+```mermaid
+flowchart LR
+  UI[Gradio 客户 / 管理工作台] --> CS[ChatService 会话与预算]
+  CS --> LOOP[自定义 Agent Loop]
+  LOOP --> RAG[RAG / 整篇知识文档]
+  LOOP --> TOOL[ToolRegistry 身份与参数校验]
+  TOOL --> DB[(SQLite 订单与业务事实)]
+  CS --> STATE[(会话 / 草稿 / 执行回执)]
+  TOOL --> STATE
+  CS --> SAFE[受限状态检查 / 事实渲染 / 输出门控]
+  SAFE --> UI
+  UI --> RETURN[ReturnService 预览 / 明确确认 / 审核]
+  RETURN --> DB
+  RETURN --> STATE
+  EV[离线回归 / 真实模型对照 / 官方τ适配] --> CS
+  CS --> TRACE[Trace / 原始结果 / usage]
+  TRACE --> EV
+```
+
+## 快速启动
+
+需要 Python 3.13、uv 和可用的 OpenAI 兼容模型服务。依赖版本锁定在 `uv.lock`。
+
+```bash
+uv sync --extra dev --frozen
+# 首次配置，已有.env请保留。填入自己的模型Key，不提交该文件。
+cp -n .env.example .env
+
+# 终端一，先等客户入口启动完成
+uv run python scripts/workbench.py --demo
+
+# 终端二，与客户入口共用同一持久目录
+uv run python scripts/workbench.py --demo --admin
+```
+
+客户入口 http://127.0.0.1:7860，管理入口 http://127.0.0.1:7861。Ctrl+C 停止。
+默认演示目录 `~/.local/share/ecommerce-agent/workbench-v2`，不存在才生成，重启保留申请和会话。
+可用 `--scenario /新的绝对路径 --port 7862` 指定隔离数据和端口；两入口必须使用同一场景。
+
+`--demo` 只对当前进程显式开启四保护，不修改 `.env`。管理员配置为空时使用文档明确标注的
+本机合成演示账号，详见 [Demo](docs/DEMO.md)。不加 `--demo` 遵循原配置，四开关默认 false。
+**发送真实对话会调用付费模型**；页面历史回放和脚本模型验收不收费。
+
+v2 演示使用 `get_knowledge_documents` 选择整篇版本化文档，无需 Embedding Key 或建索引；
+它不是向量检索演示。原始按需 RAG 入口为 `uv run python app.py`，需要原业务库和匹配索引。
+初始化和索引构建命令见 [运行说明](docs/DEPLOYMENT.md)，请在新隔离路径运行，避免重建已有数据。
+
+## 可复核的结果
+
+| 证据类型 | 实际结果 | 解释与限制 |
+| --- | --- | --- |
+| 工具调用优化 | 35 题各 3 次，调用 160→122，少 23.8%；统一 v4 严格判据 63.8%→95.2% | 同一已见开发集；包含事实/评分修正与提示改动，平均 Token 多 4.2%，不宣称总体提速。[原始对照](results/tool_efficiency/comparison.json) |
+| 多轮业务评价 | 历史 80 段两次共 320 段，前后均 140/160；新增开发 34/48→37/48，验证 22/24→23/24 | 状态与语义均须通过；未判定单列，作者知道任务，不是客户盲测。[完整报告](results/iteration_v2_recovery/final/REPORT.md) |
+| 官方τ零售 | 114 题×3 次×2 臂，共 684 段；项目 Loop pass^1 86.5%、pass^3 78.9%；官方同模型 87.4%、75.4% | 保留官方数据、政策、工具、模拟器和评分；不换成本店商品，不代表本地全业务成功率，内部预算不完全一致。[摘要与冻结条件](results/iteration_v2_recovery/tau_base/summary.json) |
+| 最新真实 DeepSeek | 11 个固定已见任务每臂 1 次，任务 6/11→11/11；58 请求、280628 Token，费用估算 0.143 元 | 五个同次生成错误原答被纠正，无稳定因果或总体成功率结论；最终源码另有 22 段离线重放。[分析](results/final_delivery_c9afdbf/live/analysis.json) |
+| 工程验收 | 完整离线测试、真实 Gradio 页面业务链路及异常帧检查 | 脚本注错不等于真实模型成功率；最新本轮结果见[交付报告](results/project_handoff_babbfab/REPORT.md)。[上一阶段 695 项通过](results/final_delivery_c9afdbf/full_pytest_clean_environment.log) |
+
+原始失败、原评分和冻结结果均保留。最新真实对照的逐例复核由编码助手按冻结契约完成，
+未经独立外部人工盲审；同供应商语义裁判也有误判。数字说明特定实验，不能互相替代。
+四开关开启不增加审查模型调用，但会增加部分后续上下文，并延迟受保护请求的首个回答文字。
+
+## 复现与自动检查
+
+```bash
+uv run pytest
+uv run ruff check .
+uv run python scripts/check_secrets.py --all-tracked
+```
+
+[GitHub Actions](.github/workflows/offline.yml)在无模型密钥环境安装锁定依赖并执行上述检查，
+可选 tau2 缺失时跳过。最新运行状态和源码提交对应关系见[交付报告](results/project_handoff_babbfab/REPORT.md)。
+无网络预演、真实决策重放、浏览器验收和录制入口见 [Demo](docs/DEMO.md)。
+大规模真实模型或 Benchmark 命令会收费，不属于普通测试或启动流程。
+
+## 目录与阅读顺序
+
+```text
+src/acs/       Runtime、工具、RAG、会话、业务服务、评分与适配
+app.py         客户Gradio工作台
+admin_app.py   独立认证审核工作台
+scripts/       初始化、启动、评测、验收与密钥检查
+ data/         合成数据定义、知识文档与冻结任务
+ tests/        无模型密钥回归测试
+ results/      原始实验、冻结清单、失败、截图与报告
+ docs/         架构、范围、问题记录、运行与面试材料
+```
+
+先看 [Demo](docs/DEMO.md)，再读 [架构](docs/DELIVERY_ARCHITECTURE.md)、
+[三个 Badcase 与面试讲解](docs/INTERNSHIP_PROJECT.md)、[问题解决记录](docs/PROBLEM_SOLVING.md)。
+完整历史条件保存在 [EXPERIMENT_LOG](docs/EXPERIMENT_LOG.md)，
+[ECom-Bench 静态分析](docs/ECOM_BENCH_COMPATIBILITY.md)说明为何没有为得分扩大业务范围。
+
+## 已知限制与交付状态
+
+本项目适合本机合成数据演示与 Agent 工程实习讲解，尚不具备生产级可靠性。
+客户身份是模拟用户选择，后台管理员才有认证；不要直接开放为公网客服服务。
+有限规则不理解任意同义表达、时间过滤、混合诉求或隐含统计范围；未接管自由文本仍可能编造，
+历史 S20009 附注错误尚未通用修复。没有完整回执时宁可提示未核实，可能降低任务完成度。
+
+四个实验开关默认关闭，见 `.env.example`；不自动合并 main，不修改可见性，不重复跑完整τ。
+仓库的许可证、历史大文件和公开前检查建议见 [PUBLICATION_READINESS](docs/PUBLICATION_READINESS.md)。
+源码检查不能证明不存在一切秘密或隐私，公开或授权方式须由维护者决定。
+# 电商客服 Agent 简历与面试材料
+
+适用于 Agent 工程、Agent Runtime、大模型应用开发及偏工程的 Agent 算法实习。
+项目进入维护与面试准备阶段；以下内容来自已提交代码和冻结实验，不声称生产级可靠性。
+代码由维护者与编码助手协作实现，面试时应能逐段解释实现与取舍，不把第三方组件说成自研。
+
+## 四段简历描述
+
+**Agent 架构**：基于 Python 手写 Function Calling Agent Loop，统一 Gradio 与评测的
+ChatService 执行链路，支持工具参数校验、整轮预算、执行轨迹、SQLite 会话与任务恢复；
+实现订单定位、草稿更正、预览确认、幂等申请及独立认证审核的完整售后 Demo。
+[源码与架构](DELIVERY_ARCHITECTURE.md) · [页面验收](../results/project_handoff_babbfab/REPORT.md)
+
+**RAG 与工具调用优化**：集成 BM25、Dense、RRF 和可选重排，加入知识来源及索引版本校验，
+区分商品政策与 SQL 业务事实；在 35 题各 3 次的已见任务对照中，将工具调用 160 次降至 122 次，
+减少 23.8%，共同 v4 严格判据 63.8%→95.2%。平均 Token 增加 4.2%，不宣称整体成本或延迟下降。
+[原始统一口径对照](../results/tool_efficiency/comparison.json) · [实验条件](EXPERIMENT_LOG.md#e002--事实与测量修复后的工具调用对照)
+
+**可靠性机制**：围绕漏存草稿、跨订单错色与数量口径混淆，设计受限状态完整性检查、
+订单/明细/SKU 绑定、历史明确颜色过滤和确定性数量统计；对受保护请求门控流式结论，保留
+原模型诊断。11 个已见任务每臂一次真实 DeepSeek 对照任务通过 6/11→11/11，五个同次生成错误
+原答被纠正，无额外审查模型调用；有限表达覆盖且首字延迟增加，不外推通用成功率。
+[真实分析](../results/final_delivery_c9afdbf/live/analysis.json) · [源码快照](../results/final_delivery_c9afdbf/live/manifest.json)
+
+**Evaluation 与交付**：构建状态/业务约束与答案事实分开的多轮评测，冻结输入、配置、源码及
+原始失败；适配官方τ零售 114 题×3 次×2 臂共 684 段，项目 Loop pass^1 为 86.5%、pass^3 为 78.9%，
+官方同模型为 87.4%、75.4%。本地完整离线回归 695 项通过，另 1 项可选依赖跳过，配合无密钥 CI、
+真实 Gradio 页面验收及五分钟演示脚本。各实验费用、未判定、内部预算差异均单列。
+[τ原始摘要](../results/iteration_v2_recovery/tau_base/summary.json) · [最新工程验收](../results/project_handoff_babbfab/REPORT.md)
+
+简历版面有限时，每段保留一个结果和一个边界，不把四类实验的分数相加。
+申请算法岗位可强调检索消融、成对反例和评价口径；申请工程岗位优先展示 Runtime、事务及逐帧输出。
+没有训练新模型、通用规划算法或新检索算法的证据，不使用这类表述。
+
+## 哪些是设计实现，哪些是集成
+
+| 范围 | 项目实现与取舍 | 集成或复用 |
+| --- | --- | --- |
+| Runtime | 自定义调用循环、工具结果配对、预算、停止原因、会话协调与 Trace | 供应商模型及 OpenAI 兼容 SDK |
+| RAG | 小节组织、模式切换、来源/索引版本、核验与用量接入、受控对照 | BM25、FAISS、Embedding 与 Reranker 模型；RRF 是已有方法 |
+| 业务状态 | 草稿来源与 revision、更正失效、预览/确认/事务/幂等、审核状态 | SQLite 持久化与 Gradio 组件 |
+| 可靠性 | 受限订单补存、候选事实绑定、明确颜色约束、三口径聚合、输出门控 | 复用已有工具、用户原话及业务 SQL，无 Fact Ledger 或 Reviewer Agent |
+| Evaluation | 本店冻结任务、成对反例、业务快照、原答/终答/帧、预算与评分诊断 | 官方τ数据/政策/工具/用户模拟器/评分；不是自建官方 Benchmark |
+
+可重点打开的源码：[service_agent.py](../src/acs/service_agent.py)、
+[chat_service.py](../src/acs/chat_service.py)、[cs_tools.py](../src/acs/cs_tools.py)、
+[sessions.py](../src/acs/sessions.py)、[returns.py](../src/acs/returns.py)、
+[rag.py](../src/acs/rag.py)、[order_reliability.py](../src/acs/order_reliability.py)。
+
+## 三个值得讲的 Badcase
+
+### A. 查询过订单，草稿却四轮没有保存
+
+原始`orders-02 / trial=1`用户说“我想退 S20017。”。`get_order`返回本人订单，模型持续追问
+商品明细，却没有调用`update_return_task`。Loop 把无工具回答当成 answered，ChatService 随即
+完成会话；模型提到订单不代表数据已经落库。SQLite 原本允许只知道订单、不知道商品的草稿，
+缺的是结束时的受限状态完整性检查，不是新的 Memory 表。
+
+比较过提示加强与后端检查。最终只在明确当前用户原话、同轮成功查本人订单、无既有草稿、
+未超预算且正常结束时补订单；`only_if_absent`在 SQLite 写事务内区分新增、已满足、冲突和失败。
+不自动选择 item、reason 或创建申请，不覆盖已有任务，不重复增加 revision。写后重新读回，
+同步任务卡、AgentResult、assistant message 与 final Trace，失败不报完成。
+
+红绿与 8 组固定模型配对见[P0 报告](../results/p0_order_draft_integrity/REPORT.md)，
+原始轨迹见[历史 raw](../results/iteration_v2_recovery/local_after/raw.jsonl)。
+8 组是固定决策工程对照，不是 8 组真实模型成功率。补存加读回预热 p95 约 240.26ms，不能承诺 20ms；
+默认关闭、只覆盖有限授权表达。这个例子适合解释“模型流程结束”和“业务状态完整”为什么不同。
+
+### B. 白色要求在上下文里，模型仍推荐黑色
+
+较早真实实验中，恢复后的请求确实包含“后续一直只看白色耳机”，且工具返回 SKU 齐全，
+模型仍推荐黑色。原 P1 只纠正首轮纯候选，遇历史会话主动退出；因此不能归因 Memory 丢失。
+另有跨订单 S20008 白色被说黑、S20003 黑色正确的绑定问题。事实正确与执行用户约束是两个层次。
+
+方案上没有增加上下文、再调一次审查模型或新 Fact Ledger；复用 SQLite 中本人用户原话，
+折叠有限颜色状态，明确更正覆盖、取消清除、未知条件暂停，再按同轮完整工具结果过滤候选。
+商品属性始终跟随订单/明细/SKU，不让模型拼接。发现最终纠正仍暴露流式错误后，在可识别
+保护请求中先缓冲模型结论，允许展示工具进度，核验后同步终态和历史。
+
+最新真实样本中，三类有效颜色限制末轮关闭 0/3、开启 3/3；白色恢复和跨单插问的候选原答
+仍有黑色，最终被同次确定性纠正。黑色更正开启组原答本来已基本正确，不能将全部组间
+差异归因过滤。原始请求和复核见[最新 raw 与 analysis](../results/final_delivery_c9afdbf/live/analysis.json)，
+此前失败见[早期真实报告](../results/p1_live_20261021/REPORT.md)。
+
+局限是有限表达漏接管、复杂混合对象会退出；自由附注仍可能错。门控也使目标首字中位数
+观察增加约 1123ms。三组单次不是总体遵守率，更不能承诺所有页面文字都有通用事实验证。
+
+### C. 工具返回正确，模型把明细数算成件数
+
+本店 USER001 为 20 笔订单、25 条商品明细，`quantity`合计 29 件。较早模型分别答 25 和 26 件，
+最新关闭组答 27 件；同轮 list_orders 数据没有丢失，错误在单位理解、聚合和最终生成。
+不能只检查“调用过订单工具”，也不能把每条明细当一件。
+
+比较 Prompt 解释单位、额外 SQL 工具与已有结果确定性聚合。选最小方案：复用单次完整
+list_orders，在 Runtime 分别计算`len(orders)`、明细条数和`sum(quantity)`；支持首轮明确
+状态或订单子集，型号数、金额及历史隐含范围不接管。统一拒绝 count 不符、重复 ID、
+异常嵌套和不可信部分结果，避免对残缺数据报权威总数。
+
+最新三个统计任务关闭 1/3、开启 3/3。开启组原模型仍答 26 件、20/23/26 和签收 8/9/12，
+最终分别为 29、20/25/29、8/10/14，三例同次错误原答均被纠正。
+[精确值与原答](../results/final_delivery_c9afdbf/live/analysis.json)可复查，无新增模型调用或业务写入。
+本轮仅首轮显式范围，不能讲成任意自然语言 BI，也不把数量聚合当通用推理能力提升。
+
+## 两分钟架构讲解稿
+
+我做的是一个可恢复的电商售后 Agent，重点解决“模型说得像完成了，但业务其实没完成”
+以及“工具查对了，最后答案仍然错”的问题。
+
+客户页面和离线评测共用 ChatService。它负责用户身份、SQLite 会话、排队和整轮预算，
+下面是手写的 Function Calling 循环，模型选择知识或业务工具，工具负责执行和返回证据。
+政策规格来自版本化文档，订单、SKU、数量和申请状态来自 SQL。模型没有正式提交和审核权限，
+预览之后必须由页面确认，ReturnService 在事务里核验状态、数量和幂等，管理员单独认证。
+
+我通过失败轨迹做过三个修复：明确订单但漏调草稿工具，用受限结束检查补存；跨轮白色限制
+还在上下文却被忽略，用已存用户原话和同轮事实做有限过滤；订单数、明细数、件数混淆，
+直接按结构化结果计算。保护请求在核验前不展示模型结论，原答留在诊断 Trace。
+
+评价分本地业务、真实模型和官方 Benchmark。最新 11 个已见题每臂一次为 6/11 到 11/11，
+五个错误原答同次被纠正，但样本太小，不能说总体成功率提升。此前完整τ零售 684 段用于
+比较 Loop，保留官方数据和评分，不验证本店页面。项目已能完整演示并复现测试，默认保护仍关闭，
+当前是实习工程 Demo，不是生产客服。
+
+## 五分钟架构讲解稿
+
+**0:00 至 0:45，业务目标。** 页面展示商品政策与订单查询、退货草稿、预览确认、管理员审核和
+结果查询。我把范围限定为准备并管理售后申请，没有真实退款、换货或人工接管。数据是合成的，
+客户身份为模拟用户，避免把演示系统包装成生产账户系统。
+
+**0:45 至 1:40，执行路径。** 请求先进入 ChatService，读取本人会话和任务，再在上下文字符
+预算内按完整轮次裁剪历史，身份不由模型决定。模型通过自定义 Loop 选择工具，ToolRegistry
+检查参数并注入用户身份；每次工具调用、回执、错误和 usage 都有 Trace。RAG 提供知识，SQL
+提供当前业务事实，不能拿旧模型答案当当前资格。支持 BM25、向量、RRF 及可选重排，Demo
+为降低准备成本默认选择整篇文档模式，不能把它说成向量 RAG 现场展示。
+
+**1:40 至 2:30，业务状态。** SessionStore 存完整会话和带来源/revision 的草稿。换订单或明细时
+清除依赖的旧字段及旧预览；没有完整材料就继续问。页面预览生成绑定内容、政策和状态的快照，
+确认入口在事务中重新核验并保证幂等。审核权限来自认证请求，终态不随意改判。这里的关键
+不是 Prompt 劝模型别越权，而是后端根本不给模型正式提交和审核能力。
+
+**2:30 至 3:40，三个失败及最小修复。** 一个模型查到 S20017 却四轮不保存草稿，我没有建新记忆
+平台，而是结束时按严格授权和同轮回执做 only-if-absent 检查。另一个模型明知白色限制仍列黑色，
+证明“上下文里有”不等于“约束会执行”；有限用户约束从原话重建并在完整候选上过滤。
+数量问题也不是 SQL 错，而是把 25 条明细当件数，Runtime 直接计算 20 单 25 明细 29 件。
+后来发现最后纠正不能阻止用户先看见错误，所以只为可识别保护请求门控正文，不取消全部流式。
+
+**3:40 至 4:35，怎么评价。** 工具优化历史 35 题各 3 次从 160 调用到 122，少 23.8%，但平均 Token
+多 4.2%；多轮历史前后 140/160 没有提升，必须如实保留。完整τ零售 114 题各 3 次两组 684 段，
+项目 pass^1 为 86.5%、官方同模型 87.4%，没有说跑赢官方。最新真实 11 题一次对照 6/11 到 11/11，
+五个错误原答同次纠正，58 请求估算 0.143 元。所有数据都有冻结条件、原始 usage 和失败，
+语义复核未经独立外部盲审，不把编码助手的判断说成客户成功率。
+
+**4:35 至 5:00，交付与不足。** 页面脚本注错跑通确认、审核、恢复和安全边界，离线 695 项通过，
+无密钥 CI 执行锁定依赖测试。四个保护默认关闭，有限同义表达、自由附注和统计隐含范围仍可能错，
+首字等待也变长。我会停止扩展框架，进入维护与面试准备；新增覆盖必须先定义正反例和预算。
+
+## 面试追问与参考答案
+
+### 1. 为什么手写 Loop，不用 LangGraph？
+
+本项目主要是有限工具循环加状态化业务，现有 Loop 已覆盖调用配对、预算、Trace 和恢复，
+真实缺陷没有证明需要迁移框架。手写便于定位模型决策与后端执行的边界；代价是调度与恢复
+需要自己维护。不是说框架无用，复杂分支和长期任务超出现有范围时才重新评估。
+
+### 2. Function Calling 怎样保证调用正确？
+
+Schema 只帮助模型生成参数，不是安全证明。ToolRegistry 解析、校验并剥离模型身份参数，
+应用绑定用户/会话/轮次，数据层强制归属；业务写入再经过事务和状态检查。工具成功也不等于
+最终回答正确，因此另有事实绑定和答案评测。
+
+### 3. 怎样处理工具调用和结果不配对？
+
+Loop 记录每次调用 ID 并返回对应结果，包括拒绝执行的预算内错误结果；完成消息保存前检查
+消息序列。中断不能把半个工具组当完成，终态显式标记未完成。可打开
+[test_turn_budget.py](../tests/test_turn_budget.py)解释拒绝过量工具仍补全配对的测试。
+
+### 4. 为什么同时需要 RAG 和 SQL 工具？
+
+政策规格是版本化文档，检索适合定位知识；订单归属、数量、日期和执行结果必须读业务事实。
+把订单埋入知识检索会弱化权限和实时性，把政策交给模型记忆又会失去来源和版本。查询日期
+初筛不代替完整资格；预览与提交仍用同源业务政策复核。
+
+### 5. 为什么 BM25 可以作为默认？
+
+知识库很小且有明确商品/政策词，BM25 是可解释的简单基线。项目做了 Dense、RRF、可选重排
+和证据核验对照，不能因为更复杂就默认更好；必须同时看命中、拒答、误召回、调用和延迟。
+Demo 整篇文档模式又是另一个实验选择，不是 BM25 或 Embedding 已被废弃。
+
+### 6. 重排一定能提高质量吗？
+
+不一定，重排只排序候选，不保证支持最终结论。项目的重排/补位实验保存了覆盖和核验成本，
+补位会明显增加核验 Token。没有相同问题、候选预算、下游判据和全部失败记录，不能用单个
+漂亮例子证明值得默认开启。见[检索实验](EXPERIMENT_LOG.md#e005--api-重排与核验后补位)。
+
+### 7. 怎么避免索引过期或不匹配？
+
+记录知识正文、切分和 Embedding 输入等版本/指纹，加载和评测时校验，不静默使用不匹配索引。
+切分变化要重建并重新标定相关性。版本一致是可复现前提，不能因为检索返回了内容就认为来源正确。
+
+### 8. “用户约束在历史里”为什么还是会失败？
+
+上下文可见不代表模型会执行。原始请求证实白色限制未被裁剪，SKU 也正确，模型仍给黑色候选。
+因此先区分输入缺失和决策执行，再做有限后端过滤；本项目没有用扩大 Memory 来掩盖问题。
+未知更正会暂停保护，避免错误固化旧限制。
+
+### 9. Context Engineering 做了什么，没有做什么？
+
+按完整轮次组织消息，保留必要系统信息和当前草稿，限制输入字符预算，重新查询当前业务状态。
+字符不是 Token，最终渲染表格也可能增大下一轮输入。没有通用压缩记忆、Fact Ledger 或学习型
+上下文选择器；本轮不重构上下文，只报告实际请求和潜在后续字符变化。
+
+### 10. 为什么草稿状态不能只存在模型对话里？
+
+模型文字不是可执行业务状态。SQLite 草稿能记录字段来源、revision、归属和更正失效规则，
+重启后可恢复，也能让预览/确认依赖明确状态。P0 补存仍必须有当前用户授权与成功订单回执，
+模型提到一个订单号绝不能自动创建草稿。
+
+### 11. 幂等与事务分别解决什么？
+
+事务让一次确认中的状态核验、数量占用和申请写入一起成功或回滚；幂等使重试不会重复创建。
+只用事务可能产生两笔分别成功的重复请求，只用幂等键又不能保证业务约束原子成立。
+预览过期、业务变化和并发提交仍须在写事务中核查。
+
+### 12. 用户说“取消”为什么不直接执行？
+
+“不是要取消”“如果取消”“暂停”不等于授权清空。取消工具使用当前原话明确授权，在事务内
+判断，复杂表达保守拒绝并请明确确认。已提交申请不能通过取消草稿撤销；模型误调工具也应被后端阻止。
+这是一条有限破坏性操作协议，不能宣称理解任意自然语言。
+
+### 13. 为何最终回答纠正还不够？
+
+流式页面可能先显示错误，最终正确不能撤回用户看过的文字。受保护请求先缓冲结论，工具进度
+正常展示，完整回执核验后再同步 answer、历史、Trace 和持久状态。代价是首字延迟增加，
+普通未受保护问答继续流式；必须逐帧验收，不能只检查最终字符串。
+
+### 14. 工具返回损坏或只有一部分怎么办？
+
+共同校验包络、count、唯一 ID、嵌套结构与部分结果标记；三种渲染都拒绝同类坏结果。
+没有可靠完整数据就不报完整候选或总计，给未核实提示，不自动补查或写业务。
+空结果与坏结果不同，空列表 count=0 可以产生明确空结果。
+
+### 15. 为什么不让模型自己算订单数量？
+
+明细条数与 quantity 合计是明确的数据聚合，确定性代码更可靠且无需模型调用。模型负责理解
+可支持的请求范围，Runtime 按订单/明细/件数计算；型号数、金额和隐含历史范围本轮退出。
+不把数据库已能精确计算的问题包装成模型推理挑战。
+
+### 16. τ²-bench 到底测了什么，为什么商品不同也能跑？
+
+它包含任务、模拟环境数据、政策工具、用户模拟器和官方评分，既不只是问答数据集，也不是
+本店订单替换。项目适配 Loop 到官方零售环境，保留扫地机器人等官方商品与任务，测遵循政策和
+调用工具的能力。它不验证本店 RAG、权限、确认页面或管理员审核，两个层次必须分别报告。
+
+### 17. pass^1 和 pass^3 怎样解释？
+
+本实验 pass^1 是全部重复尝试的平均成功，pass^3 是每题三次均成功的题目比例，强调稳定完成，
+不是“试三次至少对一次”的 pass@3。114 题、每臂 342 段；项目 pass^1 比官方略低而 pass^3 略高，
+不据此宣称总体优胜，内部预算不完全一致也需要披露。
+
+### 18. 6/11 到 11/11 是否证明提升？
+
+它支持 11 个已见固定任务的局部结果，五个同次错误原答被纠正是更直接的机制内证据。
+每臂一次、无独立盲审、模型别名和缓存存在波动，不能估计总体成功率或稳定因果效应。
+两机制按任务子集有观察，但没有做四臂析因；共同 P1 和安全修复的贡献不能从这批单独分离。
+
+### 19. 裁判误判或 JSON 坏了怎么报告？
+
+保存原始文本、解析对象、异常类型/原因、版本和 system 哈希，单列 unjudged 而不是当成已证实
+业务失败。同用户跨会话不等于越权，成功工具预览也不因没有 UI 脚本动作而被否认。
+历史旧分保留，新校准不冒充 Agent 能力提升；新语义裁判尚无付费复验，明确写未验证。
+
+### 20. 你如何控制成本，下一步还缺什么？
+
+在线前冻结 11 题、做无网络预演，逐请求预留输入与最大输出费用且不依赖缓存优惠，记录所有
+真实 usage 和尝试；余额不足下一完整批次就停止，不挑题重试。58 请求估算 0.143 元，保守账本
+0.879 元不是实付。工程上还缺更广表达验证、生产客户认证/运维和通用事实保护；当前停止扩展，
+只维护实习 Demo，不能给生产 SLA。
+
+## 量化证据速查
+
+| 数字 | 原始依据 | 使用边界 |
+| --- | --- | --- |
+| 160→122 调用，23.8% | [comparison.json](../results/tool_efficiency/comparison.json)，before/after.metrics.tool_calls | 同 35 题各 3 次，共同 v4；不是全场景节约 |
+| 严格 63.8%→95.2%，Token+4.2% | 同文件 strict_success_rate 与 total_tokens.mean | 评分修正与模型/提示改动共同口径，不是纯算法因果 |
+| 历史 140/160→140/160 | [历史最终报告](../results/iteration_v2_recovery/final/REPORT.md) | 不宣称历史多轮已提升 |
+| 684 段，86.5%/78.9% | [τ summary](../results/iteration_v2_recovery/tau_base/summary.json)，acs_loop | 官方环境与部分消耗限制；完整 base 非本店改写 |
+| 6/11→11/11，58 请求 | [live analysis](../results/final_delivery_c9afdbf/live/analysis.json)与[requests](../results/final_delivery_c9afdbf/live/requests.json) | 已见题单次、编码助手复核，不是总体成功率 |
+| 五个错误原答被纠正 | 同 analysis.assessments.candidate_raw_error_fixed | 同次原答与终答，不是第二次调用 |
+| 695 passed、1 skipped | [本轮 pytest](../results/project_handoff_babbfab/pytest.log) | 离线工程回归，不是业务成功率 |
+
+面试前至少能打开一个原始工具回执、一个事务实现、一个失败测试和一段真实 usage；
+不能只背摘要。页面演示照[DEMO](DEMO.md)操作，录屏中脚本模型与历史真实记录需始终说明。
+# 电商客服 Agent 分支与 PR 收尾
+
+本轮从`babbfab`继续，只做交付整理和验收脚本，不改业务 Runtime、默认开关或历史实验。
+远端已 fetch，当前依赖是单条祖先链：
+
+```text
+main 3a4de7c
+  └─ P0 282e98b → 4b10dbe  fix/order-draft-integrity，PR #1 → main
+       └─ P1 4b9c3cb → d7bdb10 → a6cec14 → 92094ee
+            └─ 颜色/聚合 c9afdbf → 最终可靠性 babbfab
+                 └─ 本轮交付整理  feat/order-candidate-facts
+```
+
+P0 两提交与 P1 后续六提交没有分叉；`git merge-base --is-ancestor`验证包含关系。
+不重复 cherry-pick、rebase 或按文件拆分已完成的实现/测试/证据。P1 依赖 P0 状态协议和会话服务，
+最新安全修复又依赖 P1/颜色/聚合，因此不建议从最新树中手工摘零散代码。
+
+## 推荐合并顺序
+
+1. 更新并审阅[P0 PR #1](https://github.com/qingtian-4/ecommerce-agent/pull/1)，保留 458 项测试、
+   8 组探针、事务约束、写入 p95 限制及显式启用的实际 Gradio 验收，不把它写成通用 Agent 成功率。
+2. 创建后续 PR，head 为`feat/order-candidate-facts`，base 为`fix/order-draft-integrity`，
+   范围为 P1 到最新可靠性及交付材料；可以先 draft，清楚标注依赖#1。
+3. 两份 PR 均审阅满意后，建议#1 使用保留祖先的 merge commit，再将后续 PR 改 base 为 main。
+   确认 diff 不重复 P0、合成提交 CI 通过后，由维护者决定是否合并后续 PR。
+4. 合并后四保护仍默认关闭。默认启用必须单独配置决策，不与 PR 收尾捆绑。
+
+若#1 选择 squash，后续分支仍保留原 P0 祖先，PR 可能重复显示旧提交或扩大 diff；先重新检查，
+不要自动重写远端历史。本轮没有必要承担这一风险。Git 版本 2.34.1 不支持`merge-tree --write-tree`，
+本轮已记录该命令失败，改用祖先关系和树差异核查；没有声称运行了不支持的合成检查。
+
+## 当前远端证据
+
+#1 实际页面为 OPEN，head `4b10dbe`，base main，两个提交，尚未合并。
+GitHub Actions 实际页面记录`babbfab`的 Offline checks 成功，
+[运行 39571122226](https://github.com/qingtian-4/ecommerce-agent/actions/runs/39571122226)。
+新 push 必须重新核对新 SHA，旧绿灯不能自动替代新 CI。
+
+当前 CLI 保存的 qingtian-4 登录凭据失效，未认证 API 又触发限流。SSH 可推送不意味着能写 PR。
+本轮已请求维护者在终端重新`gh auth login -h github.com`；如尚未恢复，创建/更新 PR 属明确阻塞，
+不是已完成。已准备完整正文，恢复后可直接执行，不需要重做实验：
+
+```bash
+gh auth status
+gh pr view 1 --repo qingtian-4/ecommerce-agent
+gh pr edit 1 --repo qingtian-4/ecommerce-agent --body-file docs/pr/P0_PR_BODY.md
+
+# 先检查是否已有相同head的PR，防止重复创建
+gh pr list --repo qingtian-4/ecommerce-agent --head feat/order-candidate-facts --state all
+# 仅不存在时创建；已有则用gh pr edit更新对应编号
+gh pr create --repo qingtian-4/ecommerce-agent --base fix/order-draft-integrity --head feat/order-candidate-facts --draft --title 'fix(agent): ground order answers and harden protected workflows' --body-file docs/pr/P1_RELIABILITY_PR_BODY.md
+```
+
+发布前核对正文中的证据路径和实际状态，发布后`gh pr view`读回 URL、head/base 和正文。
+本轮不自动执行 merge、close 或改仓库可见性。最终操作结果以[交付报告](../results/project_handoff_babbfab/REPORT.md)为准。
+# 电商客服 Agent 公开与分发检查
+
+本轮只检查和记录，不修改仓库可见性，不删除证据或改写历史。
+通过未认证连接可以读取当前仓库的 PR 与 Actions 页面，说明相关页面**当前已公开可访问**，
+不能再沿用旧文档“private”的说法。API 未认证请求被限流，未取得新的 visibility 枚举；
+本轮没有发出任何可见性修改请求。
+
+## 本次实际检查
+
+| 检查 | 结果 | 限制与建议 |
+| --- | --- | --- |
+| 当前追踪凭据扫描 | 使用原有 check_secrets 及提交前 hook | 模式扫描不是完整隐私证明，测试假凭据有明确豁免 |
+| 历史凭据扫描 | 本地全部 ref 在 fetch 后 1215 个 blob，其中 1153 个 UTF-8 文本，无模式命中；当前配置 Key 未在对象中出现 | 仅识别已定义模式；没有打印原 Key 或疑似秘密值，没有声明审计所有不可达对象或远端已删除历史 |
+| .env 追踪 | 当前未追踪，全部本地历史未发现。env 提交 | 不代表其他任意形式秘密都不存在；今后不提交。env 或截图中的控制台 Key |
+| 数据来源 | 使用仓库合成场景，用户为 USER001 等模拟身份；新录屏仅本机合成数据 | 页面里的姓名/手机号为合成种子，文档应持续标注，不混入真实客户 |
+| 大文件 | 当前追踪约 141.9MB，最大 38.4MB 为τ原始 JSONL；历史 blob 合计约 144.5MB | 没有达到单文件 100MB，但 clone 较重；不为瘦身删除原始证据。未来可做另行校验的归档/索引，历史迁移需维护者授权 |
+| 许可证 | 根目录未发现 LICENSE/COPYING，τ引用已有上游许可证文件 | 在声称允许第三方复用或发布为有明确许可证的开源项目之前，维护者需选择许可证并核对第三方许可；本轮不替用户作授权决定 |
+| 本机信息 | 历史日志含开发机路径、时间、进程和 API 响应 ID；新截图/视频含公开演示账号 | 不是凭据也不自动删历史，公开前人工确认愿意暴露这些元数据；不要上传真实账号录屏 |
+| 管理认证 | --demo 可使用明确的本机公开合成账号，绑定 127.0.0.1 | 这是演示账号，不是生产账号；禁止把该配置和模拟客户身份直接作为公网客服部署 |
+
+扫描和体积原始结果见[history_secret_scan.json](../results/project_handoff_babbfab/history_secret_scan.json)
+与[artifact_inventory.json](../results/project_handoff_babbfab/artifact_inventory.json)。
+原始记录、失败日志及历史截图全部保留，新录屏只作为验收证据，不混称付费模型测试。
+
+## 发布建议
+
+**可用于公开展示的实习项目材料，尚不能称为完成许可和生产安全准备的发布包。**
+没有查出需要立即撤销的已追踪 API 凭据；缺许可证是复用授权待决策项，历史元数据与第三方
+来源仍建议维护者人工确认。仓库页面已可匿名读取，不表示本轮获得或执行了公开操作授权。
+如果维护者希望改变可见性，必须另行明确指示，本轮不自动设公开或改私有。
+
+优先处理许可证决定和人工隐私复核，保留完整证据链接。不要为了“开源包装”改写失败结果、
+承诺任意表达正确、生产级可靠性，或将官方 Benchmark 数据说成本店自有客户数据。
+# 电商客服 Agent 架构与证据
+
+这是当前源码的职责图，业务执行仍由现有自定义 Loop、SQLite 和 ReturnService 完成。
+四个实验保护开关默认关闭；`scripts/workbench.py --demo`只对当前进程显式开启。
+
+```mermaid
+flowchart TD
+  U[Gradio 客户工作台] --> C[ChatService 会话与预算]
+  C --> S[(SQLite SessionStore)]
+  C --> L[自定义 Agent Loop]
+  L --> K[知识检索 / 整篇文档]
+  L --> B[本人订单与物流工具]
+  B --> D[(SQLite 业务事实)]
+  L --> T[草稿工具]
+  T --> S
+  C --> V[受限输出门控与同轮结果校验]
+  B --> V
+  V --> P[候选绑定 / 历史颜色过滤 / 三种数量统计]
+  P --> U
+  C --> I[P0 仅缺失订单草稿补存]
+  I --> S
+  U --> R[ReturnService 预览与页面确认]
+  R --> D
+  R --> S
+  A[已认证管理员工作台] --> R
+  Q[共享政策与日期规则] --> B
+  Q --> R
+  C --> E[可观察 Trace 与持久化终态]
+  E --> U
+  EV[Evaluation 冻结任务 / 原始结果 / usage] --> C
+  E --> EV
+  EV --> TAU[官方τ环境适配 / 保留原政策工具评分]
+```
+
+商品、政策来自知识库；订单、SKU、数量、物流及申请状态来自业务 SQL 和执行回执。
+`return_rules.py`只解析政策和日期，不依赖会话或 ReturnService，避免循环依赖。
+查询中的窗口标志是日期初筛；资格仍需要原因、状态、剩余数量、材料与预览/提交复核。
+
+模型选择工具；Runtime 不自动选择退货明细或创建申请。P0 只在当前用户明确表达、
+同轮成功查询本人订单且草稿不存在时补存订单。取消草稿使用当前原话的明确授权，
+在原有事务与身份检查内判定；否定、引用、假设、暂停等不产生破坏性写入。
+
+完整结果校验由`order_candidates.order_lookup_result`统一负责，三个展示机制复用。
+它拒绝异常包络、count 不符、重复 ID 和不可信部分结果，不新增查询或写入。
+输出门控只覆盖可识别保护请求；核验前聊天区域不展示模型结论，工具进度仍可见。
+完成后同步 answer、assistant message、final Trace 及数据库；诊断轨迹保留并标注原答。
+这不是通用事实审查，未受保护的自由文本仍可能出错。
+
+## 最终交付入口
+
+项目进入维护与面试准备阶段。当前[交付验收](../results/project_handoff_babbfab/REPORT.md)、
+[PR 计划](PR_HANDOFF.md)、[简历与面试材料](INTERNSHIP_PROJECT.md)及[公开检查](PUBLICATION_READINESS.md)
+给出最新状态；下表是机制实施时的历史证据，本轮不覆盖它们。
+
+## 复现与证据入口
+
+| 证据 | 入口 | 能说明什么 |
+| --- | --- | --- |
+| 当前阶段验收 | [REPORT](../results/final_delivery_c9afdbf/REPORT.md) | F1–F6、线上/离线界限、费用与交付决策 |
+| 红测试 | [red.log](../results/final_delivery_c9afdbf/red.log) | 修复前真实实现未满足新安全契约 |
+| 真实对照 | [analysis.json](../results/final_delivery_c9afdbf/live/analysis.json) | 11 题每臂一次，真实请求、人工按冻结契约核对 |
+| 在线源码快照 | [manifest](../results/final_delivery_c9afdbf/live/manifest.json) | 调用时未提交源码哈希与配置，不能只用 HEAD 代表 |
+| 最终代码重放 | [final_replay](../results/final_delivery_c9afdbf/final_replay/summary.json) | 22 段记录决策在最终源码上回答一致，零网络 |
+| Gradio 全流程 | [browser_styled](../results/final_delivery_c9afdbf/browser_styled/summary.json) | 实际页面与 CSS、脚本模型、真实 SQLite 业务执行 |
+| 异常页面帧 | [browser_faults](../results/final_delivery_c9afdbf/browser_faults/summary.json) | 无工具、断流、超时与刷新恢复，非模型成功率 |
+| 裁判校准 | [paired.json](../results/final_delivery_c9afdbf/judge_calibration/paired.json) | 解析取证与工具回执判断，未做付费语义裁判复验 |
+| 历史τ对照 | [原报告](../results/iteration_v2_recovery/final/REPORT.md) | 官方环境中的 Loop 能力，非本店全业务成功率；本轮未重跑 |
+| ECom 静态兼容 | [分析](ECOM_BENCH_COMPATIBILITY.md) | 固定上游 53 题工具/评分差异，未开发或运行 Adapter |
+
+## 已知限制
+
+仅支持已验证的有限表达：历史颜色限制的白/黑/蓝色及明确更正、取消，首轮显式统计范围。
+时间同义表达、隐含范围、复合诉求、未知更正将退出；不是通用意图系统。
+缺少有效完整工具结果时返回未核实提示，不把原自由文本视为已验证。
+需要增加覆盖时，先冻结正反例及误拦截指标，不继续堆提示或无限追加正则。
+
+本轮真实对照为已见开发/回归任务、每臂一次。结果支持有限路径 Demo，不支持总体成功率、
+稳定因果收益、默认启用或生产上线承诺。原模型 S20009 自由附注的错误仍未被通用治理。
+管理员通过只意味着申请允许退回，不执行退款、换货或实时人工接管。
+用户明确说“我想退 S20017”，同轮订单查询成功，模型却连续追问明细而没有保存草稿。
+本改动在 Loop 正常结束后做受限完整性检查，仅补存不存在的本人订单草稿，不选商品、不创建申请。
+
+- 当前用户原话与同轮有效工具回执才是授权来源；无证据、否定、已有任务或预算过期不补存。
+- `only_if_absent`在 SQLite 事务中判定新增、已满足、冲突或失败，不覆盖现有草稿、不重复增加 revision。
+- 补存后读回真实状态，同步 ChatService、assistant message、final Trace、任务卡及恢复历史。
+- `state_check`独立轨迹，不冒充模型调用；预览、明确确认、权限、幂等和管理员审核边界保留。
+- 开关`ACS_RETURN_STATE_CHECK_ENABLED`默认 false。
+
+验证：P0 阶段 458 项离线测试、8 组配对探针、异常/用户切换/恢复与真实 Gradio 页面多轮操作；
+脚本模型不当作真实模型能力评价。写入加读回预热 p95 约 240.26ms，不能承诺 20ms，
+未以放宽事务或权限换耗时。
+
+证据：[P0 报告](https://github.com/qingtian-4/ecommerce-agent/blob/feat/order-candidate-facts/results/p0_order_draft_integrity/REPORT.md)、
+[显式启用页面验收](https://github.com/qingtian-4/ecommerce-agent/blob/feat/order-candidate-facts/results/p0_order_draft_integrity/gradio_acceptance_20261020_verified/REPORT.md)。
+后续依赖 PR 还修复了继承的取消授权、完整性协议和政策日期等问题；请结合后续 PR 审阅，
+不要因本 PR 的窄入口验收就默认开启全部实验保护。
+
+合并建议：保留提交祖先关系的 merge commit。后续`feat/order-candidate-facts`基于本分支，
+合并后将后续 PR 基线改为 main；不需要重写历史或重复 cherry-pick。
+订单工具返回正确，模型仍可能串用不同订单 SKU、忽略历史颜色限制或把商品明细数当件数。
+本 PR 在 P0 之上交付 P1 事实绑定、有限颜色约束、三口径聚合和最终可靠性修复，并整理可复现 Demo。
+
+- 单次完整本人订单结果绑定订单/明细/SKU；明确有限请求才接管，异常、重复或部分结果不报权威总数。
+- 从已存本人用户原话重建有限颜色约束，明确更正/取消生效；聚合区分订单数、明细数与 quantity 合计。
+- 受保护正文核验后才显示，保留原答诊断；取消草稿须当前轮明确授权，事务、确认、幂等和审核权限不变。
+- 查询、预览及提交共用政策日期规则；裁判错误保留原文/原因并单列未判定，不改写历史成绩。
+- 四实验开关默认 false，仅 Demo 进程显式启用；无新框架、审查模型或数据库迁移。
+
+验证与测量边界：
+
+- babbfab 及本轮独立检出完整离线 695 passed、1 skipped；Ruff、追踪文件和历史 blob 密钥检查通过。
+- 原 P0 458 测试/8 组探针保留，最新 Gradio 实际页面完成工具查询、订单更正、刷新恢复、确认提交、
+  认证审核及查询；无网络脚本注错另验错误取消与数量门控，有截图和静音操作录屏。
+- DeepSeek 固定 11 个已见任务每臂一次为 6/11→11/11，58 请求，五个同次错误原答被纠正；
+  费用估算 0.143 元，非总体成功率或稳定因果证据，目标首字中位观察增加约 1123ms。
+- 历史τ零售 114×3×2 共 684 段结果仅作原官方环境 Loop 评价，本轮未重跑；历史本地 140/160 未提升。
+- 原始失败和评分均保留。新裁判语义尚未在线复验，有限表达及自由附注仍有风险。
+
+[最新交付](https://github.com/qingtian-4/ecommerce-agent/blob/feat/order-candidate-facts/results/project_handoff_babbfab/REPORT.md) ·
+[真实对照](https://github.com/qingtian-4/ecommerce-agent/blob/feat/order-candidate-facts/results/final_delivery_c9afdbf/REPORT.md) ·
+[Demo](https://github.com/qingtian-4/ecommerce-agent/blob/feat/order-candidate-facts/docs/DEMO.md) · [架构](https://github.com/qingtian-4/ecommerce-agent/blob/feat/order-candidate-facts/docs/DELIVERY_ARCHITECTURE.md) · [面试材料](https://github.com/qingtian-4/ecommerce-agent/blob/feat/order-candidate-facts/docs/INTERNSHIP_PROJECT.md)
+
+此 PR 先以`fix/order-draft-integrity`为基线，避免重复 P0 差异。P0 经审阅合并后再改 main，
+等待该次 push/PR 合成提交 CI 通过再作合并决策。不在本轮自动合并或修改仓库可见性。

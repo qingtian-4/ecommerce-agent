@@ -1,0 +1,141 @@
+{
+  "patterns": [
+    "(?:请)?(?:列出|展开)(?:我的)?(?:全部|所有)订单(?:和|及)(?:全部|所有)?商品明细(?:，不要只给一句话总结)?",
+    "我想退货，请(?:先)?列出(?:全部|所有)订单(?:和|及)(?:全部|所有)?商品明细让我选择",
+    "我想退(?:最近买的)?耳机(?:，请只列耳机类商品的候选明细让我选择)?"
+  ],
+  "guards": [
+    {
+      "id": "full-all",
+      "query": "请列出我的全部订单和全部商品明细。",
+      "takeover": true,
+      "prototype_takeover": true
+    },
+    {
+      "id": "full-all-variant",
+      "query": "请列出我的所有订单及商品明细。",
+      "takeover": true,
+      "prototype_takeover": true
+    },
+    {
+      "id": "full-expanded",
+      "query": "请展开全部订单和商品明细，不要只给一句话总结。",
+      "takeover": true,
+      "prototype_takeover": true
+    },
+    {
+      "id": "return-all",
+      "query": "我想退货，请先列出全部订单和商品明细让我选择。",
+      "takeover": true,
+      "prototype_takeover": true
+    },
+    {
+      "id": "return-all-variant",
+      "query": "我想退货，请列出全部订单及商品明细让我选择。",
+      "takeover": true,
+      "prototype_takeover": true
+    },
+    {
+      "id": "return-headphones",
+      "query": "我想退最近买的耳机。",
+      "takeover": true,
+      "prototype_takeover": true
+    },
+    {
+      "id": "return-headphones-explicit",
+      "query": "我想退耳机，请只列耳机类商品的候选明细让我选择。",
+      "takeover": true,
+      "prototype_takeover": true
+    },
+    {
+      "id": "negative-list",
+      "query": "不要列出我的全部订单和全部商品明细。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "negative-return",
+      "query": "我不想退最近买的耳机。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "negative-object",
+      "query": "我想退的不是耳机，是配件。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "quote",
+      "query": "他说“请列出我的全部订单和全部商品明细”，但我只要订单数。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "mixed",
+      "query": "我想退最近买的耳机，另外只列白色。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "explicit-window",
+      "query": "我想退最近7天买的耳机。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "shipping-filter",
+      "query": "我想退还没发货的耳机。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "suffix-filter",
+      "query": "请列出我的全部订单和全部商品明细，只要白色。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "prefix-filter",
+      "query": "只看白色，请列出我的全部订单和全部商品明细。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "count",
+      "query": "全部订单一共有几笔？只给数量。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "short",
+      "query": "只用一句话告诉我S20008的SKU是什么颜色，不列其他订单。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "subset",
+      "query": "只列S20008和S20003的商品明细。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "history",
+      "query": "按我上一轮说的条件列出全部订单和明细。",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "unknown",
+      "query": "Show all my orders and items.",
+      "takeover": false,
+      "prototype_takeover": false
+    },
+    {
+      "id": "answer-authorization",
+      "query": "谢谢。",
+      "takeover": false,
+      "prototype_takeover": false
+    }
+  ]
+}

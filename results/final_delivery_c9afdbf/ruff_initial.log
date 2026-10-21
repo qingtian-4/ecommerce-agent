@@ -1,0 +1,158 @@
+E501 Line too long (104 > 100)
+   --> src/acs/chat_service.py:183:76
+    |
+181 | …                     status = actual["status"] if actual else "absent"
+182 | …                     result.answer = {
+183 | …                         "cancelled": "退货草稿已清空；订单未取消，已提交申请不会因此撤回。",
+    |                                                                                           ^^^^
+184 | …                         "submitted": "申请已提交，取消草稿不能撤回申请，请查询审核结果。",
+185 | …                         "draft": "当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。",
+    |
+
+E501 Line too long (102 > 100)
+   --> src/acs/chat_service.py:184:76
+    |
+182 | …                     result.answer = {
+183 | …                         "cancelled": "退货草稿已清空；订单未取消，已提交申请不会因此撤回。",
+184 | …                         "submitted": "申请已提交，取消草稿不能撤回申请，请查询审核结果。",
+    |                                                                                           ^^
+185 | …                         "draft": "当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。",
+186 | …                         "absent": "当前没有可取消的退货草稿。",
+    |
+
+E501 Line too long (112 > 100)
+   --> src/acs/chat_service.py:185:75
+    |
+183 | …                         "cancelled": "退货草稿已清空；订单未取消，已提交申请不会因此撤回。",
+184 | …                         "submitted": "申请已提交，取消草稿不能撤回申请，请查询审核结果。",
+185 | …                         "draft": "当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。",
+    |                                                                                            ^^^^^^^^^^^
+186 | …                         "absent": "当前没有可取消的退货草稿。",
+187 | …                     }[status]
+    |
+
+E501 Line too long (101 > 100)
+   --> src/acs/chat_service.py:190:76
+    |
+188 | …                         verified = True
+189 | …                     elif not verified:
+190 | …                         result.answer = ("本次未取得可核验的完整订单结果，未展示数量或候选。"
+    |                                                                                               ^
+191 | …                                          "请重试或提供具体订单号。")
+192 | …                     if result.stop_reason != "answered":
+    |
+
+E501 Line too long (101 > 100)
+  --> src/acs/return_rules.py:46:101
+   |
+44 |         return None
+45 |     try:
+46 |         day = date.fromisoformat(value) if len(value) == 10 else datetime.fromisoformat(value).date()
+   |                                                                                                     ^
+47 |         return (today - day).days
+48 |     except ValueError:
+   |
+
+E501 Line too long (102 > 100)
+   --> src/acs/sessions.py:319:101
+    |
+317 |                 raise TaskValidationError("草稿只能由当前进行中的会话轮次更新")
+318 |             if cancel:
+319 |                 # Full utterance authorization: quoted/hypothetical/qualified actions are not consent.
+    |                                                                                                     ^^
+320 |                 text = turn["user_text"].strip().rstrip("。.!！")
+321 |                 explicit = re.fullmatch(r"(?:请)?(?:取消|中止|清空)(?:当前|这个|这份|我的)?"
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/acs/task_eval.py:3:1
+   |
+ 1 |   """Local application benchmark: real chat service, trusted UI operations, separate judge."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | import io
+ 6 | | import hashlib
+ 7 | | import json
+ 8 | | import re
+ 9 | | import secrets
+10 | | import shutil
+11 | | import sqlite3
+12 | | from contextlib import closing
+13 | | from dataclasses import asdict
+14 | | from pathlib import Path
+15 | | from tempfile import TemporaryDirectory
+16 | | from time import perf_counter
+17 | | from unicodedata import normalize
+18 | |
+19 | | from PIL import Image
+20 | | from pydantic import SecretStr
+21 | |
+22 | | from .chat_service import ChatService
+23 | | from .config import Settings
+24 | | from .database import BusinessDB
+25 | | from .llm import LLMClient
+26 | | from .returns import ReturnService
+27 | | from .runtime import RunBudget
+28 | | from .scenarios import data_fingerprint
+29 | | from .sessions import TaskValidationError
+   | |_________________________________________^
+30 |
+31 |   FAILURE_TYPES = (
+   |
+help: Organize imports
+  |
+4 |
+5 + import hashlib
+6 | import io
+  - import hashlib
+7 | import json
+  |
+
+F401 [*] `.test_return_submission.image_bytes` imported but unused
+  --> tests/test_delivery_reliability.py:24:37
+   |
+22 | from .test_order_candidate_facts import sample_trace
+23 | from .test_return_submission import flow as flow
+24 | from .test_return_submission import image_bytes, write
+   |                                     ^^^^^^^^^^^
+25 |
+26 | CANCEL_NO = ['我不是要取消退货草稿，只是问问。', '不打算取消退货草稿',
+   |
+help: Remove unused import
+   |
+23 | from .test_return_submission import flow as flow
+   - from .test_return_submission import image_bytes, write
+24 |
+   |
+
+F401 [*] `.test_return_submission.write` imported but unused
+  --> tests/test_delivery_reliability.py:24:50
+   |
+22 | from .test_order_candidate_facts import sample_trace
+23 | from .test_return_submission import flow as flow
+24 | from .test_return_submission import image_bytes, write
+   |                                                  ^^^^^
+25 |
+26 | CANCEL_NO = ['我不是要取消退货草稿，只是问问。', '不打算取消退货草稿',
+   |
+help: Remove unused import
+   |
+23 | from .test_return_submission import flow as flow
+   - from .test_return_submission import image_bytes, write
+24 |
+   |
+
+E702 Multiple statements on one line (semicolon)
+  --> tests/test_delivery_reliability.py:57:70
+   |
+55 |         payload['count'] += 1
+56 |     elif kind == 'duplicate_order':
+57 |         payload['orders'].append(copy.deepcopy(payload['orders'][0])); payload['count'] += 1
+   |                                                                      ^
+58 |     elif kind == 'duplicate_item':
+59 |         payload['orders'][0]['items'].append(copy.deepcopy(payload['orders'][0]['items'][0]))
+   |
+
+Found 10 errors.
+[*] 3 fixable with the `--fix` option.

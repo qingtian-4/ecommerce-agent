@@ -1,0 +1,475 @@
+....................................FFFFFFFFFFFFFFFFFFFFF............... [ 97%]
+..                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_malformed_data_declines_without_business_changes[missing_order_id-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7cdf250>)
+case_id = 'original-white-restore', kind = 'missing_order_id'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[missing_order_id-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7c7d310>)
+case_id = 'stats-total', kind = 'missing_order_id'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '统计更正（以本轮查询记录为准）：29 件商品。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 统计更正（以本轮查询记录为准）：29 件商品。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[non_dict_order-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7c7d860>)
+case_id = 'original-white-restore', kind = 'non_dict_order'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[non_dict_order-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7cdddb0>)
+case_id = 'stats-total', kind = 'non_dict_order'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '统计更正（以本轮查询记录为准）：29 件商品。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 统计更正（以本轮查询记录为准）：29 件商品。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_items-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7cddd60>)
+case_id = 'original-white-restore', kind = 'invalid_items'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_items-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7cdead0>)
+case_id = 'stats-total', kind = 'invalid_items'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '统计更正（以本轮查询记录为准）：29 件商品。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 统计更正（以本轮查询记录为准）：29 件商品。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_sku-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7cdc370>)
+case_id = 'original-white-restore', kind = 'invalid_sku'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_sku-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7cdc050>)
+case_id = 'stats-total', kind = 'invalid_sku'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '统计更正（以本轮查询记录为准）：29 件商品。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 统计更正（以本轮查询记录为准）：29 件商品。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_quantity-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7b03de0>)
+case_id = 'original-white-restore', kind = 'invalid_quantity'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_quantity-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7b03fc0>)
+case_id = 'stats-total', kind = 'invalid_quantity'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '统计更正（以本轮查询记录为准）：29 件商品。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 统计更正（以本轮查询记录为准）：29 件商品。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[duplicate_order-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7b5ebc0>)
+case_id = 'original-white-restore', kind = 'duplicate_order'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[duplicate_order-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7b5d090>)
+case_id = 'stats-total', kind = 'duplicate_order'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '统计更正（以本轮查询记录为准）：29 件商品。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 统计更正（以本轮查询记录为准）：29 件商品。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[duplicate_item-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7b5dd60>)
+case_id = 'original-white-restore', kind = 'duplicate_item'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[duplicate_item-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7b3c460>)
+case_id = 'stats-total', kind = 'duplicate_item'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '统计更正（以本轮查询记录为准）：29 件商品。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 统计更正（以本轮查询记录为准）：29 件商品。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[count_mismatch-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7b3c7d0>)
+case_id = 'original-white-restore', kind = 'count_mismatch'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[count_mismatch-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7b5d4f0>)
+case_id = 'stats-total', kind = 'count_mismatch'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '统计更正（以本轮查询记录为准）：29 件商品。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 统计更正（以本轮查询记录为准）：29 件商品。
+
+tests/test_order_reliability.py:185: AssertionError
+___ test_unknown_category_never_guesses_constraint_match[missing_categories] ___
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7c7d310>)
+kind = 'missing_categories'
+
+    @pytest.mark.parametrize('kind', ['missing_categories', 'unknown_category'])
+    def test_unknown_category_never_guesses_constraint_match(local, kind):
+        case = FROZEN['cases'][0]
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:193: AssertionError
+____ test_unknown_category_never_guesses_constraint_match[unknown_category] ____
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7c7cd70>)
+kind = 'unknown_category'
+
+    @pytest.mark.parametrize('kind', ['missing_categories', 'unknown_category'])
+    def test_unknown_category_never_guesses_constraint_match(local, kind):
+        case = FROZEN['cases'][0]
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + 仅展示白色耳机；颜色未知的明细不列为匹配。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E           ...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:193: AssertionError
+__________________ test_unknown_color_is_not_a_positive_match __________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7c7caf0>)
+
+    def test_unknown_color_is_not_a_positive_match(local):
+        case = FROZEN['cases'][0]
+        def missing_color(payload):
+            for order in payload['orders']:
+                if order['order_id'] == 'S20008':
+                    order['items'][0]['sku']['color'] = None
+            return payload
+        final, _, _ = run_case(local, True, case, mutate=missing_color)
+        event = next(e for e in final.result.trace if e.type == 'fact_render')
+>       assert {r['order_id'] for r in event.detail['rows']} == {'S20011', 'S20014'}
+E       AssertionError: assert {'S20008', 'S20011', 'S20014'} == {'S20011', 'S20014'}
+E         
+E         Extra items in the left set:
+E         'S20008'
+E         Use -v to get more diff
+
+tests/test_order_reliability.py:206: AssertionError
+______________ test_empty_lookup_is_zero_not_unknown[stats-total] ______________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7c7c910>)
+case_id = 'stats-total'
+
+    @pytest.mark.parametrize('case_id', ['stats-total', 'stats-all'])
+    def test_empty_lookup_is_zero_not_unknown(local, case_id):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case,
+                               mutate=lambda p: dict(p, orders=[], count=0))
+        truth = {'orders': 0, 'lines': 0, 'units': 0}
+>       assert audit(final, case, truth)
+E       AssertionError: assert False
+E        +  where False = audit(TurnUpdate(session_id='5adb745588f84bc4a6946130acdd0614', history=[{'role': 'user', 'content': '我的订单一共买了多少件商品？只给总件数，不要...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:21:01.874974+00:00'}, phase='completed', elapsed_ms=175.41225100012525), {'id': 'stats-total', 'history': [], 'query': '我的订单一共买了多少件商品？只给总件数，不要列表。', 'mode': 'aggregate', ...}, {'orders': 0, 'lines': 0, 'units': 0})
+
+tests/test_order_reliability.py:216: AssertionError
+_______________ test_empty_lookup_is_zero_not_unknown[stats-all] _______________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x72f3b7cdf840>)
+case_id = 'stats-all'
+
+    @pytest.mark.parametrize('case_id', ['stats-total', 'stats-all'])
+    def test_empty_lookup_is_zero_not_unknown(local, case_id):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case,
+                               mutate=lambda p: dict(p, orders=[], count=0))
+        truth = {'orders': 0, 'lines': 0, 'units': 0}
+>       assert audit(final, case, truth)
+E       AssertionError: assert False
+E        +  where False = audit(TurnUpdate(session_id='9be1bce62bf94ded9394d723e23eda24', history=[{'role': 'user', 'content': '统计我的订单数、商品明细数和商品件数。'},...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:21:02.435087+00:00'}, phase='completed', elapsed_ms=200.4689430000326), {'id': 'stats-all', 'history': [], 'query': '统计我的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}, {'orders': 0, 'lines': 0, 'units': 0})
+
+tests/test_order_reliability.py:216: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[missing_order_id-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[missing_order_id-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[non_dict_order-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[non_dict_order-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_items-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_items-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_sku-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_sku-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_quantity-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_quantity-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[duplicate_order-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[duplicate_order-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[duplicate_item-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[duplicate_item-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[count_mismatch-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[count_mismatch-stats-total]
+FAILED tests/test_order_reliability.py::test_unknown_category_never_guesses_constraint_match[missing_categories]
+FAILED tests/test_order_reliability.py::test_unknown_category_never_guesses_constraint_match[unknown_category]
+FAILED tests/test_order_reliability.py::test_unknown_color_is_not_a_positive_match
+FAILED tests/test_order_reliability.py::test_empty_lookup_is_zero_not_unknown[stats-total]
+FAILED tests/test_order_reliability.py::test_empty_lookup_is_zero_not_unknown[stats-all]
+21 failed, 53 passed in 64.40s (0:01:04)

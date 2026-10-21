@@ -1,0 +1,285 @@
+FFFF.F...F.....FFFFFFFFFFF..........                                     [100%]
+=================================== FAILURES ===================================
+____________ test_frozen_reliability_cases[original-white-restore] _____________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a3ac410>)
+case = {'id': 'original-white-restore', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         
+E         1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件
+E         4. **S20019**（10月14日下单，待发货）：演示 B1 骨传导耳机，黑色，1 件
+E         
+E         另外还有几笔更早的已签收耳机订单（如 S20011 白色 S1 半入耳耳机、S20002 黑色 A1 等）。
+E         
+E         请告诉我具体是哪一单（订单号），以及要退的是哪件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='47700b45d0144bea9dc2b341cac8f8bf', history=[{'role': 'user', 'content': '后续一直只看白色耳机，不要列其他颜色，直到我...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:15:48.185801+00:00'}, phase='completed', elapsed_ms=181.1822580000353), {'id': 'original-white-restore', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}, {'orders': 20, 'lines': 3, 'units': 4, 'rows': [{'order_id': 'S20008', 'item_id': 10, 'quantity': 1, 'category': '无线耳机...quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20014', 'item_id': 18, 'quantity': 1, 'category': '无线耳机', ...}]})
+E        +    where {'orders': 20, 'lines': 3, 'units': 4, 'rows': [{'order_id': 'S20008', 'item_id': 10, 'quantity': 1, 'category': '无线耳机...quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20014', 'item_id': 18, 'quantity': 1, 'category': '无线耳机', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'original-white-restore', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+___________________ test_frozen_reliability_cases[white-new] ___________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a3b7410>)
+case = {'id': 'white-new', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。'], 'query': '我想退耳机。', 'mode': 'candidates', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='da85a01b15f847dc97828ad822cb9150', history=[{'role': 'user', 'content': '后续一直只看白色耳机，不要列其他颜色，直到我...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:15:49.032544+00:00'}, phase='completed', elapsed_ms=236.22048099991844), {'id': 'white-new', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。'], 'query': '我想退耳机。', 'mode': 'candidates', ...}, {'orders': 20, 'lines': 3, 'units': 4, 'rows': [{'order_id': 'S20008', 'item_id': 10, 'quantity': 1, 'category': '无线耳机...quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20014', 'item_id': 18, 'quantity': 1, 'category': '无线耳机', ...}]})
+E        +    where {'orders': 20, 'lines': 3, 'units': 4, 'rows': [{'order_id': 'S20008', 'item_id': 10, 'quantity': 1, 'category': '无线耳机...quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20014', 'item_id': 18, 'quantity': 1, 'category': '无线耳机', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'white-new', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。'], 'query': '我想退耳机。', 'mode': 'candidates', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+_______________ test_frozen_reliability_cases[black-correction] ________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a3cd6a0>)
+case = {'id': 'black-correction', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '改为只看黑色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='d5a1cc77e001467a8e0626a249bbae51', history=[{'role': 'user', 'content': '后续一直只看白色耳机，不要列其他颜色，直到我...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:15:50.435444+00:00'}, phase='completed', elapsed_ms=180.55212100011886), {'id': 'black-correction', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '改为只看黑色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}, {'orders': 20, 'lines': 12, 'units': 14, 'rows': [{'order_id': 'S20002', 'item_id': 3, 'quantity': 1, 'category': '无线耳...ity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20012', 'item_id': 15, 'quantity': 1, 'category': '无线耳机', ...}, ...]})
+E        +    where {'orders': 20, 'lines': 12, 'units': 14, 'rows': [{'order_id': 'S20002', 'item_id': 3, 'quantity': 1, 'category': '无线耳...ity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20012', 'item_id': 15, 'quantity': 1, 'category': '无线耳机', ...}, ...]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'black-correction', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '改为只看黑色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+__________________ test_frozen_reliability_cases[white-again] __________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a20a750>)
+case = {'id': 'white-again', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '改为只看黑色耳机。', '改为只看白色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='812b91ec5e9c4eea8c6993440b67faca', history=[{'role': 'user', 'content': '后续一直只看白色耳机，不要列其他颜色，直到我...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:15:52.002460+00:00'}, phase='completed', elapsed_ms=144.90200600016578), {'id': 'white-again', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '改为只看黑色耳机。', '改为只看白色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}, {'orders': 20, 'lines': 3, 'units': 4, 'rows': [{'order_id': 'S20008', 'item_id': 10, 'quantity': 1, 'category': '无线耳机...quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20014', 'item_id': 18, 'quantity': 1, 'category': '无线耳机', ...}]})
+E        +    where {'orders': 20, 'lines': 3, 'units': 4, 'rows': [{'order_id': 'S20008', 'item_id': 10, 'quantity': 1, 'category': '无线耳机...quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20014', 'item_id': 18, 'quantity': 1, 'category': '无线耳机', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'white-again', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '改为只看黑色耳机。', '改为只看白色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+_______________ test_frozen_reliability_cases[cancel-new-limit] ________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a429ef0>)
+case = {'id': 'cancel-new-limit', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '取消颜色限制。', '后续只看黑色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='6d50b920639d4b92bfd88ec4df04799b', history=[{'role': 'user', 'content': '后续一直只看白色耳机，不要列其他颜色，直到我...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:15:54.687816+00:00'}, phase='completed', elapsed_ms=162.55091399989396), {'id': 'cancel-new-limit', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '取消颜色限制。', '后续只看黑色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}, {'orders': 20, 'lines': 12, 'units': 14, 'rows': [{'order_id': 'S20002', 'item_id': 3, 'quantity': 1, 'category': '无线耳...ity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20012', 'item_id': 15, 'quantity': 1, 'category': '无线耳机', ...}, ...]})
+E        +    where {'orders': 20, 'lines': 12, 'units': 14, 'rows': [{'order_id': 'S20002', 'item_id': 3, 'quantity': 1, 'category': '无线耳...ity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20012', 'item_id': 15, 'quantity': 1, 'category': '无线耳机', ...}, ...]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'cancel-new-limit', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '取消颜色限制。', '后续只看黑色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+__________________ test_frozen_reliability_cases[cross-order] __________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a33ba40>)
+case = {'id': 'cross-order', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '查一下S20003的订单详情。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='eff35289b1214e73b7c6bf1f1a21be81', history=[{'role': 'user', 'content': '后续一直只看白色耳机，不要列其他颜色，直到我...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:15:58.488650+00:00'}, phase='completed', elapsed_ms=158.4726439998576), {'id': 'cross-order', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '查一下S20003的订单详情。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}, {'orders': 20, 'lines': 3, 'units': 4, 'rows': [{'order_id': 'S20008', 'item_id': 10, 'quantity': 1, 'category': '无线耳机...quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20014', 'item_id': 18, 'quantity': 1, 'category': '无线耳机', ...}]})
+E        +    where {'orders': 20, 'lines': 3, 'units': 4, 'rows': [{'order_id': 'S20008', 'item_id': 10, 'quantity': 1, 'category': '无线耳机...quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20014', 'item_id': 18, 'quantity': 1, 'category': '无线耳机', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'cross-order', 'history': ['后续一直只看白色耳机，不要列其他颜色，直到我明确更改。', '查一下S20003的订单详情。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+__________________ test_frozen_reliability_cases[empty-color] __________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a4fb340>)
+case = {'id': 'empty-color', 'history': ['后续只看蓝色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='4efd23be3adf4c77b85678b2d3d2fe73', history=[{'role': 'user', 'content': '后续只看蓝色耳机。'}, {'role': ...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:04.055217+00:00'}, phase='completed', elapsed_ms=164.2508990000806), {'id': 'empty-color', 'history': ['后续只看蓝色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...}, {'orders': 20, 'lines': 0, 'units': 0, 'rows': []})
+E        +    where {'orders': 20, 'lines': 0, 'units': 0, 'rows': []} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'empty-color', 'history': ['后续只看蓝色耳机。'], 'query': '我想退最近买的耳机。', 'mode': 'candidates', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+__________________ test_frozen_reliability_cases[stats-total] __________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a40fc00>)
+case = {'id': 'stats-total', 'history': [], 'query': '我的订单一共买了多少件商品？只给总件数，不要列表。', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: 你名下共有 20 笔订单，商品合计 26 件。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='da4e5a6e364540feb5d60f3bfa3c7cf2', history=[{'role': 'user', 'content': '我的订单一共买了多少件商品？只给总件数，不要...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:04.639064+00:00'}, phase='completed', elapsed_ms=193.74410000000353), {'id': 'stats-total', 'history': [], 'query': '我的订单一共买了多少件商品？只给总件数，不要列表。', 'mode': 'aggregate', ...}, {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]})
+E        +    where {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-total', 'history': [], 'query': '我的订单一共买了多少件商品？只给总件数，不要列表。', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+_________________ test_frozen_reliability_cases[stats-orders] __________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a4f8190>)
+case = {'id': 'stats-orders', 'history': [], 'query': '我的订单一共有多少笔订单？', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='b92bbe09ca48490cbd486a3a1ad3f055', history=[{'role': 'user', 'content': '我的订单一共有多少笔订单？'}, {'rol...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:05.280862+00:00'}, phase='completed', elapsed_ms=154.41469999996116), {'id': 'stats-orders', 'history': [], 'query': '我的订单一共有多少笔订单？', 'mode': 'aggregate', ...}, {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]})
+E        +    where {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-orders', 'history': [], 'query': '我的订单一共有多少笔订单？', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+__________________ test_frozen_reliability_cases[stats-lines] __________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a4bfe80>)
+case = {'id': 'stats-lines', 'history': [], 'query': '我的订单一共有多少条商品明细？', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='2e79737aa08a48078f1d8da046fba445', history=[{'role': 'user', 'content': '我的订单一共有多少条商品明细？'}, {'r...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:05.705615+00:00'}, phase='completed', elapsed_ms=191.7154989998835), {'id': 'stats-lines', 'history': [], 'query': '我的订单一共有多少条商品明细？', 'mode': 'aggregate', ...}, {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]})
+E        +    where {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-lines', 'history': [], 'query': '我的订单一共有多少条商品明细？', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+___________________ test_frozen_reliability_cases[stats-all] ___________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a4be940>)
+case = {'id': 'stats-all', 'history': [], 'query': '统计我的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='4faff6fed45340838f2c3f8e3f422872', history=[{'role': 'user', 'content': '统计我的订单数、商品明细数和商品件数。'},...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:06.183645+00:00'}, phase='completed', elapsed_ms=225.34843699986595), {'id': 'stats-all', 'history': [], 'query': '统计我的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}, {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]})
+E        +    where {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-all', 'history': [], 'query': '统计我的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+________________ test_frozen_reliability_cases[stats-delivered] ________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a42f980>)
+case = {'id': 'stats-delivered', 'history': [], 'query': '统计已签收订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='158a3d4222344f4d917914ef36b7eef4', history=[{'role': 'user', 'content': '统计已签收订单的订单数、商品明细数和商品件数...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:06.868438+00:00'}, phase='completed', elapsed_ms=168.08241600006113), {'id': 'stats-delivered', 'history': [], 'query': '统计已签收订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}, {'orders': 8, 'lines': 10, 'units': 14, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳机...ity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20011', 'item_id': 14, 'quantity': 2, 'category': '无线耳机', ...}, ...]})
+E        +    where {'orders': 8, 'lines': 10, 'units': 14, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳机...ity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20011', 'item_id': 14, 'quantity': 2, 'category': '无线耳机', ...}, ...]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-delivered', 'history': [], 'query': '统计已签收订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+_________________ test_frozen_reliability_cases[stats-pending] _________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a42f430>)
+case = {'id': 'stats-pending', 'history': [], 'query': '统计待发货订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='afeedd1aa7754fcc8eca7fa8792ac71b', history=[{'role': 'user', 'content': '统计待发货订单的订单数、商品明细数和商品件数...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:07.412696+00:00'}, phase='completed', elapsed_ms=210.27679799999532), {'id': 'stats-pending', 'history': [], 'query': '统计待发货订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}, {'orders': 4, 'lines': 5, 'units': 5, 'rows': [{'order_id': 'S20004', 'item_id': 5, 'quantity': 1, 'category': '充电配件',...quantity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20019', 'item_id': 24, 'quantity': 1, 'category': '无线耳机', ...}]})
+E        +    where {'orders': 4, 'lines': 5, 'units': 5, 'rows': [{'order_id': 'S20004', 'item_id': 5, 'quantity': 1, 'category': '充电配件',...quantity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20019', 'item_id': 24, 'quantity': 1, 'category': '无线耳机', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-pending', 'history': [], 'query': '统计待发货订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+_________________ test_frozen_reliability_cases[stats-shipped] _________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a42ebc0>)
+case = {'id': 'stats-shipped', 'history': [], 'query': '统计已发货订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='7e6838193eda4105b649ff5a01674087', history=[{'role': 'user', 'content': '统计已发货订单的订单数、商品明细数和商品件数...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:08.189963+00:00'}, phase='completed', elapsed_ms=164.8801569999705), {'id': 'stats-shipped', 'history': [], 'query': '统计已发货订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}, {'orders': 4, 'lines': 5, 'units': 5, 'rows': [{'order_id': 'S20003', 'item_id': 4, 'quantity': 1, 'category': '无线耳机',...quantity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20018', 'item_id': 23, 'quantity': 1, 'category': '充电配件', ...}]})
+E        +    where {'orders': 4, 'lines': 5, 'units': 5, 'rows': [{'order_id': 'S20003', 'item_id': 4, 'quantity': 1, 'category': '无线耳机',...quantity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20018', 'item_id': 23, 'quantity': 1, 'category': '充电配件', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-shipped', 'history': [], 'query': '统计已发货订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+________________ test_frozen_reliability_cases[stats-cancelled] ________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a42f660>)
+case = {'id': 'stats-cancelled', 'history': [], 'query': '统计已取消订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='32b2e40761224dd98609744d54155ece', history=[{'role': 'user', 'content': '统计已取消订单的订单数、商品明细数和商品件数...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:08.636021+00:00'}, phase='completed', elapsed_ms=167.32954700000846), {'id': 'stats-cancelled', 'history': [], 'query': '统计已取消订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}, {'orders': 4, 'lines': 5, 'units': 5, 'rows': [{'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机',...quantity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20020', 'item_id': 25, 'quantity': 1, 'category': '无线耳机', ...}]})
+E        +    where {'orders': 4, 'lines': 5, 'units': 5, 'rows': [{'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机',...quantity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20020', 'item_id': 25, 'quantity': 1, 'category': '无线耳机', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-cancelled', 'history': [], 'query': '统计已取消订单的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+_________________ test_frozen_reliability_cases[stats-subset] __________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a42cfa0>)
+case = {'id': 'stats-subset', 'history': [], 'query': '统计订单S20001、S20009的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='21c3498b0ad8454ba60a0396da4b33a6', history=[{'role': 'user', 'content': '统计订单S20001、S20009的订单数、...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:09.045184+00:00'}, phase='completed', elapsed_ms=163.2424900001297), {'id': 'stats-subset', 'history': [], 'query': '统计订单S20001、S20009的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}, {'orders': 2, 'lines': 4, 'units': 5, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳机',...quantity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20009', 'item_id': 12, 'quantity': 1, 'category': '无线耳机', ...}]})
+E        +    where {'orders': 2, 'lines': 4, 'units': 5, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳机',...quantity': 1, 'category': '无线耳机', ...}, {'order_id': 'S20009', 'item_id': 12, 'quantity': 1, 'category': '无线耳机', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-subset', 'history': [], 'query': '统计订单S20001、S20009的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+___________ test_frozen_reliability_cases[stats-one-multi-quantity] ____________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7fa02a42e760>)
+case = {'id': 'stats-one-multi-quantity', 'history': [], 'query': '统计订单S20001的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: S20013 黑色、S20019 黑色；共 25 件商品。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='14e093acf4d94fcca6f2e2751e5b2a1d', history=[{'role': 'user', 'content': '统计订单S20001的订单数、商品明细数和商...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T02:16:09.446597+00:00'}, phase='completed', elapsed_ms=128.73747200001162), {'id': 'stats-one-multi-quantity', 'history': [], 'query': '统计订单S20001的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...}, {'orders': 1, 'lines': 2, 'units': 3, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20001', 'item_id': 2, 'quantity': 1, 'category': '充电配件', ...}]})
+E        +    where {'orders': 1, 'lines': 2, 'units': 3, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳机', ...}, {'order_id': 'S20001', 'item_id': 2, 'quantity': 1, 'category': '充电配件', ...}]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...=4, return_state_check_enabled=False, order_candidate_render_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-one-multi-quantity', 'history': [], 'query': '统计订单S20001的订单数、商品明细数和商品件数。', 'mode': 'aggregate', ...})
+
+tests/test_order_reliability.py:141: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[original-white-restore]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[white-new]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[black-correction]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[white-again]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[cancel-new-limit]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[cross-order]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[empty-color]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-total]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-orders]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-lines]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-all]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-delivered]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-pending]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-shipped]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-cancelled]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-subset]
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-one-multi-quantity]
+17 failed, 19 passed in 33.08s

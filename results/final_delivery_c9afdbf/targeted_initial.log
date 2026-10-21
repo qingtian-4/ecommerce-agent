@@ -1,0 +1,940 @@
+........................................................................ [ 24%]
+...........................................F.........FFFFFFFFFFFFFFFFFF. [ 49%]
+........................F...........................FFFFFFFFFFFF........ [ 74%]
+........................................................................ [ 99%]
+.                                                                        [100%]
+=================================== FAILURES ===================================
+______________ test_frozen_reliability_cases[stats-foreign-order] ______________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e4b5590>)
+case = {'id': 'stats-foreign-order', 'history': [], 'query': '统计订单S20021的订单数、商品明细数和商品件数。', 'mode': 'passthrough'}
+
+    @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
+    def test_frozen_reliability_cases(local, case):
+        final, _, _ = run_case(local, True, case)
+>       assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+E       AssertionError: 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E       assert False
+E        +  where False = audit(TurnUpdate(session_id='86144e7a94c04b5ea644f3b521682a37', history=[{'role': 'user', 'content': '统计订单S20021的订单数、商品明细数和商...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-21T07:46:29.839989+00:00'}, phase='completed', elapsed_ms=181.63493699830724), {'id': 'stats-foreign-order', 'history': [], 'query': '统计订单S20021的订单数、商品明细数和商品件数。', 'mode': 'passthrough'}, {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]})
+E        +    where {'orders': 20, 'lines': 25, 'units': 29, 'rows': [{'order_id': 'S20001', 'item_id': 1, 'quantity': 2, 'category': '无线耳...tity': 1, 'category': '充电配件', ...}, {'order_id': 'S20005', 'item_id': 6, 'quantity': 1, 'category': '无线耳机', ...}, ...]} = sql_truth(Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...led=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=datetime.date(2026, 10, 15)), 'USER001', {'id': 'stats-foreign-order', 'history': [], 'query': '统计订单S20021的订单数、商品明细数和商品件数。', 'mode': 'passthrough'})
+
+tests/test_order_reliability.py:141: AssertionError
+_ test_malformed_data_declines_without_business_changes[missing_order_id-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b27b0>)
+case_id = 'original-white-restore', kind = 'missing_order_id'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[missing_order_id-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e30bf70>)
+case_id = 'stats-total', kind = 'missing_order_id'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[non_dict_order-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b31b0>)
+case_id = 'original-white-restore', kind = 'non_dict_order'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[non_dict_order-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b0960>)
+case_id = 'stats-total', kind = 'non_dict_order'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_items-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b2fd0>)
+case_id = 'original-white-restore', kind = 'invalid_items'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_items-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b7390>)
+case_id = 'stats-total', kind = 'invalid_items'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_sku-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b63a0>)
+case_id = 'original-white-restore', kind = 'invalid_sku'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_sku-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b7340>)
+case_id = 'stats-total', kind = 'invalid_sku'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_quantity-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b6e90>)
+case_id = 'original-white-restore', kind = 'invalid_quantity'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[invalid_quantity-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3ddbd0>)
+case_id = 'stats-total', kind = 'invalid_quantity'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[duplicate_order-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3dc780>)
+case_id = 'original-white-restore', kind = 'duplicate_order'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[duplicate_order-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3de5d0>)
+case_id = 'stats-total', kind = 'duplicate_order'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[duplicate_item-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3de800>)
+case_id = 'original-white-restore', kind = 'duplicate_item'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[duplicate_item-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b4dc0>)
+case_id = 'stats-total', kind = 'duplicate_item'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[count_mismatch-original-white-restore] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b6a30>)
+case_id = 'original-white-restore', kind = 'count_mismatch'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:185: AssertionError
+_ test_malformed_data_declines_without_business_changes[count_mismatch-stats-total] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b27b0>)
+case_id = 'stats-total', kind = 'count_mismatch'
+
+    @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
+    @pytest.mark.parametrize('kind', ['missing_order_id', 'non_dict_order', 'invalid_items',
+                                     'invalid_sku', 'invalid_quantity', 'duplicate_order',
+                                     'duplicate_item', 'count_mismatch'])
+    def test_malformed_data_declines_without_business_changes(local, case_id, kind):
+        case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你名下共有 20 笔订单，商品合计 26 件。'
+E         
+E         - 你名下共有 20 笔订单，商品合计 26 件。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:185: AssertionError
+___ test_unknown_category_never_guesses_constraint_match[missing_categories] ___
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b21c0>)
+kind = 'missing_categories'
+
+    @pytest.mark.parametrize('kind', ['missing_categories', 'unknown_category'])
+    def test_unknown_category_never_guesses_constraint_match(local, kind):
+        case = FROZEN['cases'][0]
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:193: AssertionError
+____ test_unknown_category_never_guesses_constraint_match[unknown_category] ____
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e4b6b70>)
+kind = 'unknown_category'
+
+    @pytest.mark.parametrize('kind', ['missing_categories', 'unknown_category'])
+    def test_unknown_category_never_guesses_constraint_match(local, kind):
+        case = FROZEN['cases'][0]
+        final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
+>       assert final.result.answer == scripted_answer(case)
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '你最近买的耳机有好几笔，...），以及要退的是哪件商品。'
+E         
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+E         - 你最近买的耳机有好几笔，需要你确认是哪一单：
+E         - 
+E         - 1. **S20008**（10月13日下单，已发货）：演示 A1 入耳耳机，白色，1 件
+E         - 2. **S20014**（10月13日下单，待发货）：演示 A1 入耳耳机，白色，1 件
+E         - 3. **S20013**（10月14日下单，已发货）：演示 B1 骨传导耳机，黑色，1 件...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/test_order_reliability.py:193: AssertionError
+____________________ test_mixed_tools_keep_original_answer _____________________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3ef250>)
+
+    def test_mixed_tools_keep_original_answer(local):
+        settings, store = local
+        settings = settings.model_copy(update={'order_aggregation_enabled': True})
+        llm = ScriptedLLM([ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall('lookup', 'list_orders', '{}'),
+            ScriptedToolCall('other', 'get_order', '{"order_id":"S20008"}'),
+        ]), ScriptedResponse(text='保留混合工作流回答。')])
+        agent = CustomerServiceAgent(settings=settings, llm=llm, registry=ToolRegistry(settings))
+        query = next(c['query'] for c in FROZEN['cases'] if c['id'] == 'stats-total')
+        final = list(ChatService(settings, store).run_turn(query, 'USER001', agent=agent))[-1]
+>       assert final.result.answer == '保留混合工作流回答。'
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '保留混合工作流回答。'
+E         
+E         - 保留混合工作流回答。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_reliability.py:374: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[missing_order_id] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3edfe0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c274340c0>
+name = 'missing_order_id'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[non_dict_order] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e30a2b0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e4dd8d0>
+name = 'non_dict_order'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[items_dict] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b34d0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e4ff700>
+name = 'items_dict'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[items_string] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b0190>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e4fecf0>
+name = 'items_string'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[item_null] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b5090>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e4fdc50>
+name = 'item_null'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[sku_list] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b5ae0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e25c210>
+name = 'sku_list'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[sku_string] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3b5180>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e25e3c0>
+name = 'sku_string'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[missing_items] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3df700>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e25d630>
+name = 'missing_items'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[empty_items] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e3de580>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e25f850>
+name = 'empty_items'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[quantity_bool] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e374410>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e222270>
+name = 'quantity_bool'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[colour_list] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e376030>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e222120>
+name = 'colour_list'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+_ test_malformed_result_preserves_completed_reply_and_business_state[item_id_text] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ation_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7f3c1e377d90>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f3c1e222350>
+name = 'item_id_text'
+
+    @pytest.mark.parametrize("name", json.loads(
+        (ROOT / "data/eval/order_candidate_scope_v1.json").read_text(),
+    )["malformed"])
+    def test_malformed_result_preserves_completed_reply_and_business_state(local, monkeypatch, name):
+        from .test_order_candidate_protocol import corrupt_orders
+    
+        settings, store = local
+        tables = ("return_tasks", "return_evidence", "return_previews", "return_confirmations",
+                  "return_requests", "return_audit", "return_reviews")
+    
+        def snapshot():
+            with closing(store._connect()) as conn:
+                return {t: [tuple(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                        for t in tables}
+    
+        before = snapshot()
+        monkeypatch.setattr(ToolRegistry, "_list_orders", lambda self, **kwargs: {
+            "orders": corrupt_orders(name),
+        })
+        answer = "工具数据暂时不完整，请重新核对订单信息。"
+        final, agent = replay((settings, store), True, query="请列出我的全部订单和全部商品明细。",
+                              responses=[ScriptedResponse(wants_tools=True, tool_calls=[
+                                  ScriptedToolCall("orders", "list_orders", "{}"),
+                              ]), ScriptedResponse(text=answer)])
+        saved = store.load(final.session_id, "USER001")
+        assert final.result.stop_reason == "answered"
+>       assert final.result.answer == agent.messages[-1]["content"] == answer
+E       AssertionError: assert '本次未取得可核验的完整订...。请重试或提供具体订单号。' == '工具数据暂时不完整，请重新核对订单信息。'
+E         
+E         - 工具数据暂时不完整，请重新核对订单信息。
+E         + 本次未取得可核验的完整订单结果，未展示数量或候选。请重试或提供具体订单号。
+
+tests/test_order_candidate_facts.py:257: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_order_reliability.py::test_frozen_reliability_cases[stats-foreign-order]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[missing_order_id-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[missing_order_id-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[non_dict_order-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[non_dict_order-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_items-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_items-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_sku-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_sku-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_quantity-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[invalid_quantity-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[duplicate_order-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[duplicate_order-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[duplicate_item-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[duplicate_item-stats-total]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[count_mismatch-original-white-restore]
+FAILED tests/test_order_reliability.py::test_malformed_data_declines_without_business_changes[count_mismatch-stats-total]
+FAILED tests/test_order_reliability.py::test_unknown_category_never_guesses_constraint_match[missing_categories]
+FAILED tests/test_order_reliability.py::test_unknown_category_never_guesses_constraint_match[unknown_category]
+FAILED tests/test_order_reliability.py::test_mixed_tools_keep_original_answer
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[missing_order_id]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[non_dict_order]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[items_dict]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[items_string]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[item_null]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[sku_list]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[sku_string]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[missing_items]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[empty_items]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[quantity_bool]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[colour_list]
+FAILED tests/test_order_candidate_facts.py::test_malformed_result_preserves_completed_reply_and_business_state[item_id_text]
+32 failed, 257 passed in 247.72s (0:04:07)

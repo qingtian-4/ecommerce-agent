@@ -1,0 +1,109 @@
+{
+  "cases": [
+    {
+      "id": "white-restore",
+      "kind": "white",
+      "queries": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "我想退最近买的耳机。"
+      ],
+      "expected_color": "白色"
+    },
+    {
+      "id": "white-correction",
+      "kind": "black",
+      "queries": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "改为只看黑色耳机。",
+        "我想退最近买的耳机。"
+      ],
+      "expected_color": "黑色"
+    },
+    {
+      "id": "white-cancel",
+      "kind": "cancel",
+      "queries": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "取消颜色限制。",
+        "我想退最近买的耳机。"
+      ]
+    },
+    {
+      "id": "white-cross-order",
+      "kind": "white",
+      "queries": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "查一下S20003的订单详情。",
+        "我想退最近买的耳机。"
+      ],
+      "expected_color": "白色"
+    },
+    {
+      "id": "original-binding",
+      "kind": "binding",
+      "queries": [
+        "我想退最近买的耳机。"
+      ]
+    },
+    {
+      "id": "correct-short",
+      "kind": "short",
+      "queries": [
+        "只用一句话告诉我S20008的SKU是什么颜色，不列其他订单。"
+      ]
+    },
+    {
+      "id": "quantity-units",
+      "kind": "units",
+      "queries": [
+        "我的订单一共买了多少件商品？只给总件数，不要列表。"
+      ]
+    },
+    {
+      "id": "quantity-all",
+      "kind": "all",
+      "queries": [
+        "统计我的订单数、商品明细数和商品件数。"
+      ]
+    },
+    {
+      "id": "quantity-delivered",
+      "kind": "delivered",
+      "queries": [
+        "统计已签收订单的订单数、商品明细数和商品件数。"
+      ]
+    },
+    {
+      "id": "unsupported-unit",
+      "kind": "models",
+      "queries": [
+        "我这些订单一共买了多少种商品型号？只给型号数量。"
+      ]
+    },
+    {
+      "id": "negative-cancel",
+      "kind": "safe",
+      "queries": [
+        "我不是要取消退货草稿，只是问问。"
+      ],
+      "preload_draft": true
+    }
+  ],
+  "protocol": {
+    "baseline": "same repaired code, P0/P1=true, constraint/aggregation=false",
+    "candidate": "same repaired code, P0/P1=true, constraint/aggregation=true",
+    "temperature": 0,
+    "thinking": false,
+    "max_output_tokens": 1024,
+    "max_steps": 4,
+    "max_tool_calls": 6,
+    "max_api_requests": 4,
+    "timeout_s": 90,
+    "paid_limit_cny": "1",
+    "max_trials": 3,
+    "repeat_rule": "Complete first fixed suite once. Start next entire trial only if remaining conservative guard budget >= previous complete trial charge*1.2 + 0.10. Halt on unknown usage/error; no selective retry. All attempts retained.",
+    "scoring": "Manual source-grounded review of final answer, original answer, frames and tools. Each arm once first; absolute counts with incomplete pairs separate. Aggregation exact unit/value/scope; colours no disallowed candidate and SQL facts bound; no takeover for short/models/cancel-cleared; false application writes fail. Facts and task completion distinct; mixed unknown answers unjudged.",
+    "real_model": "existing configured official DeepSeek Flash, no new judge/embedding/rerank",
+    "grouping": "all tasks are seen development/regression prompts; no unseen test claim"
+  }
+}

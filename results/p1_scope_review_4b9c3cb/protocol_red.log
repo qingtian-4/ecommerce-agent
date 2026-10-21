@@ -1,0 +1,668 @@
+FFFFFFFFFFFFFFFFFFFFFFFF.                                                [100%]
+=================================== FAILURES ===================================
+__ test_malformed_display_protocol_declines_without_raising[missing_order_id] __
+
+name = 'missing_order_id'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/order_candidates.py:35: in order_candidate_response
+    orders = sorted(payload["orders"], key=lambda o: o["order_id"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+o = {'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, 'items': [{'id': 5, 'product_id': 'V209', 'product_name': '演示 C65 充电器', 'quantity': 1, ...}]}
+
+>   orders = sorted(payload["orders"], key=lambda o: o["order_id"])
+                                                     ^^^^^^^^^^^^^
+E   KeyError: 'order_id'
+
+src/acs/order_candidates.py:35: KeyError
+___ test_malformed_display_protocol_declines_without_raising[non_dict_order] ___
+
+name = 'non_dict_order'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/order_candidates.py:35: in order_candidate_response
+    orders = sorted(payload["orders"], key=lambda o: o["order_id"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+o = None
+
+>   orders = sorted(payload["orders"], key=lambda o: o["order_id"])
+                                                     ^^^^^^^^^^^^^
+E   TypeError: 'NoneType' object is not subscriptable
+
+src/acs/order_candidates.py:35: TypeError
+_____ test_malformed_display_protocol_declines_without_raising[items_dict] _____
+
+name = 'items_dict'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/order_candidates.py:39: in order_candidate_response
+    items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+i = 'bad'
+
+>   items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+                                                             ^^^^^
+E   AttributeError: 'str' object has no attribute 'get'
+
+src/acs/order_candidates.py:39: AttributeError
+____ test_malformed_display_protocol_declines_without_raising[items_string] ____
+
+name = 'items_string'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/order_candidates.py:39: in order_candidate_response
+    items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+i = 'i'
+
+>   items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+                                                             ^^^^^
+E   AttributeError: 'str' object has no attribute 'get'
+
+src/acs/order_candidates.py:39: AttributeError
+_____ test_malformed_display_protocol_declines_without_raising[item_null] ______
+
+name = 'item_null'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/order_candidates.py:39: in order_candidate_response
+    items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+i = None
+
+>   items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+                                                             ^^^^^
+E   AttributeError: 'NoneType' object has no attribute 'get'
+
+src/acs/order_candidates.py:39: AttributeError
+______ test_malformed_display_protocol_declines_without_raising[sku_list] ______
+
+name = 'sku_list'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trace = [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)]
+task_view = {'task': None}, stop_reason = 'answered'
+
+    def order_candidate_response(trace: list[TraceEvent], task_view: dict,
+                                 stop_reason: str) -> tuple[str, dict] | None:
+        """Only a single successful list_orders, no active task and no other tool workflow."""
+        if (stop_reason != "answered" or task_view.get("task") is not None
+                or task_view.get("state_unavailable")):
+            return None
+        calls = [(i, e) for i, e in enumerate(trace) if e.type == "tool_call"]
+        results = [(i, e) for i, e in enumerate(trace) if e.type == "tool_result"]
+        if (len(calls) != 1 or calls[0][1].label != "list_orders" or len(results) != 1
+                or results[0][1].label != "list_orders" or calls[0][0] >= results[0][0]
+                or any(e.type in {"error", "retrieval"} for e in trace)):
+            return None
+        index, event = results[0]
+        payload = event.detail.get("result")
+        if not isinstance(payload, dict) or not isinstance(payload.get("orders"), list):
+            return None
+        orders = sorted(payload["orders"], key=lambda o: o["order_id"])
+        orders.sort(key=lambda o: o.get("created_at") or "", reverse=True)
+        rows = []
+        for order in orders:
+            items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+            for item in items:
+                sku = item.get("sku") or {}
+                rows.append({"order_id": order["order_id"], "item_id": item.get("id"),
+                             "product_id": item.get("product_id"),
+                             "product_name": item.get("product_name"),
+>                            "sku_id": sku.get("sku_id"), "color": sku.get("color"),
+                                       ^^^^^^^
+                             "quantity": item.get("quantity"), "status": order.get("status"),
+                             "created_at": order.get("created_at")})
+E               AttributeError: 'list' object has no attribute 'get'
+
+src/acs/order_candidates.py:45: AttributeError
+_____ test_malformed_display_protocol_declines_without_raising[sku_string] _____
+
+name = 'sku_string'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trace = [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)]
+task_view = {'task': None}, stop_reason = 'answered'
+
+    def order_candidate_response(trace: list[TraceEvent], task_view: dict,
+                                 stop_reason: str) -> tuple[str, dict] | None:
+        """Only a single successful list_orders, no active task and no other tool workflow."""
+        if (stop_reason != "answered" or task_view.get("task") is not None
+                or task_view.get("state_unavailable")):
+            return None
+        calls = [(i, e) for i, e in enumerate(trace) if e.type == "tool_call"]
+        results = [(i, e) for i, e in enumerate(trace) if e.type == "tool_result"]
+        if (len(calls) != 1 or calls[0][1].label != "list_orders" or len(results) != 1
+                or results[0][1].label != "list_orders" or calls[0][0] >= results[0][0]
+                or any(e.type in {"error", "retrieval"} for e in trace)):
+            return None
+        index, event = results[0]
+        payload = event.detail.get("result")
+        if not isinstance(payload, dict) or not isinstance(payload.get("orders"), list):
+            return None
+        orders = sorted(payload["orders"], key=lambda o: o["order_id"])
+        orders.sort(key=lambda o: o.get("created_at") or "", reverse=True)
+        rows = []
+        for order in orders:
+            items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+            for item in items:
+                sku = item.get("sku") or {}
+                rows.append({"order_id": order["order_id"], "item_id": item.get("id"),
+                             "product_id": item.get("product_id"),
+                             "product_name": item.get("product_name"),
+>                            "sku_id": sku.get("sku_id"), "color": sku.get("color"),
+                                       ^^^^^^^
+                             "quantity": item.get("quantity"), "status": order.get("status"),
+                             "created_at": order.get("created_at")})
+E               AttributeError: 'str' object has no attribute 'get'
+
+src/acs/order_candidates.py:45: AttributeError
+___ test_malformed_display_protocol_declines_without_raising[missing_items] ____
+
+name = 'missing_items'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+
+tests/test_order_candidate_protocol.py:46: AssertionError
+____ test_malformed_display_protocol_declines_without_raising[empty_items] _____
+
+name = 'empty_items'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+
+tests/test_order_candidate_protocol.py:46: AssertionError
+___ test_malformed_display_protocol_declines_without_raising[quantity_bool] ____
+
+name = 'quantity_bool'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+
+tests/test_order_candidate_protocol.py:46: AssertionError
+____ test_malformed_display_protocol_declines_without_raising[colour_list] _____
+
+name = 'colour_list'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+
+tests/test_order_candidate_protocol.py:46: AssertionError
+____ test_malformed_display_protocol_declines_without_raising[item_id_text] ____
+
+name = 'item_id_text'
+
+    @pytest.mark.parametrize("name", FROZEN["malformed"])
+    def test_malformed_display_protocol_declines_without_raising(name):
+        trace = sample_trace(corrupt_orders(name))
+        before = copy.deepcopy(trace)
+>       assert order_candidate_response(trace, {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+
+tests/test_order_candidate_protocol.py:46: AssertionError
+_______ test_unrenderable_fields_decline_before_sorting[order-order_id-] _______
+
+location = 'order', key = 'order_id', value = ''
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': '', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20010', ...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+______ test_unrenderable_fields_decline_before_sorting[order-order_id-7] _______
+
+location = 'order', key = 'order_id', value = 7
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trace = [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)]
+task_view = {'task': None}, stop_reason = 'answered'
+
+    def order_candidate_response(trace: list[TraceEvent], task_view: dict,
+                                 stop_reason: str) -> tuple[str, dict] | None:
+        """Only a single successful list_orders, no active task and no other tool workflow."""
+        if (stop_reason != "answered" or task_view.get("task") is not None
+                or task_view.get("state_unavailable")):
+            return None
+        calls = [(i, e) for i, e in enumerate(trace) if e.type == "tool_call"]
+        results = [(i, e) for i, e in enumerate(trace) if e.type == "tool_result"]
+        if (len(calls) != 1 or calls[0][1].label != "list_orders" or len(results) != 1
+                or results[0][1].label != "list_orders" or calls[0][0] >= results[0][0]
+                or any(e.type in {"error", "retrieval"} for e in trace)):
+            return None
+        index, event = results[0]
+        payload = event.detail.get("result")
+        if not isinstance(payload, dict) or not isinstance(payload.get("orders"), list):
+            return None
+>       orders = sorted(payload["orders"], key=lambda o: o["order_id"])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: '<' not supported between instances of 'str' and 'int'
+
+src/acs/order_candidates.py:35: TypeError
+_____ test_unrenderable_fields_decline_before_sorting[order-status-value2] _____
+
+location = 'order', key = 'status', value = []
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_order_candidate_protocol.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trace = [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)]
+task_view = {'task': None}, stop_reason = 'answered'
+
+    def order_candidate_response(trace: list[TraceEvent], task_view: dict,
+                                 stop_reason: str) -> tuple[str, dict] | None:
+        """Only a single successful list_orders, no active task and no other tool workflow."""
+        if (stop_reason != "answered" or task_view.get("task") is not None
+                or task_view.get("state_unavailable")):
+            return None
+        calls = [(i, e) for i, e in enumerate(trace) if e.type == "tool_call"]
+        results = [(i, e) for i, e in enumerate(trace) if e.type == "tool_result"]
+        if (len(calls) != 1 or calls[0][1].label != "list_orders" or len(results) != 1
+                or results[0][1].label != "list_orders" or calls[0][0] >= results[0][0]
+                or any(e.type in {"error", "retrieval"} for e in trace)):
+            return None
+        index, event = results[0]
+        payload = event.detail.get("result")
+        if not isinstance(payload, dict) or not isinstance(payload.get("orders"), list):
+            return None
+        orders = sorted(payload["orders"], key=lambda o: o["order_id"])
+        orders.sort(key=lambda o: o.get("created_at") or "", reverse=True)
+        rows = []
+        for order in orders:
+            items = sorted(order.get("items") or [{}], key=lambda i: i.get("id") or 0)
+            for item in items:
+                sku = item.get("sku") or {}
+                rows.append({"order_id": order["order_id"], "item_id": item.get("id"),
+                             "product_id": item.get("product_id"),
+                             "product_name": item.get("product_name"),
+                             "sku_id": sku.get("sku_id"), "color": sku.get("color"),
+                             "quantity": item.get("quantity"), "status": order.get("status"),
+                             "created_at": order.get("created_at")})
+        detail = {"version": 1, "tool_result_trace_index": index,
+                  "order_count": len(orders), "rows": rows}
+        if not orders:
+            return "本轮查询未找到您的订单，请核对当前用户或提供订单号。", detail
+        lines = ["订单候选更正（以本轮查询记录为准）：",
+                 f"本次查到 {len(orders)} 笔订单；每行对应一笔订单中的一条商品明细。", "",
+                 "| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |",
+                 "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+        labels = {"pending": "待发货", "shipped": "已发货", "delivered": "已签收",
+                  "cancelled": "已取消"}
+        for number, row in enumerate(rows, 1):
+            values = [number, row["order_id"], row["item_id"], row["product_name"], row["sku_id"],
+>                     row["color"], row["quantity"], labels.get(row["status"], row["status"]),
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                      row["created_at"]]
+E           TypeError: unhashable type: 'list'
+
+src/acs/order_candidates.py:60: TypeError
+___ test_unrenderable_fields_decline_before_sorting[order-created_at-value3] ___
+
+location = 'order', key = 'created_at', value = {}
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -...示 O2 耳夹耳机', ...}, {'order_id': 'S20005', 'item_id': 7, 'product_id': 'V210', 'product_name': '演示 C30 充电器', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -...示 O2 耳夹耳机', ...}, {'order_id': 'S20005', 'item_id': 7, 'product_id': 'V210', 'product_name': '演示 C30 充电器', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': {}, 'delivered_at': None, ...}, {'order_id': 'S20010', 'sta...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+________ test_unrenderable_fields_decline_before_sorting[item-id-True] _________
+
+location = 'item', key = 'id', value = True
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+__________ test_unrenderable_fields_decline_before_sorting[item-id-0] __________
+
+location = 'item', key = 'id', value = 0
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+______ test_unrenderable_fields_decline_before_sorting[item-quantity--1] _______
+
+location = 'item', key = 'quantity', value = -1
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+__ test_unrenderable_fields_decline_before_sorting[item-product_name-value7] ___
+
+location = 'item', key = 'product_name', value = []
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+______ test_unrenderable_fields_decline_before_sorting[item-product_id-] _______
+
+location = 'item', key = 'product_id', value = ''
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+_______ test_unrenderable_fields_decline_before_sorting[item-sku-value9] _______
+
+location = 'item', key = 'sku', value = {}
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+_____ test_unrenderable_fields_decline_before_sorting[sku-sku_id-value10] ______
+
+location = 'sku', key = 'sku_id', value = []
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+______ test_unrenderable_fields_decline_before_sorting[sku-color-value11] ______
+
+location = 'sku', key = 'color', value = {}
+
+    @pytest.mark.parametrize(("location", "key", "value"), [
+        ("order", "order_id", ""), ("order", "order_id", 7),
+        ("order", "status", []), ("order", "created_at", {}),
+        ("item", "id", True), ("item", "id", 0),
+        ("item", "quantity", -1), ("item", "product_name", []),
+        ("item", "product_id", ""), ("item", "sku", {}),
+        ("sku", "sku_id", []), ("sku", "color", {}),
+    ])
+    def test_unrenderable_fields_decline_before_sorting(location, key, value):
+        orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
+        item = orders[0]["items"][0]
+        target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
+        target[key] = value
+>       assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+E       AssertionError: assert ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) is None
+E        +  where ('订单候选更正（以本轮查询记录为准）：\n本次查到 20 笔订单；每行对应一笔订单中的一条商品明细。\n\n| 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n| --- | -... B1 骨传导耳机', ...}, {'order_id': 'S20005', 'item_id': 6, 'product_id': 'V207', 'product_name': '演示 O2 耳夹耳机', ...}, ...]}) = order_candidate_response([TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)], {'task': None}, 'answered')
+E        +    where [TraceEvent(type='tool_call', label='list_orders', detail={'arguments': '{}'}, duration_ms=None), TraceEvent(type='too...209', 'product_name': '演示 C65 充电器', 'quantity': 1, 'sku': {'sku_id': 'V209-2', 'color': '白色'}}]}]}}, duration_ms=None)] = sample_trace([{'order_id': 'S20004', 'status': 'pending', 'created_at': '2026-10-14', 'delivered_at': None, ...}, {'order_id': 'S20...': None, ...}, {'order_id': 'S20008', 'status': 'shipped', 'created_at': '2026-10-13', 'delivered_at': None, ...}, ...])
+
+tests/test_order_candidate_protocol.py:63: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[missing_order_id]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[non_dict_order]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[items_dict]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[items_string]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[item_null]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[sku_list]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[sku_string]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[missing_items]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[empty_items]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[quantity_bool]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[colour_list]
+FAILED tests/test_order_candidate_protocol.py::test_malformed_display_protocol_declines_without_raising[item_id_text]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[order-order_id-]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[order-order_id-7]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[order-status-value2]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[order-created_at-value3]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[item-id-True]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[item-id-0]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[item-quantity--1]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[item-product_name-value7]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[item-product_id-]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[item-sku-value9]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[sku-sku_id-value10]
+FAILED tests/test_order_candidate_protocol.py::test_unrenderable_fields_decline_before_sorting[sku-color-value11]
+24 failed, 1 passed in 0.75s
