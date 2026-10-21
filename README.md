@@ -13,8 +13,13 @@
 网页端审查、离线检查和后续 PR 流程见 [Review 指南](docs/REVIEW_GUIDE.md)。
 
 ```bash
-uv run python app.py      # 打开 http://127.0.0.1:7860
+uv run python scripts/workbench.py --demo  # 本机合成场景，显式启用四种保护
 ```
+
+最新[c9afdbf阶段交付](results/final_delivery_c9afdbf/REPORT.md)补齐取消授权、逐帧输出门控、
+共享完整性校验、政策/日期同源与评分诊断；默认四开关仍关闭，Demo需显式启用。
+[五分钟演示及统一启动](docs/DEMO.md) · [架构与证据索引](docs/DELIVERY_ARCHITECTURE.md) ·
+[外部ECom-Bench静态决策](docs/ECOM_BENCH_COMPATIBILITY.md)。
 
 ---
 
@@ -51,39 +56,41 @@ User → Gradio UI / evaluation → ChatService → Unified Agent
 ## 快速开始
 
 ```bash
-# 1. 依赖
-uv sync --extra dev
+uv sync --extra dev --frozen
+# 首次配置：复制.env.example为.env并填写DeepSeek Key；已有.env不要覆盖。
+cp -n .env.example .env
 
-# 2. 配置
-cp .env.example .env        # 填入 ACS_LLM_API_KEY 与 ACS_EMBEDDING_API_KEY
+# 终端一：独立持久化v2演示库，整篇文档模式，无需Embedding Key/建索引
+uv run python scripts/workbench.py --demo
 
-# 3. 建库 + 建索引（各一次）
-uv run python scripts/init_db.py        # 25 订单 / 4 商品 / 19 物流
-uv run python scripts/build_index.py    # 48 chunks / 8 文档
-
-# 4. 启动
-uv run python app.py                    # http://127.0.0.1:7860
-
-# 5. 可选：命令行验证四个 Demo Case（UI 出问题时用来定位）
-uv run python scripts/run_demo_cases.py
-uv run python scripts/run_demo_cases.py --case 3
-
-# 6. 测试
-uv run pytest && uv run ruff check .
+# 终端二：客户入口首次初始化后，再启动同库的认证管理入口
+uv run python scripts/workbench.py --demo --admin
 ```
 
-`app.py` 会在索引缺失时自动构建，所以第 3 步对启动不是必需的，但对调试有用。
-仅检索模式需要该索引，整篇文档与全文模式不为启动额外调用 embedding。
-已有索引与文档、切分配置或版本不符时会明确报错，需重新构建；不会继续返回旧政策。
-已有数据库直接启动应用即可追加会话迁移；`init_db.py` 是种子重建入口，不用于升级。
-它发现已有会话时会拒绝重建，避免丢失历史与业务数据。
-相关性标定绑定知识库、切分版本与 embedding 模型，不能直接套用到新语料。
-样例数据库按生成当日计算日期；跨日重演“前天收到”等示例时需重新生成。
-对照评测使用固定参考日期，见问题记录中的运行条件。
+客户入口`http://127.0.0.1:7860`，管理入口`http://127.0.0.1:7861`；Ctrl+C停止。
+演示目录默认`~/.local/share/ecommerce-agent/workbench-v2`，不存在才生成，重启保留记录。
+`--demo`只临时启用保护；普通配置用`uv run python scripts/workbench.py`，四开关默认false。
+管理账号、已占端口、新场景与覆盖范围见[Demo说明](docs/DEMO.md)。真实对话会调用付费模型。
+
+原始检索模式仍可用`uv run python app.py`，依赖原业务库与匹配的向量索引；需要时执行
+`scripts/init_db.py`和`scripts/build_index.py`。已有会话不重新播种，不为演示覆盖历史库。
+整篇文档模式不调用Embedding或rerank。查询事实与政策均来自工具，上传材料保持未经审核。
+
+```bash
+uv run pytest
+uv run ruff check .
+uv run python scripts/check_secrets.py --all-tracked
+```
+
+自动检查位于[GitHub Actions](.github/workflows/offline.yml)，无模型密钥，锁定依赖安装；
+可选外部tau2依赖缺失会跳过适配测试。本地验证结果与远程CI状态分别报告。
 
 ---
 
 ## 页面
+
+以下O100xx用例及25订单表描述原始检索数据集；默认工作台v2合成库使用S200xx，
+共有三用户60订单，其完整操作流程见[五分钟Demo](docs/DEMO.md)。不要混用两组订单号。
 
 直接打开页面，在“模拟用户”选择演示身份，无需登录。切换用户会清空当前界面上下文，
 但保留各用户原历史。刷新或重启后选择历史会话，可恢复对话与退货草稿；“新建会话”
@@ -106,8 +113,9 @@ uv run pytest && uv run ruff check .
 页面校验用例、原始记录的 hash 和评分版本，避免把不匹配的快照展示为当前结果。
 业务数据页显示当前数据库；历史对照使用冻结的参考日期，两者应区分。
 
-客服正文通过模型流式接口实时显示，收到文本片段即更新同一个聊天气泡。
-若回答中途断流，保留已显示文字并明确提示未完成；缺少用量数据时标明成本统计不完整。
+普通客服正文通过模型流式接口实时显示，收到文本片段即更新同一个聊天气泡。
+显式启用保护后的适用请求先展示进度，核验完成才展示结论；异常不泄漏缓冲的未核验文字。
+普通路径若中途断流，保留已显示文字并提示未完成；缺少用量数据时标明成本统计不完整。
 执行轨迹在运行过程中逐步显示，自动跟随新步骤；向上滚动可查看已完成步骤。
 工具参数接收完整后才执行。
 耗时只在客服回复上方显示实际已用时间与完成用时，不展示预测完成时间。

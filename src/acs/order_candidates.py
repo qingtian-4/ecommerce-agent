@@ -80,6 +80,17 @@ def order_lookup_result(trace: list[TraceEvent], task_view: dict,
         return None
     if not _valid_orders(payload["orders"]):
         return None
+    orders = payload["orders"]
+    order_ids = [o["order_id"] for o in orders]
+    item_ids = [item["id"] for o in orders for item in o["items"]]
+    if (any(k in payload for k in ("error", "error_type"))
+            or type(payload.get("count")) is not int or payload["count"] != len(orders)
+            or len(set(order_ids)) != len(order_ids) or len(set(item_ids)) != len(item_ids)
+            or any(k in payload and payload[k] is not False
+                   for k in ("partial", "truncated", "has_more"))
+            or any(k in payload and payload[k] is not True for k in ("complete", "success"))
+            or payload.get("next_cursor") not in (None, "")):
+        return None
     return index, payload
 
 

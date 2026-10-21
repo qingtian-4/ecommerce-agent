@@ -30,7 +30,7 @@ def color_constraint(history: list[dict]) -> dict:
             state = {'status': 'active', 'color': match[1], 'source': raw, 'user_turn': turn}
         elif text in {'取消颜色限制', '改成所有颜色都看'}:
             state = {'status': 'cancelled', 'source': raw, 'user_turn': turn}
-        elif (_requested_scope(raw) == 'headphones'
+        elif (text in {'谢谢', '好的', '收到'} or _requested_scope(raw) == 'headphones'
               or re.fullmatch(r'查一下S[0-9]+的订单详情', text)):
             continue
         else:
@@ -39,22 +39,12 @@ def color_constraint(history: list[dict]) -> dict:
     return state
 
 
-def _complete(payload: dict) -> bool:
-    """Reject duplicate or partial rows instead of reporting plausible totals."""
-    orders = payload['orders']
-    ids = [o['order_id'] for o in orders]
-    items = [i['id'] for o in orders for i in o['items']]
-    return (not any(k in payload for k in ('error', 'error_type'))
-            and type(payload.get('count')) is int and payload['count'] == len(orders)
-            and len(set(ids)) == len(ids) and len(set(items)) == len(items))
-
-
 def constrained_response(trace: list[TraceEvent], task: dict, stop: str,
                          query: str, state: dict) -> tuple[str, dict] | None:
     if state['status'] != 'active' or _requested_scope(query) != 'headphones':
         return None
     source = order_lookup_result(trace, task, stop)
-    if source is None or not _complete(source[1]):
+    if source is None:
         return None
     return order_candidate_response(trace, task, stop, user_text=query, has_history=True,
                                     color_constraint=state)
@@ -92,7 +82,7 @@ def aggregate_response(trace: list[TraceEvent], task: dict, stop: str, query: st
     if has_history or request is None:
         return None
     source = order_lookup_result(trace, task, stop)
-    if source is None or not _complete(source[1]):
+    if source is None:
         return None
     index, payload = source
     orders = payload['orders']

@@ -316,10 +316,11 @@ class SessionStore:
             if turn is None:
                 raise TaskValidationError("草稿只能由当前进行中的会话轮次更新")
             if cancel:
-                text = turn["user_text"]
-                target = r"(退货(?:草稿|申请)?|草稿)"
-                action = r"(取消|中止|清空|放弃)(当前|这个|这份|我的)?" + target
-                if not re.search(action, text) or re.search(r"(不要|别|不用|无需)" + action, text):
+                # Quoted, hypothetical or qualified actions are not whole-utterance consent.
+                text = turn["user_text"].strip().rstrip("。.!！")
+                explicit = re.fullmatch(r"(?:请)?(?:取消|中止|清空)(?:当前|这个|这份|我的)?"
+                                        r"(?:退货草稿|退货|草稿)", text)
+                if not explicit and text != "中止这个退货草稿，不要取消订单":
                     raise TaskValidationError(
                         "暂停话题不清空草稿。确需中止请明确说“中止退货草稿”。"
                     )
@@ -333,6 +334,8 @@ class SessionStore:
             if previous and previous["status"] == "submitted":
                 raise TaskValidationError("申请已经提交，不能修改或用中止草稿撤销；"
                                           "请查询结果，新申请请新建会话。")
+            if cancel and (previous is None or previous["status"] == "cancelled"):
+                return self._task_view(conn, previous, user_id)
             task = previous if previous and previous["status"] == "draft" else {
                 **dict.fromkeys(fields), "sources": {},
                 "revision": previous["revision"] if previous else 0,

@@ -109,7 +109,9 @@ def test_rendered_rows_preserve_every_order_item_sku_and_ordering(local):
 
 def sample_trace(orders=None):
     return [TraceEvent("tool_call", "list_orders", {"arguments": "{}"}),
-            TraceEvent("tool_result", "list_orders", {"result": {"orders": orders or []}})]
+            TraceEvent("tool_result", "list_orders", {"result": {
+                "orders": orders or [], "count": len(orders or []),
+            }})]
 
 
 @pytest.mark.parametrize("state", ["draft", "cancelled", "submitted", "unknown"])
@@ -252,8 +254,11 @@ def test_malformed_result_preserves_completed_reply_and_business_state(local, mo
                           ]), ScriptedResponse(text=answer)])
     saved = store.load(final.session_id, "USER001")
     assert final.result.stop_reason == "answered"
-    assert final.result.answer == agent.messages[-1]["content"] == answer
-    assert saved["last_result"]["answer"] == saved["messages"][-1]["content"] == answer
-    assert final.result.trace[-1].detail["text"] == answer
+    assert "未取得可核验的完整订单结果" in final.result.answer
+    assert final.result.answer == agent.messages[-1]["content"]
+    assert saved["last_result"]["answer"] == saved["messages"][-1]["content"] == final.result.answer
+    assert final.result.trace[-1].detail["text"] == final.result.answer
+    gate = next(e for e in final.result.trace if e.type == "output_gate")
+    assert not gate.detail["verified"] and gate.detail["original_answer"] == answer
     assert not any(e.type == "fact_render" for e in final.result.trace)
     assert final.task_view["task"] is None and snapshot() == before

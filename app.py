@@ -350,6 +350,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             title = f"Step {step_no} · 页面操作 <code>{html.escape(event.label)}</code>"
         elif event.type == "state_check":
             title = f"Step {step_no} · 服务端状态检查 <code>{html.escape(event.label)}</code>"
+        elif event.type == "output_gate":
+            title = f"Step {step_no} · 输出核验（原答仅供诊断） <code>{html.escape(event.label)}</code>"
         elif event.type == "fact_render":
             label = "订单统计事实" if event.label == "order_aggregation" else "订单候选事实"
             title = f"Step {step_no} · {label} <code>{html.escape(event.label)}</code>"
@@ -378,7 +380,7 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
 
         css_class = event.type.replace("_", "-")
         if css_class not in {"call", "result", "retrieval", "error", "final", "state-check",
-                             "fact-render"}:
+                             "fact-render", "output-gate"}:
             css_class = ""
         parts.append(
             f"<div class='trace-step {css_class}'>"

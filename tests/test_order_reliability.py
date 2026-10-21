@@ -138,7 +138,11 @@ def audit(final, case, truth):
 @pytest.mark.parametrize('case', FROZEN['cases'], ids=lambda c: c['id'])
 def test_frozen_reliability_cases(local, case):
     final, _, _ = run_case(local, True, case)
-    assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
+    if case['id'] == 'stats-foreign-order':
+        assert '未取得可核验的完整订单结果' in final.result.answer
+        assert not any(e.type == 'fact_render' for e in final.result.trace)
+    else:
+        assert audit(final, case, sql_truth(local[0], 'USER001', case)), final.result.answer
 
 
 @pytest.mark.parametrize('case_id', ['original-white-restore', 'stats-total'])
@@ -182,7 +186,10 @@ def _bad_payload(payload, kind):
 def test_malformed_data_declines_without_business_changes(local, case_id, kind):
     case = next(c for c in FROZEN['cases'] if c['id'] == case_id)
     final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
-    assert final.result.answer == scripted_answer(case)
+    assert '未取得可核验的完整订单结果' in final.result.answer
+    gate = next(e for e in final.result.trace if e.type == 'output_gate')
+    assert gate.detail['original_answer'] == scripted_answer(case)
+    assert not gate.detail['verified']
     assert not any(e.type == 'fact_render' for e in final.result.trace)
 
 
@@ -190,7 +197,10 @@ def test_malformed_data_declines_without_business_changes(local, case_id, kind):
 def test_unknown_category_never_guesses_constraint_match(local, kind):
     case = FROZEN['cases'][0]
     final, _, _ = run_case(local, True, case, mutate=lambda p: _bad_payload(p, kind))
-    assert final.result.answer == scripted_answer(case)
+    assert '未取得可核验的完整订单结果' in final.result.answer
+    gate = next(e for e in final.result.trace if e.type == 'output_gate')
+    assert gate.detail['original_answer'] == scripted_answer(case)
+    assert not gate.detail['verified']
     assert not any(e.type == 'fact_render' for e in final.result.trace)
 
 
@@ -371,7 +381,7 @@ def test_mixed_tools_keep_original_answer(local):
     agent = CustomerServiceAgent(settings=settings, llm=llm, registry=ToolRegistry(settings))
     query = next(c['query'] for c in FROZEN['cases'] if c['id'] == 'stats-total')
     final = list(ChatService(settings, store).run_turn(query, 'USER001', agent=agent))[-1]
-    assert final.result.answer == '保留混合工作流回答。'
+    assert '未取得可核验的完整订单结果' in final.result.answer
     assert not any(e.type == 'fact_render' for e in final.result.trace)
 
 

@@ -1,0 +1,24 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_colour_cancel_does_not_overwrite_unrelated_draft_conversation ______
+
+flow = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...re object at 0x7f2f14b40ec0>, <acs.returns.ReturnService object at 0x7f2f14b40d70>, '77f79b6b91444d64aa2c03a6cacf81f2')
+
+    def test_colour_cancel_does_not_overwrite_unrelated_draft_conversation(flow):
+        settings, store, _, sid = flow
+        before = store.get_return_task(sid, 'USER001')['task']
+        original = '颜色限制已取消，退货草稿保持不变。'
+        llm = StreamingWrong([ScriptedResponse(text=original)])
+        agent = CustomerServiceAgent(settings=settings, llm=llm, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn('取消颜色限制。', 'USER001', sid,
+                                                        agent=agent))[-1]
+>       assert final.result.answer == original
+E       AssertionError: assert '当前退货草稿已保留，未执...请明确说“中止退货草稿”。' == '颜色限制已取消，退货草稿保持不变。'
+E         
+E         - 颜色限制已取消，退货草稿保持不变。
+E         + 当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。
+
+tests/test_delivery_reliability.py:313: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_delivery_reliability.py::test_colour_cancel_does_not_overwrite_unrelated_draft_conversation
+1 failed in 5.03s

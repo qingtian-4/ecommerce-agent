@@ -9,15 +9,20 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Iterator
 from contextlib import closing
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from threading import BoundedSemaphore
 from time import perf_counter
 
 from .config import Settings
 from .context import ContextLimitExceeded, bounded_context
 from .cs_tools import TraceEvent
-from .order_candidates import order_candidate_response
-from .order_reliability import aggregate_response, color_constraint, constrained_response
+from .order_candidates import _requested_scope, order_candidate_response
+from .order_reliability import (
+    _count_request,
+    aggregate_response,
+    color_constraint,
+    constrained_response,
+)
 from .return_state_check import check_order_draft, state_notice
 from .runtime import BudgetExceeded, RunBudget
 from .service_agent import AgentResult, CustomerServiceAgent, build_system_prompt
@@ -56,11 +61,13 @@ class ChatService:
         reply_index = 0
         acquired, finished = False, False
         result = AgentResult(answer="", stop_reason="running")
+        guarded, cancel_guarded = False, False
 
         def update(phase: str) -> TurnUpdate:
-            history[reply_index:] = ([{"role": "assistant", "content": result.answer}]
-                                     if result.answer else [])
-            return TurnUpdate(sid, list(history), result, task, phase,
+            visible = replace(result, answer="") if guarded and phase != "completed" else result
+            history[reply_index:] = ([{"role": "assistant", "content": visible.answer}]
+                                     if visible.answer else [])
+            return TurnUpdate(sid, list(history), visible, task, phase,
                               (perf_counter() - started) * 1000)
 
         try:
@@ -70,6 +77,18 @@ class ChatService:
             task = self.store.get_return_task(sid, user_id)
             constraint = (color_constraint(snapshot["history"])
                           if self.settings.order_constraint_enabled else None)
+            has_history = bool(snapshot["messages"])
+            scope = _requested_scope(message)
+            cancel_guarded = (bool(task["task"])
+                              and any(noun in message for noun in ("草稿", "退货"))
+                              and any(word in message for word in (
+                                  "取消", "中止", "清空", "放弃", "暂停")))
+            guarded = cancel_guarded or (task["task"] is None and (
+                (self.settings.order_candidate_render_enabled and not has_history and scope)
+                or (constraint and constraint["status"] == "active" and scope == "headphones")
+                or (self.settings.order_aggregation_enabled and not has_history
+                    and _count_request(message))
+            ))
             acquired = self.limiter.acquire(blocking=False)
             yield update("running" if acquired else "queued")
             while not acquired:
@@ -102,6 +121,11 @@ class ChatService:
             task_events = 0
             with closing(agent.chat_stream(message, budget=budget)) as stream:
                 for result in stream:
+                    cancel_guarded = cancel_guarded or any(
+                        e.type == "tool_call" and e.label == "cancel_return_task"
+                        for e in result.trace
+                    )
+                    guarded = guarded or cancel_guarded
                     result.totals["context"] = context_stats
                     result.totals["budget"] = budget.as_dict()
                     updates = sum(e.type == "tool_result" and e.label in {
@@ -111,6 +135,7 @@ class ChatService:
                         task = self.store.get_return_task(sid, user_id)
                         task_events = updates
                     if result.stop_reason != "running":
+                        model_answer = result.answer
                         rendered = None
                         render_label = "order_candidates"
                         if (self.settings.order_constraint_enabled
@@ -148,6 +173,39 @@ class ChatService:
                                 finals[-1].detail["text"] = result.answer
                             result.trace.insert(len(result.trace) - bool(finals), TraceEvent(
                                 "fact_render", render_label, detail,
+                            ))
+                        if guarded:
+                            original = model_answer
+                            verified = rendered is not None
+                            if cancel_guarded:
+                                task = self.store.get_return_task(sid, user_id)
+                                actual = task["task"]
+                                status = actual["status"] if actual else "absent"
+                                result.answer = {
+                                    "cancelled": ("退货草稿已清空；订单未取消，"
+                                                  "已提交申请不会因此撤回。"),
+                                    "submitted": ("申请已提交，取消草稿不能撤回申请，"
+                                                  "请查询审核结果。"),
+                                    "draft": ("当前退货草稿已保留，未执行取消。"
+                                              "确需清空请明确说“中止退货草稿”。"),
+                                    "absent": "当前没有可取消的退货草稿。",
+                                }[status]
+                                verified = True
+                            elif not verified:
+                                result.answer = ("本次未取得可核验的完整订单结果，"
+                                                 "未展示数量或候选。"
+                                                 "请重试或提供具体订单号。")
+                            if result.stop_reason != "answered":
+                                result.answer += " 本次回答未完成，请重新载入后重试。"
+                            agent.messages[-1]["content"] = result.answer
+                            for event in result.trace:
+                                if event.type == "final":
+                                    event.detail["text"] = result.answer
+                            result.trace.insert(max(0, len(result.trace) - 1), TraceEvent(
+                                "output_gate", "protected_response", {
+                                    "verified": verified, "original_answer": original,
+                                    "note": "原始模型文字仅供诊断，未作为核验前结论展示。",
+                                },
                             ))
                         if self.settings.return_state_check_enabled:
                             checked_at = perf_counter()
@@ -217,6 +275,7 @@ class ChatService:
                 self.limiter.release()
             if not finished:
                 self.store.interrupt_turn(
-                    sid, user_id, tid, result.answer + "\n\n本次回答中断，尚未完成，请重新提问。"
+                    sid, user_id, tid, ("" if guarded else result.answer)
+                    + "\n\n本次回答中断，尚未完成，请重新提问。"
                     "当前没有人工接入此窗口的功能。",
                 )

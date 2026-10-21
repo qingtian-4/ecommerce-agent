@@ -1,0 +1,95 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> scripts/check_delivery_ui.py:15:5
+   |
+14 |   def serve(scenario, port, candidate, admin):
+15 | /     from pydantic import SecretStr
+16 | |
+17 | |     import app
+18 | |     from acs.config import Settings
+19 | |     from acs.cs_tools import ToolRegistry
+20 | |     from acs.scenarios import build_scenario, scenario_settings
+21 | |     from acs.service_agent import CustomerServiceAgent
+22 | |     from acs.sessions import SessionStore
+23 | |     from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall
+   | |______________________________________________________________________________^
+24 |
+25 |       if not scenario.exists():
+   |
+help: Organize imports
+   |
+14 | def serve(scenario, port, candidate, admin):
+15 +     import app
+16 |     from pydantic import SecretStr
+17 +     from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall
+18 |
+   -     import app
+19 |     from acs.config import Settings
+--------------------------------------------------------------------------------
+23 |     from acs.sessions import SessionStore
+   -     from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall
+24 |
+   |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> scripts/check_delivery_ui.py:33:9
+   |
+31 |                   'admin_password': SecretStr('demo-test-password')})
+32 |       if admin:
+33 | /         import admin_app
+34 | |         from acs.returns import ReturnService
+   | |_____________________________________________^
+35 |           admin_app.build_app(settings).launch(server_name='127.0.0.1', server_port=port,
+36 |               auth=ReturnService(settings).authenticate_reviewer, show_error=False)
+   |
+help: Organize imports
+   |
+33 |         import admin_app
+34 +
+35 |         from acs.returns import ReturnService
+   |
+
+E501 Line too long (102 > 100)
+  --> scripts/check_delivery_ui.py:89:101
+   |
+87 |                 '#customer-chat'); window.visibleObserver=new MutationObserver(()=>{
+88 |                 window.visibleFrames.push(el.innerText);});
+89 |                 window.visibleObserver.observe(el,{subtree:true,childList:true,characterData:true}); }
+   |                                                                                                     ^^
+90 |             """)
+91 |         def collect(label):
+   |
+
+E501 Line too long (106 > 100)
+   --> scripts/check_delivery_ui.py:108:99
+    |
+106 |         observe('candidate')
+107 |         send('我的订单一共买了多少件商品？只给总件数，不要列表。')
+108 |         page.wait_for_function("document.querySelector('#customer-chat').innerText.includes('29 件商品')")
+    |                                                                                                     ^^^^^^
+109 |         collect('candidate')
+110 |         assert frames['candidate'] and not any('25件' in f for f in frames['candidate'])
+    |
+
+E501 Line too long (306 > 100)
+   --> scripts/check_delivery_ui.py:140:100
+    |
+138 | …
+139 | …
+140 | … for f in frames['baseline']), 'candidate_wrong_visible':False, 'candidate_frame_count':len(frames['candidate']), 'preview_submit_admin_query':True, 'negative_cancel_blocked':True,'paid_calls':0},indent=2)+'\n')
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+141 | …
+    |
+
+E501 Line too long (101 > 100)
+  --> scripts/workbench.py:19:101
+   |
+17 | def main():
+18 |     parser = argparse.ArgumentParser(description=__doc__)
+19 |     parser.add_argument('--demo', action='store_true', help='Explicitly enable all four protections')
+   |                                                                                                     ^
+20 |     parser.add_argument('--admin', action='store_true')
+21 |     parser.add_argument('--port', type=int)
+   |
+
+Found 6 errors.
+[*] 2 fixable with the `--fix` option.
