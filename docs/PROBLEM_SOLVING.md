@@ -1134,3 +1134,12 @@ P0状态检查、SessionStore、ReturnService和BusinessDB文件未改，另测�
 实际GitHub页面核实babbfab CI成功、P0 PR #1仍OPEN；后续PR应以P0分支为基线，避免重复差异。
 CLI凭据失效阻塞PR写入，已准备正文与顺序，不把SSH推送成功说成PR已完成。项目进入维护与
 面试准备，范围、材料、原始失败及最终远端状态见[交付报告](../results/project_handoff_babbfab/REPORT.md)。
+
+## 2026-10-22：合并后 CI 的跨日时钟偏差
+
+PR #3 合并到 main 后，UTC 主机在上海已跨日的时段出现两项日期断言失败。
+播种使用主机 `date.today()`，订单查询使用上海业务日期，两者相差一天。
+`db_seed.build` 现在复用原 `business_today`，保留显式 `reference_date`，不改业务政策、
+冻结数据或原断言。UTC 15:30/16:30 与显式日期四例先复现 1 failed/3 passed；
+修复后相关 18 passed，完整离线 699 passed、1 skipped、4 warnings。
+证据见 `results/seed_clock_20261022/`。无网络或付费请求。
