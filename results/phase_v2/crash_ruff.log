@@ -1,0 +1,23 @@
+E501 Line too long (103 > 100)
+   --> src/acs/sessions.py:259:82
+    |
+257 |                         answer += f"申请 {request['request_id']} 当前{label}，尚未退款。"
+258 |                     elif task and task['status'] == 'draft':
+259 |                         answer += f"订单 {task['order_id'] or '未指定'} 的退货草稿仍在，尚未提交申请。"
+    |                                                                                                     ^^^
+260 |                     elif task and task['status'] == 'cancelled':
+261 |                         answer += '草稿已中止，订单未取消。'
+    |
+
+E501 Line too long (131 > 100)
+  --> tests/test_crash_recovery_v2.py:79:101
+   |
+77 |     child = subprocess.run([sys.executable, '-c', WORKER, mode, str(settings.db_path), sid,
+78 |                             str(settings.docs_dir)], capture_output=True, text=True,
+79 |                            env={**os.environ, 'PYTHONPATH': str(Path.cwd()) + os.pathsep + str(Path('src').resolve())}, timeout=20)
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+80 |     assert child.returncode == 91, child.stderr
+81 |     restarted = SessionStore(settings.db_path)
+   |
+
+Found 2 errors.
