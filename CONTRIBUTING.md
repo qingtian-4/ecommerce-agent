@@ -17,7 +17,8 @@ binding.
    `docs/EXPERIMENT_LOG.md` (measured findings and regression risks).
 2. Check `git status` and the current branch. **Do not overwrite uncommitted
    work.** If the tree is dirty, ask before touching the affected files.
-3. The remote repository is `qingtian-4/ecommerce-agent` (private). Commit and
+3. The remote repository is `qingtian-4/ecommerce-agent`. Visibility is a live
+   repository setting; check it before publication rather than inferring it here. Commit and
    push only when authorized by the user; do not force-push or rewrite shared
    history without an explicit request (see §5).
 4. For anything larger than a single small change, state a brief plan and how
@@ -27,10 +28,10 @@ binding.
 ## 2. Environment and verification
 
 ```bash
-uv sync --extra dev                  # install
-uv run pytest                        # 115+ tests, no API key needed
+uv sync --extra dev --frozen         # install locked dependencies
+uv run pytest                        # offline tests, no model key needed
 uv run ruff check .                  # lint, line-length 100 (see pyproject.toml)
-uv run python app.py                 # http://127.0.0.1:7860
+uv run python scripts/workbench.py --demo  # synthetic local demonstration
 ```
 
 Tests are designed to run **without an API key or network**: the agent uses a

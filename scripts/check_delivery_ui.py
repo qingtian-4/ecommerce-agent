@@ -65,6 +65,21 @@ def serve(scenario, port, candidate, admin, faults=False):
             elif "不是要取消" in query:
                 calls = [ScriptedToolCall("cancel", "cancel_return_task", "{}")]
                 text = "已经清空退货草稿。"
+            elif "商品V201" in query:
+                calls = [ScriptedToolCall("product", "get_product", '{"product_id":"V201"}')]
+                text = "商品V201的规格请以本轮商品工具记录为准。"
+            elif "退货政策" in query:
+                calls = [ScriptedToolCall(
+                    "policy", "get_knowledge_documents",
+                    '{"document_ids":["return_policy"]}',
+                )]
+                text = "无理由7天，质量问题15天；以return_policy.md政策和实际资格核查为准。"
+            elif "查S20008" in query:
+                calls = [ScriptedToolCall("order", "get_order", '{"order_id":"S20008"}')]
+                text = "S20008的V201-2商品为白色，订单状态为已发货。"
+            elif "退S20017" in query:
+                calls = [ScriptedToolCall("order", "get_order", '{"order_id":"S20017"}')]
+                text = "请补充需要退货的商品明细。"
             elif "退S20002" in query:
                 calls = [
                     ScriptedToolCall("order", "get_order", '{"order_id":"S20002"}'),
@@ -168,13 +183,15 @@ def browser_faults(output, url):
         instance.close()
 
 
-def browser(output, url, baseline, admin):
+def browser(output, url, baseline, admin, video=False):
     from playwright.sync_api import sync_playwright
 
     output.mkdir(parents=True, exist_ok=False)
     with sync_playwright() as manager:
         browser = manager.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": 1440, "height": 1100})
+        options = {"record_video_dir": str(output / "video")} if video else {}
+        context = browser.new_context(viewport={"width": 1440, "height": 1100}, **options)
+        page = context.new_page()
         frames = {}
 
         def observe(label):
@@ -214,10 +231,37 @@ def browser(output, url, baseline, admin):
         assert frames["candidate"] and not any("25件" in f for f in frames["candidate"])
         page.screenshot(path=str(output / "candidate.png"), full_page=True)
         page.locator("#new-conversation").click()
+        for query, expected in (
+            ("查询商品V201的规格。", "商品V201的规格"),
+            ("退货政策的期限是什么？", "质量问题15天"),
+            ("查S20008的颜色和状态。", "V201-2商品为白色"),
+        ):
+            send(query)
+            page.wait_for_function(
+                "value => document.querySelector('#customer-chat').innerText.includes(value)",
+                arg=expected,
+            )
+        page.screenshot(path=str(output / "knowledge.png"), full_page=True)
+        page.locator("#new-conversation").click()
+        send("我想退S20017。")
+        page.wait_for_function(
+            "document.querySelector('#return-task').innerText.includes('S20017')"
+        )
+        page.screenshot(path=str(output / "order_only.png"), full_page=True)
         send("我想退S20002，耳机退1件，无理由，未拆封，符合二次销售条件。")
         page.wait_for_function(
             "document.querySelector('#customer-chat').innerText.includes('草稿已保存')"
         )
+        page.wait_for_function(
+            "document.querySelector('#return-task').innerText.includes('S20002')"
+        )
+        page.reload(wait_until="domcontentloaded")
+        page.locator("#conversation-history input").first.wait_for()
+        page.locator("#conversation-history input").first.check()
+        page.wait_for_function(
+            "document.querySelector('#return-task')?.innerText.includes('S20002')"
+        )
+        page.screenshot(path=str(output / "restored.png"), full_page=True)
         send("我不是要取消退货草稿，只是问问。")
         page.wait_for_function(
             "document.querySelector('#customer-chat').innerText.includes('草稿已保留')"
@@ -233,7 +277,7 @@ def browser(output, url, baseline, admin):
         )
         page.screenshot(path=str(output / "submitted.png"), full_page=True)
         customer = page
-        reviewer = browser.new_page(viewport={"width": 1440, "height": 1000})
+        reviewer = context.new_page()
         reviewer.goto(admin, wait_until="domcontentloaded")
         reviewer.locator("input").nth(0).fill("demo-reviewer")
         reviewer.locator("input[type=password]").fill("demo-test-password")
@@ -265,12 +309,17 @@ def browser(output, url, baseline, admin):
                     "candidate_frame_count": len(frames["candidate"]),
                     "preview_submit_admin_query": True,
                     "negative_cancel_blocked": True,
+                    "product_policy_order_tools": True,
+                    "order_correction_and_page_restore": True,
+                    "knowledge_mode": "documents; not vector RAG",
+                    "video_recorded": video,
                     "paid_calls": 0,
                 },
                 indent=2,
             )
             + "\n"
         )
+        context.close()
         browser.close()
 
 
@@ -282,6 +331,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=7890)
     parser.add_argument("--candidate", action="store_true")
     parser.add_argument("--admin", action="store_true")
+    parser.add_argument("--video", action="store_true")
     parser.add_argument("--out", type=Path)
     parser.add_argument("--url", default="http://127.0.0.1:7890")
     parser.add_argument("--baseline", default="http://127.0.0.1:7892")
@@ -292,4 +342,4 @@ if __name__ == "__main__":
     elif args.faults:
         browser_faults(args.out, args.url)
     else:
-        browser(args.out, args.url, args.baseline, args.admin_url)
+        browser(args.out, args.url, args.baseline, args.admin_url, args.video)
