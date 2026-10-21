@@ -1,0 +1,72 @@
+........................FFFF                                             [100%]
+=================================== FAILURES ===================================
+___ test_judge_errors_preserve_exact_original_response_and_reason[not json] ____
+
+raw = 'not json'
+
+    @pytest.mark.parametrize('raw', ['not json', '[]', '{"passed":true}', 'null'])
+    def test_judge_errors_preserve_exact_original_response_and_reason(raw):
+        class Client:
+            usages = []
+            def complete(self, *args, **kwargs):
+                return SimpleNamespace(text=raw)
+        result = judge_record(Client(), {'events': []})
+>       assert result['raw_response_text'] == raw
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'raw_response_text'
+
+tests/test_delivery_reliability.py:126: KeyError
+______ test_judge_errors_preserve_exact_original_response_and_reason[[]] _______
+
+raw = '[]'
+
+    @pytest.mark.parametrize('raw', ['not json', '[]', '{"passed":true}', 'null'])
+    def test_judge_errors_preserve_exact_original_response_and_reason(raw):
+        class Client:
+            usages = []
+            def complete(self, *args, **kwargs):
+                return SimpleNamespace(text=raw)
+        result = judge_record(Client(), {'events': []})
+>       assert result['raw_response_text'] == raw
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'raw_response_text'
+
+tests/test_delivery_reliability.py:126: KeyError
+_ test_judge_errors_preserve_exact_original_response_and_reason[{"passed":true}] _
+
+raw = '{"passed":true}'
+
+    @pytest.mark.parametrize('raw', ['not json', '[]', '{"passed":true}', 'null'])
+    def test_judge_errors_preserve_exact_original_response_and_reason(raw):
+        class Client:
+            usages = []
+            def complete(self, *args, **kwargs):
+                return SimpleNamespace(text=raw)
+        result = judge_record(Client(), {'events': []})
+>       assert result['raw_response_text'] == raw
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'raw_response_text'
+
+tests/test_delivery_reliability.py:126: KeyError
+_____ test_judge_errors_preserve_exact_original_response_and_reason[null] ______
+
+raw = 'null'
+
+    @pytest.mark.parametrize('raw', ['not json', '[]', '{"passed":true}', 'null'])
+    def test_judge_errors_preserve_exact_original_response_and_reason(raw):
+        class Client:
+            usages = []
+            def complete(self, *args, **kwargs):
+                return SimpleNamespace(text=raw)
+        result = judge_record(Client(), {'events': []})
+>       assert result['raw_response_text'] == raw
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'raw_response_text'
+
+tests/test_delivery_reliability.py:126: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_delivery_reliability.py::test_judge_errors_preserve_exact_original_response_and_reason[not json]
+FAILED tests/test_delivery_reliability.py::test_judge_errors_preserve_exact_original_response_and_reason[[]]
+FAILED tests/test_delivery_reliability.py::test_judge_errors_preserve_exact_original_response_and_reason[{"passed":true}]
+FAILED tests/test_delivery_reliability.py::test_judge_errors_preserve_exact_original_response_and_reason[null]
+4 failed, 24 passed in 23.17s

@@ -1,0 +1,106 @@
+stop: answeredsteps: 2tool calls: 1
+决策摘要
+调用了业务工具 list_orders，共 1 次工具调用。
+Step 1 · 工具调用 list_orders
+{}
+Step 2 · 工具返回 list_orders
+{
+ "orders": [
+  {
+   "order_id": "S20004",
+   "status": "pending",
+   "created_at": "2026-10-14",
+   "delivered_at": null,
+   "items": [
+    {
+     "id": 5,
+     "product_id": "V209",
+     "product_name": "演示 C65 充电器",
+     "quantity": 1,
+     "sku": {
+      "sku_id": "V209-2",
+      "color": "白色"
+     }
+    }
+   ]
+  },
+  {
+   "order_id": "S20010",
+   "status": "cancelled",
+   "created_at": "2026-10-14",
+   "delivered_at": null,
+   "items": [
+    {
+     "id": 13,
+     "product_id": "V210",
+     "product_name": "演示 C30 充电器",
+     "quantity": 1,
+     "sku": {
+      "sku_id": "V210-2",
+      "color": "蓝色"
+     }
+    }
+   ]
+  },
+  {
+   "order_id": "S20013",
+   "status": "shipped",
+   "created_at": "2026-10-14",
+   "delivered_at": null,
+   "items": [
+    {
+     "id": 16,
+     "product_id": "V209",
+     "product_name": "演示 C65 充电器",
+     "quantity": 1,
+     "sku": {
+      "sku_id": "V209-2",
+
+… (+6537 chars)
+Step 3 · 订单统计事实 order_aggregation
+{
+ "version": 1,
+ "tool_result_trace_index": 1,
+ "request": {
+  "unit": "units",
+  "scope": "all"
+ },
+ "order_ids": [
+  "S20004",
+  "S20010",
+  "S20013",
+  "S20019",
+  "S20005",
+  "S20008",
+  "S20014",
+  "S20020",
+  "S20001",
+  "S20002",
+  "S20003",
+  "S20009",
+  "S20015",
+  "S20018",
+  "S20006",
+  "S20007",
+  "S20011",
+  "S20012",
+  "S20016",
+  "S20017"
+ ],
+ "counts": {
+  "orders": 20,
+  "lines": 25,
+  "units": 29
+ },
+ "unit_semantics": "orders=count(orders);lines=count(items);units=sum(quantity)",
+ "user_id": "USER001",
+ "original_answer": "合计25件商品。"
+}
+Step 4 · 输出核验（原答仅供诊断） protected_response
+{
+ "verified": true,
+ "original_answer": "合计25件商品。",
+ "note": "原始模型文字仅供诊断，未作为核验前结论展示。"
+}
+Step 5 · 最终回答
+统计更正（以本轮查询记录为准）：29 件商品。

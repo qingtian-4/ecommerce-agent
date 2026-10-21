@@ -1,0 +1,244 @@
+.FFFFFFFFF.FF.F                                                          [100%]
+=================================== FAILURES ===================================
+________ test_frozen_tasks_finish_without_unrelated_orders[list-subset] ________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c22b1fbb0>)
+case = {'id': 'list-subset', 'query': '不要列全部订单，只列S20008和S20003的商品明细。', 'model_answer': '| 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状..._keys': [['S20008', 10], ['S20003', 4]], 'scope_order_ids': ['S20003', 'S20008'], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+____ test_frozen_tasks_finish_without_unrelated_orders[category-headphones] ____
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c229f03e0>)
+case = {'id': 'category-headphones', 'query': '只列耳机类商品的订单和明细，不要配件。', 'model_answer': '| 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 ...pe_order_ids': ['S20001', 'S20002', 'S20003', 'S20005', 'S20006', 'S20007', ...], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+___ test_frozen_tasks_finish_without_unrelated_orders[category-accessories] ____
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c2290dd90>)
+case = {'id': 'category-accessories', 'query': '只列充电配件的订单和明细，排除耳机。', 'model_answer': '| 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 ...pe_order_ids': ['S20001', 'S20004', 'S20005', 'S20010', 'S20013', 'S20017', ...], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+_______ test_frozen_tasks_finish_without_unrelated_orders[colour-white] ________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c22b9dd00>)
+case = {'id': 'colour-white', 'query': '只列白色SKU的订单和商品明细。', 'model_answer': '| 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\n...pe_order_ids': ['S20004', 'S20005', 'S20008', 'S20011', 'S20013', 'S20014', ...], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+_____ test_frozen_tasks_finish_without_unrelated_orders[colour-not-white] ______
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c22b9df20>)
+case = {'id': 'colour-not-white', 'query': '排除白色，只列其他已知颜色SKU的订单明细。', 'model_answer': '| 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 ...pe_order_ids': ['S20001', 'S20002', 'S20003', 'S20005', 'S20006', 'S20007', ...], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+______ test_frozen_tasks_finish_without_unrelated_orders[status-shipped] _______
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c22a34050>)
+case = {'id': 'status-shipped', 'query': '只列已发货但未签收的订单明细。', 'model_answer': '| 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |\...4], ['S20018', 23]], 'scope_order_ids': ['S20003', 'S20008', 'S20013', 'S20018'], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+_____ test_frozen_tasks_finish_without_unrelated_orders[status-delivered] ______
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c22a34450>)
+case = {'id': 'status-delivered', 'query': '不要未签收的，只列已经签收的订单明细。', 'model_answer': '| 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下...pe_order_ids': ['S20001', 'S20002', 'S20006', 'S20007', 'S20011', 'S20012', ...], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+_______ test_frozen_tasks_finish_without_unrelated_orders[count-orders] ________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c229cd130>)
+case = {'id': 'count-orders', 'query': '我有多少笔订单？只给数量，不要列表。', 'model_answer': '订单数：20笔。', 'expected': {'kind': 'order_count', ...pe_order_ids': ['S20004', 'S20010', 'S20013', 'S20019', 'S20005', 'S20008', ...], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+________ test_frozen_tasks_finish_without_unrelated_orders[count-items] ________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c229cdf40>)
+case = {'id': 'count-items', 'query': '我的订单一共买了多少件商品？只给总件数，不要列表。', 'model_answer': '商品件数：29件。', 'expected': {'kind': 'item_co...pe_order_ids': ['S20004', 'S20010', 'S20013', 'S20019', 'S20005', 'S20008', ...], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+_____ test_frozen_tasks_finish_without_unrelated_orders[return-headphones] _____
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c229f9a90>)
+case = {'id': 'return-headphones', 'query': '我想退耳机，请只列耳机类商品的候选明细让我选择。', 'model_answer': '| 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | ...ope_order_ids': ['S20001', 'S20002', 'S20003', 'S20005', 'S20006', 'S20007', ...], 'require_clarification': True, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+_______ test_frozen_tasks_finish_without_unrelated_orders[short-colour] ________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c22a6fa00>)
+case = {'id': 'short-colour', 'query': '只用一句话告诉我S20008的SKU是什么颜色，不列其他订单。', 'model_answer': '订单 S20008 的 V201-2 是白色。', 'expecte...kind': 'short', 'selected_keys': [['S20008', 10]], 'scope_order_ids': ['S20008'], 'require_clarification': False, ...}}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+______ test_frozen_tasks_finish_without_unrelated_orders[legacy-orders01] ______
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x722c229347d0>)
+case = {'id': 'legacy-orders01', 'query': '我想退最近买的耳机。', 'model_answer': '您最近的耳机订单有好几笔，需要您确认是哪一笔：\n\n**已签收的：**\n1. S20001 — 演示...rder_ids': ['S20001', 'S20002', 'S20003', 'S20005', 'S20006', 'S20007', ...], 'require_clarification': True, ...}, ...}
+
+    @pytest.mark.parametrize("case", FROZEN["cases"], ids=lambda c: c["id"])
+    def test_frozen_tasks_finish_without_unrelated_orders(local, case):
+        final, _ = replay(local, True, query=case["query"], responses=[
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=case["model_answer"]),
+        ])
+        measured = audit(final.result.answer, case, FROZEN["truth_rows"])
+        assert measured["fact_precision"] == 1
+>       assert measured["task_complete"], measured
+E       AssertionError: {'fact_claims': 26, 'correct_claims': 26, 'fact_precision': 1.0, 'task_complete': False, ...}
+E       assert False
+
+tests/test_order_candidate_scope.py:42: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[list-subset]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[category-headphones]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[category-accessories]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[colour-white]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[colour-not-white]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[status-shipped]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[status-delivered]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[count-orders]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[count-items]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[return-headphones]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[short-colour]
+FAILED tests/test_order_candidate_scope.py::test_frozen_tasks_finish_without_unrelated_orders[legacy-orders01]
+12 failed, 3 passed, 28 deselected in 12.18s

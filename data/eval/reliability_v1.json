@@ -1,0 +1,319 @@
+{
+  "baseline_commit": "92094ee331f54657472a8dada824dd3f73e9ac8a",
+  "cases": [
+    {
+      "id": "original-white-restore",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "candidates",
+      "color": "白色",
+      "restore": true
+    },
+    {
+      "id": "white-new",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。"
+      ],
+      "query": "我想退耳机。",
+      "mode": "candidates",
+      "color": "白色"
+    },
+    {
+      "id": "black-correction",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "改为只看黑色耳机。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "candidates",
+      "color": "黑色"
+    },
+    {
+      "id": "white-again",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "改为只看黑色耳机。",
+        "改为只看白色耳机。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "candidates",
+      "color": "白色"
+    },
+    {
+      "id": "cancel",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "取消颜色限制。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "cancel-new-limit",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "取消颜色限制。",
+        "后续只看黑色耳机。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "candidates",
+      "color": "黑色"
+    },
+    {
+      "id": "unknown-correction",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "不用管刚才的要求，其他颜色也看看。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "negated-limit",
+      "history": [
+        "不是只看白色耳机。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "quoted-limit",
+      "history": [
+        "他刚才说“后续一直只看白色耳机，不要列其他颜色，直到我明确更改。”"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "cross-order",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "查一下S20003的订单详情。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "candidates",
+      "color": "白色"
+    },
+    {
+      "id": "cross-order-direct",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。"
+      ],
+      "query": "查一下S20003的订单详情。",
+      "mode": "passthrough",
+      "tool": "get_order",
+      "arguments": {
+        "order_id": "S20003"
+      }
+    },
+    {
+      "id": "no-limit",
+      "history": [],
+      "query": "我想退最近买的耳机。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "unknown-current",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。"
+      ],
+      "query": "我想退上周买的黑色耳机。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "unknown-no-stale",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "算了随便什么颜色都可以。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "all-colors-correction",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。",
+        "改成所有颜色都看。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "empty-color",
+      "history": [
+        "后续只看蓝色耳机。"
+      ],
+      "query": "我想退最近买的耳机。",
+      "mode": "candidates",
+      "color": "蓝色"
+    },
+    {
+      "id": "stats-total",
+      "history": [],
+      "query": "我的订单一共买了多少件商品？只给总件数，不要列表。",
+      "mode": "aggregate",
+      "unit": "units"
+    },
+    {
+      "id": "stats-orders",
+      "history": [],
+      "query": "我的订单一共有多少笔订单？",
+      "mode": "aggregate",
+      "unit": "orders"
+    },
+    {
+      "id": "stats-lines",
+      "history": [],
+      "query": "我的订单一共有多少条商品明细？",
+      "mode": "aggregate",
+      "unit": "lines"
+    },
+    {
+      "id": "stats-all",
+      "history": [],
+      "query": "统计我的订单数、商品明细数和商品件数。",
+      "mode": "aggregate",
+      "unit": "all"
+    },
+    {
+      "id": "stats-delivered",
+      "history": [],
+      "query": "统计已签收订单的订单数、商品明细数和商品件数。",
+      "mode": "aggregate",
+      "unit": "all",
+      "status": "delivered"
+    },
+    {
+      "id": "stats-pending",
+      "history": [],
+      "query": "统计待发货订单的订单数、商品明细数和商品件数。",
+      "mode": "aggregate",
+      "unit": "all",
+      "status": "pending"
+    },
+    {
+      "id": "stats-shipped",
+      "history": [],
+      "query": "统计已发货订单的订单数、商品明细数和商品件数。",
+      "mode": "aggregate",
+      "unit": "all",
+      "status": "shipped"
+    },
+    {
+      "id": "stats-cancelled",
+      "history": [],
+      "query": "统计已取消订单的订单数、商品明细数和商品件数。",
+      "mode": "aggregate",
+      "unit": "all",
+      "status": "cancelled"
+    },
+    {
+      "id": "stats-subset",
+      "history": [],
+      "query": "统计订单S20001、S20009的订单数、商品明细数和商品件数。",
+      "mode": "aggregate",
+      "unit": "all",
+      "order_ids": [
+        "S20001",
+        "S20009"
+      ]
+    },
+    {
+      "id": "stats-one-multi-quantity",
+      "history": [],
+      "query": "统计订单S20001的订单数、商品明细数和商品件数。",
+      "mode": "aggregate",
+      "unit": "all",
+      "order_ids": [
+        "S20001"
+      ]
+    },
+    {
+      "id": "stats-foreign-order",
+      "history": [],
+      "query": "统计订单S20021的订单数、商品明细数和商品件数。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "stats-cost",
+      "history": [],
+      "query": "统计我的订单总金额。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "stats-mixed",
+      "history": [],
+      "query": "统计我的订单商品件数，并办理退货。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "stats-implicit-history",
+      "history": [
+        "后续只看已签收订单。"
+      ],
+      "query": "我的订单一共买了多少件商品？只给总件数，不要列表。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "stats-constraint",
+      "history": [
+        "后续一直只看白色耳机，不要列其他颜色，直到我明确更改。"
+      ],
+      "query": "我的订单一共买了多少件商品？只给总件数，不要列表。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "stats-never-ordered",
+      "history": [],
+      "query": "我从来没买过，统计我的订单数、商品明细数和商品件数。",
+      "mode": "passthrough"
+    },
+    {
+      "id": "short-correct",
+      "history": [],
+      "query": "只告诉我S20008是什么颜色。",
+      "mode": "passthrough",
+      "tool": "get_order",
+      "arguments": {
+        "order_id": "S20008"
+      },
+      "model_answer": "S20008 是白色。"
+    },
+    {
+      "id": "unknown-unit",
+      "history": [],
+      "query": "我买了多少种型号？",
+      "mode": "passthrough"
+    }
+  ],
+  "paired_repetitions": 3,
+  "independent_databases": true,
+  "network": "forbidden",
+  "score": "Candidates require exact SQL-derived order/item/SKU set and requested colour, no other colour; aggregate requires exact requested metric and correct unit with no table; passthrough requires byte-identical model answer and no new rendering. Missing/duplicate/partial/invalid payload must decline. All cases check final/history/trace sync and unchanged business state. All outcomes retained; cases are development regressions, not unseen validation.",
+  "original_failure_cases": [
+    "original-white-restore",
+    "stats-total"
+  ],
+  "protocol_edge_cases": [
+    "empty_result",
+    "missing_order_id",
+    "non_dict_order",
+    "invalid_items",
+    "invalid_sku",
+    "invalid_quantity",
+    "duplicate_order",
+    "duplicate_item",
+    "count_mismatch",
+    "missing_categories",
+    "unknown_category",
+    "unknown_color",
+    "mixed_tools",
+    "budget_exhausted",
+    "interrupted",
+    "existing_task",
+    "other_owner",
+    "p0_p1_coexistence"
+  ]
+}

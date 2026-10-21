@@ -147,6 +147,11 @@ class Settings(BaseSettings):
     max_retrieval_calls: int = Field(default=4, ge=1)
     # Opt-in P0: only repair an absent order-only draft from explicit current-turn evidence.
     return_state_check_enabled: bool = False
+    # Opt-in P1: authoritative rendering for a pure order-candidate lookup.
+    order_candidate_render_enabled: bool = False
+    # Independent opt-ins: finite colour constraints and explicit count requests.
+    order_constraint_enabled: bool = False
+    order_aggregation_enabled: bool = False
     # Freeze the business clock for comparable evaluation runs; live queries use today.
     reference_date: date | None = None
 

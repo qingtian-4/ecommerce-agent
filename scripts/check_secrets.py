@@ -26,6 +26,7 @@ Exit codes:
 
 from __future__ import annotations
 
+import argparse
 import re
 import subprocess
 import sys
@@ -174,11 +175,27 @@ def count_ignored(lines: list[tuple[str, int, str]]) -> int:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--all-tracked", action="store_true", help="Scan tracked text files for CI")
+    args = parser.parse_args()
     if not Path(".git").exists():
         print("check_secrets: not a git repository; skipping", file=sys.stderr)
         return 0
 
-    lines = _iter_added_lines()
+    if args.all_tracked:
+        paths = subprocess.check_output(["git", "ls-files", "-z"]).decode().split("\0")
+        lines = []
+        for name in filter(None, paths):
+            path = Path(name)
+            if not path.is_file():
+                continue
+            try:
+                content = path.read_text()
+            except UnicodeDecodeError:
+                continue
+            lines.extend((name, i, line) for i, line in enumerate(content.splitlines(), 1))
+    else:
+        lines = _iter_added_lines()
 
     ignored = count_ignored(lines)
     if ignored > MAX_IGNORED_LINES:

@@ -1,0 +1,40 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_previous_scope_is_not_reset_by_candidate_presentation __________
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...ender_enabled=False, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x7cfdbdf911d0>)
+
+    def test_previous_scope_is_not_reset_by_candidate_presentation(local):
+        context = json.loads((ROOT / "results/p1_scope_boundary_followup/context_guard.json").read_text())
+        settings, store = local
+        first, agent = replay(local, True, query=context["initial_user"], responses=[
+            ScriptedResponse(text="好的，后续按您限定的颜色和类别查询。"),
+        ])
+        rows = next(c["model_answer"] for c in FROZEN["cases"] if c["id"] == "category-headphones")
+        answer = "\n".join(rows.splitlines()[:2]
+                           + [line for line in rows.splitlines()[2:] if "| 白色 |" in line])
+        answer += "\n请确认订单号及明细编号。"
+        agent.llm._responses.extend([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall("orders", "list_orders", "{}"),
+            ]), ScriptedResponse(text=answer),
+        ])
+        final = list(ChatService(agent.settings, store).run_turn(
+            context["next_user"], "USER001", first.session_id, agent=agent,
+        ))[-1]
+>       assert final.result.answer == answer
+E       AssertionError: assert '订单候选更正（以本轮查询...择；退货资格仍需另行核查。' == '| 订单号 | 明细编号...n请确认订单号及明细编号。'
+E         
+E         + 订单候选更正（以本轮查询记录为准）：
+E         + 以下每行对应一笔订单中的一条耳机商品明细。
+E         + “最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。
+E         + 
+E         - | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |
+E         + | 序号 | 订单号 | 明细编号 | 商品 | SKU | 颜色 | 数量 | 状态 | 下单日期 |...
+E         
+E         ...Full output truncated (31 lines hidden), use '-vv' to show
+
+tests/test_order_candidate_scope.py:122: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_order_candidate_scope.py::test_previous_scope_is_not_reset_by_candidate_presentation
+1 failed, 43 deselected in 7.99s

@@ -32,8 +32,8 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from .config import Settings, get_settings
+from .return_rules import delivery_days, read_return_policy, within_window
 
-DAYS_IN_RETURN_WINDOW = 7
 DAYS_IN_PRICE_PROTECTION = 15
 
 
@@ -173,14 +173,22 @@ class BusinessDB:
         order["created_date"] = order.get("created_at")
         order["delivered_date"] = order.get("delivered_at")
         order["created_days_ago"] = _days_since(order.get("created_at"), today)
-        order["delivered_days_ago"] = _days_since(order.get("delivered_at"), today)
+        order["delivered_days_ago"] = delivery_days(order.get("delivered_at"), today)
 
-        order["return_window_days"] = DAYS_IN_RETURN_WINDOW
+        policy = read_return_policy(self.settings)
+        order["return_window_days"] = policy["windows"]["no_reason"]
+        order["quality_return_window_days"] = policy["windows"]["quality"]
+        order["return_policy_hash"] = policy["hash"]
         order["price_protection_days"] = DAYS_IN_PRICE_PROTECTION
 
         delivered_days = order["delivered_days_ago"]
         order["within_return_window"] = (
-            delivered_days is not None and delivered_days <= DAYS_IN_RETURN_WINDOW
+            order["status"] == "delivered"
+            and within_window(delivered_days, policy["windows"]["no_reason"])
+        )
+        order["within_quality_return_window"] = (
+            order["status"] == "delivered"
+            and within_window(delivered_days, policy["windows"]["quality"])
         )
         created_days = order["created_days_ago"]
         order["within_price_protection"] = (
@@ -190,7 +198,7 @@ class BusinessDB:
         order["instruction_for_assistant"] = (
             "日期字段已为你算好：delivered_date 是签收日期，delivered_days_ago 是"
             "距今的天数。请直接使用这些值，不要自行推算或改用其他日期。"
-            "within_return_window只表示7天无理由窗口，不适用于质量问题，也不代表完整退货资格。"
+            "within_return_window只表示政策配置的无理由日期窗口，不适用于质量问题，也不代表完整退货资格。"
         )
         return order
 

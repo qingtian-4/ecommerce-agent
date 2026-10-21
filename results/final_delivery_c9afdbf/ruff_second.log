@@ -1,0 +1,44 @@
+E501 Line too long (101 > 100)
+  --> src/acs/return_rules.py:46:101
+   |
+44 |         return None
+45 |     try:
+46 |         day = date.fromisoformat(value) if len(value) == 10 else datetime.fromisoformat(value).date()
+   |                                                                                                     ^
+47 |         return (today - day).days
+48 |     except ValueError:
+   |
+
+E501 Line too long (102 > 100)
+   --> src/acs/sessions.py:319:101
+    |
+317 |                 raise TaskValidationError("草稿只能由当前进行中的会话轮次更新")
+318 |             if cancel:
+319 |                 # Full utterance authorization: quoted/hypothetical/qualified actions are not consent.
+    |                                                                                                     ^^
+320 |                 text = turn["user_text"].strip().rstrip("。.!！")
+321 |                 explicit = re.fullmatch(r"(?:请)?(?:取消|中止|清空)(?:当前|这个|这份|我的)?"
+    |
+
+E501 Line too long (103 > 100)
+   --> tests/test_delivery_reliability.py:134:101
+    |
+132 | def test_submitted_request_cannot_be_revoked_by_draft_cancel(flow):
+133 |     _, store, service, sid = flow
+134 |     created = service.confirm_and_submit(sid, 'USER001', service.preview(sid, 'USER001')['preview_id'])
+    |                                                                                                     ^^^
+135 |     tid = store.begin_turn(sid, 'USER001', '中止退货草稿')
+136 |     with pytest.raises(ValueError, match='已经提交'):
+    |
+
+E501 Line too long (101 > 100)
+   --> tests/test_delivery_reliability.py:162:101
+    |
+160 |         store.interrupt_turn(sid, 'USER001', tid)
+161 |     order = BusinessDB(settings).get_order('O10024', 'USER001')
+162 |     flag = order['within_return_window' if reason == 'no_reason' else 'within_quality_return_window']
+    |                                                                                                     ^
+163 |     assert service.preview(sid, 'USER001')['ready'] is flag
+    |
+
+Found 4 errors.
