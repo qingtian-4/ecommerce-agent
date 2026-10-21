@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "stage": "author-frozen development and regression, not held-out",
+  "cases": [
+    {
+      "id": "mixed-parameter",
+      "text": "查S20008这笔订单，顺便告诉我V201参数",
+      "intent": "mixed",
+      "needed_tools": [
+        "get_order",
+        "get_product"
+      ]
+    },
+    {
+      "id": "mixed-shipment",
+      "text": "查S20008物流，再核对V201商品规格",
+      "intent": "mixed",
+      "needed_tools": [
+        "get_logistics",
+        "get_product"
+      ]
+    },
+    {
+      "id": "mixed-policy",
+      "text": "查订单S20017和退货政策",
+      "intent": "mixed",
+      "needed_tools": [
+        "get_order",
+        "get_knowledge_documents",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "mixed-price",
+      "text": "查S20008订单、物流和价保规则",
+      "intent": "mixed",
+      "needed_tools": [
+        "get_order",
+        "get_logistics",
+        "get_price_history"
+      ]
+    },
+    {
+      "id": "unknown-negation",
+      "text": "不是退货，我只是想了解一下",
+      "intent": "unknown",
+      "needed_tools": [
+        "get_product",
+        "get_order"
+      ]
+    },
+    {
+      "id": "unknown-quote",
+      "text": "他说“清空草稿”，我只是引用",
+      "intent": "unknown",
+      "needed_tools": [
+        "get_return_task",
+        "get_product"
+      ]
+    },
+    {
+      "id": "unknown-conditional",
+      "text": "假如我要退款，先了解商品参数",
+      "intent": "unknown",
+      "needed_tools": [
+        "get_product",
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "unknown-continuation",
+      "text": "继续刚才那件事",
+      "intent": "unknown",
+      "needed_tools": [
+        "update_return_task",
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "unknown-address",
+      "text": "先查订单，但不要改地址",
+      "intent": "unknown",
+      "needed_tools": [
+        "get_order",
+        "get_product"
+      ]
+    },
+    {
+      "id": "return-correction",
+      "text": "更正为退S20003",
+      "intent": "returns",
+      "needed_tools": [
+        "get_order",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "logistic-insertion",
+      "text": "查S20008物流",
+      "intent": "logistics",
+      "needed_tools": [
+        "get_order",
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "return-explicit",
+      "text": "中止退货草稿",
+      "intent": "returns",
+      "needed_tools": [
+        "cancel_return_task"
+      ]
+    },
+    {
+      "id": "own-sku",
+      "text": "查订单S20008的SKU颜色",
+      "intent": "orders",
+      "needed_tools": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "foreign-order",
+      "text": "查订单S20021的颜色",
+      "intent": "orders",
+      "needed_tools": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "policy-explicit",
+      "text": "价保规则和当前政策",
+      "intent": "price_policy",
+      "needed_tools": [
+        "get_price_history",
+        "get_knowledge_documents"
+      ]
+    },
+    {
+      "id": "presales-explicit",
+      "text": "推荐商品并解释规格",
+      "intent": "presales",
+      "needed_tools": [
+        "get_product",
+        "get_knowledge_documents"
+      ]
+    }
+  ]
+}

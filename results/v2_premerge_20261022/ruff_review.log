@@ -1,0 +1,23 @@
+E501 Line too long (102 > 100)
+  --> results/v2_premerge_20261022/ui_diagnostic_check.py:34:101
+   |
+32 |         with sqlite3.connect(path) as conn:
+33 |             answer, payload, status = conn.execute(
+34 |                 'SELECT answer,result_json,status FROM conversation_turns ORDER BY rowid DESC LIMIT 1'
+   |                                                                                                     ^^
+35 |             ).fetchone()
+36 |             result = json.loads(payload)
+   |
+
+E501 Line too long (101 > 100)
+   --> src/acs/service_agent.py:425:85
+    |
+423 |                     }):
+424 |                         # Stop before another model decision can replay an uncertain mutation.
+425 |                         stopped, limit_reason = '工具写入回执异常，实际状态需核对', 'state_uncertain'
+    |                                                                                                     ^
+426 |                     try:
+427 |                         arguments = json.loads(call.arguments or '{}')
+    |
+
+Found 2 errors.

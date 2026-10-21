@@ -1,0 +1,37 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+______ test_uncertain_write_stops_model_from_reissuing_the_same_mutation _______
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x755f132abe10>
+
+    def test_uncertain_write_stops_model_from_reissuing_the_same_mutation(settings, monkeypatch):
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        store = SessionStore(settings.db_path)
+        original, writes = store.update_return_task, []
+    
+        def lost(*args, **kwargs):
+            writes.append(1)
+            original(*args, **kwargs)
+            raise OSError('response lost')
+    
+        monkeypatch.setattr(store, 'update_return_task', lost)
+        call = ScriptedToolCall('write', 'update_return_task', '{"order_id":"O10024"}')
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[call]),
+            ScriptedResponse(wants_tools=True, tool_calls=[call]),
+            ScriptedResponse(text='已重复保存'),
+        ])
+        final = list(ChatService(settings, store).run_turn(
+            '我想退O10024', 'USER001',
+            agent=CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings)),
+        ))[-1]
+>       assert len(writes) == len(model.calls) == 1
+E       AssertionError: assert 2 == 3
+E        +  where 2 = len([1, 1])
+E        +  and   3 = len([{'messages': [{'role': 'system', 'content': '你是一名专业的电商客服助手，服务于一家销售无线耳机与充电配件的店铺。\n\n## 你拥有的工具\n\n- 知识来源由本轮应用配置提供，包括政策与...order 返回。', 'parameters': {'type': 'object', 'properties': {...}, 'required': [...]}}}, ...], 'stage': 'agent_step_3'}])
+E        +    where [{'messages': [{'role': 'system', 'content': '你是一名专业的电商客服助手，服务于一家销售无线耳机与充电配件的店铺。\n\n## 你拥有的工具\n\n- 知识来源由本轮应用配置提供，包括政策与...order 返回。', 'parameters': {'type': 'object', 'properties': {...}, 'required': [...]}}}, ...], 'stage': 'agent_step_3'}] = <tests.conftest.ScriptedLLM object at 0x755f1316d2b0>.calls
+
+tests/test_v2_premerge.py:233: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_uncertain_write_stops_model_from_reissuing_the_same_mutation

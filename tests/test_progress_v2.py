@@ -72,7 +72,7 @@ def test_progress_persisted_once_per_semantic_change_and_restored(settings, monk
     updates = list(ChatService(settings, store).run_turn("查订单", "USER001", agent=agent))
     saved = store.load(updates[-1].session_id, "USER001")["last_result"]
     assert saved["totals"]["progress"] == updates[-1].result.totals["progress"]
-    assert 1 <= len(writes) <= 2
+    assert not writes  # Read-only progress is live in memory; finish_turn persists its final state.
     assert saved["totals"]["progress"][-1]["kind"] == "turn_completed"
     assert all(u.result.totals["progress"] for u in updates)
 

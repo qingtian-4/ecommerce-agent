@@ -1099,7 +1099,7 @@ button.primary { background:#c64b06 !important; color:white !important; }
 
 
 def build_app() -> gr.Blocks:
-    session_store().recover_interrupted()
+    session_store().recover_interrupted(reconcile=SETTINGS.runtime_recovery_enabled)
     # Build the index on first run so `python app.py` is genuinely the only step.
     if SETTINGS.knowledge_mode == "retrieval" and not (SETTINGS.index_dir / INDEX_FILE).exists():
         print("knowledge index missing - building it now (one-off) ...")

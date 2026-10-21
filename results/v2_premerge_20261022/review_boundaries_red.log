@@ -1,0 +1,188 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+___________ test_invalid_policy_is_rejected_before_a_draft_mutation ____________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x741bbdf98640>
+
+    def test_invalid_policy_is_rejected_before_a_draft_mutation(settings, monkeypatch):
+        from acs.sessions import TaskValidationError
+    
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        registry = ToolRegistry(settings)
+        registry.bind_return_task(store, sid, tid)
+    
+        def invalid(*args):
+            raise TaskValidationError('invalid policy')
+    
+        monkeypatch.setattr('acs.cs_tools.return_policy', invalid)
+        result, _, error = registry.run('update_return_task', '{"order_id":"O10024"}',
+                                        current_user_id='USER001')
+        assert error and 'invalid policy' in result['error']
+>       assert store.get_return_task(sid, 'USER001')['task'] is None
+E       AssertionError: assert {'order_id': 'O10024', 'item_id': None, 'quantity': None, 'reason': None, ...} is None
+
+tests/test_v2_premerge.py:269: AssertionError
+_____ test_successful_write_followed_by_failed_state_read_finishes_safely ______
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x741bbdf989d0>
+
+    def test_successful_write_followed_by_failed_state_read_finishes_safely(settings, monkeypatch):
+        settings = settings.model_copy(update={'runtime_recovery_enabled': True})
+        store = SessionStore(settings.db_path)
+        read = store.get_return_task
+        reads = []
+    
+        def failed_read(*args):
+            reads.append(1)
+            if len(reads) > 1:
+                raise OSError('read unavailable after successful write')
+            return read(*args)
+    
+        monkeypatch.setattr(store, 'get_return_task', failed_read)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('write', 'update_return_task', '{"order_id":"O10024"}'),
+            ]), ScriptedResponse(text='不应该再调用模型'),
+        ])
+>       final = list(ChatService(settings, store).run_turn(
+            '退O10024', 'USER001',
+            agent=CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings)),
+        ))[-1]
+
+tests/test_v2_premerge.py:290: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/acs/chat_service.py:206: in run_turn
+    task = self.store.get_return_task(sid, user_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ('8b53428b927d44f5b90ddb52d91b4a99', 'USER001')
+
+    def failed_read(*args):
+        reads.append(1)
+        if len(reads) > 1:
+>           raise OSError('read unavailable after successful write')
+E           OSError: read unavailable after successful write
+
+tests/test_v2_premerge.py:281: OSError
+_________ test_workbench_recovery_ablation_is_bound_at_startup[False] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x741bbdfb43b0>
+enabled = False
+
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_workbench_recovery_ablation_is_bound_at_startup(settings, monkeypatch, enabled):
+        import app
+    
+        settings = settings.model_copy(update={'runtime_recovery_enabled': enabled})
+        store, calls = SessionStore(settings.db_path), []
+        monkeypatch.setattr(app, 'SETTINGS', settings)
+        monkeypatch.setattr(app, '_SESSION_STORE', store)
+        monkeypatch.setattr(store, 'recover_interrupted', lambda **kw: calls.append(kw) or 0)
+>       app.build_app()
+
+tests/test_v2_premerge.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app.py:1106: in build_app
+    KnowledgeBase(SETTINGS).build()
+src/acs/rag.py:235: in build
+    vectors = self.llm.embed(
+              ^^^^^^^^
+src/acs/rag.py:196: in llm
+    self._llm = LLMClient(settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:6: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = LLMClient(settings=Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_m...ecution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None), usages=[], budget=None)
+
+    def __post_init__(self) -> None:
+        if not self.settings.has_llm_key:
+>           raise RuntimeError(
+                "No LLM API key configured. Copy .env.example to .env and set "
+                "ACS_LLM_API_KEY before making real calls."
+            )
+E           RuntimeError: No LLM API key configured. Copy .env.example to .env and set ACS_LLM_API_KEY before making real calls.
+
+src/acs/llm.py:99: RuntimeError
+----------------------------- Captured stdout call -----------------------------
+knowledge index missing - building it now (one-off) ...
+__________ test_workbench_recovery_ablation_is_bound_at_startup[True] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x741bba291e10>
+enabled = True
+
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_workbench_recovery_ablation_is_bound_at_startup(settings, monkeypatch, enabled):
+        import app
+    
+        settings = settings.model_copy(update={'runtime_recovery_enabled': enabled})
+        store, calls = SessionStore(settings.db_path), []
+        monkeypatch.setattr(app, 'SETTINGS', settings)
+        monkeypatch.setattr(app, '_SESSION_STORE', store)
+        monkeypatch.setattr(store, 'recover_interrupted', lambda **kw: calls.append(kw) or 0)
+>       app.build_app()
+
+tests/test_v2_premerge.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app.py:1106: in build_app
+    KnowledgeBase(SETTINGS).build()
+src/acs/rag.py:235: in build
+    vectors = self.llm.embed(
+              ^^^^^^^^
+src/acs/rag.py:196: in llm
+    self._llm = LLMClient(settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:6: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = LLMClient(settings=Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_m...ecution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None), usages=[], budget=None)
+
+    def __post_init__(self) -> None:
+        if not self.settings.has_llm_key:
+>           raise RuntimeError(
+                "No LLM API key configured. Copy .env.example to .env and set "
+                "ACS_LLM_API_KEY before making real calls."
+            )
+E           RuntimeError: No LLM API key configured. Copy .env.example to .env and set ACS_LLM_API_KEY before making real calls.
+
+src/acs/llm.py:99: RuntimeError
+----------------------------- Captured stdout call -----------------------------
+knowledge index missing - building it now (one-off) ...
+___ test_interruption_progress_does_not_claim_authority_when_not_reconciled ____
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_interruption_progress_does_not_claim_authority_when_not_reconciled(settings):
+        from acs.progress import progress_events
+    
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '查询')
+        store.save_progress(sid, 'USER001', tid, progress_events(
+            sid, tid, AgentResult(answer='', stop_reason='running'), 'running',
+        ))
+        store.interrupt_turn(sid, 'USER001', tid, reconcile=False)
+        event = store.load(sid, 'USER001')['last_result']['totals']['progress'][-1]
+>       assert '已核对' not in event['label']
+E       AssertionError: assert '已核对' not in '上次请求已中断，已核对后台，请继续确认'
+E         
+E         '已核对' is contained here:
+E           上次请求已中断，已核对后台，请继续确认
+E         ?         +++
+
+tests/test_v2_premerge.py:325: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_invalid_policy_is_rejected_before_a_draft_mutation
+FAILED tests/test_v2_premerge.py::test_successful_write_followed_by_failed_state_read_finishes_safely
+FAILED tests/test_v2_premerge.py::test_workbench_recovery_ablation_is_bound_at_startup[False]
+FAILED tests/test_v2_premerge.py::test_workbench_recovery_ablation_is_bound_at_startup[True]
+FAILED tests/test_v2_premerge.py::test_interruption_progress_does_not_claim_authority_when_not_reconciled

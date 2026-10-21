@@ -1,0 +1,24 @@
+F...............                                                         [100%]
+=================================== FAILURES ===================================
+_ test_additional_frozen_route_scope_preserves_required_tools[mixed-parameter] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'mixed-parameter', 'text': '查S20008这笔订单，顺便告诉我V201参数', 'intent': 'mixed', 'needed_tools': ['get_order', 'get_product']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', case['text'])
+        registry = ToolRegistry(settings.model_copy(update={'knowledge_mode': 'documents'}))
+        registry.bind_return_task(store, sid, tid)
+        route = route_request(case['text'], registry.names, True)
+>       assert route['intent'] == case['intent']
+E       AssertionError: assert 'orders' == 'mixed'
+E         
+E         - mixed
+E         + orders
+
+tests/test_v2_premerge.py:134: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[mixed-parameter]

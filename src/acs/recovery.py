@@ -18,6 +18,29 @@ class IncompleteResponse(RuntimeError):
     pass
 
 
+def reconcile_update(before: dict | None, after: dict, patch: dict, tid: str) -> dict:
+    """Compare the attempted patch to authoritative revision and current-turn provenance."""
+    fields = {'order_id', 'item_id', 'quantity', 'reason', 'condition', 'problem_description',
+              'secondary_sale_ok', 'quality_non_user_damage'}
+    patch = {k: v for k, v in patch.items() if k in fields}
+    previous = before or {}
+    revision = after.get('revision', 0)
+    outcome = 'uncertain'
+    if after == previous:
+        outcome = 'not_applied'
+    elif (patch and after.get('status') == 'draft'
+          and revision > previous.get('revision', 0)
+          and all(after.get(k) == v and (
+              after.get('sources', {}).get(k, {}).get('turn_id') == tid
+              if v is not None else k not in after.get('sources', {})
+          ) for k, v in patch.items())):
+        outcome = 'applied'
+    return {'tool': 'update_return_task', 'outcome': outcome,
+            'before_revision': previous.get('revision'), 'after_revision': after.get('revision'),
+            'fields': {k: {'requested': v, 'before': previous.get(k), 'actual': after.get(k)}
+                       for k, v in patch.items()}}
+
+
 def classify_failure(*, exc: Exception | None = None, payload=None,
                      write: bool = False) -> dict:
     category, retryable = 'internal_error', False

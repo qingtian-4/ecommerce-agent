@@ -308,7 +308,9 @@ class SessionStore:
                     seq = max(e['seq'] for e in prior_progress) + 1
                     prior_progress.append({'event_id': f'{tid}:{seq}', 'session_id': sid,
                                            'turn_id': tid, 'seq': seq, 'kind': 'turn_interrupted',
-                                           'label': '上次请求已中断，已核对后台，请继续确认',
+                                           'label': ('上次请求已中断，已核对后台，请继续确认'
+                                                     if reconcile else
+                                                     '上次请求已中断，请重新核对后台状态'),
                                            'status': 'incomplete', 'facts': []})
                     result.setdefault('totals', {})['progress'] = prior_progress
                 messages = [{"role": "user", "content": row["user_text"]},

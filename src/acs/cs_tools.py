@@ -235,9 +235,10 @@ class ToolRegistry:
             )}
 
         def update(*, current_user_id: str, **fields) -> dict:
+            policy = return_policy(self.settings)
             view = store.update_return_task(sid, current_user_id, tid, fields)
             return view | {"policy": policy_for_reason(
-                return_policy(self.settings), view["task"]["reason"],
+                policy, view["task"]["reason"],
             )}
 
         def cancel(*, current_user_id: str) -> dict:

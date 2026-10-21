@@ -1,0 +1,156 @@
+F.F..FFF.F.F..FF                                                         [100%]
+=================================== FAILURES ===================================
+_ test_additional_frozen_route_scope_preserves_required_tools[mixed-parameter] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'mixed-parameter', 'text': '查S20008这笔订单，顺便告诉我V201参数', 'intent': 'mixed', 'needed_tools': ['get_order', 'get_product']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+>       assert route['intent'] == case['intent']
+E       AssertionError: assert 'orders' == 'mixed'
+E         
+E         - mixed
+E         + orders
+
+tests/test_v2_premerge.py:129: AssertionError
+__ test_additional_frozen_route_scope_preserves_required_tools[mixed-policy] ___
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'mixed-policy', 'text': '查订单S20017和退货政策', 'intent': 'mixed', 'needed_tools': ['get_order', 'get_knowledge_documents', 'update_return_task']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+        assert route['intent'] == case['intent']
+>       assert set(case['needed_tools']) <= set(route['allowed_tools'])
+E       AssertionError: assert {'get_knowled..._return_task'} <= {'get_order',...ch_knowledge'}
+E         
+E         Extra items in the left set:
+E         'get_knowledge_documents'
+E         'update_return_task'
+
+tests/test_v2_premerge.py:130: AssertionError
+__ test_additional_frozen_route_scope_preserves_required_tools[unknown-quote] __
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'unknown-quote', 'text': '他说“清空草稿”，我只是引用', 'intent': 'unknown', 'needed_tools': ['get_return_task', 'get_product']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+        assert route['intent'] == case['intent']
+>       assert set(case['needed_tools']) <= set(route['allowed_tools'])
+E       AssertionError: assert {'get_product..._return_task'} <= {'get_logisti...roducts', ...}
+E         
+E         Extra items in the left set:
+E         'get_return_task'
+
+tests/test_v2_premerge.py:130: AssertionError
+_ test_additional_frozen_route_scope_preserves_required_tools[unknown-conditional] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'unknown-conditional', 'text': '假如我要退款，先了解商品参数', 'intent': 'unknown', 'needed_tools': ['get_product', 'get_return_task']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+        assert route['intent'] == case['intent']
+>       assert set(case['needed_tools']) <= set(route['allowed_tools'])
+E       AssertionError: assert {'get_product..._return_task'} <= {'get_logisti...roducts', ...}
+E         
+E         Extra items in the left set:
+E         'get_return_task'
+
+tests/test_v2_premerge.py:130: AssertionError
+_ test_additional_frozen_route_scope_preserves_required_tools[unknown-continuation] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'unknown-continuation', 'text': '继续刚才那件事', 'intent': 'unknown', 'needed_tools': ['update_return_task', 'get_logistics']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+        assert route['intent'] == case['intent']
+>       assert set(case['needed_tools']) <= set(route['allowed_tools'])
+E       AssertionError: assert {'get_logisti..._return_task'} <= {'get_logisti...roducts', ...}
+E         
+E         Extra items in the left set:
+E         'update_return_task'
+
+tests/test_v2_premerge.py:130: AssertionError
+_ test_additional_frozen_route_scope_preserves_required_tools[return-correction] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'return-correction', 'text': '更正为退S20003', 'intent': 'returns', 'needed_tools': ['get_order', 'update_return_task']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+        assert route['intent'] == case['intent']
+>       assert set(case['needed_tools']) <= set(route['allowed_tools'])
+E       AssertionError: assert {'get_order',..._return_task'} <= {'get_order',...ch_knowledge'}
+E         
+E         Extra items in the left set:
+E         'update_return_task'
+
+tests/test_v2_premerge.py:130: AssertionError
+_ test_additional_frozen_route_scope_preserves_required_tools[return-explicit] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'return-explicit', 'text': '中止退货草稿', 'intent': 'returns', 'needed_tools': ['cancel_return_task']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+        assert route['intent'] == case['intent']
+>       assert set(case['needed_tools']) <= set(route['allowed_tools'])
+E       AssertionError: assert {'cancel_return_task'} <= {'get_order',...ch_knowledge'}
+E         
+E         Extra items in the left set:
+E         'cancel_return_task'
+
+tests/test_v2_premerge.py:130: AssertionError
+_ test_additional_frozen_route_scope_preserves_required_tools[policy-explicit] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'policy-explicit', 'text': '价保规则和当前政策', 'intent': 'price_policy', 'needed_tools': ['get_price_history', 'get_knowledge_documents']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+        assert route['intent'] == case['intent']
+>       assert set(case['needed_tools']) <= set(route['allowed_tools'])
+E       AssertionError: assert {'get_knowled...rice_history'} <= {'get_order',...ch_knowledge'}
+E         
+E         Extra items in the left set:
+E         'get_knowledge_documents'
+
+tests/test_v2_premerge.py:130: AssertionError
+_ test_additional_frozen_route_scope_preserves_required_tools[presales-explicit] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = {'id': 'presales-explicit', 'text': '推荐商品并解释规格', 'intent': 'presales', 'needed_tools': ['get_product', 'get_knowledge_documents']}
+
+    @pytest.mark.parametrize('case', ROUTES, ids=[c['id'] for c in ROUTES])
+    def test_additional_frozen_route_scope_preserves_required_tools(settings, case):
+        route = route_request(case['text'], ToolRegistry(settings).names, True)
+        assert route['intent'] == case['intent']
+>       assert set(case['needed_tools']) <= set(route['allowed_tools'])
+E       AssertionError: assert {'get_knowled...'get_product'} <= {'get_product...ch_knowledge'}
+E         
+E         Extra items in the left set:
+E         'get_knowledge_documents'
+
+tests/test_v2_premerge.py:130: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[mixed-parameter]
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[mixed-policy]
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[unknown-quote]
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[unknown-conditional]
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[unknown-continuation]
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[return-correction]
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[return-explicit]
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[policy-explicit]
+FAILED tests/test_v2_premerge.py::test_additional_frozen_route_scope_preserves_required_tools[presales-explicit]

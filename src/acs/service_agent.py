@@ -418,6 +418,12 @@ class CustomerServiceAgent:
                     failure = classify_failure(payload=failure_payload, write=call.name in WRITES)
                     if failure['category'] != 'ok':
                         events.append(TraceEvent('runtime_failure', call.name, failure))
+                    if (call.name in WRITES and failure['category'] in {
+                            'tool_failure', 'internal_error',
+                    }):
+                        # Stop before another model decision can replay an uncertain mutation.
+                        stopped = '工具写入回执异常，实际状态需核对'
+                        limit_reason = 'state_uncertain'
                     try:
                         arguments = json.loads(call.arguments or '{}')
                     except ValueError:

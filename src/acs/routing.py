@@ -26,7 +26,7 @@ def route_request(text: str, available: list[str], has_task: bool) -> dict:
         r'(?:我想|我要|改成|更正).*退', text
     ):
         candidates.append('returns')
-    if any(w in text for w in ('规格', '推荐', '购买', '型号')) or (
+    if any(w in text for w in ('规格', '参数', '推荐', '购买', '型号')) or (
         '商品' in text and '商品明细' not in text
     ):
         candidates.append('presales')

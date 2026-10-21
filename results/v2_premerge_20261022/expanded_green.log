@@ -1,0 +1,414 @@
+......................FFFFFFFF.......................................... [ 79%]
+...................                                                      [100%]
+=================================== FAILURES ===================================
+_ test_combined_routing_and_recovery_cannot_override_owner_or_cancel_authorization[False] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+enabled = False
+
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_combined_routing_and_recovery_cannot_override_owner_or_cancel_authorization(
+        settings, enabled,
+    ):
+        settings = settings.model_copy(update={
+            'workflow_router_enabled': enabled, 'runtime_recovery_enabled': enabled,
+        })
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})['task']
+        store.interrupt_turn(sid, 'USER001', tid)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('foreign', 'get_order', '{"order_id":"O10030"}'),
+                ScriptedToolCall('cancel', 'cancel_return_task', '{}'),
+            ]), ScriptedResponse(text='未取得授权'),
+        ])
+        final = list(ChatService(settings, store).run_turn(
+            '不是取消草稿，我要查别人的订单O10030', 'USER001', sid,
+            agent=CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings)),
+        ))[-1]
+        assert store.get_return_task(sid, 'USER001')['task'] == before
+        assert len(model.calls) == 2 and final.result.tool_calls == 2
+        assert not any(e.type == 'retry_scheduled' for e in final.result.trace)
+>       assert any(e.type == 'error' and e.detail.get('error_type') == 'forbidden'
+                   for e in final.result.trace)
+E       assert False
+E        +  where False = any(<generator object test_combined_routing_and_recovery_cannot_override_owner_or_cancel_authorization.<locals>.<genexpr> at 0x7b707e3bda40>)
+
+tests/test_v2_premerge.py:163: AssertionError
+_ test_combined_routing_and_recovery_cannot_override_owner_or_cancel_authorization[True] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+enabled = True
+
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_combined_routing_and_recovery_cannot_override_owner_or_cancel_authorization(
+        settings, enabled,
+    ):
+        settings = settings.model_copy(update={
+            'workflow_router_enabled': enabled, 'runtime_recovery_enabled': enabled,
+        })
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})['task']
+        store.interrupt_turn(sid, 'USER001', tid)
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('foreign', 'get_order', '{"order_id":"O10030"}'),
+                ScriptedToolCall('cancel', 'cancel_return_task', '{}'),
+            ]), ScriptedResponse(text='未取得授权'),
+        ])
+        final = list(ChatService(settings, store).run_turn(
+            '不是取消草稿，我要查别人的订单O10030', 'USER001', sid,
+            agent=CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings)),
+        ))[-1]
+        assert store.get_return_task(sid, 'USER001')['task'] == before
+        assert len(model.calls) == 2 and final.result.tool_calls == 2
+        assert not any(e.type == 'retry_scheduled' for e in final.result.trace)
+>       assert any(e.type == 'error' and e.detail.get('error_type') == 'forbidden'
+                   for e in final.result.trace)
+E       assert False
+E        +  where False = any(<generator object test_combined_routing_and_recovery_cannot_override_owner_or_cancel_authorization.<locals>.<genexpr> at 0x7b707e274790>)
+
+tests/test_v2_premerge.py:163: AssertionError
+_ test_transient_failure_after_read_preserves_draft_and_only_retries_model[False-429] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+failure = 429, enabled = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b707e37ef50>
+
+    @pytest.mark.parametrize('failure', [429, 503, 'timeout'])
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_transient_failure_after_read_preserves_draft_and_only_retries_model(
+        settings, failure, enabled, monkeypatch,
+    ):
+        from acs.runtime import RunBudget
+    
+        monkeypatch.setattr('acs.service_agent.sleep', lambda delay: None)
+        settings = settings.model_copy(update={
+            'workflow_router_enabled': enabled, 'runtime_recovery_enabled': enabled,
+        })
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})['task']
+        store.interrupt_turn(sid, 'USER001', tid)
+    
+        class AfterRead(ScriptedLLM):
+            attempts = 0
+    
+            def chat_stream(self, *args, **kwargs):
+                self.attempts += 1
+                if self.attempts == 2:
+                    self.budget.request()
+                    error = TimeoutError('injected timeout') if failure == 'timeout' else RuntimeError()
+                    if failure != 'timeout':
+                        error.status_code = failure
+                    raise error
+                yield from super().chat_stream(*args, **kwargs)
+    
+        model = AfterRead([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('read', 'get_logistics', '{"order_id":"O10023"}'),
+            ]), ScriptedResponse(text='物流已查，保留原草稿'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn(
+            '查O10023物流，之后继续退货草稿', 'USER001', sid, agent=agent,
+        ))[-1]
+        assert model.attempts == (3 if enabled else 2)
+        assert final.result.stop_reason == ('answered' if enabled else 'llm_error')
+        assert final.result.tool_calls == 1 and final.task_view['task'] == before
+        assert sum(e.type == 'tool_result' for e in final.result.trace) == 1
+>       assert isinstance(model.budget, RunBudget)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, <class 'acs.runtime.RunBudget'>)
+E        +    where None = <tests.test_v2_premerge.test_transient_failure_after_read_preserves_draft_and_only_retries_model.<locals>.AfterRead object at 0x7b707e386120>.budget
+
+tests/test_v2_premerge.py:210: AssertionError
+_ test_transient_failure_after_read_preserves_draft_and_only_retries_model[False-503] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+failure = 503, enabled = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b707e3e1e50>
+
+    @pytest.mark.parametrize('failure', [429, 503, 'timeout'])
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_transient_failure_after_read_preserves_draft_and_only_retries_model(
+        settings, failure, enabled, monkeypatch,
+    ):
+        from acs.runtime import RunBudget
+    
+        monkeypatch.setattr('acs.service_agent.sleep', lambda delay: None)
+        settings = settings.model_copy(update={
+            'workflow_router_enabled': enabled, 'runtime_recovery_enabled': enabled,
+        })
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})['task']
+        store.interrupt_turn(sid, 'USER001', tid)
+    
+        class AfterRead(ScriptedLLM):
+            attempts = 0
+    
+            def chat_stream(self, *args, **kwargs):
+                self.attempts += 1
+                if self.attempts == 2:
+                    self.budget.request()
+                    error = TimeoutError('injected timeout') if failure == 'timeout' else RuntimeError()
+                    if failure != 'timeout':
+                        error.status_code = failure
+                    raise error
+                yield from super().chat_stream(*args, **kwargs)
+    
+        model = AfterRead([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('read', 'get_logistics', '{"order_id":"O10023"}'),
+            ]), ScriptedResponse(text='物流已查，保留原草稿'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn(
+            '查O10023物流，之后继续退货草稿', 'USER001', sid, agent=agent,
+        ))[-1]
+        assert model.attempts == (3 if enabled else 2)
+        assert final.result.stop_reason == ('answered' if enabled else 'llm_error')
+        assert final.result.tool_calls == 1 and final.task_view['task'] == before
+        assert sum(e.type == 'tool_result' for e in final.result.trace) == 1
+>       assert isinstance(model.budget, RunBudget)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, <class 'acs.runtime.RunBudget'>)
+E        +    where None = <tests.test_v2_premerge.test_transient_failure_after_read_preserves_draft_and_only_retries_model.<locals>.AfterRead object at 0x7b707e386900>.budget
+
+tests/test_v2_premerge.py:210: AssertionError
+_ test_transient_failure_after_read_preserves_draft_and_only_retries_model[False-timeout] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+failure = 'timeout', enabled = False
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b707e3e23f0>
+
+    @pytest.mark.parametrize('failure', [429, 503, 'timeout'])
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_transient_failure_after_read_preserves_draft_and_only_retries_model(
+        settings, failure, enabled, monkeypatch,
+    ):
+        from acs.runtime import RunBudget
+    
+        monkeypatch.setattr('acs.service_agent.sleep', lambda delay: None)
+        settings = settings.model_copy(update={
+            'workflow_router_enabled': enabled, 'runtime_recovery_enabled': enabled,
+        })
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})['task']
+        store.interrupt_turn(sid, 'USER001', tid)
+    
+        class AfterRead(ScriptedLLM):
+            attempts = 0
+    
+            def chat_stream(self, *args, **kwargs):
+                self.attempts += 1
+                if self.attempts == 2:
+                    self.budget.request()
+                    error = TimeoutError('injected timeout') if failure == 'timeout' else RuntimeError()
+                    if failure != 'timeout':
+                        error.status_code = failure
+                    raise error
+                yield from super().chat_stream(*args, **kwargs)
+    
+        model = AfterRead([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('read', 'get_logistics', '{"order_id":"O10023"}'),
+            ]), ScriptedResponse(text='物流已查，保留原草稿'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn(
+            '查O10023物流，之后继续退货草稿', 'USER001', sid, agent=agent,
+        ))[-1]
+        assert model.attempts == (3 if enabled else 2)
+        assert final.result.stop_reason == ('answered' if enabled else 'llm_error')
+        assert final.result.tool_calls == 1 and final.task_view['task'] == before
+        assert sum(e.type == 'tool_result' for e in final.result.trace) == 1
+>       assert isinstance(model.budget, RunBudget)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, <class 'acs.runtime.RunBudget'>)
+E        +    where None = <tests.test_v2_premerge.test_transient_failure_after_read_preserves_draft_and_only_retries_model.<locals>.AfterRead object at 0x7b707e386660>.budget
+
+tests/test_v2_premerge.py:210: AssertionError
+_ test_transient_failure_after_read_preserves_draft_and_only_retries_model[True-429] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+failure = 429, enabled = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b707e2d0bb0>
+
+    @pytest.mark.parametrize('failure', [429, 503, 'timeout'])
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_transient_failure_after_read_preserves_draft_and_only_retries_model(
+        settings, failure, enabled, monkeypatch,
+    ):
+        from acs.runtime import RunBudget
+    
+        monkeypatch.setattr('acs.service_agent.sleep', lambda delay: None)
+        settings = settings.model_copy(update={
+            'workflow_router_enabled': enabled, 'runtime_recovery_enabled': enabled,
+        })
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})['task']
+        store.interrupt_turn(sid, 'USER001', tid)
+    
+        class AfterRead(ScriptedLLM):
+            attempts = 0
+    
+            def chat_stream(self, *args, **kwargs):
+                self.attempts += 1
+                if self.attempts == 2:
+                    self.budget.request()
+                    error = TimeoutError('injected timeout') if failure == 'timeout' else RuntimeError()
+                    if failure != 'timeout':
+                        error.status_code = failure
+                    raise error
+                yield from super().chat_stream(*args, **kwargs)
+    
+        model = AfterRead([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('read', 'get_logistics', '{"order_id":"O10023"}'),
+            ]), ScriptedResponse(text='物流已查，保留原草稿'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn(
+            '查O10023物流，之后继续退货草稿', 'USER001', sid, agent=agent,
+        ))[-1]
+        assert model.attempts == (3 if enabled else 2)
+        assert final.result.stop_reason == ('answered' if enabled else 'llm_error')
+        assert final.result.tool_calls == 1 and final.task_view['task'] == before
+        assert sum(e.type == 'tool_result' for e in final.result.trace) == 1
+>       assert isinstance(model.budget, RunBudget)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, <class 'acs.runtime.RunBudget'>)
+E        +    where None = <tests.test_v2_premerge.test_transient_failure_after_read_preserves_draft_and_only_retries_model.<locals>.AfterRead object at 0x7b707e386510>.budget
+
+tests/test_v2_premerge.py:210: AssertionError
+_ test_transient_failure_after_read_preserves_draft_and_only_retries_model[True-503] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+failure = 503, enabled = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b707e2d18d0>
+
+    @pytest.mark.parametrize('failure', [429, 503, 'timeout'])
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_transient_failure_after_read_preserves_draft_and_only_retries_model(
+        settings, failure, enabled, monkeypatch,
+    ):
+        from acs.runtime import RunBudget
+    
+        monkeypatch.setattr('acs.service_agent.sleep', lambda delay: None)
+        settings = settings.model_copy(update={
+            'workflow_router_enabled': enabled, 'runtime_recovery_enabled': enabled,
+        })
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})['task']
+        store.interrupt_turn(sid, 'USER001', tid)
+    
+        class AfterRead(ScriptedLLM):
+            attempts = 0
+    
+            def chat_stream(self, *args, **kwargs):
+                self.attempts += 1
+                if self.attempts == 2:
+                    self.budget.request()
+                    error = TimeoutError('injected timeout') if failure == 'timeout' else RuntimeError()
+                    if failure != 'timeout':
+                        error.status_code = failure
+                    raise error
+                yield from super().chat_stream(*args, **kwargs)
+    
+        model = AfterRead([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('read', 'get_logistics', '{"order_id":"O10023"}'),
+            ]), ScriptedResponse(text='物流已查，保留原草稿'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn(
+            '查O10023物流，之后继续退货草稿', 'USER001', sid, agent=agent,
+        ))[-1]
+        assert model.attempts == (3 if enabled else 2)
+        assert final.result.stop_reason == ('answered' if enabled else 'llm_error')
+        assert final.result.tool_calls == 1 and final.task_view['task'] == before
+        assert sum(e.type == 'tool_result' for e in final.result.trace) == 1
+>       assert isinstance(model.budget, RunBudget)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, <class 'acs.runtime.RunBudget'>)
+E        +    where None = <tests.test_v2_premerge.test_transient_failure_after_read_preserves_draft_and_only_retries_model.<locals>.AfterRead object at 0x7b707e3857f0>.budget
+
+tests/test_v2_premerge.py:210: AssertionError
+_ test_transient_failure_after_read_preserves_draft_and_only_retries_model[True-timeout] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...recovery_enabled=True, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+failure = 'timeout', enabled = True
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7b707e276f70>
+
+    @pytest.mark.parametrize('failure', [429, 503, 'timeout'])
+    @pytest.mark.parametrize('enabled', [False, True])
+    def test_transient_failure_after_read_preserves_draft_and_only_retries_model(
+        settings, failure, enabled, monkeypatch,
+    ):
+        from acs.runtime import RunBudget
+    
+        monkeypatch.setattr('acs.service_agent.sleep', lambda delay: None)
+        settings = settings.model_copy(update={
+            'workflow_router_enabled': enabled, 'runtime_recovery_enabled': enabled,
+        })
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})['task']
+        store.interrupt_turn(sid, 'USER001', tid)
+    
+        class AfterRead(ScriptedLLM):
+            attempts = 0
+    
+            def chat_stream(self, *args, **kwargs):
+                self.attempts += 1
+                if self.attempts == 2:
+                    self.budget.request()
+                    error = TimeoutError('injected timeout') if failure == 'timeout' else RuntimeError()
+                    if failure != 'timeout':
+                        error.status_code = failure
+                    raise error
+                yield from super().chat_stream(*args, **kwargs)
+    
+        model = AfterRead([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('read', 'get_logistics', '{"order_id":"O10023"}'),
+            ]), ScriptedResponse(text='物流已查，保留原草稿'),
+        ])
+        agent = CustomerServiceAgent(settings=settings, llm=model, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn(
+            '查O10023物流，之后继续退货草稿', 'USER001', sid, agent=agent,
+        ))[-1]
+        assert model.attempts == (3 if enabled else 2)
+        assert final.result.stop_reason == ('answered' if enabled else 'llm_error')
+        assert final.result.tool_calls == 1 and final.task_view['task'] == before
+        assert sum(e.type == 'tool_result' for e in final.result.trace) == 1
+>       assert isinstance(model.budget, RunBudget)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, <class 'acs.runtime.RunBudget'>)
+E        +    where None = <tests.test_v2_premerge.test_transient_failure_after_read_preserves_draft_and_only_retries_model.<locals>.AfterRead object at 0x7b707e3863c0>.budget
+
+tests/test_v2_premerge.py:210: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v2_premerge.py::test_combined_routing_and_recovery_cannot_override_owner_or_cancel_authorization[False]
+FAILED tests/test_v2_premerge.py::test_combined_routing_and_recovery_cannot_override_owner_or_cancel_authorization[True]
+FAILED tests/test_v2_premerge.py::test_transient_failure_after_read_preserves_draft_and_only_retries_model[False-429]
+FAILED tests/test_v2_premerge.py::test_transient_failure_after_read_preserves_draft_and_only_retries_model[False-503]
+FAILED tests/test_v2_premerge.py::test_transient_failure_after_read_preserves_draft_and_only_retries_model[False-timeout]
+FAILED tests/test_v2_premerge.py::test_transient_failure_after_read_preserves_draft_and_only_retries_model[True-429]
+FAILED tests/test_v2_premerge.py::test_transient_failure_after_read_preserves_draft_and_only_retries_model[True-503]
+FAILED tests/test_v2_premerge.py::test_transient_failure_after_read_preserves_draft_and_only_retries_model[True-timeout]
