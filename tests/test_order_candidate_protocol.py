@@ -43,7 +43,8 @@ def corrupt_orders(name):
 def test_malformed_display_protocol_declines_without_raising(name):
     trace = sample_trace(corrupt_orders(name))
     before = copy.deepcopy(trace)
-    assert order_candidate_response(trace, {"task": None}, "answered") is None
+    assert order_candidate_response(trace, {"task": None}, "answered",
+                                    user_text="请列出我的全部订单和全部商品明细。") is None
     assert trace == before
 
 
@@ -60,13 +61,15 @@ def test_unrenderable_fields_decline_before_sorting(location, key, value):
     item = orders[0]["items"][0]
     target = {"order": orders[0], "item": item, "sku": item["sku"]}[location]
     target[key] = value
-    assert order_candidate_response(sample_trace(orders), {"task": None}, "answered") is None
+    assert order_candidate_response(sample_trace(orders), {"task": None}, "answered",
+                                    user_text="请列出我的全部订单和全部商品明细。") is None
 
 
 def test_valid_batch_preserves_every_item_and_none_sku():
     orders = copy.deepcopy(FROZEN["truth_payload"]["orders"])
     orders[0]["items"][0]["sku"] = None
     before = copy.deepcopy(orders)
-    answer, detail = order_candidate_response(sample_trace(orders), {"task": None}, "answered")
+    answer, detail = order_candidate_response(sample_trace(orders), {"task": None}, "answered",
+                                              user_text="请列出我的全部订单和全部商品明细。")
     assert len(detail["rows"]) == 25 and "未知" in answer
     assert orders == before

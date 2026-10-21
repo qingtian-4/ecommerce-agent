@@ -65,7 +65,13 @@ def run(output: Path):
                 if enabled:
                     assert event is not None
                     rows = event.detail["rows"]
-                    assert len(rows) == 25
+                    source_orders = next(e.detail["result"] for e in final.result.trace
+                                         if e.type == "tool_result" and e.label == "list_orders")
+                    categories = source_orders["product_categories"]
+                    expected = {(o["order_id"], i["id"]) for o in source_orders["orders"]
+                                for i in o["items"]
+                                if categories[i["product_id"]] == "无线耳机"}
+                    assert {(r["order_id"], r["item_id"]) for r in rows} == expected
                     if uid == "USER001":
                         row = next(r for r in rows if r["order_id"] == "S20008")
                         assert row["color"] == ("蓝色" if case == "changed-colour" else "白色")
@@ -96,7 +102,7 @@ def run(output: Path):
     for case in dict.fromkeys(r["case"] for r in records):
         off, on = [r for r in records if r["case"] == case]
         assert off["calls"] == on["calls"] == 3
-        assert off["first_input_chars"] == on["first_input_chars"]
+        assert off["first_input_chars"][0] == on["first_input_chars"][0]
         pairs.append({"case": case, "extra_model_calls": 0,
                       "first_input_chars_delta": [b - a for a, b in zip(
                           off["first_input_chars"], on["first_input_chars"], strict=True,

@@ -1,0 +1,244 @@
+{
+  "count_truth": {
+    "orders": 20,
+    "item_lines": 25,
+    "units": 29,
+    "quantity_gt_one": [
+      {
+        "order_id": "S20001",
+        "item_id": 1,
+        "product_name": "演示 H1 头戴耳机",
+        "product_id": "V204",
+        "sku_id": "V204-2",
+        "color": "米色",
+        "quantity": 2,
+        "status": "delivered",
+        "created_at": "2026-10-12",
+        "category": "无线耳机"
+      },
+      {
+        "order_id": "S20006",
+        "item_id": 8,
+        "product_name": "演示 B1 骨传导耳机",
+        "product_id": "V208",
+        "sku_id": "V208-1",
+        "color": "黑色",
+        "quantity": 2,
+        "status": "delivered",
+        "created_at": "2026-10-11",
+        "category": "无线耳机"
+      },
+      {
+        "order_id": "S20011",
+        "item_id": 14,
+        "product_name": "演示 S1 半入耳耳机",
+        "product_id": "V203",
+        "sku_id": "V203-1",
+        "color": "白色",
+        "quantity": 2,
+        "status": "delivered",
+        "created_at": "2026-10-06",
+        "category": "无线耳机"
+      },
+      {
+        "order_id": "S20016",
+        "item_id": 20,
+        "product_name": "演示 A2 入耳耳机",
+        "product_id": "V202",
+        "sku_id": "V202-1",
+        "color": "黑色",
+        "quantity": 2,
+        "status": "delivered",
+        "created_at": "2026-10-05",
+        "category": "无线耳机"
+      }
+    ]
+  },
+  "wrong_colour_truth": [
+    {
+      "order_id": "S20008",
+      "item_id": 10,
+      "product_name": "演示 A1 入耳耳机",
+      "product_id": "V201",
+      "sku_id": "V201-2",
+      "color": "白色",
+      "quantity": 1,
+      "status": "shipped",
+      "created_at": "2026-10-13",
+      "category": "无线耳机"
+    },
+    {
+      "order_id": "S20014",
+      "item_id": 18,
+      "product_name": "演示 A1 入耳耳机",
+      "product_id": "V201",
+      "sku_id": "V201-2",
+      "color": "白色",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-13",
+      "category": "无线耳机"
+    }
+  ],
+  "S20009_truth": [
+    {
+      "order_id": "S20009",
+      "item_id": 11,
+      "product_name": "演示 A2 入耳耳机",
+      "product_id": "V202",
+      "sku_id": "V202-1",
+      "color": "黑色",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-12",
+      "category": "无线耳机"
+    },
+    {
+      "order_id": "S20009",
+      "item_id": 12,
+      "product_name": "演示 O1 开放挂耳耳机",
+      "product_id": "V206",
+      "sku_id": "V206-2",
+      "color": "橙色",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-12",
+      "category": "无线耳机"
+    }
+  ],
+  "failures": [
+    {
+      "case": "legacy-orders01",
+      "enabled": false,
+      "raw_line": 5,
+      "facts_valid": false,
+      "task_scope_complete": true,
+      "overall_pass": false,
+      "unjudged": false,
+      "errors": [
+        "S20008 and S20014 explicitly described black; SQL SKU V201-2 is white for both."
+      ],
+      "notes": [],
+      "irrelevant_candidate_order_ids": [],
+      "irrelevant_product_commentary": 0,
+      "fact_render_events": 0,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ]
+    },
+    {
+      "case": "category-headphones",
+      "enabled": true,
+      "raw_line": 7,
+      "facts_valid": false,
+      "task_scope_complete": true,
+      "overall_pass": false,
+      "unjudged": false,
+      "errors": [
+        "Footer says S20009 also contains a charger/powerbank; both its items are headphones V202/V206. Table rows themselves correctly select18 headphone items."
+      ],
+      "notes": [],
+      "irrelevant_candidate_order_ids": [],
+      "irrelevant_product_commentary": 0,
+      "fact_render_events": 0,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ]
+    },
+    {
+      "case": "count-items",
+      "enabled": true,
+      "raw_line": 11,
+      "facts_valid": false,
+      "task_scope_complete": false,
+      "overall_pass": false,
+      "unjudged": false,
+      "errors": [
+        "25 units reported; actual sum quantity is29 (20 orders,25 item lines)."
+      ],
+      "notes": [],
+      "irrelevant_candidate_order_ids": [],
+      "irrelevant_product_commentary": 0,
+      "fact_render_events": 0,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ]
+    },
+    {
+      "case": "count-items",
+      "enabled": false,
+      "raw_line": 12,
+      "facts_valid": false,
+      "task_scope_complete": false,
+      "overall_pass": false,
+      "unjudged": false,
+      "errors": [
+        "26 units reported; actual sum quantity is29 (20 orders,25 item lines)."
+      ],
+      "notes": [],
+      "irrelevant_candidate_order_ids": [],
+      "irrelevant_product_commentary": 0,
+      "fact_render_events": 0,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ]
+    },
+    {
+      "case": "history-white-restore",
+      "enabled": true,
+      "raw_line": 15,
+      "facts_valid": true,
+      "task_scope_complete": false,
+      "overall_pass": false,
+      "unjudged": false,
+      "errors": [
+        "White-only restriction survives in actual model input but black candidates still offered after restore; no P1 takeover."
+      ],
+      "notes": [
+        "Additional older S20002 black example counted as an offered alternative in off arm; explicitly excluded examples in status-date answers are not counted as candidates."
+      ],
+      "irrelevant_candidate_order_ids": [
+        "S20013",
+        "S20019"
+      ],
+      "irrelevant_product_commentary": 0,
+      "fact_render_events": 0,
+      "finish_reasons": [
+        "stop",
+        "tool_calls",
+        "stop"
+      ]
+    },
+    {
+      "case": "history-white-restore",
+      "enabled": false,
+      "raw_line": 16,
+      "facts_valid": true,
+      "task_scope_complete": false,
+      "overall_pass": false,
+      "unjudged": false,
+      "errors": [
+        "White-only restriction survives in actual model input but black candidates still offered after restore; no P1 takeover."
+      ],
+      "notes": [
+        "Additional older S20002 black example counted as an offered alternative in off arm; explicitly excluded examples in status-date answers are not counted as candidates."
+      ],
+      "irrelevant_candidate_order_ids": [
+        "S20013",
+        "S20019",
+        "S20002"
+      ],
+      "irrelevant_product_commentary": 0,
+      "fact_render_events": 0,
+      "finish_reasons": [
+        "stop",
+        "tool_calls",
+        "stop"
+      ]
+    }
+  ]
+}

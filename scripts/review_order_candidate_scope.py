@@ -11,7 +11,7 @@ import re
 import shutil
 import socket
 import sys
-from contextlib import closing
+from contextlib import closing, nullcontext
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -24,6 +24,7 @@ from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall  # no
 from acs.chat_service import ChatService  # noqa: E402
 from acs.config import Settings  # noqa: E402
 from acs.cs_tools import ToolRegistry  # noqa: E402
+from acs.order_candidates import order_candidate_response  # noqa: E402
 from acs.scenarios import build_scenario, data_fingerprint, scenario_settings  # noqa: E402
 from acs.service_agent import CustomerServiceAgent  # noqa: E402
 from acs.sessions import SessionStore  # noqa: E402
@@ -138,9 +139,11 @@ def business_state(store):
     return {"business": data_fingerprint(store.db_path), "returns": rows}
 
 
-def run(cases_path, output):
+def run(cases_path, output, *, full_only=False):
     output.mkdir(parents=True, exist_ok=False)
     frozen = json.loads(cases_path.read_text())
+    full_queries = {c["query"] for c in frozen["cases"]
+                    if c["id"] in {"list-all", "return-all", "short-full-control"}}
     records = []
 
     def denied(*args, **kwargs):
@@ -201,7 +204,14 @@ def run(cases_path, output):
                 record = {"case": case["id"], "enabled": enabled,
                           "malformed": bool(case.get("malformed")), "exception": None}
                 try:
-                    final = list(service.run_turn(case["query"], "USER001", sid, agent=agent))[-1]
+                    allowed = case["query"] in full_queries
+                    policy = patch("acs.chat_service.order_candidate_response", side_effect=(
+                        lambda *args, allowed=allowed, **kwargs:
+                        order_candidate_response(*args, **kwargs) if allowed else None
+                    )) if full_only else nullcontext()
+                    with policy:
+                        final = list(service.run_turn(case["query"], "USER001", sid,
+                                                       agent=agent))[-1]
                     answer = final.result.answer
                     snapshot = store.load(sid, "USER001")
                     record.update(answer=answer, stop_reason=final.result.stop_reason,
@@ -238,14 +248,17 @@ def run(cases_path, output):
     for case in frozen["cases"]:
         off, on = [r for r in records if r["case"] == case["id"]]
         assert off["exception"] is None and on["exception"] is None
-        assert off["first_input_chars"] == on["first_input_chars"]
+        assert off["first_input_chars"][0] == on["first_input_chars"][0]
         assert off["model_calls"] == on["model_calls"] == 3
         was_correct = off["metrics"]["fact_precision"] == 1 and off["metrics"]["task_complete"]
         pairs.append({"case": case["id"], "off": off["metrics"], "on": on["metrics"],
                       "overwritten_correct": was_correct and off["answer"] != on["answer"],
                       "harmful_override": was_correct and not on["metrics"]["task_complete"],
+                      "first_input_delta": [v - u for u, v in zip(
+                          off["first_input_chars"], on["first_input_chars"], strict=True)],
                       "next_context_delta": on["next_input_chars"] - off["next_input_chars"]})
     summary = {"baseline": frozen["baseline_commit"], "runtime_root": str(ROOT),
+               "policy": "ideal-full-only" if full_only else "runtime",
                "source_sha256": hashlib.sha256(
                    (ROOT / "src/acs/order_candidates.py").read_bytes()).hexdigest(),
                "cases_sha256": hashlib.sha256(cases_path.read_bytes()).hexdigest(),
@@ -265,5 +278,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cases", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--full-only", action="store_true",
+                        help="Experimental oracle whitelist of three frozen full-list requests")
     args = parser.parse_args()
-    run(args.cases, args.out)
+    run(args.cases, args.out, full_only=args.full_only)

@@ -452,6 +452,7 @@ class ToolRegistry:
     # ------------------------------------------------------------------ #
     def _list_orders(self, *, current_user_id: str) -> dict[str, Any]:
         orders = []
+        categories = {}
         for row in self.db.list_orders(current_user_id):
             order = {key: row[key] for key in ("order_id", "status", "created_at", "delivered_at")}
             items = self.db.get_order(row["order_id"], current_user_id)["items"]
@@ -462,10 +463,15 @@ class ToolRegistry:
                 )}
                 sku = item.get("sku")
                 candidate["sku"] = {k: sku[k] for k in ("sku_id", "color")} if sku else None
+                if self.settings.order_candidate_render_enabled:
+                    categories[item["product_id"]] = item["product_category"]
                 order["items"].append(candidate)
             orders.append(order)
-        return {"orders": orders, "count": len(orders),
-                "instruction": "候选不等于用户选择。多个匹配订单或明细时必须澄清。"}
+        result = {"orders": orders, "count": len(orders),
+                  "instruction": "候选不等于用户选择。多个匹配订单或明细时必须澄清。"}
+        if self.settings.order_candidate_render_enabled:
+            result["product_categories"] = categories
+        return result
 
     def _get_product(self, *, current_user_id: str, product_id: str) -> dict[str, Any]:
         return self.db.get_product(product_id)

@@ -21,6 +21,7 @@ from .conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall
 ROOT = Path(__file__).resolve().parents[1]
 BADCASE = json.loads((ROOT / "results/p0_order_draft_integrity/acceptance_20261020/"
                      "next_badcase.json").read_text())
+FULL_QUERY = "请列出我的全部订单和全部商品明细。"
 
 
 @pytest.fixture(autouse=True)
@@ -84,7 +85,7 @@ def test_original_orders01_colour_binding_switch_pair(local, enabled):
 
 
 def test_rendered_rows_preserve_every_order_item_sku_and_ordering(local):
-    final, agent = replay(local, True)
+    final, agent = replay(local, True, query=FULL_QUERY)
     rendered = next(e for e in final.result.trace if e.type == "fact_render")
     source = final.result.trace[rendered.detail["tool_result_trace_index"]].detail["result"]
     expected = {(o["order_id"], i["id"], i["sku"]["sku_id"], i["sku"]["color"])
@@ -114,12 +115,13 @@ def sample_trace(orders=None):
 @pytest.mark.parametrize("state", ["draft", "cancelled", "submitted", "unknown"])
 def test_existing_or_unreadable_task_never_enters_candidate_mode(state):
     view = {"state_unavailable": True} if state == "unknown" else {"task": {"status": state}}
-    assert order_candidate_response(sample_trace(), view, "answered") is None
+    assert order_candidate_response(sample_trace(), view, "answered", user_text=FULL_QUERY) is None
 
 
 @pytest.mark.parametrize("stop", ["running", "llm_error", "max_steps", "budget_exceeded"])
 def test_non_answered_turn_does_not_replace_error_with_facts(stop):
-    assert order_candidate_response(sample_trace(), {"task": None}, stop) is None
+    assert order_candidate_response(sample_trace(), {"task": None}, stop,
+                                    user_text=FULL_QUERY) is None
 
 
 @pytest.mark.parametrize("mutation", ["missing_call", "wrong_order", "mixed", "error",
@@ -140,17 +142,18 @@ def test_non_candidate_tool_protocol_is_not_rewritten(mutation):
         trace.pop()
     else:
         trace[1].detail["result"] = {"error": "unavailable"}
-    assert order_candidate_response(trace, {"task": None}, "answered") is None
+    assert order_candidate_response(trace, {"task": None}, "answered", user_text=FULL_QUERY) is None
 
 
 def test_empty_orders_unknown_sku_and_hostile_cell_are_not_invented():
-    empty, detail = order_candidate_response(sample_trace(), {"task": None}, "answered")
+    empty, detail = order_candidate_response(sample_trace(), {"task": None}, "answered",
+                                             user_text=FULL_QUERY)
     assert "未找到" in empty and detail["rows"] == []
     answer, detail = order_candidate_response(sample_trace([{
         "order_id": "TEST", "created_at": None, "status": "pending",
         "items": [{"id": 1, "product_id": "P", "product_name": "<img src=x> | ![x](https://x)",
                    "sku": None, "quantity": 1}],
-    }]), {"task": None}, "answered")
+    }]), {"task": None}, "answered", user_text=FULL_QUERY)
     assert "<img" not in answer and "&#124;" in answer and "\\![" not in answer
     assert "\\!\\[x\\]\\(https://x\\)" in answer
     assert detail["rows"][0]["sku_id"] is None and detail["rows"][0]["color"] is None

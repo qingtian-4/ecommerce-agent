@@ -109,8 +109,10 @@ class ChatService:
                         task_events = updates
                     if result.stop_reason != "running":
                         if self.settings.order_candidate_render_enabled:
-                            rendered = order_candidate_response(result.trace, task,
-                                                                result.stop_reason)
+                            rendered = order_candidate_response(
+                                result.trace, task, result.stop_reason, user_text=message,
+                                has_history=bool(snapshot["messages"]),
+                            )
                             if rendered is not None:
                                 original = result.answer
                                 result.answer, detail = rendered
