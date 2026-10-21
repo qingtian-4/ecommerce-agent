@@ -463,13 +463,14 @@ class ToolRegistry:
                 )}
                 sku = item.get("sku")
                 candidate["sku"] = {k: sku[k] for k in ("sku_id", "color")} if sku else None
-                if self.settings.order_candidate_render_enabled:
+                if (self.settings.order_candidate_render_enabled
+                        or self.settings.order_constraint_enabled):
                     categories[item["product_id"]] = item["product_category"]
                 order["items"].append(candidate)
             orders.append(order)
         result = {"orders": orders, "count": len(orders),
                   "instruction": "候选不等于用户选择。多个匹配订单或明细时必须澄清。"}
-        if self.settings.order_candidate_render_enabled:
+        if self.settings.order_candidate_render_enabled or self.settings.order_constraint_enabled:
             result["product_categories"] = categories
         return result
 

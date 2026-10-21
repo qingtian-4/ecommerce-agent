@@ -17,6 +17,7 @@ from .config import Settings
 from .context import ContextLimitExceeded, bounded_context
 from .cs_tools import TraceEvent
 from .order_candidates import order_candidate_response
+from .order_reliability import aggregate_response, color_constraint, constrained_response
 from .return_state_check import check_order_draft, state_notice
 from .runtime import BudgetExceeded, RunBudget
 from .service_agent import AgentResult, CustomerServiceAgent, build_system_prompt
@@ -67,6 +68,8 @@ class ChatService:
             history = snapshot["history"]
             reply_index = len(history)
             task = self.store.get_return_task(sid, user_id)
+            constraint = (color_constraint(snapshot["history"])
+                          if self.settings.order_constraint_enabled else None)
             acquired = self.limiter.acquire(blocking=False)
             yield update("running" if acquired else "queued")
             while not acquired:
@@ -108,22 +111,44 @@ class ChatService:
                         task = self.store.get_return_task(sid, user_id)
                         task_events = updates
                     if result.stop_reason != "running":
-                        if self.settings.order_candidate_render_enabled:
+                        rendered = None
+                        render_label = "order_candidates"
+                        if (self.settings.order_constraint_enabled
+                                or self.settings.order_aggregation_enabled):
+                            checked_at = perf_counter()
+                            budget.remaining()
+                            if constraint is not None:
+                                result.totals["order_constraint"] = constraint
+                                rendered = constrained_response(
+                                    result.trace, task, result.stop_reason, message, constraint,
+                                )
+                                render_label = "constrained_order_candidates"
+                            if rendered is None and self.settings.order_aggregation_enabled:
+                                rendered = aggregate_response(
+                                    result.trace, task, result.stop_reason, message,
+                                    has_history=bool(snapshot["messages"]),
+                                )
+                                render_label = "order_aggregation"
+                            elapsed = (perf_counter() - checked_at) * 1000
+                            result.totals["order_reliability_ms"] = elapsed
+                            result.totals["latency_ms"] += elapsed
+                        if self.settings.order_candidate_render_enabled and rendered is None:
                             rendered = order_candidate_response(
                                 result.trace, task, result.stop_reason, user_text=message,
                                 has_history=bool(snapshot["messages"]),
                             )
-                            if rendered is not None:
-                                original = result.answer
-                                result.answer, detail = rendered
-                                detail.update(user_id=user_id, original_answer=original)
-                                agent.messages[-1]["content"] = result.answer
-                                finals = [e for e in result.trace if e.type == "final"]
-                                if finals:
-                                    finals[-1].detail["text"] = result.answer
-                                result.trace.insert(len(result.trace) - bool(finals), TraceEvent(
-                                    "fact_render", "order_candidates", detail,
-                                ))
+                            render_label = "order_candidates"
+                        if rendered is not None:
+                            original = result.answer
+                            result.answer, detail = rendered
+                            detail.update(user_id=user_id, original_answer=original)
+                            agent.messages[-1]["content"] = result.answer
+                            finals = [e for e in result.trace if e.type == "final"]
+                            if finals:
+                                finals[-1].detail["text"] = result.answer
+                            result.trace.insert(len(result.trace) - bool(finals), TraceEvent(
+                                "fact_render", render_label, detail,
+                            ))
                         if self.settings.return_state_check_enabled:
                             checked_at = perf_counter()
                             event = check_order_draft(

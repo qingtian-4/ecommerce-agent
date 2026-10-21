@@ -351,7 +351,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
         elif event.type == "state_check":
             title = f"Step {step_no} · 服务端状态检查 <code>{html.escape(event.label)}</code>"
         elif event.type == "fact_render":
-            title = f"Step {step_no} · 订单候选事实 <code>{html.escape(event.label)}</code>"
+            label = "订单统计事实" if event.label == "order_aggregation" else "订单候选事实"
+            title = f"Step {step_no} · {label} <code>{html.escape(event.label)}</code>"
         else:
             title = f"Step {step_no} · 最终回答"
 

@@ -62,15 +62,11 @@ def _valid_orders(orders: list) -> bool:
     return True
 
 
-def order_candidate_response(trace: list[TraceEvent], task_view: dict,
-                             stop_reason: str, *, user_text: str = "",
-                             has_history: bool = False) -> tuple[str, dict] | None:
-    """Only explicit first-turn presentation, one list_orders and no task or other workflow."""
-    if (has_history or stop_reason != "answered" or task_view.get("task") is not None
+def order_lookup_result(trace: list[TraceEvent], task_view: dict,
+                        stop_reason: str) -> tuple[int, dict] | None:
+    """One successful read-only lookup, with valid rows and no active business task."""
+    if (stop_reason != "answered" or task_view.get("task") is not None
             or task_view.get("state_unavailable")):
-        return None
-    scope = _requested_scope(user_text)
-    if scope is None:
         return None
     calls = [(i, e) for i, e in enumerate(trace) if e.type == "tool_call"]
     results = [(i, e) for i, e in enumerate(trace) if e.type == "tool_result"]
@@ -84,6 +80,22 @@ def order_candidate_response(trace: list[TraceEvent], task_view: dict,
         return None
     if not _valid_orders(payload["orders"]):
         return None
+    return index, payload
+
+
+def order_candidate_response(trace: list[TraceEvent], task_view: dict,
+                             stop_reason: str, *, user_text: str = "",
+                             has_history: bool = False,
+                             color_constraint: dict | None = None) -> tuple[str, dict] | None:
+    """P1 first-turn requests, or an explicitly enabled historical colour constraint."""
+    scope = _requested_scope(user_text)
+    if (scope is None or (has_history and color_constraint is None)
+            or (color_constraint is not None and scope != "headphones")):
+        return None
+    source = order_lookup_result(trace, task_view, stop_reason)
+    if source is None:
+        return None
+    index, payload = source
     categories = payload.get("product_categories")
     if scope == "headphones" and (
         not isinstance(categories, dict)
@@ -101,6 +113,8 @@ def order_candidate_response(trace: list[TraceEvent], task_view: dict,
             if scope == "headphones" and categories[item["product_id"]] != "无线耳机":
                 continue
             sku = item.get("sku") or {}
+            if color_constraint is not None and sku.get("color") != color_constraint["color"]:
+                continue
             rows.append({"order_id": order["order_id"], "item_id": item.get("id"),
                          "product_id": item.get("product_id"),
                          "product_name": item.get("product_name"),
@@ -110,13 +124,22 @@ def order_candidate_response(trace: list[TraceEvent], task_view: dict,
     detail = {"version": 2, "tool_result_trace_index": index, "request_scope": scope,
               "source_order_count": len(orders),
               "order_count": len({r["order_id"] for r in rows}), "rows": rows}
+    constraint_notice = ""
+    if color_constraint is not None:
+        detail["constraint"] = color_constraint
+        constraint_notice = f"仅展示{color_constraint['color']}耳机；颜色未知的明细不列为匹配。"
     if not orders:
-        return "本轮查询未找到您的订单，请核对当前用户或提供订单号。", detail
+        return constraint_notice + "本轮查询未找到您的订单，请核对当前用户或提供订单号。", detail
     if scope == "headphones" and not rows:
-        return "本轮查询未找到耳机类商品明细，请核对商品类别或提供订单号。", detail
+        if color_constraint is None:
+            return "本轮查询未找到耳机类商品明细，请核对商品类别或提供订单号。", detail
+        return ("订单候选更正（以本轮查询记录为准）：" + constraint_notice
+                + "本轮查询未找到符合条件的耳机类商品明细，请核对条件或提供订单号。"), detail
     intro = (f"本次查到 {len(orders)} 笔订单；每行对应一笔订单中的一条商品明细。"
              if scope == "all" else "以下每行对应一笔订单中的一条耳机商品明细。")
     lines = ["订单候选更正（以本轮查询记录为准）：", intro]
+    if constraint_notice:
+        lines.append(constraint_notice)
     if scope == "headphones" and "最近" in user_text:
         lines.append("“最近”尚未限定时间范围；以下列出查询到的耳机候选，请确认时间范围。")
     lines += ["",
