@@ -152,6 +152,7 @@ class Settings(BaseSettings):
     # Independent opt-ins: finite colour constraints and explicit count requests.
     order_constraint_enabled: bool = False
     order_aggregation_enabled: bool = False
+    workflow_router_enabled: bool = False
     # Freeze the business clock for comparable evaluation runs; live queries use today.
     reference_date: date | None = None
 

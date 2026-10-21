@@ -9,16 +9,10 @@ The whole control flow, deliberately:
         else:
             return response.text as the final answer
 
-Why hand-written rather than a framework: the loop is the thing under study.
-When a router is added later, "which path did this request take" has to be
-answerable by reading this file. A graph framework would hide that in edge
-declarations, and the request would not be unit-testable without executing the
-whole graph.
+The loop remains explicit and testable. An opt-in finite workflow router may
+restrict the tool scope before execution; it never grants business authority.
+There is no planner, reflection model or long-term memory framework.
 
-What this loop deliberately does NOT do: no router, no planner, no reflection,
-no self-critique, no long-term memory. The model decides whether to call tools,
-which ones, how many, and when to stop -- that is the baseline everything later
-is measured against.
 """
 
 from __future__ import annotations
@@ -37,6 +31,7 @@ from .cs_tools import ToolRegistry, TraceEvent
 from .database import business_today
 from .knowledge_context import load_source_documents
 from .llm import LLMClient
+from .routing import route_request
 from .runtime import BudgetExceeded, RunBudget
 
 SYSTEM_PROMPT = """你是一名专业的电商客服助手，服务于一家销售无线耳机与充电配件的店铺。
@@ -201,6 +196,7 @@ class CustomerServiceAgent:
         self.settings = settings or get_settings()
         self.llm = llm or LLMClient(settings=self.settings)
         self.registry = registry or ToolRegistry(self.settings, llm=self.llm)
+        self.route: dict | None = None
         self.current_user_id = current_user_id
         self.max_steps = max_steps or self.settings.max_steps
         self.messages: list[dict[str, Any]] = [
@@ -250,7 +246,12 @@ class CustomerServiceAgent:
         self.messages.append({"role": "user", "content": user_message})
 
         result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
-        schemas = self.registry.schemas()
+        route = None
+        if self.settings.workflow_router_enabled:
+            route = self.route or route_request(user_message, self.registry.names, False)
+            result.trace.append(TraceEvent('route_selected', route['intent'], route))
+        schemas = [s for s in self.registry.schemas()
+                   if route is None or s['function']['name'] in route['allowed_tools']]
         retrievals = 0
 
         for step in range(1, self.max_steps + 1):
@@ -354,9 +355,15 @@ class CustomerServiceAgent:
                 ))
                 yield self._snapshot(result, started)
                 try:
-                    payload, events, error = self.registry.run(
-                        call.name, call.arguments, current_user_id=self.current_user_id
-                    )
+                    if route is not None and call.name not in route['allowed_tools']:
+                        payload = {'error_type': 'route_scope', 'executed': False,
+                                   'message': '工具不属于本轮业务范围，未执行'}
+                        events = [result.trace[-1], TraceEvent('error', call.name, payload)]
+                        error = 'route_scope'
+                    else:
+                        payload, events, error = self.registry.run(
+                            call.name, call.arguments, current_user_id=self.current_user_id
+                        )
                 except (BudgetExceeded, ContextLimitExceeded) as exc:
                     stopped = str(exc)
                     limit_reason = ("context_limit" if isinstance(exc, ContextLimitExceeded)

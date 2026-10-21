@@ -24,6 +24,7 @@ from .order_reliability import (
     constrained_response,
 )
 from .return_state_check import check_order_draft, state_notice
+from .routing import route_request
 from .runtime import BudgetExceeded, RunBudget
 from .service_agent import AgentResult, CustomerServiceAgent, build_system_prompt
 from .sessions import SessionStore
@@ -100,6 +101,8 @@ class ChatService:
             agent = agent or CustomerServiceAgent(settings=self.settings, current_user_id=user_id)
             agent.set_user(user_id)
             agent.registry.bind_return_task(self.store, sid, tid)
+            if self.settings.workflow_router_enabled:
+                agent.route = route_request(message, agent.registry.names, bool(task['task']))
             required = [{"role": "system", "content": build_system_prompt(self.settings)}]
             if snapshot["messages"]:
                 required.append({"role": "system", "content": (
