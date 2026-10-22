@@ -1,0 +1,2185 @@
+{
+  "method": "Post-hoc source/trajectory review by coding assistant; not blind human review, no reward changes or new paid requests. Original known tasks, not held-out.",
+  "upstream": "dd8757d4c8791dad7b3cdaf02a105a3d5f9d86bd",
+  "cases": [
+    {
+      "task": "27",
+      "primary": "model_business_state_planning",
+      "confidence": "direct",
+      "analysis": "All arms return items first, changing #W7181492 to return requested, then attempt an exchange requiring delivered status. User explicitly prioritized exchange if incompatible. Exchange rejects with Non-delivered order cannot be exchanged. Offline gold exchange-only replay succeeds.",
+      "runtime": "No route exclusion/retry/turn budget stop. Need pre-write action conflict reasoning; no speculative tool replay.",
+      "arms": {
+        "official": {
+          "artifact": "live/official-27-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "27_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Isabella",
+                    "last_name": "Johansson",
+                    "zip": "32286"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_1",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "isabella_johansson_2152"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_2",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W3792453"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W7181492"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_4",
+                  "requestor": "assistant",
+                  "name": "get_product_details",
+                  "arguments": {
+                    "product_id": "7363354090"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_5",
+                  "requestor": "assistant",
+                  "name": "exchange_delivered_order_items",
+                  "arguments": {
+                    "order_id": "#W7181492",
+                    "item_ids": [
+                      "8118291112"
+                    ],
+                    "new_item_ids": [
+                      "8277474082"
+                    ],
+                    "payment_method_id": "paypal_3024827"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 19,
+              "call": {
+                "id": "call_00_AeLHpqX2Ugax0XFakZ7C0317",
+                "name": "return_delivered_order_items",
+                "arguments": {
+                  "order_id": "#W7181492",
+                  "item_ids": [
+                    "5753502325",
+                    "9851293632"
+                  ],
+                  "payment_method_id": "paypal_3024827"
+                },
+                "requestor": "assistant"
+              }
+            },
+            {
+              "message": 21,
+              "call": {
+                "id": "call_00_mDIYXmCavoZVNqs5boK27431",
+                "name": "exchange_delivered_order_items",
+                "arguments": {
+                  "order_id": "#W7181492",
+                  "item_ids": [
+                    "8118291112"
+                  ],
+                  "new_item_ids": [
+                    "8277474082"
+                  ],
+                  "payment_method_id": "paypal_3024827"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [
+            {
+              "message": 22,
+              "content": "Error: Non-delivered order cannot be exchanged"
+            }
+          ],
+          "routes": []
+        },
+        "acs_v1": {
+          "artifact": "live/acs_v1-27-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "27_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Isabella",
+                    "last_name": "Johansson",
+                    "zip": "32286"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_1",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "isabella_johansson_2152"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_2",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W3792453"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W7181492"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_4",
+                  "requestor": "assistant",
+                  "name": "get_product_details",
+                  "arguments": {
+                    "product_id": "7363354090"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_5",
+                  "requestor": "assistant",
+                  "name": "exchange_delivered_order_items",
+                  "arguments": {
+                    "order_id": "#W7181492",
+                    "item_ids": [
+                      "8118291112"
+                    ],
+                    "new_item_ids": [
+                      "8277474082"
+                    ],
+                    "payment_method_id": "paypal_3024827"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 20,
+              "call": {
+                "id": "call_00_KjTeRCr0YP27pzLn0Py03202",
+                "name": "return_delivered_order_items",
+                "arguments": {
+                  "order_id": "#W7181492",
+                  "item_ids": [
+                    "5753502325",
+                    "9851293632"
+                  ],
+                  "payment_method_id": "paypal_3024827"
+                },
+                "requestor": "assistant"
+              }
+            },
+            {
+              "message": 22,
+              "call": {
+                "id": "call_01_e6c3FbtLrT7KLLxfSqde2533",
+                "name": "exchange_delivered_order_items",
+                "arguments": {
+                  "order_id": "#W7181492",
+                  "item_ids": [
+                    "8118291112"
+                  ],
+                  "new_item_ids": [
+                    "8277474082"
+                  ],
+                  "payment_method_id": "paypal_3024827"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [
+            {
+              "message": 23,
+              "content": "Error: Non-delivered order cannot be exchanged"
+            }
+          ],
+          "routes": []
+        },
+        "acs_v2": {
+          "artifact": "live/acs_v2-27-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "27_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Isabella",
+                    "last_name": "Johansson",
+                    "zip": "32286"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_1",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "isabella_johansson_2152"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_2",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W3792453"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W7181492"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_4",
+                  "requestor": "assistant",
+                  "name": "get_product_details",
+                  "arguments": {
+                    "product_id": "7363354090"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "27_5",
+                  "requestor": "assistant",
+                  "name": "exchange_delivered_order_items",
+                  "arguments": {
+                    "order_id": "#W7181492",
+                    "item_ids": [
+                      "8118291112"
+                    ],
+                    "new_item_ids": [
+                      "8277474082"
+                    ],
+                    "payment_method_id": "paypal_3024827"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 22,
+              "call": {
+                "id": "call_00_wTK0C3MJcuGVM56d6uiV7363",
+                "name": "return_delivered_order_items",
+                "arguments": {
+                  "order_id": "#W7181492",
+                  "item_ids": [
+                    "5753502325",
+                    "9851293632"
+                  ],
+                  "payment_method_id": "paypal_3024827"
+                },
+                "requestor": "assistant"
+              }
+            },
+            {
+              "message": 24,
+              "call": {
+                "id": "call_01_FZI6kK8y1uVRj1rBU7021945",
+                "name": "exchange_delivered_order_items",
+                "arguments": {
+                  "order_id": "#W7181492",
+                  "item_ids": [
+                    "8118291112"
+                  ],
+                  "new_item_ids": [
+                    "8277474082"
+                  ],
+                  "payment_method_id": "paypal_3024827"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [
+            {
+              "message": 25,
+              "content": "Error: Non-delivered order cannot be exchanged"
+            }
+          ],
+          "routes": []
+        }
+      }
+    },
+    {
+      "task": "38",
+      "primary": "simulated_user_vs_reference_reason_mismatch",
+      "confidence": "direct mismatch; benchmark intent ambiguity",
+      "analysis": "All arms cancel #W9348897 with ordered by mistake after simulated user explicitly supplies that allowed reason. Gold expects no longer needed. Scenario does not prescribe cancellation reason; policy accepts both. Official DB score stays 0. This is not evidence that cancellation was missing or unauthorized.",
+      "runtime": "No invalid argument, route rejection or failed cancellation receipt. Diagnostic discrepancy must not be rescored as agent improvement.",
+      "arms": {
+        "official": {
+          "artifact": "live/official-38-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "38_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_email",
+                  "arguments": {
+                    "email": "daikisanchez1479@example.com"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "38_1",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Daiki",
+                    "last_name": "Sanchez",
+                    "zip": "46236"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "38_9",
+                  "requestor": "assistant",
+                  "name": "calculate",
+                  "arguments": {
+                    "expression": "466.75 + 288.82 + 135.24 + 193.38 + 46.66"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "generic"
+              },
+              {
+                "action": {
+                  "action_id": "38_10",
+                  "requestor": "assistant",
+                  "name": "cancel_pending_order",
+                  "arguments": {
+                    "order_id": "#W9348897",
+                    "reason": "no longer needed"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [
+              {
+                "nl_assertion": "Agent should tell the user the most expensive item in the order is the camera.",
+                "met": true,
+                "justification": "The agent explicitly stated: 'The most expensive item is the Action Camera at $481.50.'"
+              },
+              {
+                "nl_assertion": "Agent should tell the user the camera costs $481.50.",
+                "met": true,
+                "justification": "The agent stated the Action Camera price as $481.50 in the item table and in the summary sentence."
+              }
+            ],
+            "communicate_checks": [
+              {
+                "info": "camera",
+                "met": true,
+                "justification": "Information 'camera' communicated in the message:\n 'Here are the items on your order **#W9348897** (status: pending):\n\n| Item | Price |\n|------|-------|\n| **Action Camera** (4K, waterproof, silver) | **$481.50** ← most expensive |\n| Patio Umbrella (6 ft, green, olefin, auto tilt) | $288.82 |\n| Backpack (green, small, polyester, camera) | $193.38 |\n| Desk Lamp (silver, low, battery) | $150.01 |\n| T-Shirt (black, XXL, cotton, crew neck) | $53.27 |\n\nThe most expensive item is the **Action Camera at $481.50**.\n\nRegarding cancelling just that item — unfortunately, I can't cancel individual items from an order. Cancellation applies to the entire order. However, since your order is **pending**, I can help you **modify** the item to a different (cheaper) option of the same product, or change the payment method.\n\nWould you like to:\n1. Modify the Action Camera to a cheaper variant, or\n2. Change the payment method to a single card/gift card that can cover the full amount, or\n3. Cancel the entire order?\n\nLet me know how you'd like to proceed.'"
+              },
+              {
+                "info": "481.50",
+                "met": true,
+                "justification": "Information '481.50' communicated in the message:\n 'Here are the items on your order **#W9348897** (status: pending):\n\n| Item | Price |\n|------|-------|\n| **Action Camera** (4K, waterproof, silver) | **$481.50** ← most expensive |\n| Patio Umbrella (6 ft, green, olefin, auto tilt) | $288.82 |\n| Backpack (green, small, polyester, camera) | $193.38 |\n| Desk Lamp (silver, low, battery) | $150.01 |\n| T-Shirt (black, XXL, cotton, crew neck) | $53.27 |\n\nThe most expensive item is the **Action Camera at $481.50**.\n\nRegarding cancelling just that item — unfortunately, I can't cancel individual items from an order. Cancellation applies to the entire order. However, since your order is **pending**, I can help you **modify** the item to a different (cheaper) option of the same product, or change the payment method.\n\nWould you like to:\n1. Modify the Action Camera to a cheaper variant, or\n2. Change the payment method to a single card/gift card that can cover the full amount, or\n3. Cancel the entire order?\n\nLet me know how you'd like to proceed.'"
+              }
+            ],
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": null,
+              "communicate": null,
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 28,
+              "call": {
+                "id": "call_00_MBDyaAev9rWtR1pEtzTH5113",
+                "name": "cancel_pending_order",
+                "arguments": {
+                  "order_id": "#W9348897",
+                  "reason": "ordered by mistake"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [
+            {
+              "message": 5,
+              "content": "Error: User not found"
+            }
+          ],
+          "routes": []
+        },
+        "acs_v1": {
+          "artifact": "live/acs_v1-38-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "38_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_email",
+                  "arguments": {
+                    "email": "daikisanchez1479@example.com"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "38_1",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Daiki",
+                    "last_name": "Sanchez",
+                    "zip": "46236"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "38_9",
+                  "requestor": "assistant",
+                  "name": "calculate",
+                  "arguments": {
+                    "expression": "466.75 + 288.82 + 135.24 + 193.38 + 46.66"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "generic"
+              },
+              {
+                "action": {
+                  "action_id": "38_10",
+                  "requestor": "assistant",
+                  "name": "cancel_pending_order",
+                  "arguments": {
+                    "order_id": "#W9348897",
+                    "reason": "no longer needed"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [
+              {
+                "nl_assertion": "Agent should tell the user the most expensive item in the order is the camera.",
+                "met": true,
+                "justification": "The agent explicitly stated: 'The most expensive item on your order is the Action Camera'."
+              },
+              {
+                "nl_assertion": "Agent should tell the user the camera costs $481.50.",
+                "met": true,
+                "justification": "The agent stated: 'The most expensive item on your order is the Action Camera at $481.50.'"
+              }
+            ],
+            "communicate_checks": [
+              {
+                "info": "camera",
+                "met": true,
+                "justification": "Information 'camera' communicated in the message:\n 'The most expensive item on your order is the **Action Camera** at **$481.50**.\n\nHowever, I'm not able to cancel a single item from an order — cancellation applies to the entire order. What I *can* do for a pending order is **modify the items**, which means swapping an item for a different option of the same product (not removing it). I can't simply remove an item from the order.\n\nSo unfortunately, removing just the Action Camera isn't something I can do. If you'd like, I could:\n- **Cancel the entire order** #W9348897, or\n- **Modify an item** to a different option of the same product.\n\nWould you like to do either of these?'"
+              },
+              {
+                "info": "481.50",
+                "met": true,
+                "justification": "Information '481.50' communicated in the message:\n 'The most expensive item on your order is the **Action Camera** at **$481.50**.\n\nHowever, I'm not able to cancel a single item from an order — cancellation applies to the entire order. What I *can* do for a pending order is **modify the items**, which means swapping an item for a different option of the same product (not removing it). I can't simply remove an item from the order.\n\nSo unfortunately, removing just the Action Camera isn't something I can do. If you'd like, I could:\n- **Cancel the entire order** #W9348897, or\n- **Modify an item** to a different option of the same product.\n\nWould you like to do either of these?'"
+              }
+            ],
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": null,
+              "communicate": null,
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 30,
+              "call": {
+                "id": "call_00_Q9CqPwKkcMaXUMinngZ97540",
+                "name": "cancel_pending_order",
+                "arguments": {
+                  "order_id": "#W9348897",
+                  "reason": "ordered by mistake"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [
+            {
+              "message": 5,
+              "content": "Error: User not found"
+            }
+          ],
+          "routes": []
+        },
+        "acs_v2": {
+          "artifact": "live/acs_v2-38-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "38_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_email",
+                  "arguments": {
+                    "email": "daikisanchez1479@example.com"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "38_1",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Daiki",
+                    "last_name": "Sanchez",
+                    "zip": "46236"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "38_9",
+                  "requestor": "assistant",
+                  "name": "calculate",
+                  "arguments": {
+                    "expression": "466.75 + 288.82 + 135.24 + 193.38 + 46.66"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "generic"
+              },
+              {
+                "action": {
+                  "action_id": "38_10",
+                  "requestor": "assistant",
+                  "name": "cancel_pending_order",
+                  "arguments": {
+                    "order_id": "#W9348897",
+                    "reason": "no longer needed"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [
+              {
+                "nl_assertion": "Agent should tell the user the most expensive item in the order is the camera.",
+                "met": true,
+                "justification": "The agent explicitly stated: 'The most expensive item on your order is the Action Camera at $481.50.'"
+              },
+              {
+                "nl_assertion": "Agent should tell the user the camera costs $481.50.",
+                "met": true,
+                "justification": "The agent explicitly stated the Action Camera price as $481.50 in the same response."
+              }
+            ],
+            "communicate_checks": [
+              {
+                "info": "camera",
+                "met": true,
+                "justification": "Information 'camera' communicated in the message:\n 'Here are the details of your order **#W9348897** (status: pending):\n\n- Action Camera — $481.50\n- Patio Umbrella — $288.82\n- Desk Lamp — $150.01\n- T-Shirt — $53.27\n- Backpack — $193.38\n- **Total: $1,166.98**, paid with your Visa ending in 6593\n\nAs I mentioned, I'm unable to split this payment across two cards. For a pending order, the only payment change I can make is switching to a **single** different payment method (one credit card, one PayPal account, or one gift card) — not combining two.\n\nIs there anything else I can help you with, such as changing the payment method to a single card, or modifying the order?'"
+              },
+              {
+                "info": "481.50",
+                "met": true,
+                "justification": "Information '481.50' communicated in the message:\n 'Here are the details of your order **#W9348897** (status: pending):\n\n- Action Camera — $481.50\n- Patio Umbrella — $288.82\n- Desk Lamp — $150.01\n- T-Shirt — $53.27\n- Backpack — $193.38\n- **Total: $1,166.98**, paid with your Visa ending in 6593\n\nAs I mentioned, I'm unable to split this payment across two cards. For a pending order, the only payment change I can make is switching to a **single** different payment method (one credit card, one PayPal account, or one gift card) — not combining two.\n\nIs there anything else I can help you with, such as changing the payment method to a single card, or modifying the order?'"
+              }
+            ],
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": null,
+              "communicate": null,
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 32,
+              "call": {
+                "id": "call_00_hSULeSBHtVlGdoNIR8qb1138",
+                "name": "cancel_pending_order",
+                "arguments": {
+                  "order_id": "#W9348897",
+                  "reason": "ordered by mistake"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [
+            {
+              "message": 5,
+              "content": "Error: User not found"
+            }
+          ],
+          "routes": []
+        }
+      }
+    },
+    {
+      "task": "39",
+      "primary": "different_failures_same_reward",
+      "confidence": "direct",
+      "analysis": "Official authenticates old ZIP32169 and modifies address successfully. V1 never obtains correct identity/ZIP after first85033 lookup, stops with only t-shirt info. V2 does authenticate and obtain address, but user confirmation includes SKU; local Router selects orders with empty official tool scope at messages20/22. Request608 has no tools. Model emits DSML update_user_address as content (not official modify_user_address) then claims completion with no actual write.",
+      "runtime": "V2 route false narrowing is a concrete defect, despite equal 0 score to V1. No direct tool scope denial because model never creates a structured ToolCall. Empty-scope route must safely fallback in a separately versioned later change, not tune this run.",
+      "arms": {
+        "official": {
+          "artifact": "live/official-39-0-0.json",
+          "reward": 1.0,
+          "reward_details": {
+            "reward": 1.0,
+            "db_check": {
+              "db_match": true,
+              "db_reward": 1.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "39_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Fatima",
+                    "last_name": "Taylor",
+                    "zip": "85033"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_1",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Fatima",
+                    "last_name": "Taylor",
+                    "zip": "32169"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_2",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "fatima_taylor_3452"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W5285031"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_4",
+                  "requestor": "assistant",
+                  "name": "modify_user_address",
+                  "arguments": {
+                    "user_id": "fatima_taylor_3452",
+                    "address1": "157 Oak Street",
+                    "address2": "Suite 258",
+                    "city": "Phoenix",
+                    "state": "AZ",
+                    "country": "USA",
+                    "zip": "85033"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [
+              {
+                "nl_assertion": "Agent should tell the user the cheapest t-shirt costs $46.66.",
+                "met": true,
+                "justification": "The agent explicitly stated the cheapest available t-shirt is $46.66 (red, size L, cotton, v-neck) and repeated this information in the final recap."
+              }
+            ],
+            "communicate_checks": [
+              {
+                "info": "46.66",
+                "met": true,
+                "justification": "Information '46.66' communicated in the message:\n 'Here's what I found:\n\n**Cheapest available t-shirt:** $46.66 — red, size L, cotton, v-neck (item 3234800602). There's also a red XXL cotton crew neck at $46.85 if that size suits you better.\n\nNow, about your account — I still need to locate it before I can update your address. The name + zip (85033) didn't match, likely because the account still has your old Florida zip. Could you provide:\n- Your **old zip code** (Florida), or\n- Your **email address** if you can recall it?\n\nOnce I find your account, I'll pull your recent order and use the address on it to update your default address (I'll confirm the details with you before making any changes).'"
+              }
+            ],
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 1.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": null,
+              "communicate": null,
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 20,
+              "call": {
+                "id": "call_00_UTMBY9Svr9tLjFyKQZ8a9050",
+                "name": "modify_user_address",
+                "arguments": {
+                  "user_id": "fatima_taylor_3452",
+                  "address1": "157 Oak Street",
+                  "address2": "Suite 258",
+                  "city": "Phoenix",
+                  "state": "AZ",
+                  "country": "USA",
+                  "zip": "85033"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [
+            {
+              "message": 5,
+              "content": "Error: User not found"
+            }
+          ],
+          "routes": []
+        },
+        "acs_v1": {
+          "artifact": "live/acs_v1-39-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "39_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Fatima",
+                    "last_name": "Taylor",
+                    "zip": "85033"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_1",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Fatima",
+                    "last_name": "Taylor",
+                    "zip": "32169"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_2",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "fatima_taylor_3452"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W5285031"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_4",
+                  "requestor": "assistant",
+                  "name": "modify_user_address",
+                  "arguments": {
+                    "user_id": "fatima_taylor_3452",
+                    "address1": "157 Oak Street",
+                    "address2": "Suite 258",
+                    "city": "Phoenix",
+                    "state": "AZ",
+                    "country": "USA",
+                    "zip": "85033"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [
+              {
+                "nl_assertion": "Agent should tell the user the cheapest t-shirt costs $46.66.",
+                "met": true,
+                "justification": "The agent explicitly stated 'Cheapest T-Shirt: $46.66' and provided details about the red, size L, cotton, v-neck option, satisfying the expectation."
+              }
+            ],
+            "communicate_checks": [
+              {
+                "info": "46.66",
+                "met": true,
+                "justification": "Information '46.66' communicated in the message:\n 'Here's what I found for the cheapest available t-shirt:\n\n**Cheapest T-Shirt: $46.66**\n- Color: Red\n- Size: L\n- Material: Cotton\n- Style: V-neck\n- Item ID: 3234800602\n\n(There's a slightly cheaper one at $46.85 — red, XXL, cotton, crew neck — but the $46.66 red/L/v-neck is the lowest available price.)\n\nAs for a product page link: I don't have the ability to generate web links — I only have access to the store's internal product data. You can find this t-shirt by searching the product name \"T-Shirt\" (product ID 9523456873) on the store site and selecting the red / size L / cotton / v-neck option.\n\nNo cape, no modeling — promise kept! 😄\n\nWhenever you track down that email, come back and I'll verify you and update your default address from your most recent order. Good luck with the email hunt!'"
+              }
+            ],
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": null,
+              "communicate": null,
+              "action": null
+            }
+          },
+          "writes": [],
+          "errors": [
+            {
+              "message": 5,
+              "content": "Error: User not found"
+            }
+          ],
+          "routes": []
+        },
+        "acs_v2": {
+          "artifact": "live/acs_v2-39-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "39_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Fatima",
+                    "last_name": "Taylor",
+                    "zip": "85033"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_1",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Fatima",
+                    "last_name": "Taylor",
+                    "zip": "32169"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_2",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "fatima_taylor_3452"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W5285031"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "39_4",
+                  "requestor": "assistant",
+                  "name": "modify_user_address",
+                  "arguments": {
+                    "user_id": "fatima_taylor_3452",
+                    "address1": "157 Oak Street",
+                    "address2": "Suite 258",
+                    "city": "Phoenix",
+                    "state": "AZ",
+                    "country": "USA",
+                    "zip": "85033"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [
+              {
+                "nl_assertion": "Agent should tell the user the cheapest t-shirt costs $46.66.",
+                "met": true,
+                "justification": "The agent explicitly stated that the cheapest t-shirt is $46.66 in multiple messages, satisfying the expectation."
+              }
+            ],
+            "communicate_checks": [
+              {
+                "info": "46.66",
+                "met": true,
+                "justification": "Information '46.66' communicated in the message:\n 'Here's what I found:\n\n**Cheapest t-shirt:** The lowest-priced available t-shirt is the **red, size L, cotton, v-neck** at **$46.66**.\n\nA quick note on the two things you asked:\n- **Address update:** I can do this once you confirm (see below).\n- **Placing a new order:** Unfortunately I'm not able to place new orders — my tools only handle existing orders (cancel/modify/return/exchange), address updates, and product info. You'd need to place the order yourself through the store.\n\nSo, to proceed with the address change, please confirm:\n\n> Update my default address to **157 Oak Street, Suite 258, Phoenix, AZ 85033**?\n\nReply **yes** to confirm. 🌵'"
+              }
+            ],
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": null,
+              "communicate": null,
+              "action": null
+            }
+          },
+          "writes": [],
+          "errors": [
+            {
+              "message": 5,
+              "content": "Error: User not found"
+            }
+          ],
+          "routes": [
+            {
+              "message": 20,
+              "route": {
+                "version": 1,
+                "intent": "orders",
+                "candidates": [
+                  "orders"
+                ],
+                "confidence": "high",
+                "allowed_tools": [],
+                "basis": "explicit_business_terms",
+                "existing_task": false,
+                "task_action": "preserve_until_authorized_tool"
+              }
+            },
+            {
+              "message": 22,
+              "route": {
+                "version": 1,
+                "intent": "orders",
+                "candidates": [
+                  "orders"
+                ],
+                "confidence": "high",
+                "allowed_tools": [],
+                "basis": "explicit_business_terms",
+                "existing_task": false,
+                "task_action": "preserve_until_authorized_tool"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "56",
+      "primary": "model_structured_argmin_failure",
+      "confidence": "direct",
+      "analysis": "All arms choose available item9375701158 ($489.50) as cheapest, overlooking available9534205511 ($473.43) in same raw product response. Gold and DB expect9534205511. All writes succeed but wrong variant; user confirmations echo wrong proposed choice. V1 additionally reports57.05 vs547.55-489.50=58.05. V2 uses fewer input tokens than V1 and still fails.",
+      "runtime": "No missing tool result or route restriction; search/sort deterministic facts may help future generic capability, but not implemented or tuned here.",
+      "arms": {
+        "official": {
+          "artifact": "live/official-56-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "56_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Ivan",
+                    "last_name": "Hernandez",
+                    "zip": "92133"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_1",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "ivan_hernandez_6923"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_2",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W5838674"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W4284542"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_4",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W2782744"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_5",
+                  "requestor": "assistant",
+                  "name": "get_product_details",
+                  "arguments": {
+                    "product_id": "3821016478"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_6",
+                  "requestor": "assistant",
+                  "name": "modify_pending_order_items",
+                  "arguments": {
+                    "order_id": "#W4284542",
+                    "item_ids": [
+                      "8302289002"
+                    ],
+                    "new_item_ids": [
+                      "9534205511"
+                    ],
+                    "payment_method_id": "gift_card_9368765"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 20,
+              "call": {
+                "id": "call_00_LQGRNSF3T3eUOIY9zGPp2792",
+                "name": "modify_pending_order_items",
+                "arguments": {
+                  "order_id": "#W4284542",
+                  "item_ids": [
+                    "8302289002"
+                  ],
+                  "new_item_ids": [
+                    "9375701158"
+                  ],
+                  "payment_method_id": "gift_card_9368765"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [],
+          "routes": []
+        },
+        "acs_v1": {
+          "artifact": "live/acs_v1-56-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "56_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Ivan",
+                    "last_name": "Hernandez",
+                    "zip": "92133"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_1",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "ivan_hernandez_6923"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_2",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W5838674"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W4284542"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_4",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W2782744"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_5",
+                  "requestor": "assistant",
+                  "name": "get_product_details",
+                  "arguments": {
+                    "product_id": "3821016478"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_6",
+                  "requestor": "assistant",
+                  "name": "modify_pending_order_items",
+                  "arguments": {
+                    "order_id": "#W4284542",
+                    "item_ids": [
+                      "8302289002"
+                    ],
+                    "new_item_ids": [
+                      "9534205511"
+                    ],
+                    "payment_method_id": "gift_card_9368765"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 22,
+              "call": {
+                "id": "call_00_R221225v9E8uHT63gZbt1969",
+                "name": "modify_pending_order_items",
+                "arguments": {
+                  "order_id": "#W4284542",
+                  "item_ids": [
+                    "8302289002"
+                  ],
+                  "new_item_ids": [
+                    "9375701158"
+                  ],
+                  "payment_method_id": "gift_card_9368765"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [],
+          "routes": []
+        },
+        "acs_v2": {
+          "artifact": "live/acs_v2-56-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "56_0",
+                  "requestor": "assistant",
+                  "name": "find_user_id_by_name_zip",
+                  "arguments": {
+                    "first_name": "Ivan",
+                    "last_name": "Hernandez",
+                    "zip": "92133"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_1",
+                  "requestor": "assistant",
+                  "name": "get_user_details",
+                  "arguments": {
+                    "user_id": "ivan_hernandez_6923"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_2",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W5838674"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_3",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W4284542"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_4",
+                  "requestor": "assistant",
+                  "name": "get_order_details",
+                  "arguments": {
+                    "order_id": "#W2782744"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_5",
+                  "requestor": "assistant",
+                  "name": "get_product_details",
+                  "arguments": {
+                    "product_id": "3821016478"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "read"
+              },
+              {
+                "action": {
+                  "action_id": "56_6",
+                  "requestor": "assistant",
+                  "name": "modify_pending_order_items",
+                  "arguments": {
+                    "order_id": "#W4284542",
+                    "item_ids": [
+                      "8302289002"
+                    ],
+                    "new_item_ids": [
+                      "9534205511"
+                    ],
+                    "payment_method_id": "gift_card_9368765"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 22,
+              "call": {
+                "id": "call_00_wQg5nZrwtFZLTKwfUL1f2134",
+                "name": "modify_pending_order_items",
+                "arguments": {
+                  "order_id": "#W4284542",
+                  "item_ids": [
+                    "8302289002"
+                  ],
+                  "new_item_ids": [
+                    "9375701158"
+                  ],
+                  "payment_method_id": "gift_card_9368765"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [],
+          "routes": []
+        }
+      }
+    },
+    {
+      "task": "79",
+      "primary": "simulator_unverified_color_claim_and_object_binding",
+      "confidence": "direct",
+      "analysis": "Official simulator message15 asserts other1L bottle is black and selects black7661609223; agent accepts it without cross-checking existing order item1434748144 (red). Gold expects red2439754078. V1 and V2 consult cross-order facts and correctly choose red; V2 explicitly calls get_item_details. Official DB stays0. Failure jointly involves simulator unsupported factual assertion and model object verification.",
+      "runtime": "Both V1 and V2 succeed. Not a V2-only gain; V2 local ChatService color protection is not part of benchmark loop.",
+      "arms": {
+        "official": {
+          "artifact": "live/official-79-0-0.json",
+          "reward": 0.0,
+          "reward_details": {
+            "reward": 0.0,
+            "db_check": {
+              "db_match": false,
+              "db_reward": 0.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "79_0",
+                  "requestor": "assistant",
+                  "name": "modify_pending_order_items",
+                  "arguments": {
+                    "order_id": "#W8661412",
+                    "item_ids": [
+                      "3453331371"
+                    ],
+                    "new_item_ids": [
+                      "2439754078"
+                    ],
+                    "payment_method_id": "credit_card_7239357"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": false,
+                "action_reward": 0.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 0.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 18,
+              "call": {
+                "id": "call_00_B2Sf5SrBg2Cl9XKNEGwz1706",
+                "name": "modify_pending_order_items",
+                "arguments": {
+                  "order_id": "#W8661412",
+                  "item_ids": [
+                    "3453331371"
+                  ],
+                  "new_item_ids": [
+                    "7661609223"
+                  ],
+                  "payment_method_id": "credit_card_7239357"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [],
+          "routes": []
+        },
+        "acs_v1": {
+          "artifact": "live/acs_v1-79-0-0.json",
+          "reward": 1.0,
+          "reward_details": {
+            "reward": 1.0,
+            "db_check": {
+              "db_match": true,
+              "db_reward": 1.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "79_0",
+                  "requestor": "assistant",
+                  "name": "modify_pending_order_items",
+                  "arguments": {
+                    "order_id": "#W8661412",
+                    "item_ids": [
+                      "3453331371"
+                    ],
+                    "new_item_ids": [
+                      "2439754078"
+                    ],
+                    "payment_method_id": "credit_card_7239357"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 1.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 20,
+              "call": {
+                "id": "call_00_MZGfjrVK7aABMnLWtPmg8489",
+                "name": "modify_pending_order_items",
+                "arguments": {
+                  "order_id": "#W8661412",
+                  "item_ids": [
+                    "3453331371"
+                  ],
+                  "new_item_ids": [
+                    "2439754078"
+                  ],
+                  "payment_method_id": "credit_card_7239357"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [],
+          "routes": []
+        },
+        "acs_v2": {
+          "artifact": "live/acs_v2-79-0-0.json",
+          "reward": 1.0,
+          "reward_details": {
+            "reward": 1.0,
+            "db_check": {
+              "db_match": true,
+              "db_reward": 1.0
+            },
+            "env_assertions": [],
+            "action_checks": [
+              {
+                "action": {
+                  "action_id": "79_0",
+                  "requestor": "assistant",
+                  "name": "modify_pending_order_items",
+                  "arguments": {
+                    "order_id": "#W8661412",
+                    "item_ids": [
+                      "3453331371"
+                    ],
+                    "new_item_ids": [
+                      "2439754078"
+                    ],
+                    "payment_method_id": "credit_card_7239357"
+                  },
+                  "info": null,
+                  "compare_args": null
+                },
+                "action_match": true,
+                "action_reward": 1.0,
+                "tool_type": "write"
+              }
+            ],
+            "nl_assertions": [],
+            "communicate_checks": null,
+            "reward_basis": [
+              "DB",
+              "NL_ASSERTION"
+            ],
+            "reward_breakdown": {
+              "DB": 1.0,
+              "NL_ASSERTION": 1.0
+            },
+            "info": {
+              "env": null,
+              "nl": {
+                "note": "No nl_assertions to evaluate"
+              },
+              "communicate": {
+                "note": "No communicate_info to evaluate"
+              },
+              "action": null
+            }
+          },
+          "writes": [
+            {
+              "message": 24,
+              "call": {
+                "id": "call_00_CVaj91eWiWI33BNQst3L5133",
+                "name": "modify_pending_order_items",
+                "arguments": {
+                  "order_id": "#W8661412",
+                  "item_ids": [
+                    "3453331371"
+                  ],
+                  "new_item_ids": [
+                    "2439754078"
+                  ],
+                  "payment_method_id": "credit_card_7239357"
+                },
+                "requestor": "assistant"
+              }
+            }
+          ],
+          "errors": [],
+          "routes": []
+        }
+      }
+    }
+  ]
+}

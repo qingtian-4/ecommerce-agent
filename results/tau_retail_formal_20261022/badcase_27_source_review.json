@@ -1,0 +1,160 @@
+{
+  "classification": "post-hoc source review; no rescore",
+  "root_cause": "All arms planned incompatible return + exchange for the same delivered order. Return changed status before exchange; tools correctly rejected exchange. Policy requires delivered for each and declares status transitions. User task prefers exchange if only one possible.",
+  "reference_policy": "dd8757d4:data/tau2/domains/retail/policy.md lines 116-136",
+  "reference_tools": "dd8757d4:src/tau2/domains/retail/tools.py exchange_delivered_order_items + return_delivered_order_items",
+  "not_adapter_failure": "All receipts are schema-valid; exchange is an official business rejection. Gold replay can reach exchange-requested state in offline preflight.",
+  "not_router_gain": "No narrowing or retry removes the conflict between state transitions.",
+  "arms": [
+    {
+      "task": "27",
+      "arm": "official",
+      "artifact": "results/tau_retail_formal_20261022/live/official-27-0-0.json",
+      "reward": 0.0,
+      "db_check": {
+        "db_match": false,
+        "db_reward": 0.0
+      },
+      "evidence": [
+        {
+          "message_index": 20,
+          "call": {
+            "id": "call_00_AeLHpqX2Ugax0XFakZ7C0317",
+            "name": "return_delivered_order_items",
+            "arguments": {
+              "order_id": "#W7181492",
+              "item_ids": [
+                "5753502325",
+                "9851293632"
+              ],
+              "payment_method_id": "paypal_3024827"
+            },
+            "requestor": "assistant"
+          },
+          "receipt": "{\"order_id\": \"#W7181492\", \"user_id\": \"isabella_johansson_2152\", \"address\": {\"address1\": \"313 Chestnut Street\", \"address2\": \"Suite 537\", \"city\": \"Jacksonville\", \"country\": \"USA\", \"state\": \"FL\", \"zip\": \"32286\"}, \"items\": [{\"name\": \"Garden Hose\", \"product_id\": \"6679515468\", \"item_id\": \"5753502325\", \"price\": 96.35, \"options\": {\"length\": \"25ft\", \"material\": \"rubber\", \"color\": \"green\"}}, {\"name\": \"Backpack\", \"product_id\": \"2524789262\", \"item_id\": \"9851293632\", \"price\": 193.38, \"options\": {\"color\": \"green\", \"size\": \"small\", \"material\": \"polyester\", \"compartment\": \"camera\"}}, {\"name\": \"Bookshelf\", \"product_id\": \"8600330539\", \"item_id\": \"3778705663\", \"price\": 473.48, \"options\": {\"material\": \"metal\", \"color\": \"black\", \"height\": \"6 ft\"}}, {\"name\": \"Hiking Boots\", \"product_id\": \"7363354090\", \"item_id\": \"8118291112\", \"price\": 260.56, \"options\": {\"size\": \"12\", \"material\": \"leather\", \"waterproof\": \"no\"}}, {\"name\": \"Coffee Maker\", \"product_id\": \"7996920482\", \"item_id\": \"3020722515\", \"price\": 238.64, \"options\": {\"color\": \"black\", \"capacity\": \"1 cup\", \"type\": \"french press\", \"features\": \"auto shutoff\"}}], \"status\": \"return requested\", \"fulfillments\": [{\"tracking_id\": [\"418708581751\"], \"item_ids\": [\"5753502325\", \"9851293632\", \"3778705663\", \"8118291112\", \"3020722515\"]}], \"payment_history\": [{\"transaction_type\": \"payment\", \"amount\": 1262.41, \"payment_method_id\": \"paypal_3024827\"}], \"cancel_reason\": null, \"exchange_items\": null, \"exchange_new_items\": null, \"exchange_payment_method_id\": null, \"exchange_price_difference\": null, \"return_items\": [\"5753502325\", \"9851293632\"], \"return_payment_method_id\": \"paypal_3024827\"}",
+          "error": false
+        },
+        {
+          "message_index": 22,
+          "call": {
+            "id": "call_00_mDIYXmCavoZVNqs5boK27431",
+            "name": "exchange_delivered_order_items",
+            "arguments": {
+              "order_id": "#W7181492",
+              "item_ids": [
+                "8118291112"
+              ],
+              "new_item_ids": [
+                "8277474082"
+              ],
+              "payment_method_id": "paypal_3024827"
+            },
+            "requestor": "assistant"
+          },
+          "receipt": "Error: Non-delivered order cannot be exchanged",
+          "error": true
+        }
+      ]
+    },
+    {
+      "task": "27",
+      "arm": "acs_v1",
+      "artifact": "results/tau_retail_formal_20261022/live/acs_v1-27-0-0.json",
+      "reward": 0.0,
+      "db_check": {
+        "db_match": false,
+        "db_reward": 0.0
+      },
+      "evidence": [
+        {
+          "message_index": 21,
+          "call": {
+            "id": "call_00_KjTeRCr0YP27pzLn0Py03202",
+            "name": "return_delivered_order_items",
+            "arguments": {
+              "order_id": "#W7181492",
+              "item_ids": [
+                "5753502325",
+                "9851293632"
+              ],
+              "payment_method_id": "paypal_3024827"
+            },
+            "requestor": "assistant"
+          },
+          "receipt": "{\"order_id\": \"#W7181492\", \"user_id\": \"isabella_johansson_2152\", \"address\": {\"address1\": \"313 Chestnut Street\", \"address2\": \"Suite 537\", \"city\": \"Jacksonville\", \"country\": \"USA\", \"state\": \"FL\", \"zip\": \"32286\"}, \"items\": [{\"name\": \"Garden Hose\", \"product_id\": \"6679515468\", \"item_id\": \"5753502325\", \"price\": 96.35, \"options\": {\"length\": \"25ft\", \"material\": \"rubber\", \"color\": \"green\"}}, {\"name\": \"Backpack\", \"product_id\": \"2524789262\", \"item_id\": \"9851293632\", \"price\": 193.38, \"options\": {\"color\": \"green\", \"size\": \"small\", \"material\": \"polyester\", \"compartment\": \"camera\"}}, {\"name\": \"Bookshelf\", \"product_id\": \"8600330539\", \"item_id\": \"3778705663\", \"price\": 473.48, \"options\": {\"material\": \"metal\", \"color\": \"black\", \"height\": \"6 ft\"}}, {\"name\": \"Hiking Boots\", \"product_id\": \"7363354090\", \"item_id\": \"8118291112\", \"price\": 260.56, \"options\": {\"size\": \"12\", \"material\": \"leather\", \"waterproof\": \"no\"}}, {\"name\": \"Coffee Maker\", \"product_id\": \"7996920482\", \"item_id\": \"3020722515\", \"price\": 238.64, \"options\": {\"color\": \"black\", \"capacity\": \"1 cup\", \"type\": \"french press\", \"features\": \"auto shutoff\"}}], \"status\": \"return requested\", \"fulfillments\": [{\"tracking_id\": [\"418708581751\"], \"item_ids\": [\"5753502325\", \"9851293632\", \"3778705663\", \"8118291112\", \"3020722515\"]}], \"payment_history\": [{\"transaction_type\": \"payment\", \"amount\": 1262.41, \"payment_method_id\": \"paypal_3024827\"}], \"cancel_reason\": null, \"exchange_items\": null, \"exchange_new_items\": null, \"exchange_payment_method_id\": null, \"exchange_price_difference\": null, \"return_items\": [\"5753502325\", \"9851293632\"], \"return_payment_method_id\": \"paypal_3024827\"}",
+          "error": false
+        },
+        {
+          "message_index": 23,
+          "call": {
+            "id": "call_01_e6c3FbtLrT7KLLxfSqde2533",
+            "name": "exchange_delivered_order_items",
+            "arguments": {
+              "order_id": "#W7181492",
+              "item_ids": [
+                "8118291112"
+              ],
+              "new_item_ids": [
+                "8277474082"
+              ],
+              "payment_method_id": "paypal_3024827"
+            },
+            "requestor": "assistant"
+          },
+          "receipt": "Error: Non-delivered order cannot be exchanged",
+          "error": true
+        }
+      ]
+    },
+    {
+      "task": "27",
+      "arm": "acs_v2",
+      "artifact": "results/tau_retail_formal_20261022/live/acs_v2-27-0-0.json",
+      "reward": 0.0,
+      "db_check": {
+        "db_match": false,
+        "db_reward": 0.0
+      },
+      "evidence": [
+        {
+          "message_index": 23,
+          "call": {
+            "id": "call_00_wTK0C3MJcuGVM56d6uiV7363",
+            "name": "return_delivered_order_items",
+            "arguments": {
+              "order_id": "#W7181492",
+              "item_ids": [
+                "5753502325",
+                "9851293632"
+              ],
+              "payment_method_id": "paypal_3024827"
+            },
+            "requestor": "assistant"
+          },
+          "receipt": "{\"order_id\": \"#W7181492\", \"user_id\": \"isabella_johansson_2152\", \"address\": {\"address1\": \"313 Chestnut Street\", \"address2\": \"Suite 537\", \"city\": \"Jacksonville\", \"country\": \"USA\", \"state\": \"FL\", \"zip\": \"32286\"}, \"items\": [{\"name\": \"Garden Hose\", \"product_id\": \"6679515468\", \"item_id\": \"5753502325\", \"price\": 96.35, \"options\": {\"length\": \"25ft\", \"material\": \"rubber\", \"color\": \"green\"}}, {\"name\": \"Backpack\", \"product_id\": \"2524789262\", \"item_id\": \"9851293632\", \"price\": 193.38, \"options\": {\"color\": \"green\", \"size\": \"small\", \"material\": \"polyester\", \"compartment\": \"camera\"}}, {\"name\": \"Bookshelf\", \"product_id\": \"8600330539\", \"item_id\": \"3778705663\", \"price\": 473.48, \"options\": {\"material\": \"metal\", \"color\": \"black\", \"height\": \"6 ft\"}}, {\"name\": \"Hiking Boots\", \"product_id\": \"7363354090\", \"item_id\": \"8118291112\", \"price\": 260.56, \"options\": {\"size\": \"12\", \"material\": \"leather\", \"waterproof\": \"no\"}}, {\"name\": \"Coffee Maker\", \"product_id\": \"7996920482\", \"item_id\": \"3020722515\", \"price\": 238.64, \"options\": {\"color\": \"black\", \"capacity\": \"1 cup\", \"type\": \"french press\", \"features\": \"auto shutoff\"}}], \"status\": \"return requested\", \"fulfillments\": [{\"tracking_id\": [\"418708581751\"], \"item_ids\": [\"5753502325\", \"9851293632\", \"3778705663\", \"8118291112\", \"3020722515\"]}], \"payment_history\": [{\"transaction_type\": \"payment\", \"amount\": 1262.41, \"payment_method_id\": \"paypal_3024827\"}], \"cancel_reason\": null, \"exchange_items\": null, \"exchange_new_items\": null, \"exchange_payment_method_id\": null, \"exchange_price_difference\": null, \"return_items\": [\"5753502325\", \"9851293632\"], \"return_payment_method_id\": \"paypal_3024827\"}",
+          "error": false
+        },
+        {
+          "message_index": 25,
+          "call": {
+            "id": "call_01_FZI6kK8y1uVRj1rBU7021945",
+            "name": "exchange_delivered_order_items",
+            "arguments": {
+              "order_id": "#W7181492",
+              "item_ids": [
+                "8118291112"
+              ],
+              "new_item_ids": [
+                "8277474082"
+              ],
+              "payment_method_id": "paypal_3024827"
+            },
+            "requestor": "assistant"
+          },
+          "receipt": "Error: Non-delivered order cannot be exchanged",
+          "error": true
+        }
+      ]
+    }
+  ]
+}

@@ -46,3 +46,24 @@ def test_v2_only_activates_runtime_mechanisms_in_official_environment():
                     candidate.order_constraint_enabled, candidate.order_aggregation_enabled,
                     candidate.execution_progress_enabled])
     assert not original.workflow_router_enabled and not original.runtime_recovery_enabled
+
+
+def test_formal_budget_is_independent_and_does_not_add_pilot_credit(tmp_path):
+    ledger = TaggedLedger(tmp_path / 'formal.json', limit=Decimal('40'), max_requests=2400)
+    assert ledger.spent == 0 and ledger.limit == 40 and ledger.max_requests == 2400
+    ledger.spent = Decimal('39.999999')
+    with pytest.raises(BudgetExceeded):
+        ledger.begin({'messages': [], 'max_tokens': 768})
+    assert ledger.calls == []
+
+
+def test_formal_request_limit_applies_to_all_roles(tmp_path):
+    ledger = TaggedLedger(tmp_path / 'formal.json', limit=Decimal('40'), max_requests=1)
+    ledger.role = 'user'
+    record = ledger.begin({'messages': [], 'max_tokens': 768})
+    ledger.complete(record, Usage('model', 'user', prompt_tokens=10, completion_tokens=5,
+                                 total_tokens=15))
+    ledger.role = 'judge'
+    with pytest.raises(BudgetExceeded):
+        ledger.begin({'messages': [], 'max_tokens': 768})
+    assert len(ledger.calls) == 1

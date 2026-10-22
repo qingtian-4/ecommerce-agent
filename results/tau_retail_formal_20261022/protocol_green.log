@@ -1,0 +1,34 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/qingtian/projects/E-commerce Agent
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 18 items
+
+tests/test_tau_result_protocol.py ............F.                         [ 77%]
+tests/test_tau_bridge.py ....                                            [100%]
+
+=================================== FAILURES ===================================
+_ test_error_flag_is_authoritative_not_success_shape[Error: Invalid reason-business_rejected] _
+
+registry = <tau_acs_agent.OfficialRegistry object at 0x7a7aa9dabcb0>
+content = 'Error: Invalid reason', category = 'business_rejected'
+
+    @pytest.mark.parametrize('content,category', [
+        ('Error: User not found', 'not_found'),
+        ('Error: Invalid reason', 'business_rejected'),
+        ('Error: unexpected storage failure', 'tool_failure'),
+    ])
+    def test_error_flag_is_authoritative_not_success_shape(registry, content, category):
+        registry.reply = ToolMessage(role='tool', id='error', content=content, error=True)
+        payload, events, error = registry.run('find_user_id_by_email','{}',current_user_id='external')
+>       assert error and classify_failure(payload=payload)['category'] == category
+E       AssertionError: assert ('official_tool_failure:find_user_id_by_email' and 'tool_failure' == 'business_rejected'
+E         
+E         - business_rejected
+E         + tool_failure)
+
+tests/test_tau_result_protocol.py:63: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_tau_result_protocol.py::test_error_flag_is_authoritative_not_success_shape[Error: Invalid reason-business_rejected]
+========================= 1 failed, 17 passed in 4.48s =========================

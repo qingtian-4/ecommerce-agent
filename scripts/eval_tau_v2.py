@@ -1,8 +1,8 @@
 """Pinned official retail evaluation; independent three-arm protocol and hard global meter.
 
 Transport metering replaces only the provider-call seam, not official messages,
-user simulation, environment functions, or reward computation. Fake gold actions
-are used exclusively in --preflight to test wiring, never as a live agent.
+user simulation, environment functions, or reward computation. Scripted gold actions
+are used exclusively in the default offline mode to test wiring, never as a live agent.
 """
 from __future__ import annotations
 
@@ -69,7 +69,9 @@ def v1_class(root):
     return importlib.import_module('benchmark_acs_v1.service_agent').CustomerServiceAgent
 
 
-def freeze(upstream, v1_root):
+def freeze(upstream, v1_root, *, suite="pilot"):
+    if suite not in {"pilot", "formal"}:
+        raise ValueError("Unknown suite")
     commit = subprocess.check_output(['git', '-C', str(upstream), 'rev-parse', 'HEAD'],
                                      text=True).strip()
     dirty = subprocess.check_output(['git', '-C', str(upstream), 'status', '--porcelain'])
@@ -77,19 +79,33 @@ def freeze(upstream, v1_root):
         raise ValueError('Pinned, unmodified official checkout required')
     os.environ['TAU2_DATA_DIR'] = str(upstream / 'data')
     from tau2.agent.llm_agent import AGENT_INSTRUCTION, SYSTEM_PROMPT
-    from tau2.domains.retail.environment import get_tasks, get_tasks_split
+    from tau2.domains.retail.environment import get_environment, get_tasks, get_tasks_split
     tasks = {t.id: t for t in get_tasks('test')}
     original = get_settings()
     v1_class(v1_root)
+    for p in sorted((ROOT / 'src/acs').glob('*.py')):
+        if p.read_bytes() != subprocess.check_output(
+                ['git', 'show', f'{V2}:src/acs/{p.name}'], cwd=ROOT):
+            raise ValueError('V2 source differs: '+p.name)
+    task_ids = list(get_tasks_split()['test']) if suite == 'formal' else TASKS
     paths = [*sorted((ROOT / 'src/acs').glob('*.py')), Path(__file__),
              ROOT / 'scripts/tau_acs_agent.py', ROOT / 'scripts/eval_p1_live.py',
-             ROOT / 'scripts/eval_delivery_live.py', ROOT / 'tests/conftest.py']
+             ROOT / 'scripts/eval_delivery_live.py', ROOT / 'tests/conftest.py',
+             *sorted((ROOT / 'tests').glob('test_tau*.py')),
+             ROOT / 'tests/test_external_tau_protocol.py']
     return {
-        'format': 1, 'upstream_commit': commit, 'acs_v1': V1, 'acs_v2': V2,
-        'arms': ARMS, 'task_split': 'test', 'task_ids': TASKS, 'trials': 1, 'seed': 20261022,
-        'task_categories': {'17': 'pending address modification',
-                            '51': 'wrong-order correction and delivered return',
-                            '68': 'identity correction and paid amount'},
+        'format': 2, 'suite': suite, 'adapter_protocol': ('tau-schema-v2' if suite == 'formal'
+                                                            else 'legacy-pilot'),
+        'v2_variant': 'original-runtime-router-no-adapted-arm',
+        'upstream_commit': commit, 'acs_v1': V1, 'acs_v2': V2,
+        'arms': ARMS, 'task_split': 'test', 'task_ids': task_ids, 'trials': 1, 'seed': 20261022,
+        'task_categories': {t: sorted({a.name for a in
+                            tasks[t].evaluation_criteria.actions or []}) for t in task_ids},
+        'official_tool_contracts': {t.name: {
+            'parameters': t.params.model_json_schema(), 'returns': t.returns.model_json_schema(),
+            'mutates_state': getattr(t._func, '__mutates_state__', True),
+            'tool_type': t._func.__tool_type__.value,
+        } for t in get_environment().get_tools()},
         'split_counts': {k: len(v) for k, v in get_tasks_split().items()},
         'model': original.llm_model, 'api_host': urlsplit(original.llm_base_url).hostname,
         'api_base': original.llm_base_url, 'temperature': 0, 'max_output_tokens': 768,
@@ -100,7 +116,8 @@ def freeze(upstream, v1_root):
         'all_arms': {'orchestrator_steps': 100, 'max_errors': 10, 'episode_timeout_s': 240,
                      'provider_timeout_s': 45, 'sdk_retries': 0, 'litellm_retries': 0,
                      'thinking': False, 'same_user_and_judge_model': True},
-        'budget_cny': '5', 'global_max_actual_requests': 180,
+        'budget_cny': '40' if suite == 'formal' else '5',
+        'global_max_actual_requests': 5000 if suite == 'formal' else 180,
         'guard_input_output_cny_per_million': [4, 16],
         'price_reference': 'https://api-docs.deepseek.com/quick_start/pricing/',
         'evaluation': 'official ALL, strict replay, no scorer changes',
@@ -113,15 +130,15 @@ def freeze(upstream, v1_root):
             *sorted((upstream / 'src/tau2').rglob('*.py')),
             *sorted((upstream / 'data/tau2/domains/retail').glob('*')),
         ] if p.is_file()},
-        'tasks': {t: tasks[t].model_dump(mode='json') for t in TASKS},
+        'tasks': {t: tasks[t].model_dump(mode='json') for t in task_ids},
         'packages': {n: importlib.metadata.version(n) for n in
                      ['tau2', 'litellm', 'openai', 'pydantic', 'pydantic-settings']},
     }
 
 
 class TaggedLedger(Ledger):
-    def __init__(self, path):
-        super().__init__(path, limit=Decimal('5'), max_requests=180,
+    def __init__(self, path, *, limit=Decimal('5'), max_requests=180):
+        super().__init__(path, limit=limit, max_requests=max_requests,
                          input_guard=Decimal('4'), output_guard=Decimal('16'))
         self.arm, self.task, self.role = None, None, 'agent'
 
@@ -133,8 +150,8 @@ class TaggedLedger(Ledger):
 
 
 def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
-    current = freeze(upstream, v1_root)
     frozen = json.loads(protocol.read_text())
+    current = freeze(upstream, v1_root, suite=frozen['suite'])
     if frozen != current:
         raise ValueError('Conditions differ from frozen protocol')
     if live:
@@ -165,7 +182,8 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
 
     logger.remove()
     logger.add(sys.stderr, level='CRITICAL')
-    ledger = TaggedLedger(out / 'requests.json')
+    ledger = TaggedLedger(out / 'requests.json', limit=Decimal(frozen['budget_cny']),
+                          max_requests=frozen['global_max_actual_requests'])
     client = OpenAI(api_key=original.llm_api_key, base_url=original.llm_base_url,
                     max_retries=0, timeout=45) if live else None
     OldLoop = v1_class(v1_root)
@@ -194,8 +212,11 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
         if not live:
             if ledger.role == 'user':
                 scenario['users'] += 1
+                cursor = (len(scenario['offline_model'].calls) if scenario.get('offline_model')
+                          else scenario['agent_index'])
                 content = ('Please help with my retail request.' if scenario['users'] == 1
-                           else '###STOP###')
+                           else '###STOP###' if scenario.get('fault') or
+                           cursor >= len(scenario['agent_responses']) else 'Please continue.')
                 message = {'role': 'assistant', 'content': content}
             elif ledger.role == 'judge':
                 assertions = tasks[ledger.task].evaluation_criteria.nl_assertions or []
@@ -225,6 +246,7 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
             return ModelResponse(**response.model_dump())
         except Exception as exc:
             record['error_type'] = type(exc).__name__
+            record['error_message'] = str(exc).replace(original.llm_api_key, '<redacted>')
             if 'charge_guard_cny' not in record:
                 ledger.complete(record, None)
             raise
@@ -232,6 +254,10 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
             ledger.save()
 
     accounting_client = LLMClient(original) if live else None
+
+    def protocol_failure(reason):
+        ledger.halted = ledger.halted or reason
+        ledger.save()
 
     def forbidden(*args, **kwargs):
         raise AssertionError('No network in preflight')
@@ -244,83 +270,100 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
 
     def episode(task, arm, *, fault=False, omit_write=False):
         ledger.arm, ledger.task = arm, task.id
-        scenario.update(users=0, agent_index=0)
-        actions = task.evaluation_criteria.actions or []
+        scenario.update(users=0, agent_index=0, offline_model=None, fault=fault)
+        actions = (task.evaluation_criteria.actions or []) if not live else []
         if omit_write:
             actions = actions[:-1]
-        scenario['agent_responses'] = [
-            {'role': 'assistant', 'content': None, 'tool_calls': [{
-                'id': f'offline-{i}', 'type': 'function', 'function': {
-                    'name': a.name, 'arguments': json.dumps(a.arguments)},
-            }]} for i, a in enumerate(actions)
-        ]+[{'role': 'assistant', 'content': 'Offline infrastructure actions complete.'}]
-        config = TextRunConfig(domain='retail', agent='llm_agent', user='user_simulator',
-                               llm_agent=model, llm_user=model, llm_args_agent=llm_args,
-                               llm_args_user=llm_args, max_steps=100, max_errors=10,
-                               enforce_communication_protocol=False)
-        orchestrator = build_orchestrator(config, task, seed=frozen['seed'])
-        before = orchestrator.environment.get_db_hash()
-        if arm != 'official':
-            from acs.service_agent import CustomerServiceAgent
-            settings = settings_for(original, arm)
-            if live:
-                def factory(s):
-                    return RecordedLLM(s, ledger)
-            else:
-                scripted = [ScriptedResponse(wants_tools=True, tool_calls=[ScriptedToolCall(
-                    f'offline-{i}', a.name, json.dumps(a.arguments),
-                )]) for i, a in enumerate(actions)]+[
-                    ScriptedResponse(text='Offline infrastructure actions complete.')]
-
-                class OfflineModel(ScriptedLLM):
-                    attempts = 0
-
-                    def chat_stream(self, *args, **kwargs):
-                        self.attempts += 1
-                        if fault and self.attempts == 1:
-                            error = RuntimeError('controlled pre-send 503')
-                            error.status_code = 503
-                            raise error
-                        yield from super().chat_stream(*args, **kwargs)
-
-                def factory(s):
-                    return OfflineModel(scripted)
-            orchestrator.agent = ACSAgent(
-                tools=orchestrator.environment.get_tools(),
-                domain_policy=orchestrator.environment.get_policy(), settings=settings,
-                loop_class=OldLoop if arm == 'acs_v1' else CustomerServiceAgent,
-                llm_factory=factory,
-            )
-        orchestrator.timeout = 240
+        responses = []
+        for start in range(0, max(len(actions), 1), 12):
+            for i in range(start, min(start+12, len(actions)), 2):
+                responses.append({'role': 'assistant', 'content': None, 'tool_calls': [
+                    {'id': f'offline-{j}', 'type': 'function', 'function': {
+                        'name': actions[j].name, 'arguments': json.dumps(actions[j].arguments)}}
+                    for j in range(i, min(i+2, len(actions)))
+                ]})
+            responses.append({'role': 'assistant', 'content': 'Offline stage complete.'})
+        scenario['agent_responses'] = responses
         record = {'task': task.id, 'arm': arm, 'fault': fault, 'omit_write': omit_write,
-                  'before_db_hash': before, 'request_start': len(ledger.calls)+1,
+                  'before_db_hash': None, 'request_start': len(ledger.calls)+1,
                   'protocol_sha256': sha256(protocol)}
         with (out / 'attempts.jsonl').open('a') as fp:
             fp.write(json.dumps(record | {'status': 'started'})+'\n')
         started = perf_counter()
+        orchestrator = None
         try:
+            config = TextRunConfig(domain='retail', agent='llm_agent', user='user_simulator',
+                                   llm_agent=model, llm_user=model, llm_args_agent=llm_args,
+                                   llm_args_user=llm_args, max_steps=100, max_errors=10,
+                                   enforce_communication_protocol=False)
+            orchestrator = build_orchestrator(config, task, seed=frozen['seed'])
+            record['before_db_hash'] = orchestrator.environment.get_db_hash()
+            if arm != 'official':
+                from acs.service_agent import CustomerServiceAgent
+                settings = settings_for(original, arm)
+                if live:
+                    def factory(s):
+                        return RecordedLLM(s, ledger)
+                else:
+                    scripted = [ScriptedResponse(text=r['content'] or '',
+                        wants_tools=bool(r.get('tool_calls')), tool_calls=[ScriptedToolCall(
+                            c['id'], c['function']['name'], c['function']['arguments'])
+                            for c in r.get('tool_calls', [])]) for r in responses]
+
+                    class OfflineModel(ScriptedLLM):
+                        attempts = 0
+
+                        def chat_stream(self, *args, **kwargs):
+                            self.attempts += 1
+                            if fault and self.attempts == 1:
+                                error = RuntimeError('controlled pre-send 503')
+                                error.status_code = 503
+                                raise error
+                            yield from super().chat_stream(*args, **kwargs)
+
+                    def factory(s):
+                        model = OfflineModel(scripted)
+                        scenario['offline_model'] = model
+                        return model
+                orchestrator.agent = ACSAgent(
+                    tools=orchestrator.environment.get_tools(),
+                    domain_policy=orchestrator.environment.get_policy(), settings=settings,
+                    loop_class=OldLoop if arm == 'acs_v1' else CustomerServiceAgent,
+                    llm_factory=factory, normalize_results=frozen['suite'] == 'formal',
+                    protocol_failure=protocol_failure if live else None,
+                )
+            orchestrator.timeout = 240
             simulation = run_simulation(orchestrator)
             record.update(simulation=simulation.model_dump(mode='json'),
-                          official_reward=simulation.reward_info.reward)
+                          official_reward=simulation.reward_info.reward,
+                          evaluation_status=('invalid_protocol' if ledger.halted in {
+                              'adapter_protocol_error', 'state_uncertain',
+                          } else 'scored'))
         except BaseException as exc:
-            record.update(error_type=type(exc).__name__, official_reward=None,
-                          partial_trajectory=[m.model_dump(mode='json')
-                                              for m in orchestrator.get_trajectory()])
-            if isinstance(exc, (KeyboardInterrupt, SystemExit)):
-                ledger.halted = 'interrupted'
+            record.update(error_type=type(exc).__name__,
+                          error_message=str(exc).replace(original.llm_api_key, '<redacted>')
+                          if original.llm_api_key else str(exc), official_reward=None,
+                          evaluation_status='unscored',
+                          partial_trajectory=([m.model_dump(mode='json')
+                                               for m in orchestrator.get_trajectory()]
+                                              if orchestrator else []))
+            ledger.halted = ledger.halted or ('interrupted' if isinstance(
+                exc, (KeyboardInterrupt, SystemExit)) else 'unrecoverable_episode_error')
         finally:
-            record.update(after_db_hash=orchestrator.environment.get_db_hash(),
+            record.update(after_db_hash=(orchestrator.environment.get_db_hash()
+                                         if orchestrator else None),
                           elapsed_s=perf_counter()-started, request_end=len(ledger.calls))
-            state = orchestrator.agent_state
+            state = getattr(orchestrator, 'agent_state', None)
             if arm != 'official' and state:
                 if state.stream is not None:
                     state.stream.close()
                     state.stream = None
                 record['active_loop_messages'] = state.agent.messages
                 record['loop_class_module'] = state.agent.__class__.__module__
+                record['protocol_results'] = state.agent.registry.protocol_records
             write_json(out / f'{arm}-{task.id}-{int(fault)}-{int(omit_write)}.json', record)
             rows.append(record)
-            if arm != 'official':
+            if arm != 'official' and orchestrator:
                 orchestrator.agent.stop(state=state)
             print(task.id, arm, 'reward', record['official_reward'], 'fault', fault,
                   'guard', ledger.spent, 'halt', ledger.halted, flush=True)
@@ -336,14 +379,15 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
             if not live:
                 stack.enter_context(patch.object(socket.socket, 'connect', forbidden))
                 stack.enter_context(patch.object(socket.socket, 'connect_ex', forbidden))
-            for index, task_id in enumerate(TASKS):
-                for arm in ARMS[index:]+ARMS[:index]:
+            for index, task_id in enumerate(frozen['task_ids']):
+                rotation = index % len(ARMS)
+                for arm in ARMS[rotation:]+ARMS[:rotation]:
                     if ledger.halted:
                         break
                     episode(tasks[task_id], arm)
                 if ledger.halted:
                     break
-            if not live:
+            if not live and not ledger.halted:
                 episode(tasks['17'], 'acs_v2', omit_write=True)
                 episode(tasks['17'], 'acs_v1', fault=True)
                 episode(tasks['17'], 'acs_v2', fault=True)
@@ -352,23 +396,30 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
             client.close()
             accounting_client._client.close()
         ledger.save()
-    planned = len(TASKS)*len(ARMS)
+    planned = len(frozen['task_ids'])*len(ARMS)
     natural = [r for r in rows if not r['fault'] and not r['omit_write']]
-    valid = (len(natural) == planned and all(r['official_reward'] == 1 for r in natural))
+    complete = len(natural) == planned
+    valid = complete and not ledger.halted and (all(
+        r['evaluation_status'] == 'scored' for r in natural) if live
+                          else all(r['official_reward'] == 1 for r in natural))
     if not live:
-        negative = next(r for r in rows if r['omit_write'])
+        negative = next((r for r in rows if r['omit_write']), None)
         faults = {r['arm']: r for r in rows if r['fault']}
-        valid = (valid and negative['official_reward'] == 0
+        valid = (valid and negative is not None and len(faults) == 2
+                 and negative['official_reward'] == 0
                  and faults['acs_v1']['official_reward'] == 0
                  and faults['acs_v2']['official_reward'] == 1)
     summary = {'live': live, 'protocol_sha256': sha256(protocol), 'valid': valid,
                'planned_episodes': planned, 'attempted_episodes': len(natural),
                'guard_spent_cny': str(ledger.spent), 'actual_requests': len(ledger.calls),
                'halted': ledger.halted,
+               'not_started': [{'task': t, 'arm': a} for t in frozen['task_ids'] for a in ARMS
+                               if not any(r['task'] == t and r['arm'] == a for r in natural)],
                'arms': {arm: {'episodes': sum(r['arm'] == arm for r in natural),
                               'reward_sum': sum(r['official_reward'] or 0 for r in natural
-                                                if r['arm'] == arm),
-                              'unscored': sum(r['official_reward'] is None for r in natural
+                                                if r['arm'] == arm
+                                                and r['evaluation_status'] == 'scored'),
+                              'unscored': sum(r['evaluation_status'] != 'scored' for r in natural
                                               if r['arm'] == arm)} for arm in ARMS},
                'scope': frozen['measurement_scope']}
     write_json(out / 'summary.json', summary)
@@ -381,13 +432,15 @@ if __name__ == '__main__':
     parser.add_argument('--v1-root', type=Path, required=True)
     parser.add_argument('--protocol', type=Path, required=True)
     parser.add_argument('--freeze', action='store_true')
+    parser.add_argument('--suite', choices=['pilot', 'formal'], default='pilot')
     parser.add_argument('--live', action='store_true')
     parser.add_argument('--preflight', type=Path)
     parser.add_argument('--out', type=Path)
     args = parser.parse_args()
     if args.freeze:
         with args.protocol.open('x') as fp:
-            json.dump(freeze(args.upstream, args.v1_root), fp, ensure_ascii=False, indent=2)
+            json.dump(freeze(args.upstream, args.v1_root, suite=args.suite), fp,
+                      ensure_ascii=False, indent=2)
     else:
         if not args.out or (args.live and not args.preflight):
             parser.error('--out required; --live also requires --preflight')

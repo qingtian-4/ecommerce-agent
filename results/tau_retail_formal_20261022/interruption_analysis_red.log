@@ -1,0 +1,158 @@
+...F                                                                     [100%]
+=================================== FAILURES ===================================
+________ test_interrupted_process_keeps_unfinished_request_and_attempt _________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-93/test_interrupted_process_keeps0')
+
+    def test_interrupted_process_keeps_unfinished_request_and_attempt(tmp_path):
+        import json
+    
+        from scripts.analyze_tau_v2 import analyze
+        (tmp_path/'manifest.json').write_text(json.dumps({
+            'suite':'formal','task_ids':['a'],'official_tool_contracts':{}}))
+        (tmp_path/'requests.json').write_text(json.dumps({
+            'spent_guard_cny':'2','halted':None,'calls':[{
+                'sequence':1,'arm':'acs_v1','task':'a','role':'agent',
+                'reserved_cny':'0.5','request':{}}]}))
+        (tmp_path/'attempts.jsonl').write_text(json.dumps({
+            'task':'a','arm':'acs_v1','status':'started'})+'\n')
+        result = analyze(tmp_path)
+>       assert result['unfinished_attempts'] == [{'task':'a','arm':'acs_v1'}]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'unfinished_attempts'
+
+tests/test_external_analysis.py:70: KeyError
+----------------------------- Captured stdout call -----------------------------
+{
+  "arms": {
+    "official": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v1": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v2": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    }
+  },
+  "formal_run_estimate": {
+    "description": "Proposal only, no authorization to run: 40 test tasks x 3 arms x 3",
+    "episodes": 360,
+    "coverage_warning": "One trial of 40 tasks; no repeated-trial stability estimate. 25% headroom is a planning assumption, not an upper bound.",
+    "estimated_requests": 360.0,
+    "estimated_tokens": 0.0,
+    "guard_rate_mean_projection_cny": "720",
+    "guard_rate_projection_with_25pct_cny": "900"
+  },
+  "same_initial_db": false,
+  "guard_spent_cny": "2",
+  "halted": null,
+  "actual_requests": 1,
+  "roles": {
+    "agent": 1
+  },
+  "role_usage": {
+    "agent": {
+      "requests": 1,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    "user": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    "judge": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    }
+  },
+  "provider_models": [
+    "unknown"
+  ],
+  "limitations": "One trial, known tasks, no ChatService/UI/RAG/local guards; alias not weights snapshot; no pass^3; no selection or reruns."
+}
+=========================== short test summary info ============================
+FAILED tests/test_external_analysis.py::test_interrupted_process_keeps_unfinished_request_and_attempt

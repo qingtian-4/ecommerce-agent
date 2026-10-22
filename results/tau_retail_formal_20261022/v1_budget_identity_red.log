@@ -1,0 +1,50 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/qingtian/projects/E-commerce Agent
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 17 items / 16 deselected / 1 selected
+
+tests/test_tau_recovery_protocol.py F                                    [100%]
+
+=================================== FAILURES ===================================
+_________ test_frozen_v1_budget_exception_uses_its_own_module_identity _________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-87/test_frozen_v1_budget_exceptio0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f09a1c1f490>
+
+    def test_frozen_v1_budget_exception_uses_its_own_module_identity(tmp_path, monkeypatch):
+        import io
+        import subprocess
+        import tarfile
+    
+        from scripts.eval_tau_v2 import V1, v1_class
+        import tau_acs_agent
+    
+        archive = subprocess.check_output(['git', 'archive', V1, 'src'])
+        with tarfile.open(fileobj=io.BytesIO(archive)) as bundle:
+            bundle.extractall(tmp_path, filter='data')
+        loop = v1_class(tmp_path)
+        model = ScriptedLLM([ScriptedResponse(text='Must not run')])
+        from acs.runtime import RunBudget
+        monkeypatch.setattr(tau_acs_agent, 'RunBudget', lambda *a: RunBudget(1e-12, 1))
+        import importlib
+        old_runtime = importlib.import_module(loop.__module__)
+        original_budget = old_runtime.RunBudget
+        monkeypatch.setattr(old_runtime, 'RunBudget', lambda *a: original_budget(1e-12, 1))
+        env = get_environment()
+        adapter = ACSAgent(env.get_tools(), env.get_policy(), loop_class=loop,
+                          settings=Settings(_env_file=None), llm_factory=lambda s: model,
+                          normalize_results=True)
+        answer, _ = adapter.generate_next_message(
+            UserMessage(role='user', content='Help'), adapter.get_init_state())
+>       assert answer.raw_data['acs_stop_reason'] == 'budget_exceeded'
+E       AssertionError: assert 'llm_error' == 'budget_exceeded'
+E         
+E         - budget_exceeded
+E         + llm_error
+
+tests/test_tau_recovery_protocol.py:221: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_tau_recovery_protocol.py::test_frozen_v1_budget_exception_uses_its_own_module_identity
+======================= 1 failed, 16 deselected in 4.07s =======================

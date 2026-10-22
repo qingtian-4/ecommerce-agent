@@ -7,8 +7,13 @@ does not invoke environment functions itself or substitute local business data.
 
 from __future__ import annotations
 
+import ast
+import inspect
 import json
+import re
+import textwrap
 from dataclasses import dataclass
+from importlib import import_module
 from typing import Any
 
 from tau2.agent.base_agent import HalfDuplexAgent
@@ -17,14 +22,35 @@ from tau2.data_model.message import AssistantMessage, ToolCall, ToolMessage, Use
 
 from acs.config import get_settings
 from acs.cs_tools import TraceEvent
-from acs.runtime import RunBudget
 from acs.service_agent import CustomerServiceAgent
 
 
 class OfficialRegistry:
-    def __init__(self, tools):
+    def __init__(self, tools, *, normalize_results=False):
         self.tools = tools
         self.reply = None
+        self.normalize_results = normalize_results
+        self.uncertain_write = False
+        self.protocol_error = False
+        self.protocol_records = []
+        # These are tool contracts, not task IDs, answers, or routing rules.
+        self.contracts = {t.name: t for t in tools if hasattr(t, 'returns')}
+        self.business_errors = {}
+        for name, tool in self.contracts.items():
+            patterns = []
+            tree = ast.parse(textwrap.dedent(inspect.getsource(tool._func)))
+            for node in ast.walk(tree):
+                if not (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)
+                        and isinstance(node.exc.func, ast.Name)
+                        and node.exc.func.id == 'ValueError' and node.exc.args):
+                    continue
+                value = node.exc.args[0]
+                if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                    patterns.append(re.escape(value.value))
+                elif isinstance(value, ast.JoinedStr):
+                    patterns.append(''.join(re.escape(v.value) if isinstance(v, ast.Constant)
+                                            else '.*' for v in value.values))
+            self.business_errors[name] = patterns
 
     @property
     def names(self):
@@ -37,6 +63,8 @@ class OfficialRegistry:
         if self.reply is None:
             raise RuntimeError("Official tool result was not supplied")
         reply, self.reply = self.reply, None
+        if self.normalize_results:
+            return self._normalized(name, arguments, reply)
         try:
             payload = json.loads(reply.content or "null")
         except json.JSONDecodeError:
@@ -53,6 +81,57 @@ class OfficialRegistry:
         )
 
 
+    def _normalized(self, name, arguments, reply):
+        tool = self.contracts.get(name)
+        mutates = getattr(getattr(tool, '_func', None), '__mutates_state__', True)
+        category, reason = 'ok', None
+        raw = reply.content
+        if reply.error:
+            bad_binding = False
+            if tool is not None:
+                try:
+                    inspect.signature(tool._func).bind(**json.loads(arguments))
+                except (TypeError, ValueError):
+                    bad_binding = True
+            reason = raw or 'Missing official error content'
+            if bad_binding:
+                category = 'invalid_arguments'
+            elif reason.startswith('Error: ') and reason.endswith('not found'):
+                category = 'not_found'
+            elif any(re.fullmatch('Error: '+pat, reason)
+                     for pat in self.business_errors.get(name, [])):
+                category = 'business_rejected'
+            else:
+                category = 'tool_failure'
+            payload = {'error_type': category, 'error': raw}
+        else:
+            try:
+                if tool is None or raw is None:
+                    raise ValueError('Missing tool contract or response')
+                value = (raw if tool.returns.model_fields['returns'].annotation is str
+                         else json.loads(raw))
+                # Validation never substitutes coerced data for the original facts.
+                tool.returns.model_validate({'returns': value}, strict=True)
+                payload = {'result': value}
+            except (ValueError, TypeError) as exc:
+                category, reason = 'invalid_result', str(exc)
+                payload = {'error_type': category, 'error': reason,
+                           'official_content': raw}
+        self.protocol_error = category == 'invalid_result'
+        self.uncertain_write = mutates and category in {'tool_failure', 'invalid_result'}
+        detail = {'tool': name, 'category': category, 'reason': reason,
+                  'mutates_state': mutates, 'uncertain_write': self.uncertain_write,
+                  'official_error': reply.error, 'official_content': raw}
+        self.protocol_records.append(detail)
+        events = [TraceEvent('tool_call', name, {'arguments': arguments}),
+                  TraceEvent('tool_result', name, {'result': payload, **detail})]
+        error = None
+        if category != 'ok':
+            error = f'official_{category}:{name}'
+            events.append(TraceEvent('error', name, {'error_type': category, **detail}))
+        return payload, events, error
+
+
 @dataclass
 class ACSState:
     agent: Any
@@ -64,16 +143,20 @@ class ACSState:
 
 class ACSAgent(HalfDuplexAgent[ACSState]):
     def __init__(self, tools, domain_policy, *, settings=None,
-                 loop_class=CustomerServiceAgent, llm_factory=None):
+                 loop_class=CustomerServiceAgent, llm_factory=None, normalize_results=False,
+                 protocol_failure=None):
         super().__init__(tools, domain_policy)
         self.settings = settings
         self.loop_class = loop_class
         self.llm_factory = llm_factory
+        self.normalize_results = normalize_results
+        self.protocol_failure = protocol_failure
 
     def get_init_state(self, message_history=None):
         settings = (self.settings or get_settings()).model_copy(update={"context_max_chars": 64000})
         llm = self.llm_factory(settings) if self.llm_factory else None
-        agent = self.loop_class(settings=settings, llm=llm, registry=OfficialRegistry(self.tools))
+        agent = self.loop_class(settings=settings, llm=llm, registry=OfficialRegistry(
+            self.tools, normalize_results=self.normalize_results))
         agent.messages = [
             {
                 "role": "system",
@@ -103,9 +186,11 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
             if state.stream is not None:
                 raise RuntimeError("New user message arrived before the previous turn finished")
             settings = state.agent.settings
+            # Independently loaded V1 has its own BudgetExceeded class identity.
+            budget_type = import_module(state.agent.__class__.__module__).RunBudget
             state.stream = state.agent.chat_stream(
                 message.content or "",
-                budget=RunBudget(settings.turn_timeout_s, settings.max_api_requests),
+                budget=budget_type(settings.turn_timeout_s, settings.max_api_requests),
             )
             state.seen_calls = state.trace_cursor = 0
         elif isinstance(message, ToolMessage):
@@ -116,6 +201,30 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
         else:
             raise TypeError("Adapter emits serial tool calls; expected a single ToolMessage")
         for result in state.stream:
+            if state.agent.registry.uncertain_write or state.agent.registry.protocol_error:
+                reason = ('state_uncertain' if state.agent.registry.uncertain_write
+                          else 'adapter_protocol_error')
+                if self.protocol_failure:
+                    self.protocol_failure(reason)
+                # Both ACS arms use the same transport guard. Never ask a model to
+                # replay a mutation whose receipt cannot be established.
+                state.stream.close()
+                state.stream = None
+                completed = {m.get('tool_call_id') for m in state.agent.messages
+                             if m['role'] == 'tool'}
+                for m in list(state.agent.messages):
+                    for c in m.get('tool_calls', []):
+                        if c['id'] not in completed:
+                            state.agent.messages.append({'role': 'tool', 'tool_call_id': c['id'],
+                                'content': '{"error_type":"state_uncertain","executed":false}'})
+                text = ('The tool receipt is uncertain or violates its declared protocol. '
+                        'No further operations were attempted.')
+                state.agent.messages.append({'role': 'assistant', 'content': text})
+                return AssistantMessage.text(text, raw_data={
+                    'acs_stop_reason': reason,
+                    'acs_trace': [e.as_dict() for e in result.trace],
+                    'protocol_guard': state.agent.registry.protocol_records[-1],
+                }), state
             for event in result.trace[state.trace_cursor :]:
                 state.trace_cursor += 1
                 if event.type != "tool_call":
@@ -163,6 +272,13 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
                     },
                 ), state
         raise RuntimeError("ACS loop ended without a final result")
+
+    def is_stop(self, message):
+        if (message.raw_data or {}).get('acs_stop_reason') in {
+            'state_uncertain', 'adapter_protocol_error',
+        }:
+            return True
+        return super().is_stop(message)
 
     def stop(self, message=None, state=None):
         if state is not None:
