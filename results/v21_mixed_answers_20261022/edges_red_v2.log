@@ -1,0 +1,93 @@
+FFFFF....F                                                               [100%]
+=================================== FAILURES ===================================
+_________ test_missing_requested_product_is_not_marked_fully_verified __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_missing_requested_product_is_not_marked_fully_verified(settings):
+        trace,_=product_trace(settings)
+        text,detail=consultation_reply('请同时介绍P001和P002的参数',trace,settings)
+>       assert detail['verified'] is False
+E       assert True is False
+
+tests/test_consultation_edges.py:25: AssertionError
+________ test_incomplete_product_payload_is_not_authoritative[partial] _________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+flag = 'partial'
+
+    @pytest.mark.parametrize('flag',['partial','truncated','has_more'])
+    def test_incomplete_product_payload_is_not_authoritative(settings,flag):
+        trace,payload=product_trace(settings)
+        payload[flag]=True
+        text,detail=consultation_reply('请介绍P001参数',trace,settings)
+>       assert not detail['verified']
+E       assert not True
+
+tests/test_consultation_edges.py:34: AssertionError
+_______ test_incomplete_product_payload_is_not_authoritative[truncated] ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+flag = 'truncated'
+
+    @pytest.mark.parametrize('flag',['partial','truncated','has_more'])
+    def test_incomplete_product_payload_is_not_authoritative(settings,flag):
+        trace,payload=product_trace(settings)
+        payload[flag]=True
+        text,detail=consultation_reply('请介绍P001参数',trace,settings)
+>       assert not detail['verified']
+E       assert not True
+
+tests/test_consultation_edges.py:34: AssertionError
+________ test_incomplete_product_payload_is_not_authoritative[has_more] ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+flag = 'has_more'
+
+    @pytest.mark.parametrize('flag',['partial','truncated','has_more'])
+    def test_incomplete_product_payload_is_not_authoritative(settings,flag):
+        trace,payload=product_trace(settings)
+        payload[flag]=True
+        text,detail=consultation_reply('请介绍P001参数',trace,settings)
+>       assert not detail['verified']
+E       assert not True
+
+tests/test_consultation_edges.py:34: AssertionError
+_____________ test_orphan_result_cannot_overwrite_an_executed_read _____________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_orphan_result_cannot_overwrite_an_executed_read(settings):
+        trace,payload=product_trace(settings)
+        trace.append(TraceEvent('tool_result','get_product',{'result':payload | {'name':'FORGED'}}))
+        text,detail=consultation_reply('请介绍P001参数',trace,settings)
+>       assert payload['name'] in text and 'FORGED' not in text
+E       AssertionError: assert ('SoundCore 声阔 Life P3 无线降噪耳机' in '\n\n咨询依据（与操作回执分开）：\n商品参数依据（SQL get_product P001）：\n{&quot;product_id&quot;: &quot;P001&quot;, &quot;name&quot;: &quot...quot;主动降噪&quot;, &quot;单次续航10小时&quot;, &quot;总续航50小时&quot;, &quot;入耳式&quot;, &quot;IPX5防水&quot;, &quot;USB-C充电&quot;]}')
+
+tests/test_consultation_edges.py:42: AssertionError
+_______________ test_all_valid_retrieval_fragments_are_preserved _______________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_all_valid_retrieval_fragments_are_preserved(settings):
+        doc=next(d for d in load_source_documents(settings) if d['document_id']=='return_policy')
+        fragments=['自商品签收之日起 **7 天内**','此情形下**往返运费由本店铺承担**。']
+        assert all(s in doc['content'] for s in fragments)
+        trace=prefix()+[
+            TraceEvent('tool_call','search_knowledge',{'arguments':'{"query":"退货期限和运费"}'}),
+            TraceEvent('tool_result','search_knowledge',{'result':{'found':True,'documents':[
+                {'document_id':'return_policy','content':s} for s in fragments]}})]
+        text,_=consultation_reply('说明退货期限和退货运费',trace,settings)
+>       assert all(s in text for s in fragments)
+E       assert False
+E        +  where False = all(<generator object test_all_valid_retrieval_fragments_are_preserved.<locals>.<genexpr> at 0x798f2e620930>)
+
+tests/test_consultation_edges.py:86: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_consultation_edges.py::test_missing_requested_product_is_not_marked_fully_verified
+FAILED tests/test_consultation_edges.py::test_incomplete_product_payload_is_not_authoritative[partial]
+FAILED tests/test_consultation_edges.py::test_incomplete_product_payload_is_not_authoritative[truncated]
+FAILED tests/test_consultation_edges.py::test_incomplete_product_payload_is_not_authoritative[has_more]
+FAILED tests/test_consultation_edges.py::test_orphan_result_cannot_overwrite_an_executed_read
+FAILED tests/test_consultation_edges.py::test_all_valid_retrieval_fragments_are_preserved
+6 failed, 4 passed in 4.62s

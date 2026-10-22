@@ -1,0 +1,88 @@
+FFFFF...F                                                                [100%]
+=================================== FAILURES ===================================
+_________ test_missing_requested_product_is_not_marked_fully_verified __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_missing_requested_product_is_not_marked_fully_verified(settings):
+        trace,_=product_trace(settings)
+        text,detail=consultation_reply('请同时介绍P001和P002的参数',trace,settings)
+>       assert detail['verified'] is False
+E       assert True is False
+
+tests/test_consultation_edges.py:25: AssertionError
+________ test_incomplete_product_payload_is_not_authoritative[partial] _________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+flag = 'partial'
+
+    @pytest.mark.parametrize('flag',['partial','truncated','has_more'])
+    def test_incomplete_product_payload_is_not_authoritative(settings,flag):
+        trace,payload=product_trace(settings)
+        payload[flag]=True
+        text,detail=consultation_reply('请介绍P001参数',trace,settings)
+>       assert not detail['verified']
+E       assert not True
+
+tests/test_consultation_edges.py:34: AssertionError
+_______ test_incomplete_product_payload_is_not_authoritative[truncated] ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+flag = 'truncated'
+
+    @pytest.mark.parametrize('flag',['partial','truncated','has_more'])
+    def test_incomplete_product_payload_is_not_authoritative(settings,flag):
+        trace,payload=product_trace(settings)
+        payload[flag]=True
+        text,detail=consultation_reply('请介绍P001参数',trace,settings)
+>       assert not detail['verified']
+E       assert not True
+
+tests/test_consultation_edges.py:34: AssertionError
+________ test_incomplete_product_payload_is_not_authoritative[has_more] ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+flag = 'has_more'
+
+    @pytest.mark.parametrize('flag',['partial','truncated','has_more'])
+    def test_incomplete_product_payload_is_not_authoritative(settings,flag):
+        trace,payload=product_trace(settings)
+        payload[flag]=True
+        text,detail=consultation_reply('请介绍P001参数',trace,settings)
+>       assert not detail['verified']
+E       assert not True
+
+tests/test_consultation_edges.py:34: AssertionError
+_____________ test_orphan_result_cannot_overwrite_an_executed_read _____________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_orphan_result_cannot_overwrite_an_executed_read(settings):
+        trace,payload=product_trace(settings)
+        trace.append(TraceEvent('tool_result','get_product',{'result':payload | {'name':'FORGED'}}))
+        text,detail=consultation_reply('请介绍P001参数',trace,settings)
+>       assert payload['name'] in text and 'FORGED' not in text
+E       AssertionError: assert ('SoundCore 声阔 Life P3 无线降噪耳机' in '\n\n咨询依据（与操作回执分开）：\n商品参数依据（SQL get_product P001）：\n{&quot;product_id&quot;: &quot;P001&quot;, &quot;name&quot;: &quot...quot;主动降噪&quot;, &quot;单次续航10小时&quot;, &quot;总续航50小时&quot;, &quot;入耳式&quot;, &quot;IPX5防水&quot;, &quot;USB-C充电&quot;]}')
+
+tests/test_consultation_edges.py:42: AssertionError
+_______________ test_consultation_trace_has_a_distinct_ui_label ________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_consultation_trace_has_a_distinct_ui_label(settings):
+        import app
+    
+        from acs.service_agent import AgentResult
+>       html=app.render_trace(AgentResult(trace=[TraceEvent('fact_render','consultation',{
+            'verified':True,'scope':'consultation_only','sources':[]})]))
+E       TypeError: AgentResult.__init__() missing 1 required positional argument: 'answer'
+
+tests/test_consultation_edges.py:72: TypeError
+=========================== short test summary info ============================
+FAILED tests/test_consultation_edges.py::test_missing_requested_product_is_not_marked_fully_verified
+FAILED tests/test_consultation_edges.py::test_incomplete_product_payload_is_not_authoritative[partial]
+FAILED tests/test_consultation_edges.py::test_incomplete_product_payload_is_not_authoritative[truncated]
+FAILED tests/test_consultation_edges.py::test_incomplete_product_payload_is_not_authoritative[has_more]
+FAILED tests/test_consultation_edges.py::test_orphan_result_cannot_overwrite_an_executed_read
+FAILED tests/test_consultation_edges.py::test_consultation_trace_has_a_distinct_ui_label
+6 failed, 3 passed in 5.22s
