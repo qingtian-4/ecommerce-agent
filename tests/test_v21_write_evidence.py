@@ -17,6 +17,8 @@ def test_sku_with_foreign_registry_cannot_remove_every_tool(available):
     route=route_request('Please use this SKU and proceed',available,False)
     assert route['confidence']=='fallback'
     assert route['allowed_tools']==available
+    if not available:
+        assert route['intent']=='orders'
 
 
 def test_pending_local_task_keeps_return_workflow_on_sku_followup():

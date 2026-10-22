@@ -51,7 +51,10 @@ def route_request(text: str, available: list[str], has_task: bool) -> dict:
     selected = [n for n in available if n in allowed]
     missing_capability = not selected
     if missing_capability:
-        fallback, intent, selected = True, 'unknown', list(available)
+        fallback, selected = True, list(available)
+        # With no registered tools, retain the recognized intent for diagnostics only.
+        if available:
+            intent = 'unknown'
     return {'version': 2, 'intent': intent, 'candidates': candidates,
             'confidence': 'fallback' if fallback else 'high',
             'allowed_tools': selected,

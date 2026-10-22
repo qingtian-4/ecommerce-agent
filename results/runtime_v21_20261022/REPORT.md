@@ -26,6 +26,13 @@ empty_registry_green保留一次命令文件名写错、pytest未收集测试的
 最终full_submission完整执行840项通过、退出码0；该轮在空Registry补例之前收集，
 最后一行路由修正由73项专项覆盖，并由最终提交的完整CI复验（当前收集841项）。
 
+实际首次CI（a23d8ca）检出17个旧分类测试失败：旧接口用空Registry检查诊断意图，
+新fallback顺带清除了意图。没有改旧用例或放宽断言；保留已识别意图，同时confidence仍fallback，
+allowed_tools仍为空，不能执行业务。[失败CI](ci_a23d8ca_failure.log)及本地intent_compatibility_red保留。
+修复后包含全部旧路由样本的intent_compatibility_green为100 passed；
+compatibility_replay重新冻结最终源码，102/102业务终态保持，零请求、零重评分。
+首次全量绿测发生在该兼容性变更前，不能覆盖此修复；最终以追加提交的新CI为准。
+
 [CODE_REVIEW](CODE_REVIEW.md)保留两轴审查，发现及修复均列出。
 第一次外部专项失败包括旧bridge单工具fixture在新fallback语义下不再构成拒绝场景，
 补正常order能力以继续验证真正的范围拒绝；另一次批量替换误改旁边fixture，已恢复。
@@ -38,6 +45,7 @@ success_replay_verified：原三臂全部90个成功Episode，初始DB、最终D
 444个最终回复有95个变化（replay_metrics.json），不能把改写当作纯收益或宣称答案无回归。
 submission_replay：全部102个已评分Episode回放，包含原12失败；最终DB均102/102保持，原reward不改。
 final_replay为最终空Registry修复后的同批102段回放；最终结果以该目录及verification为准。
+后续兼容性修正以compatibility_replay及verification为最新权威源码冻结。
 未执行在线Agent、用户模拟器或裁判；original_reward只是源记录，并非本轮重新评分。
 所有轨迹、source_cases哈希、V2.1源码哈希和明示paid=false协议各留在回放目录。
 

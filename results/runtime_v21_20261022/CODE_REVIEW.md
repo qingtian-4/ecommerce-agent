@@ -25,3 +25,8 @@ P2修改商品只检查新SKU存在、修改支付只检查历史存在目标付
 
 最终补充：空Registry也不能标为高置信空范围。独立空/外部工具集配对红测1失败1通过，
 移除非空Registry前提后全部fallback，不增加能力或工具调用。最新源码以final_replay协议冻结。
+
+首次CI检出空Registry的诊断intent被连带改写，17个既有分类断言失败；这是末尾专项漏纳入
+旧路由测试，不是远端不稳定。最小修正保留诊断intent，confidence仍fallback、空能力仍不可执行。
+未改旧分类测试，新增例同步断言intent与confidence。100项含既有路由的专项及新的
+compatibility_replay验证最终源码；不以重跑原红CI代替代码修复。
