@@ -146,11 +146,11 @@ def test_original_english_router_retains_full_scope_for_uncertain_requests(text)
     assert route['confidence'] == 'fallback' and route['allowed_tools'] == available
 
 
-def test_original_sku_literal_has_known_empty_scope_in_official_namespace():
+def test_v21_sku_literal_falls_back_when_official_capabilities_do_not_match():
     from acs.routing import route_request
     available = [t.name for t in get_environment().get_tools()]
     route = route_request('Show this SKU please', available, False)
-    assert route['confidence'] == 'high' and route['allowed_tools'] == []
+    assert route['confidence'] == 'fallback' and route['allowed_tools'] == available
 
 
 def test_budget_end_prevents_model_call_and_official_tool_execution(monkeypatch):

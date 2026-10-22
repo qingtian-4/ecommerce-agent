@@ -257,6 +257,37 @@ class ToolRegistry:
                     "note": "列表含其他会话历史申请；仅当前会话申请编号能证明本会话已提交，"
                             "查询不会创建申请，用户聊天中的点击描述不是执行回执。"}
 
+        def verify_mutation(name, fields, payload, error, user_id):
+            from .recovery import reconcile_update
+            view = store.get_return_task(sid, user_id)
+            task = view['task'] or {}
+            if name == 'preview_return':
+                preview = service.latest_preview(sid, user_id)
+                good = bool(preview and preview['preview_id'] == payload.get('preview_id'))
+                claims = []  # A preview is neither application submission nor refund.
+            elif name == 'update_return_task':
+                proof = reconcile_update(None, task, fields, tid)
+                good = proof['outcome'] == 'applied' and (error is not None or
+                                                         payload.get('task') == task)
+                claims = ['draft']
+            else:
+                good = task.get('status') == 'cancelled' and payload.get('task') == task
+                claims = ['cancel']
+            summary = ('已核实退货草稿：' + json.dumps(
+                {k:task.get(k) for k in fields},ensure_ascii=False) + '；尚未提交申请。'
+                if name == 'update_return_task' else '已核实当前会话草稿已取消。'
+                if name == 'cancel_return_task' else '已核实预览生成；尚未创建申请。')
+            return {'tool': name, 'verified': good, 'claims': claims if good else [],
+                    'scope':sid+'/return_task','summary':summary if good else None,
+                    'explanation': ('预览尚未生成；需补充：'+'；'.join(payload['reasons'])
+                        if name == 'preview_return' and payload.get('ready') is False
+                        and isinstance(payload.get('reasons'),list) else None),
+                    'outcome': ('verified' if good else 'not_ready' if name == 'preview_return'
+                                and payload.get('ready') is False else 'postcondition_failed'),
+                    'target': task.get('order_id'), 'revision': task.get('revision')}
+
+        self._verify_mutation = verify_mutation
+
         empty = {"type": "object", "properties": {}, "required": []}
         self.register(ToolSpec(
             "get_return_task", "读取当前会话退货草稿及待补信息；不代表资格或已提交。", empty, read,
@@ -295,6 +326,14 @@ class ToolRegistry:
             "审核通过仅允许退回，不是退款。提交响应丢失先查询，"
             "待审核不等于通过或退款，不要重复创建。", empty, requests,
         ))
+
+    @property
+    def mutation_tools(self):
+        return {'update_return_task', 'cancel_return_task', 'preview_return'} & set(self.names)
+
+    def verify_mutation(self, name, arguments, payload, error, user_id):
+        """The bound session identity and current-turn provenance are the authority."""
+        return self._verify_mutation(name, arguments, payload, error, user_id)
 
     def schemas(self) -> list[dict[str, Any]]:
         return [spec.schema() for spec in self._tools.values()]

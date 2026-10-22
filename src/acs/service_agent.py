@@ -34,6 +34,7 @@ from .llm import LLMClient
 from .recovery import WRITES, IncompleteResponse, classify_failure, retry_delay
 from .routing import route_request
 from .runtime import BudgetExceeded, RunBudget
+from .write_evidence import guarded_answer, verify
 
 SYSTEM_PROMPT = """你是一名专业的电商客服助手，服务于一家销售无线耳机与充电配件的店铺。
 
@@ -254,6 +255,8 @@ class CustomerServiceAgent:
         schemas = [s for s in self.registry.schemas()
                    if route is None or s['function']['name'] in route['allowed_tools']]
         retrievals = 0
+        receipts = []
+        receipt_guard = self.settings.write_receipt_guard_enabled
         previous_signature, repeated = None, 0
 
         for step in range(1, self.max_steps + 1):
@@ -279,7 +282,8 @@ class CustomerServiceAgent:
                                 for event in events:
                                     if isinstance(event, str):
                                         content_seen = content_seen or bool(event)
-                                        result.answer += event
+                                        if not receipt_guard:
+                                            result.answer += event
                                         yield self._snapshot(result, started)
                                     else:
                                         response = event
@@ -351,6 +355,11 @@ class CustomerServiceAgent:
                     response.text.strip()
                     or "抱歉，我没能组织出回答，请再描述一下您的问题。"
                 )
+                if receipt_guard:
+                    result.answer, verification = guarded_answer(result.answer, receipts)
+                    if verification:
+                        result.trace.append(TraceEvent(
+                            'write_verification', 'answer', verification))
                 result.trace.append(
                     TraceEvent(type="final", label="answer", detail={"text": result.answer})
                 )
@@ -407,6 +416,21 @@ class CustomerServiceAgent:
                     events = [result.trace[-1], TraceEvent(type="error", label=call.name,
                                                           detail=payload)]
                     error = limit_reason
+                if receipt_guard and call.name in getattr(self.registry, 'mutation_tools', ()):
+                    try:
+                        arguments = json.loads(call.arguments)
+                    except (ValueError, TypeError):
+                        arguments = {}
+                    proof = verify(self.registry, call.name, arguments, payload, error,
+                                   self.current_user_id)
+                    receipts.append(proof)
+                    events.append(TraceEvent('write_verification', call.name, proof))
+                    unknown = (not proof['verified'] and proof['outcome'] != 'not_ready'
+                               and (not error or any(
+                        e.type == 'error' and e.detail.get('error_type') == 'tool_exception'
+                        for e in events)))
+                    if unknown or (error and proof['verified']):
+                        stopped, limit_reason = '写入回执或实际状态尚未核实', 'state_uncertain'
                 if self.settings.runtime_recovery_enabled:
                     failure_payload = payload
                     if error:

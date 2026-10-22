@@ -1,0 +1,34 @@
+E701 Multiple statements on one line (colon)
+  --> scripts/replay_v21_successes.py:54:48
+   |
+52 |             responses=[]
+53 |             for message in turns:
+54 |                 if message['role']!='assistant':continue
+   |                                                ^
+55 |                 calls=[]
+56 |                 for c in message.get('tool_calls') or []:
+   |
+
+B023 Function definition does not bind loop variable `model`
+  --> scripts/replay_v21_successes.py:70:38
+   |
+68 |                     write_receipt_guard_enabled=True,runtime_recovery_enabled=True,
+69 |                     max_steps=8,max_tool_calls=16,context_max_chars=64000),
+70 |                 llm_factory=lambda s:model)
+   |                                      ^^^^^
+71 |             state=adapter.get_init_state([AssistantMessage.text('Hi! How can I help you today?')])
+72 |             finals=[]
+   |
+
+E701 Multiple statements on one line (colon)
+  --> scripts/replay_v21_successes.py:76:73
+   |
+74 |                 for i,message in enumerate(turns):
+75 |                     if message['role']!='user' or not any(
+76 |                             m['role']=='assistant' for m in turns[i+1:]):continue
+   |                                                                         ^
+77 |                     answer,state=adapter.generate_next_message(UserMessage(role='user',
+78 |                         content=message['content']),state)
+   |
+
+Found 4 errors (1 fixed, 3 remaining).

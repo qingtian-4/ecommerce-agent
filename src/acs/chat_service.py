@@ -200,14 +200,15 @@ class ChatService:
                     guarded = guarded or cancel_guarded or uncertain_write
                     result.totals["context"] = context_stats
                     result.totals["budget"] = budget.as_dict()
-                    updates = sum(e.type == "tool_result" and e.label in {
+                    updates = sum(e.type in {"tool_result", "write_verification"} and e.label in {
                         "update_return_task", "cancel_return_task",
                     } for e in result.trace)
                     if updates != task_events:
                         try:
                             task = self.store.get_return_task(sid, user_id)
                         except Exception:
-                            if not self.settings.runtime_recovery_enabled:
+                            if not (self.settings.runtime_recovery_enabled
+                                    or self.settings.write_receipt_guard_enabled):
                                 raise
                             readback_failed = True
                             uncertain_write = guarded = True

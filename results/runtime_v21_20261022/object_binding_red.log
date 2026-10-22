@@ -1,0 +1,28 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/ecommerce-runtime-v21-20261022
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 16 items / 15 deselected / 1 selected
+
+tests/test_v21_write_evidence.py F                                       [100%]
+
+=================================== FAILURES ===================================
+_ test_verified_receipt_cannot_authorize_a_different_object_or_superseded_state _
+
+    def test_verified_receipt_cannot_authorize_a_different_object_or_superseded_state():
+        from acs.write_evidence import guarded_answer
+        receipts=[{'verified':True,'claims':['address'],'target':'order-A','scope':'address',
+                   'summary':'Verified order-A address: Actual Street.'}]
+        text,detail=guarded_answer("I've updated the address of order-B to Wrong Street.",receipts)
+>       assert 'order-B' not in text and 'Wrong Street' not in text
+E       assert ('order-B' not in "I've update...rong Street."
+E         
+E         'order-B' is contained here:
+E           I've updated the address of order-B to Wrong Street.
+E         ?                             +++++++)
+
+tests/test_v21_write_evidence.py:120: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v21_write_evidence.py::test_verified_receipt_cannot_authorize_a_different_object_or_superseded_state
+======================= 1 failed, 15 deselected in 0.65s =======================

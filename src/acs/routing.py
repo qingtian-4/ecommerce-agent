@@ -40,11 +40,21 @@ def route_request(text: str, available: list[str], has_task: bool) -> dict:
     fallback = (ambiguous and not conditional_lookup) or not candidates
     intent = 'unknown' if fallback else candidates[0] if len(candidates) == 1 else 'mixed'
     allowed = set(available) if fallback else set().union(*(SCOPES[c] for c in candidates))
+    if (has_task and intent == 'orders'
+            and any(word in text for word in ('确认', '更正', '补充'))):
+        # A SKU follow-up must not strand an existing return workflow. Authorization
+        # remains in the registry; this only keeps relevant schemas available.
+        allowed |= {'get_return_task', 'update_return_task'}
     # A bare policy question must not be stranded by missing the narrower business vocabulary.
     if '政策' in text or '规则' in text:
         allowed |= KNOWLEDGE
-    return {'version': 1, 'intent': intent, 'candidates': candidates,
+    selected = [n for n in available if n in allowed]
+    missing_capability = not selected
+    if missing_capability:
+        fallback, intent, selected = True, 'unknown', list(available)
+    return {'version': 2, 'intent': intent, 'candidates': candidates,
             'confidence': 'fallback' if fallback else 'high',
-            'allowed_tools': [n for n in available if n in allowed],
-            'basis': 'uncertain_expression' if fallback else 'explicit_business_terms',
+            'allowed_tools': selected,
+            'basis': ('missing_capability' if missing_capability else
+                      'uncertain_expression' if fallback else 'explicit_business_terms'),
             'existing_task': has_task, 'task_action': 'preserve_until_authorized_tool'}

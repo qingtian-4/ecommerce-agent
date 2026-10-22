@@ -1,0 +1,46 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/ecommerce-runtime-v21-20261022
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 48 items
+
+tests/test_v21_tau_evidence.py .....                                     [ 10%]
+tests/test_tau_result_protocol.py ..............                         [ 39%]
+tests/test_tau_recovery_protocol.py ....................                 [ 81%]
+tests/test_tau_bridge.py ..F.                                            [ 89%]
+tests/test_external_tau_protocol.py .....                                [100%]
+
+=================================== FAILURES ===================================
+_ test_route_rejection_cannot_escape_to_official_environment_before_loop_check _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x794a778b9050>
+
+    def test_route_rejection_cannot_escape_to_official_environment_before_loop_check(monkeypatch):
+        from types import SimpleNamespace
+    
+        from acs import service_agent
+    
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('blocked', 'get_product', '{"product_id":"X"}'),
+            ]), ScriptedResponse(text='No external tool was executed.'),
+        ])
+        monkeypatch.setattr(service_agent, 'LLMClient', lambda **kw: model)
+        monkeypatch.setattr(tau_acs_agent, 'get_settings', lambda: Settings(
+            _env_file=None, workflow_router_enabled=True, runtime_recovery_enabled=True,
+        ))
+        tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
+            'name': 'get_product', 'parameters': {'type': 'object', 'properties': {}}}})
+        adapter = tau_acs_agent.ACSAgent(tools=[tool], domain_policy='Official policy')
+        reply, state = adapter.generate_next_message(
+            UserMessage(role='user', content='查订单'), adapter.get_init_state(),
+        )
+>       assert not reply.tool_calls
+E       AssertionError: assert not [ToolCall(id='blocked', name='get_product', arguments={'product_id': 'X'}, requestor='assistant')]
+E        +  where [ToolCall(id='blocked', name='get_product', arguments={'product_id': 'X'}, requestor='assistant')] = AssistantMessage(role='assistant', content='', tool_calls=[ToolCall(id='blocked', name='get_product', arguments={'prod...ne, turn_taking_action=None, utterance_ids=None, chunk_id=None, is_final_chunk=True, source=None, contains_speech=True).tool_calls
+
+tests/test_tau_bridge.py:92: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_tau_bridge.py::test_route_rejection_cannot_escape_to_official_environment_before_loop_check
+========================= 1 failed, 47 passed in 9.66s =========================

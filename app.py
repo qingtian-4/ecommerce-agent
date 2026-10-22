@@ -359,6 +359,8 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             title = f"Step {step_no} · 重启状态核对"
         elif event.type == "state_check":
             title = f"Step {step_no} · 服务端状态检查 <code>{html.escape(event.label)}</code>"
+        elif event.type == "write_verification":
+            title = f"Step {step_no} · 业务回执核验（原答仅供诊断）"
         elif event.type == "output_gate":
             title = f"Step {step_no} · 输出核验（原答仅供诊断） <code>{html.escape(event.label)}</code>"
         elif event.type == "fact_render":

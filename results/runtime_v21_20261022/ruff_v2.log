@@ -1,0 +1,25 @@
+E501 Line too long (104 > 100)
+  --> scripts/replay_v21_successes.py:89:101
+   |
+87 |                         'after_db_match':env.get_db_hash()==record['after_db_hash'],
+88 |                         'model_decisions':len(model.calls),'expected_decisions':len(responses),
+89 |                         'tool_sequence_match':[p['tool'] for p in state.agent.registry.protocol_records]
+   |                                                                                                     ^^^^
+90 |                             == [c['name'] for m in record['simulation']['messages']
+91 |                                 for c in m.get('tool_calls') or []], 'finals':finals}
+   |
+
+SIM401 Use `r.get('tool', 'unknown')` instead of an `if` block
+  --> src/acs/write_evidence.py:39:46
+   |
+37 |     # DSML is content, never a Function Call, even if it visually resembles an SDK envelope.
+38 |     pseudo_call = 'DSML' in text or '<tool_call' in text
+39 |     latest = {r.get('scope', r.get('target', r['tool'] if 'tool' in r else 'unknown')):r
+   |                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+40 |               for r in receipts}
+41 |     verified = [r for r in latest.values() if r['verified']]
+   |
+help: Replace with `r.get('tool', 'unknown')`
+
+Found 2 errors.
+No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).

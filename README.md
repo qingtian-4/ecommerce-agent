@@ -13,6 +13,10 @@ V1已完成交付；当前独立V2分支增加轻量业务路由、有限故障�
 [简历与面试材料](docs/INTERNSHIP_PROJECT.md) · [交付验收](results/project_handoff_babbfab/REPORT.md) ·
 [范围](docs/PROJECT_SCOPE.md) · [PR 与合并计划](docs/PR_HANDOFF.md)
 
+新增[正式评测恢复与V2.1离线验收](docs/TAU_FORMAL_RECOVERY_AND_V21_PLAN.md)：原102段保持，
+18段续跑等待独立审批；本分支V2.1修复空工具范围与写回执绑定，默认关闭。
+固定成功轨迹回放保证业务状态保持，不代表真实模型成功率或回答完整性无回归。
+
 ## 功能与职责
 
 - **Agent Runtime**：手写 Function Calling 循环，工具参数校验、整轮预算、停止原因、

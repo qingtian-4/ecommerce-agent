@@ -1,0 +1,107 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/ecommerce-runtime-v21-20261022
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1
+collected 834 items / 4 skipped
+
+tests/test_agent_loop.py .................                               [  2%]
+tests/test_agent_text_stream.py ....                                     [  2%]
+tests/test_app_handlers.py ......................................        [  7%]
+tests/test_catalog_knowledge_modes.py ..........                         [  8%]
+tests/test_catalog_knowledge_report.py ......                            [  8%]
+tests/test_chat_service.py .......                                       [  9%]
+tests/test_cli.py .                                                      [  9%]
+tests/test_cost_accounting.py ....................                       [ 12%]
+tests/test_crash_recovery_v2.py ...........                              [ 13%]
+tests/test_data_consistency.py .....                                     [ 14%]
+tests/test_database.py ..............                                    [ 15%]
+tests/test_delivery_reliability.py ..................................... [ 20%]
+......                                                                   [ 21%]
+tests/test_eval_datasets.py ..                                           [ 21%]
+tests/test_eval_multiturn.py ...                                         [ 21%]
+tests/test_eval_scoring.py ..........................                    [ 24%]
+tests/test_eval_view.py .........                                        [ 25%]
+tests/test_evidence_preview.py .....                                     [ 26%]
+tests/test_external_analysis.py ....                                     [ 26%]
+tests/test_external_tau_protocol.py .....                                [ 27%]
+tests/test_hybrid_retrieval.py ............                              [ 29%]
+tests/test_iteration_report.py ....                                      [ 29%]
+tests/test_iteration_v2.py ......                                        [ 30%]
+tests/test_llm_request_shape.py ..........                               [ 31%]
+tests/test_llm_stream.py .......                                         [ 32%]
+tests/test_multiturn_eval.py ............                                [ 33%]
+tests/test_order_candidate_facts.py .................................... [ 38%]
+.                                                                        [ 38%]
+tests/test_order_candidate_protocol.py .........................         [ 41%]
+tests/test_order_candidate_scope.py .................................... [ 45%]
+........                                                                 [ 46%]
+tests/test_order_reliability.py ........................................ [ 51%]
+..........................................                               [ 56%]
+tests/test_p1_live_budget.py ......                                      [ 56%]
+tests/test_progress_v2.py ..........                                     [ 58%]
+tests/test_rag.py ....................                                   [ 60%]
+tests/test_readiness.py ...                                              [ 60%]
+tests/test_recovery_v2.py ........................                       [ 63%]
+tests/test_relevance_rejection.py .......                                [ 64%]
+tests/test_request_accounting.py .....                                   [ 65%]
+tests/test_rerank.py .................                                   [ 67%]
+tests/test_return_review.py ..................                           [ 69%]
+tests/test_return_state_check.py ....................................... [ 74%]
+.....................                                                    [ 76%]
+tests/test_return_submission.py ........................................ [ 81%]
+                                                                         [ 81%]
+tests/test_routing_v2.py ..........................F                     [ 84%]
+tests/test_scenarios.py ...                                              [ 85%]
+tests/test_secret_scanner.py ..............................              [ 88%]
+tests/test_seed_clock.py ....                                            [ 89%]
+tests/test_serve.py ..                                                   [ 89%]
+tests/test_sessions.py ......                                            [ 90%]
+tests/test_task_memory.py .....................                          [ 92%]
+tests/test_turn_budget.py ........                                       [ 93%]
+tests/test_v21_write_evidence.py ...............                         [ 95%]
+tests/test_v2_premerge.py .......................................        [100%]
+
+=================================== FAILURES ===================================
+_ test_cross_order_lookup_preserves_return_draft_and_correction_reopens_tools __
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_cross_order_lookup_preserves_return_draft_and_correction_reopens_tools(settings):
+        settings = settings.model_copy(update={'workflow_router_enabled': True})
+        store = SessionStore(settings.db_path)
+        sid = store.create('USER001')
+        tid = store.begin_turn(sid, 'USER001', '我想退O10024')
+        before = store.update_return_task(sid, 'USER001', tid, {'order_id': 'O10024'})
+        store.interrupt_turn(sid, 'USER001', tid)
+        llm = ScriptedLLM([ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall('query', 'get_logistics', '{"order_id":"O10023"}'),
+        ]), ScriptedResponse(text='物流查询结束')])
+        agent = CustomerServiceAgent(settings=settings, llm=llm, registry=ToolRegistry(settings))
+        final = list(ChatService(settings, store).run_turn('查O10023物流', 'USER001', sid,
+                                                           agent=agent))[-1]
+        assert final.task_view['task'] == before['task']
+>       assert not any(t['function']['name'] == 'cancel_return_task' for t in llm.calls[0]['tools'])
+E       assert not True
+E        +  where True = any(<generator object test_cross_order_lookup_preserves_return_draft_and_correction_reopens_tools.<locals>.<genexpr> at 0x7cc045aa7b90>)
+
+tests/test_routing_v2.py:61: AssertionError
+=============================== warnings summary ===============================
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/contextlib.py:141: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    return next(self.gen)
+
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/site-packages/gradio/queueing.py:178: Pandas4Warning: The copy keyword is deprecated and will be removed in a future version. Copy-on-Write is active in pandas since 3.0 which utilizes a lazy copy mechanism that defers copies until necessary. Use .copy() to make an eager copy if necessary.
+    pd.DataFrame(records).fillna(value=np.nan).infer_objects(copy=False)  # type: ignore
+
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/.local/share/uv/python/cpython-3.13.13-linux-x86_64-gnu/lib/python3.13/contextlib.py:148: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    next(self.gen)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_routing_v2.py::test_cross_order_lookup_preserves_return_draft_and_correction_reopens_tools
+======= 1 failed, 833 passed, 4 skipped, 4 warnings in 461.51s (0:07:41) =======

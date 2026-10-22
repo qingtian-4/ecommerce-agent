@@ -1,0 +1,50 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/ecommerce-runtime-v21-20261022
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 64 items
+
+tests/test_v21_write_evidence.py ................                        [ 25%]
+tests/test_v21_tau_evidence.py .....                                     [ 32%]
+tests/test_tau_result_protocol.py ..............                         [ 54%]
+tests/test_tau_recovery_protocol.py ....................                 [ 85%]
+tests/test_tau_bridge.py .F..                                            [ 92%]
+tests/test_external_tau_protocol.py .....                                [100%]
+
+=================================== FAILURES ===================================
+______ test_v2_adapter_runs_actual_router_and_exposes_official_tool_names ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x763136e9cb90>
+
+    def test_v2_adapter_runs_actual_router_and_exposes_official_tool_names(monkeypatch):
+        from types import SimpleNamespace
+    
+        from acs import service_agent
+    
+        model = ScriptedLLM([ScriptedResponse(text='Please provide an order id.')])
+        settings = Settings(_env_file=None, workflow_router_enabled=True,
+                            runtime_recovery_enabled=True)
+        monkeypatch.setattr(service_agent, 'LLMClient', lambda **kw: model)
+        monkeypatch.setattr(tau_acs_agent, 'get_settings', lambda: settings)
+        tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
+            'name': 'get_order_details', 'parameters': {'type': 'object', 'properties': {}}}})
+        order_tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
+            'name': 'get_order', 'parameters': {'type': 'object', 'properties': {}}}})
+        adapter = tau_acs_agent.ACSAgent(tools=[tool, order_tool], domain_policy='Official policy')
+        state = adapter.get_init_state()
+        reply, state = adapter.generate_next_message(
+            UserMessage(role='user', content='Can you help with my order?'), state,
+        )
+        route = next(e for e in reply.raw_data['acs_trace'] if e['type'] == 'route_selected')
+        assert route['detail']['confidence'] == 'fallback'
+>       assert route['detail']['allowed_tools'] == ['get_order_details']
+E       AssertionError: assert ['get_order_d..., 'get_order'] == ['get_order_details']
+E         
+E         Left contains one more item: 'get_order'
+E         Use -v to get more diff
+
+tests/test_tau_bridge.py:70: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_tau_bridge.py::test_v2_adapter_runs_actual_router_and_exposes_official_tool_names
+======================== 1 failed, 63 passed in 19.87s =========================
