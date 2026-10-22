@@ -1252,3 +1252,16 @@ Recovery自然触发0，写后响应丢失等仅验证无网络边界。全部16
 
 [正式报告](EXTERNAL_BENCHMARK_V2_FORMAL_REPORT.md) ·
 [完整证据与复现](../results/tau_retail_formal_20261022/REPORT.md)。
+
+## 2026-10-22：原始正式评测安全续跑
+
+退出调查没有关联OOM/退出码，原因UNKNOWN；不把模型或Router问题当作进程退出原因。
+新增独立只读恢复入口，校验102段SHA、请求归属及费用；未知#1668按0.163316元全预留，
+继承32.782968/40元，只计划剩余18段，不重跑102段。原Runtime/Adapter继续按冻结SHA校验。
+新输出独立目录，日志/状态路径也禁止放入原实验；逐请求原子journal、fsync、cohort互斥及最新父链，
+防止缓存滞后误拒绝、并发/顺序重开导致重复执行或预算重置。监督器记录真正退出码，tmux断网预演18段通过，
+新增API请求0；预算和原始文件保持。真实SIGKILL/SIGTERM与写结果未登记等边界均测试。
+人工审批模板仍false，明确接受未知usage计费及新尝试后才能付费继续，不伪造正常完成。
+
+V2.1另在fix/runtime-v21-evidence修复能力空交集及写回执展示，不混入原始V2。
+[完整恢复/V2.1设计、18段清单及审批命令](TAU_FORMAL_RECOVERY_AND_V21_PLAN.md)。

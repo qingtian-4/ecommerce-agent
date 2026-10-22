@@ -1,0 +1,28 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/qingtian/projects/E-commerce Agent
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 11 items
+
+tests/test_formal_resume.py F..........                                  [100%]
+
+=================================== FAILURES ===================================
+_________ test_plan_skips_completed_and_keeps_unknown_full_reservation _________
+
+source = PosixPath('/tmp/pytest-of-qingtian/pytest-101/test_plan_skips_completed_and_0/original/live')
+
+    def test_plan_skips_completed_and_keeps_unknown_full_reservation(source):
+        plan=build_plan(source)
+        assert Decimal(plan['inherited_guard_cny'])==Decimal('0.200120')
+>       assert plan['remaining_cny']=='39.799880'
+E       AssertionError: assert '39.79988' == '39.799880'
+E         
+E         - 39.799880
+E         ?         -
+E         + 39.79988
+
+tests/test_formal_resume.py:48: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_formal_resume.py::test_plan_skips_completed_and_keeps_unknown_full_reservation
+========================= 1 failed, 10 passed in 5.50s =========================

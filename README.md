@@ -135,6 +135,9 @@ docs/         架构、范围、问题记录、运行与面试材料
 完整历史条件保存在 [EXPERIMENT_LOG](docs/EXPERIMENT_LOG.md)，
 [ECom-Bench 静态分析](docs/ECOM_BENCH_COMPATIBILITY.md)说明为何没有为得分扩大业务范围。
 
+[正式评测恢复与 V2.1 验收](docs/TAU_FORMAL_RECOVERY_AND_V21_PLAN.md)记录102段已评分、
+剩余18段的独立续跑方案及预算；本轮只做无网络预演，尚未完成120段正式对照。
+
 ## 已知限制与交付状态
 
 本项目适合本机合成数据演示与 Agent 工程实习讲解，尚不具备生产级可靠性。

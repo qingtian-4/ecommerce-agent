@@ -1,0 +1,110 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/qingtian/projects/E-commerce Agent
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 12 items / 11 deselected / 1 selected
+
+tests/test_formal_resume.py F                                            [100%]
+
+=================================== FAILURES ===================================
+_ test_real_process_death_preserves_money_and_completed_result[record_before_cache] _
+
+source = PosixPath('/tmp/pytest-of-qingtian/pytest-104/test_real_process_death_preser0/original/live')
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-104/test_real_process_death_preser0')
+termination = 'record_before_cache'
+
+    @pytest.mark.parametrize('termination',['kill','terminate','result_before_kill','record_before_cache'])
+    def test_real_process_death_preserves_money_and_completed_result(source,tmp_path,termination):
+        import os
+        import subprocess
+        import sys
+        from pathlib import Path
+        out=tmp_path/'continuation'
+        root=Path(__file__).resolve().parents[1]
+        code='''
+    import json,sys,time
+    from pathlib import Path
+    from scripts.tau_resume import build_plan,inherited_ledger
+    from scripts.tau_run_state import atomic_json,RequestJournal,RunMonitor
+    from scripts.eval_tau_v2 import TaggedLedger
+    from acs.llm import Usage
+    source,out=map(Path,sys.argv[1:3]);out.mkdir()
+    plan=build_plan(source);atomic_json(out/'recovery_protocol.json',plan)
+    protocol=json.loads((source/'manifest.json').read_text());atomic_json(out/'manifest.json',protocol)
+    (out/'attempts.jsonl').write_text(json.dumps({'task':'a','arm':'acs_v1'})+'\\n')
+    ledger=TaggedLedger(out/'requests.json');ledger.calls,ledger.spent=inherited_ledger(plan)
+    ledger.journal=RequestJournal(out,len(ledger.calls));ledger.arm='acs_v1';ledger.task='a'
+    ledger.save()
+    if sys.argv[3]=='record_before_cache':
+        import scripts.tau_run_state as storage
+        original=storage.atomic_json
+        def paused(path,value):
+            if path.name=='ledger_state.json':
+                print('ready',flush=True);time.sleep(60)
+            original(path,value)
+        storage.atomic_json=paused
+    with RunMonitor(out,lambda:{'request_sequence':len(ledger.calls)}):
+        call=ledger.begin({'messages':[],'max_tokens':768})
+        if sys.argv[3]=='result_before_kill':
+            ledger.complete(call,Usage('model','agent',prompt_tokens=10,completion_tokens=5,total_tokens=15))
+            result=json.loads((source/'official-a-0-0.json').read_text())
+            result.update(arm='acs_v1',request_start=3,request_end=3)
+            atomic_json(out/'acs_v1-a-0-0.json',result)
+        print('ready',flush=True)
+        time.sleep(60)
+    '''
+        env=os.environ | {'PYTHONPATH':str(root/'src')+os.pathsep+str(root)}
+        worker=subprocess.Popen([sys.executable,'-c',code,str(source),str(out),termination],
+                                stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,env=env)
+        try:
+            assert worker.stdout.readline().strip()=='ready',worker.stderr.read()
+            worker.terminate() if termination=='terminate' else worker.kill()
+            worker.wait(timeout=10)
+>           resumed=build_plan(out)
+                    ^^^^^^^^^^^^^^^
+
+tests/test_formal_resume.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/tau_resume.py:164: in build_plan
+    protocol, protocol_path, raw, completed, attempts, files = load_evidence(source)
+                                                               ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/tmp/pytest-of-qingtian/pytest-104/test_real_process_death_preser0/continuation')
+seen = {PosixPath('/tmp/pytest-of-qingtian/pytest-104/test_real_process_death_preser0/continuation'), PosixPath('/tmp/pytest-of-qingtian/pytest-104/test_real_process_death_preser0/original/live')}
+
+    def load_evidence(source, seen=None):
+        source = Path(source).resolve()
+        seen = set() if seen is None else seen
+        if source in seen:
+            raise ValueError('Cyclic recovery ancestry')
+        seen.add(source)
+        completed, attempts, files = {}, [], {}
+        supplement = source/'recovery_protocol.json'
+        if supplement.exists():
+            recovery = read(supplement)
+            parent = Path(recovery['parent'])
+            protocol, protocol_path, calls, completed, attempts, files = load_evidence(parent, seen)
+            for path, expected in recovery['source_files'].items():
+                if digest(path) != expected:
+                    raise ValueError('Parent evidence changed: '+path)
+            status = read(source/'run_status.json') if (source/'run_status.json').exists() else {}
+            if status.get('state') == 'running' and status.get('process_token') and (
+                    process_token(status['pid']) == status['process_token']):
+                raise ValueError('Source continuation is still running')
+            for path in sorted((source/'request_records').glob('*.json')):
+                record = read(path)
+                if path.stem != f"{record['sequence']:08d}":
+                    raise ValueError('Request filename/sequence mismatch')
+                calls.append(record)
+            if (source/'ledger_state.json').exists():
+                cached = read(source/'ledger_state.json')
+                if cached['last_sequence'] != len(calls):
+>                   raise ValueError('Request journal missing records')
+E                   ValueError: Request journal missing records
+
+scripts/tau_resume.py:80: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_formal_resume.py::test_real_process_death_preserves_money_and_completed_result[record_before_cache]
+======================= 1 failed, 11 deselected in 1.50s =======================

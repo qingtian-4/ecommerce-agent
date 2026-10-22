@@ -28,6 +28,12 @@ os.environ['LITELLM_LOCAL_MODEL_COST_MAP'] = 'True'
 from scripts.eval_delivery_live import RecordedLLM  # noqa: E402
 from scripts.eval_p1_live import Ledger  # noqa: E402
 from scripts.eval_tau_retail import PINNED_COMMIT  # noqa: E402
+from scripts.tau_run_state import (  # noqa: E402
+    RequestJournal,
+    RunMonitor,
+    atomic_json,
+    budget_state,
+)
 from tests.conftest import ScriptedLLM, ScriptedResponse, ScriptedToolCall  # noqa: E402
 
 from acs.config import Settings, get_settings  # noqa: E402
@@ -142,17 +148,28 @@ class TaggedLedger(Ledger):
                          input_guard=Decimal('4'), output_guard=Decimal('16'))
         self.arm, self.task, self.role = None, None, 'agent'
 
-    def begin(self, kwargs):
-        record = super().begin(kwargs)
-        record.update(arm=self.arm, task=self.task, role=self.role)
-        self.save()
-        return record
+    def save(self):
+        if self.calls and 'arm' not in self.calls[-1]:
+            self.calls[-1].update(arm=self.arm, task=self.task, role=self.role)
+        if getattr(self, 'journal', None):
+            self.journal.save(self)
+        else:
+            atomic_json(self.path, {'spent_guard_cny':str(self.spent),
+                                   'halted':self.halted,'calls':self.calls})
 
 
-def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
+def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None, resume_plan=None):
     frozen = json.loads(protocol.read_text())
     current = freeze(upstream, v1_root, suite=frozen['suite'])
-    if frozen != current:
+    if resume_plan:
+        # Only execution observability/persistence changed; original agent and bridge stay pinned.
+        for key in frozen:
+            if key != 'source_sha256' and current[key] != frozen[key]:
+                raise ValueError('Frozen condition differs: '+key)
+        for name, expected in frozen['source_sha256'].items():
+            if name != 'scripts/eval_tau_v2.py' and sha256(ROOT/name) != expected:
+                raise ValueError('Frozen runtime/adapter differs: '+name)
+    elif frozen != current:
         raise ValueError('Conditions differ from frozen protocol')
     if live:
         proof = json.loads((preflight / 'summary.json').read_text())
@@ -162,11 +179,16 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
     if live and (not original.has_llm_key or frozen['model'] != 'deepseek-flash'
                  or urlsplit(original.llm_base_url).hostname != 'api.deepseek.com'):
         raise ValueError('Only funded official DeepSeek Flash is allowed')
+    if resume_plan:
+        from scripts.tau_resume import validate_destination
+        validate_destination(resume_plan,out)
     out.mkdir(parents=True, exist_ok=False)
-    (out / 'manifest.json').write_text(json.dumps(frozen | {
+    atomic_json(out / 'manifest.json', frozen | {
         'live': live, 'protocol_sha256': sha256(protocol),
         'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-    }, ensure_ascii=False, indent=2)+'\n')
+    })
+    if resume_plan:
+        atomic_json(out/'recovery_protocol.json', resume_plan)
     from litellm import ModelResponse
     from loguru import logger
     from openai import OpenAI
@@ -184,6 +206,15 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
     logger.add(sys.stderr, level='CRITICAL')
     ledger = TaggedLedger(out / 'requests.json', limit=Decimal(frozen['budget_cny']),
                           max_requests=frozen['global_max_actual_requests'])
+    prefix = 0
+    if resume_plan:
+        from scripts.tau_resume import claim_continuation, inherited_ledger
+        ledger.calls, ledger.spent = inherited_ledger(resume_plan)
+        prefix = len(ledger.calls)
+        ledger.journal = RequestJournal(out, prefix)
+        ledger.save()
+        if live:
+            claim_continuation(resume_plan, out)
     client = OpenAI(api_key=original.llm_api_key, base_url=original.llm_base_url,
                     max_retries=0, timeout=45) if live else None
     OldLoop = v1_class(v1_root)
@@ -266,7 +297,7 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
         data = json.dumps(value, ensure_ascii=False, indent=2)
         if original.llm_api_key:
             data = data.replace(original.llm_api_key, '<redacted>')
-        path.write_text(data+'\n')
+        atomic_json(path, json.loads(data))
 
     def episode(task, arm, *, fault=False, omit_write=False):
         ledger.arm, ledger.task = arm, task.id
@@ -287,8 +318,13 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
         record = {'task': task.id, 'arm': arm, 'fault': fault, 'omit_write': omit_write,
                   'before_db_hash': None, 'request_start': len(ledger.calls)+1,
                   'protocol_sha256': sha256(protocol)}
+        if resume_plan:
+            record['attempt_number'] = resume_plan['attempt_numbers'][task.id+'/'+arm]
+            record['parent_evidence'] = resume_plan['parent']
         with (out / 'attempts.jsonl').open('a') as fp:
             fp.write(json.dumps(record | {'status': 'started'})+'\n')
+            fp.flush()
+            os.fsync(fp.fileno())
         started = perf_counter()
         orchestrator = None
         try:
@@ -371,6 +407,12 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
 
     try:
         with ExitStack() as stack:
+            if resume_plan:
+                stack.enter_context(RunMonitor(out, lambda: {
+                    'task':ledger.task,'arm':ledger.arm,'request_sequence':len(ledger.calls),
+                    'completed':sum(r['evaluation_status'] == 'scored' for r in rows),
+                    **budget_state(ledger), 'halted':ledger.halted,
+                }))
             stack.enter_context(patch.object(llm_utils, 'completion', completion))
             for module, role in [(llm_agent, 'agent'), (user_simulator, 'user'),
                                   (evaluator_nl_assertions, 'judge')]:
@@ -384,10 +426,13 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
                 for arm in ARMS[rotation:]+ARMS[:rotation]:
                     if ledger.halted:
                         break
+                    if resume_plan and not any(p['task'] == task_id and p['arm'] == arm
+                                               for p in resume_plan['pending']):
+                        continue
                     episode(tasks[task_id], arm)
                 if ledger.halted:
                     break
-            if not live and not ledger.halted:
+            if not live and not ledger.halted and not resume_plan:
                 episode(tasks['17'], 'acs_v2', omit_write=True)
                 episode(tasks['17'], 'acs_v1', fault=True)
                 episode(tasks['17'], 'acs_v2', fault=True)
@@ -396,13 +441,14 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
             client.close()
             accounting_client._client.close()
         ledger.save()
-    planned = len(frozen['task_ids'])*len(ARMS)
+    planned = (len(resume_plan['pending']) if resume_plan
+               else len(frozen['task_ids'])*len(ARMS))
     natural = [r for r in rows if not r['fault'] and not r['omit_write']]
     complete = len(natural) == planned
     valid = complete and not ledger.halted and (all(
         r['evaluation_status'] == 'scored' for r in natural) if live
                           else all(r['official_reward'] == 1 for r in natural))
-    if not live:
+    if not live and not resume_plan:
         negative = next((r for r in rows if r['omit_write']), None)
         faults = {r['arm']: r for r in rows if r['fault']}
         valid = (valid and negative is not None and len(faults) == 2
@@ -412,6 +458,7 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
     summary = {'live': live, 'protocol_sha256': sha256(protocol), 'valid': valid,
                'planned_episodes': planned, 'attempted_episodes': len(natural),
                'guard_spent_cny': str(ledger.spent), 'actual_requests': len(ledger.calls),
+               'new_requests':len(ledger.calls)-prefix,
                'halted': ledger.halted,
                'not_started': [{'task': t, 'arm': a} for t in frozen['task_ids'] for a in ARMS
                                if not any(r['task'] == t and r['arm'] == a for r in natural)],
@@ -422,6 +469,14 @@ def execute(protocol, out, upstream, v1_root, *, live=False, preflight=None):
                               'unscored': sum(r['evaluation_status'] != 'scored' for r in natural
                                               if r['arm'] == arm)} for arm in ARMS},
                'scope': frozen['measurement_scope']}
+    if resume_plan:
+        summary['not_started'] = [p for p in resume_plan['pending'] if not any(
+            r['task'] == p['task'] and r['arm'] == p['arm'] for r in natural)]
+        summary['recovery_protocol_sha256'] = sha256(out/'recovery_protocol.json')
+        summary['inherited_guard_cny'] = resume_plan['inherited_guard_cny']
+        # Export once; SIGKILL recovery uses per-request journal, not this optional export.
+        atomic_json(out/'requests.json', {'calls':ledger.calls,
+                    'spent_guard_cny':str(ledger.spent),'halted':ledger.halted})
     write_json(out / 'summary.json', summary)
     print(json.dumps(summary, ensure_ascii=False))
 
