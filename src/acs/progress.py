@@ -113,6 +113,10 @@ def progress_events(sid: str, tid: str, result, phase: str) -> list[dict]:
             add(index, "retry_scheduled", "连接暂时异常，正在重试", "waiting")
         elif event.type in {"error", "runtime_failure"}:
             add(index, "tool_failed", name + "遇到限制，请核对提示", "blocked")
+        elif event.type == "write_verification":
+            add(index, "write_verification",
+                "已核对业务执行回执" if event.detail.get("verified") else "业务状态尚未核实",
+                "verified" if event.detail.get("verified") else "unverified")
         elif event.type in {"fact_render", "output_gate"}:
             add(
                 index,

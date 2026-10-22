@@ -1,0 +1,234 @@
+{
+  "version": "V21-independent-pairs-proposal-v2",
+  "paid_authorized": false,
+  "proposed_new_cap_cny": "1",
+  "episodes": 16,
+  "trials": 1,
+  "same_snapshot_sha256": "ba9d9847e239d49ab15296830b5d1b19404d76f0e49428af76354c5c0bad9481",
+  "baseline": "f6c3387 original V2; write guard absent",
+  "candidate": "C final commit, must freeze exact SHA before live",
+  "scope": "full ChatService; same model/prompts/DB and original switches; no fault injection",
+  "live_approval_required": true,
+  "reuse_A_budget": false,
+  "grading": "actual task state, each requested consultation factual/complete, wrong writes/visible frames, sync, source binding; manual source review + deterministic DB, no paid judge",
+  "note": "These now-seen authored development prompts are not a held-out set. Exact live sources/settings, 768 output, budgets and conservative per-request reservations must be frozen before authorization.",
+  "cases": [
+    {
+      "id": "D01",
+      "turns": [
+        {
+          "query": "记录O10024的退货草稿，同时介绍P001的参数",
+          "tools": [
+            {
+              "name": "get_product",
+              "args": {
+                "product_id": "P001"
+              }
+            },
+            {
+              "name": "update_return_task",
+              "args": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "script_answer": "草稿已保存，P001参数见查询结果。"
+        }
+      ]
+    },
+    {
+      "id": "D02",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货期限",
+          "tools": [
+            {
+              "name": "get_knowledge_documents",
+              "args": {
+                "document_ids": [
+                  "return_policy"
+                ]
+              }
+            },
+            {
+              "name": "update_return_task",
+              "args": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "script_answer": "草稿已记录，无理由7天、质量15天。"
+        }
+      ]
+    },
+    {
+      "id": "D03",
+      "turns": [
+        {
+          "query": "请预览退货申请，同时说明退货运费",
+          "tools": [
+            {
+              "name": "get_knowledge_documents",
+              "args": {
+                "document_ids": [
+                  "return_policy"
+                ]
+              }
+            },
+            {
+              "name": "preview_return",
+              "args": {}
+            }
+          ],
+          "script_answer": "材料不足，尚未创建申请；费用以政策为准。"
+        }
+      ]
+    },
+    {
+      "id": "D04",
+      "turns": [
+        {
+          "query": "记录O10024的草稿，同时介绍P001的参数",
+          "tools": [
+            {
+              "name": "get_product",
+              "args": {
+                "product_id": "P001"
+              }
+            },
+            {
+              "name": "update_return_task",
+              "args": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "script_answer": "草稿已保存。"
+        },
+        {
+          "query": "更正商品咨询，同时介绍P002的参数",
+          "tools": [
+            {
+              "name": "get_product",
+              "args": {
+                "product_id": "P002"
+              }
+            },
+            {
+              "name": "update_return_task",
+              "args": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "script_answer": "草稿已保存，参数见工具。"
+        }
+      ]
+    },
+    {
+      "id": "D05",
+      "turns": [
+        {
+          "query": "我想退O10024",
+          "tools": [
+            {
+              "name": "update_return_task",
+              "args": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "script_answer": "草稿已记录。"
+        },
+        {
+          "query": "中止退货草稿，同时说明退货政策",
+          "tools": [
+            {
+              "name": "get_knowledge_documents",
+              "args": {
+                "document_ids": [
+                  "return_policy"
+                ]
+              }
+            },
+            {
+              "name": "cancel_return_task",
+              "args": {}
+            }
+          ],
+          "script_answer": "草稿取消，政策见资料。"
+        }
+      ]
+    },
+    {
+      "id": "D06",
+      "turns": [
+        {
+          "query": "我想退O10024",
+          "tools": [
+            {
+              "name": "update_return_task",
+              "args": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "script_answer": "草稿已记录。"
+        },
+        {
+          "query": "不要取消退货草稿，同时说明退货政策",
+          "tools": [
+            {
+              "name": "get_knowledge_documents",
+              "args": {
+                "document_ids": [
+                  "return_policy"
+                ]
+              }
+            },
+            {
+              "name": "cancel_return_task",
+              "args": {}
+            }
+          ],
+          "script_answer": "草稿保留。"
+        }
+      ]
+    },
+    {
+      "id": "D07",
+      "turns": [
+        {
+          "query": "查询P001的名称，不办理业务",
+          "tools": [
+            {
+              "name": "get_product",
+              "args": {
+                "product_id": "P001"
+              }
+            }
+          ],
+          "script_answer": "SoundCore 声阔 Life P3 无线降噪耳机。"
+        }
+      ]
+    },
+    {
+      "id": "D08",
+      "turns": [
+        {
+          "query": "查询O10024的订单状态，不修改订单",
+          "tools": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "script_answer": "订单状态以查询结果为准。"
+        }
+      ]
+    }
+  ],
+  "preflight_fixture_note": "v1 rehearsal short-answer placeholder named the wrong product; corrected to SQL fact before any scoring/live; v1 artifacts retained, not an Agent fix."
+}

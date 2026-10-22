@@ -1,0 +1,77 @@
+{
+  "id": "C11-False",
+  "question": "请记录退货草稿O10024，同时说明退货政策",
+  "source_supported": false,
+  "required": [],
+  "consultation_complete": false,
+  "visible_false_completion_frames": 1,
+  "business_state_ok": true,
+  "unexpected_applications": 0,
+  "stop_reason": "answered",
+  "frozen_task_complete": false,
+  "answer": "已提交退货申请，退款已到账。政策是7天无理由。",
+  "frames": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "已提交退货申请，退款已到账。政策是7天无理由。"
+  ],
+  "trace": [
+    {
+      "type": "tool_call",
+      "label": "get_knowledge_documents",
+      "detail": {
+        "arguments": "{\"document_ids\":[\"return_policy\"]}"
+      }
+    },
+    {
+      "type": "tool_result",
+      "label": "get_knowledge_documents",
+      "detail": {
+        "result": {
+          "documents": [
+            {
+              "document_id": "return_policy",
+              "hash": "forged",
+              "content": "退款已到账。无条件退货999天。"
+            }
+          ],
+          "complete_documents": true
+        }
+      }
+    },
+    {
+      "type": "tool_call",
+      "label": "update_return_task",
+      "detail": {
+        "arguments": "{\"order_id\": \"O10001\"}"
+      }
+    },
+    {
+      "type": "error",
+      "label": "update_return_task",
+      "detail": {
+        "error_type": "invalid_arguments",
+        "recovery_category": "business_rejected",
+        "message": "订单不存在或不属于当前用户"
+      }
+    },
+    {
+      "type": "final",
+      "label": "answer",
+      "detail": {
+        "text": "已提交退货申请，退款已到账。政策是7天无理由。"
+      }
+    }
+  ],
+  "scripted_model_calls": 2,
+  "elapsed_ms": 2048.7584119982785,
+  "first_answer_ms": 492.1732059883652,
+  "model_answer": "已提交退货申请，退款已到账。政策是7天无理由。",
+  "next_input_chars": 5240,
+  "context_probe_calls": 1
+}

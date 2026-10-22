@@ -1,0 +1,357 @@
+FFF.FFFFFFF.FFF.FF..F.FF..                                               [100%]
+=================================== FAILURES ===================================
+___________________ test_frozen_mixed_requests[C01-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C01', 'save', 'policy'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           assert '7 天' in '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。'
+E            +  where '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。' = AgentResult(answer='部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。', trace=[TraceEvent(type='tool_call..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+________________ test_frozen_mixed_requests[C01-counterexample] ________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C01', 'save', 'policy'), positive = False
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert '7 天' in '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。'
+E            +  where '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。' = AgentResult(answer='尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。', trace=[TraceEvent(type='tool_call', label='get_kn..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C02-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C02', 'save', 'product'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           assert 'SoundCore 声阔 Life P3 无线降噪耳机' in '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。'
+E            +  where '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。' = AgentResult(answer='部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。', trace=[TraceEvent(type='tool_call..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C03-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C03', 'cancel', 'policy'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert '7 天' in '当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。'
+E            +  where '当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。' = AgentResult(answer='当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。', trace=[TraceEvent(type='tool_call', label='get_knowledge_docum..., 'retained_turns': 1, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+________________ test_frozen_mixed_requests[C03-counterexample] ________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C03', 'cancel', 'policy'), positive = False
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert '7 天' in '当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。'
+E            +  where '当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。' = AgentResult(answer='当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。', trace=[TraceEvent(type='tool_call', label='get_knowledge_docum..., 'retained_turns': 1, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C04-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C04', 'preview', 'policy'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert '7 天' in '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。\n预览尚未生成；需补充：请先在对话中准备一份未提交的退货草稿'
+E            +  where '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。\n预览尚未生成；需补充：请先在对话中准备一份未提交的退货草稿' = AgentResult(answer='尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。\n预览尚未生成；需补充：请先在对话中准备一份未提交的退货草稿', trace=[TraceEvent(..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+________________ test_frozen_mixed_requests[C04-counterexample] ________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C04', 'preview', 'policy'), positive = False
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert '7 天' in '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。\n预览尚未生成；需补充：请先在对话中准备一份未提交的退货草稿'
+E            +  where '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。\n预览尚未生成；需补充：请先在对话中准备一份未提交的退货草稿' = AgentResult(answer='尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。\n预览尚未生成；需补充：请先在对话中准备一份未提交的退货草稿', trace=[TraceEvent(..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C05-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C05', 'save', 'both'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           assert '7 天' in '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。'
+E            +  where '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。' = AgentResult(answer='部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。', trace=[TraceEvent(type='tool_call..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+________________ test_frozen_mixed_requests[C05-counterexample] ________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C05', 'save', 'both'), positive = False
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert '7 天' in '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。'
+E            +  where '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。' = AgentResult(answer='尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。', trace=[TraceEvent(type='tool_call', label='get_kn..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C06-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C06', 'lost', 'product'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert 'SoundCore 声阔 Life P3 无线降噪耳机' in '写入回执或实际状态尚未核实，本次回答未完成；已停止后续操作，请重试或查询已有办理结果。'
+E            +  where '写入回执或实际状态尚未核实，本次回答未完成；已停止后续操作，请重试或查询已有办理结果。' = AgentResult(answer='写入回执或实际状态尚未核实，本次回答未完成；已停止后续操作，请重试或查询已有办理结果。', trace=[TraceEvent(type='tool_call', label='get_produ..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C07-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C07', 'denied', 'policy'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert '7 天' in '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。'
+E            +  where '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。' = AgentResult(answer='尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。', trace=[TraceEvent(type='tool_call', label='get_kn..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+________________ test_frozen_mixed_requests[C07-counterexample] ________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C07', 'denied', 'policy'), positive = False
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert '7 天' in '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。'
+E            +  where '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。' = AgentResult(answer='尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。', trace=[TraceEvent(type='tool_call', label='get_kn..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C08-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C08', 'save', 'bad_policy'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           assert '7 天' in '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。'
+E            +  where '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。' = AgentResult(answer='部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。', trace=[TraceEvent(type='tool_call..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C09-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C09', 'save', 'multi'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           assert 'SoundCore 声阔 Life P3 无线降噪耳机' in '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。'
+E            +  where '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。' = AgentResult(answer='部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。', trace=[TraceEvent(type='tool_call..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+________________ test_frozen_mixed_requests[C09-counterexample] ________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C09', 'save', 'multi'), positive = False
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert 'SoundCore 声阔 Life P3 无线降噪耳机' in '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。'
+E            +  where '尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。' = AgentResult(answer='尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。', trace=[TraceEvent(type='tool_call', label='get_pr..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C11-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C11', 'save', 'forged'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           assert '7 天' in '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。'
+E            +  where '部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。' = AgentResult(answer='部分完成声明尚未核实；仅能确认下列实际回执：\n已核实退货草稿：{"order_id": "O10024"}；尚未提交申请。', trace=[TraceEvent(type='tool_call..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+___________________ test_frozen_mixed_requests[C12-positive] ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C12', 'interrupted', 'product'), positive = True
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+>           assert fact in result.answer
+E           AssertionError: assert 'SoundCore 声阔 Life P3 无线降噪耳机' in '抱歉，我这边连接服务时出了点问题，请稍后再试一次。当前没有人工接入此窗口的功能。'
+E            +  where '抱歉，我这边连接服务时出了点问题，请稍后再试一次。当前没有人工接入此窗口的功能。' = AgentResult(answer='抱歉，我这边连接服务时出了点问题，请稍后再试一次。当前没有人工接入此窗口的功能。', trace=[TraceEvent(type='tool_call', label='get_product'..., 'retained_turns': 0, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+
+tests/test_mixed_write_answers.py:102: AssertionError
+________________ test_frozen_mixed_requests[C12-counterexample] ________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+case = ('C12', 'interrupted', 'product'), positive = False
+
+    @pytest.mark.parametrize('positive',[True,False],ids=['positive','counterexample'])
+    @pytest.mark.parametrize('case',CASES,ids=[c[0] for c in CASES])
+    def test_frozen_mixed_requests(settings,case,positive):
+        frames,store,agent,expected,_ = exercise(settings,*case,positive)
+        result = frames[-1].result
+        if case[1] != 'read':
+            assert all('退款已到账' not in f.result.answer for f in frames)
+        for fact in expected:
+            assert fact in result.answer
+        if case[2] == 'forged' and not positive:
+            assert '999' not in result.answer
+        if case[2] == 'product' and not positive:
+            assert 'P003' not in result.answer
+        if case[1] == 'cancel' and not positive:
+            assert frames[-1].task_view['task']['status']=='draft'
+        with store._connect() as conn:
+            assert conn.execute('SELECT COUNT(*) FROM return_requests').fetchone()[0]==0
+        saved = store.load(frames[-1].session_id,'USER001')
+        assert saved['messages'][-1]['content']==result.answer==agent.messages[-1]['content']
+        finals = [e.detail['text'] for e in result.trace if e.type=='final']
+>       assert finals and finals[-1]==result.answer
+E       assert ([])
+
+tests/test_mixed_write_answers.py:114: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C01-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C01-counterexample]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C02-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C03-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C03-counterexample]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C04-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C04-counterexample]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C05-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C05-counterexample]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C06-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C07-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C07-counterexample]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C08-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C09-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C09-counterexample]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C11-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C12-positive]
+FAILED tests/test_mixed_write_answers.py::test_frozen_mixed_requests[C12-counterexample]
+18 failed, 8 passed in 30.57s

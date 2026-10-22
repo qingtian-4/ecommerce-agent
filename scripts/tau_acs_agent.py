@@ -12,6 +12,7 @@ import inspect
 import json
 import re
 import textwrap
+from collections import Counter
 from dataclasses import dataclass
 from importlib import import_module
 from typing import Any
@@ -33,6 +34,8 @@ class OfficialRegistry:
         self.uncertain_write = False
         self.protocol_error = False
         self.protocol_records = []
+        self.object_snapshots = {}
+        self.before_mutation = None
         # These are tool contracts, not task IDs, answers, or routing rules.
         self.contracts = {t.name: t for t in tools if hasattr(t, 'returns')}
         self.business_errors = {}
@@ -51,6 +54,80 @@ class OfficialRegistry:
                     patterns.append(''.join(re.escape(v.value) if isinstance(v, ast.Constant)
                                             else '.*' for v in value.values))
             self.business_errors[name] = patterns
+
+    @property
+    def mutation_tools(self):
+        return {name for name, tool in self.contracts.items()
+                if getattr(tool._func, '__mutates_state__', True)}
+
+    def verify_mutation(self, name, arguments, payload, error, user_id):
+        """Pinned Retail write postconditions, never model text or reference actions."""
+        value = payload.get('result')
+        good = not error and isinstance(value, dict)
+        before = self.before_mutation
+        claims = []
+        facts = {}
+        if name in {'modify_user_address', 'modify_pending_order_address'}:
+            key = 'user_id' if name == 'modify_user_address' else 'order_id'
+            fields = {k:v for k,v in arguments.items() if k != key}
+            good = good and bool(fields) and value.get(key) == arguments.get(key) and all(
+                value.get('address', {}).get(k) == v for k,v in fields.items())
+            claims = ['address']
+            facts = {'address':value.get('address')} if good else {}
+        elif name == 'cancel_pending_order':
+            good = (good and value.get('order_id') == arguments.get('order_id')
+                    and value.get('status') == 'cancelled'
+                    and value.get('cancel_reason') == arguments.get('reason'))
+            claims = ['cancel']
+            facts = {'status':'cancelled','reason':arguments.get('reason')}
+        elif name in {'return_delivered_order_items', 'exchange_delivered_order_items'}:
+            prefix = 'return' if name.startswith('return') else 'exchange'
+            good = (good and value.get('order_id') == arguments.get('order_id')
+                    and value.get('status') == prefix+' requested'
+                    and value.get(prefix+'_items') == sorted(arguments.get('item_ids', []))
+                    and value.get(prefix+'_payment_method_id')
+                    == arguments.get('payment_method_id'))
+            if prefix == 'exchange':
+                good = good and value.get('exchange_new_items') == sorted(
+                    arguments.get('new_item_ids', []))
+            claims = ['application' if prefix == 'return' else 'modify']
+            facts = {'status':prefix+' requested','items':arguments.get('item_ids'),
+                     'new_items':arguments.get('new_item_ids')}
+        elif name == 'modify_pending_order_items':
+            actual = [item['item_id'] for item in value.get('items', [])] if good else []
+            expected = arguments.get('new_item_ids', [])
+            old = arguments.get('item_ids', [])
+            counts = Counter(i['item_id'] for i in (before or {}).get('items', []))
+            expected_counts = counts.copy()
+            expected_counts.subtract(old)
+            expected_counts.update(expected)
+            good = (good and value.get('order_id') == arguments.get('order_id')
+                    and value.get('status') == 'pending (item modified)' and bool(expected)
+                    and before is not None and not (Counter(old)-counts)
+                    and Counter(actual) == +expected_counts)
+            facts = {'status':'pending (item modified)','items':actual}
+            claims = ['modify']
+        elif name == 'modify_pending_order_payment':
+            payments = value.get('payment_history', []) if good else []
+            previous = (before or {}).get('payment_history', [])
+            good = (good and value.get('order_id') == arguments.get('order_id')
+                    and len(previous) == 1 and len(payments) == 3
+                    and payments[:1] == previous and payments[1] == {
+                        'transaction_type':'payment','amount':previous[0]['amount'],
+                        'payment_method_id':arguments.get('payment_method_id')}
+                    and payments[2] == {'transaction_type':'refund','amount':previous[0]['amount'],
+                        'payment_method_id':previous[0]['payment_method_id']})
+            facts = {'payment_method_id':arguments.get('payment_method_id')}
+            claims = ['modify']
+        else:
+            good = False
+        return {'tool':name,'verified':bool(good),'claims':claims if good else [],
+                'outcome':'verified' if good else 'postcondition_failed',
+                'target':arguments.get('order_id', arguments.get('user_id')),
+                'scope':str(arguments.get('order_id',arguments.get('user_id')))+'/'+name,
+                'summary':('Verified '+name+' for '
+                    +str(arguments.get('order_id',arguments.get('user_id')))+': '
+                    +json.dumps(facts,ensure_ascii=False)+'.') if good else None}
 
     @property
     def names(self):
@@ -117,6 +194,12 @@ class OfficialRegistry:
                 category, reason = 'invalid_result', str(exc)
                 payload = {'error_type': category, 'error': reason,
                            'official_content': raw}
+        if category == 'ok' and isinstance(payload.get('result'), dict):
+            value = payload['result']
+            key = value.get('order_id',value.get('user_id'))
+            if key:
+                self.before_mutation = self.object_snapshots.get(key) if mutates else None
+                self.object_snapshots[key] = json.loads(json.dumps(value))
         self.protocol_error = category == 'invalid_result'
         self.uncertain_write = mutates and category in {'tool_failure', 'invalid_result'}
         detail = {'tool': name, 'category': category, 'reason': reason,

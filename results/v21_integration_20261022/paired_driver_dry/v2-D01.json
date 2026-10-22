@@ -1,0 +1,292 @@
+{
+  "case": "D01",
+  "arm": "v2",
+  "live": false,
+  "turns": [
+    {
+      "query": "记录O10024的退货草稿，同时介绍P001的参数",
+      "result": {
+        "answer": "草稿已保存，P001参数见查询结果。",
+        "trace": [
+          {
+            "type": "route_selected",
+            "label": "mixed",
+            "detail": {
+              "version": 1,
+              "intent": "mixed",
+              "candidates": [
+                "returns",
+                "presales"
+              ],
+              "confidence": "high",
+              "allowed_tools": [
+                "list_products",
+                "list_orders",
+                "get_product",
+                "get_order",
+                "get_knowledge_documents",
+                "get_return_task",
+                "update_return_task",
+                "cancel_return_task",
+                "preview_return",
+                "get_return_requests"
+              ],
+              "basis": "explicit_business_terms",
+              "existing_task": false,
+              "task_action": "preserve_until_authorized_tool"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_call",
+            "label": "get_product",
+            "detail": {
+              "arguments": "{\"product_id\": \"P001\"}"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_result",
+            "label": "get_product",
+            "detail": {
+              "result": {
+                "product_id": "P001",
+                "name": "SoundCore 声阔 Life P3 无线降噪耳机",
+                "category": "无线耳机",
+                "brand": "SoundCore",
+                "price": 499.0,
+                "currency": "CNY",
+                "attributes": [
+                  "蓝牙5.2",
+                  "主动降噪",
+                  "单次续航10小时",
+                  "总续航50小时",
+                  "入耳式",
+                  "IPX5防水",
+                  "USB-C充电"
+                ],
+                "found": true,
+                "current_price": 469.0,
+                "price_changed_at": "2026-10-22",
+                "skus": [],
+                "sku_information": "unknown"
+              }
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_call",
+            "label": "update_return_task",
+            "detail": {
+              "arguments": "{\"order_id\": \"O10024\"}"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_result",
+            "label": "update_return_task",
+            "detail": {
+              "result": {
+                "task": {
+                  "order_id": "O10024",
+                  "item_id": null,
+                  "quantity": null,
+                  "reason": null,
+                  "condition": null,
+                  "problem_description": null,
+                  "secondary_sale_ok": null,
+                  "quality_non_user_damage": null,
+                  "sources": {
+                    "order_id": {
+                      "turn_id": "9e8d3f79ec5b425986a8f6ce4a279867",
+                      "user_text": "记录O10024的退货草稿，同时介绍P001的参数",
+                      "type": "user_claim",
+                      "updated_at": "2026-10-22T13:07:56.466272+00:00"
+                    }
+                  },
+                  "revision": 1,
+                  "status": "draft"
+                },
+                "order": {
+                  "order_id": "O10024",
+                  "status": "delivered",
+                  "delivered_at": "2026-10-20",
+                  "items": [
+                    {
+                      "id": 4,
+                      "product_id": "P001",
+                      "quantity": 1,
+                      "product_name": "SoundCore 声阔 Life P3 无线降噪耳机",
+                      "sku": null
+                    },
+                    {
+                      "id": 5,
+                      "product_id": "P004",
+                      "quantity": 1,
+                      "product_name": "Anker 安克 10000mAh 磁吸无线充电宝",
+                      "sku": null
+                    }
+                  ]
+                },
+                "missing_fields": [
+                  "item_id",
+                  "quantity",
+                  "reason"
+                ],
+                "can_submit": false,
+                "note": "草稿未经审核；生成预览后须通过界面确认提交，尚未创建售后单或退款。",
+                "queried_at": "2026-10-22T13:07:56.466514+00:00",
+                "policy": {
+                  "source": "return_policy.md",
+                  "version": "v1",
+                  "hash": "ac2accea093f9a63849654ca840ea0cb5789f5d41ccc2cd6300671dbab35afc9",
+                  "reason": null,
+                  "window_days": null,
+                  "shipping_payer": null,
+                  "starting_point": "签收日",
+                  "required_conditions": [],
+                  "requires_uploaded_media": false
+                }
+              }
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "final",
+            "label": "answer",
+            "detail": {
+              "text": "草稿已保存，P001参数见查询结果。"
+            },
+            "duration_ms": null
+          }
+        ],
+        "steps": 2,
+        "tool_calls": 2,
+        "retrieval_queries": [],
+        "retrieved_documents": [],
+        "errors": [],
+        "stop_reason": "answered",
+        "totals": {
+          "calls": 2,
+          "prompt_tokens": 20,
+          "completion_tokens": 10,
+          "total_tokens": 30,
+          "latency_ms": 300.0,
+          "cost_cny": "0.000100",
+          "unpriced_models": [],
+          "model_input_chars": [
+            7696,
+            9758
+          ],
+          "api_latency_ms": 1.0,
+          "context": {
+            "limit_chars": 24000,
+            "input_chars": 8199,
+            "retained_turns": 0,
+            "dropped_turns": 0
+          },
+          "budget": {
+            "timeout_s": 90,
+            "max_api_requests": 5,
+            "api_requests": 0
+          }
+        }
+      },
+      "frames": [
+        {
+          "answer": "",
+          "elapsed_ms": 1.5315850032493472
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1.809282010071911
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1.998980005737394
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3.287067011115141
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3.3135670091724023
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 301.4626590011176
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 301.4834590139799
+        },
+        {
+          "answer": "草稿已保存，P001参数见查询结果。",
+          "elapsed_ms": 542.5871270126663
+        }
+      ],
+      "task": {
+        "task": {
+          "order_id": "O10024",
+          "item_id": null,
+          "quantity": null,
+          "reason": null,
+          "condition": null,
+          "problem_description": null,
+          "secondary_sale_ok": null,
+          "quality_non_user_damage": null,
+          "sources": {
+            "order_id": {
+              "turn_id": "9e8d3f79ec5b425986a8f6ce4a279867",
+              "user_text": "记录O10024的退货草稿，同时介绍P001的参数",
+              "type": "user_claim",
+              "updated_at": "2026-10-22T13:07:56.466272+00:00"
+            }
+          },
+          "revision": 1,
+          "status": "draft"
+        },
+        "order": {
+          "order_id": "O10024",
+          "status": "delivered",
+          "delivered_at": "2026-10-20",
+          "items": [
+            {
+              "id": 4,
+              "product_id": "P001",
+              "quantity": 1,
+              "product_name": "SoundCore 声阔 Life P3 无线降噪耳机",
+              "sku": null
+            },
+            {
+              "id": 5,
+              "product_id": "P004",
+              "quantity": 1,
+              "product_name": "Anker 安克 10000mAh 磁吸无线充电宝",
+              "sku": null
+            }
+          ]
+        },
+        "missing_fields": [
+          "item_id",
+          "quantity",
+          "reason"
+        ],
+        "can_submit": false,
+        "note": "草稿未经审核；生成预览后须通过界面确认提交，尚未创建售后单或退款。",
+        "queried_at": "2026-10-22T13:07:56.763548+00:00"
+      },
+      "synchronized": true
+    }
+  ],
+  "request_start": 1,
+  "started_utc": "2026-10-22T13:07:55.386112+00:00",
+  "counts": {
+    "return_requests": 0,
+    "return_reviews": 0,
+    "return_audit": 0
+  },
+  "elapsed_s": 1.7660824759950629,
+  "request_end": 0
+}

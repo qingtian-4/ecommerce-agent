@@ -176,3 +176,19 @@ uv run python scripts/workbench.py --demo --admin --scenario /tmp/acs-v2-intervi
 另起基线和faults入口，再使用原浏览器命令；输出目录必须是新目录。
 `results/phase_v2/ui_acceptance.py`为额外390px、重试和反馈驱动，默认访问7930端口；
 它依赖本机Playwright环境，使用独立输出目录，重新运行前修改输出路径，不能覆盖冻结证据。
+
+
+## V2.1混合回答的独立验收
+
+[集成验收](TAU_V21_STAGE_ACCEPTANCE_20261022.md)和
+[实际页面](../results/v21_integration_20261022/mixed_browser_v2/mixed_final.png)展示同轮操作与咨询。
+仅新隔离的脚本模型页面用如下命令，不会调用API（它强制key为空，不能当作自然模型演示）：
+
+```bash
+uv run python scripts/check_v21_mixed_ui.py --serve --scenario /tmp/acs-mixed-demo-new --port 7903
+```
+
+发送“我想退S20017，同时说明退货政策，同时介绍V201的参数”。预期只有订单级草稿，
+正文单列已核实状态、政策与商品来源，绝不把脚本原答“退款已到账”当业务事实；刷新后选回会话。
+此入口显式开启V2.1保护，正式workbench默认配置不变；真实模型8题配对未证明整题收益，勿现场宣称全面修复。
+完整预览/确认/管理员审核仍按上文五分钟脚本，最新组合树[页面证据](../results/v21_integration_20261022/workflow_browser_v2/summary.json)。

@@ -139,6 +139,7 @@ class Settings(BaseSettings):
     relevance_calibration_path: Path | None = Path("data/eval/relevance_calibration.json")
 
     # ---------- Agent ----------
+    write_receipt_guard_enabled: bool = False
     max_steps: int = 6
     turn_timeout_s: float = Field(default=120.0, gt=0)
     context_max_chars: int = Field(default=24000, ge=100)

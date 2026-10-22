@@ -85,7 +85,9 @@ def test_route_rejection_cannot_escape_to_official_environment_before_loop_check
     ))
     tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
         'name': 'get_product', 'parameters': {'type': 'object', 'properties': {}}}})
-    adapter = tau_acs_agent.ACSAgent(tools=[tool], domain_policy='Official policy')
+    order_tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
+        'name': 'get_order', 'parameters': {'type': 'object', 'properties': {}}}})
+    adapter = tau_acs_agent.ACSAgent(tools=[tool, order_tool], domain_policy='Official policy')
     reply, state = adapter.generate_next_message(
         UserMessage(role='user', content='查订单'), adapter.get_init_state(),
     )
@@ -111,7 +113,9 @@ def test_official_error_text_is_classified_without_dict_union_crash(monkeypatch)
     ))
     tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
         'name': 'lookup', 'parameters': {'type': 'object', 'properties': {}}}})
-    adapter = tau_acs_agent.ACSAgent(tools=[tool], domain_policy='Official policy')
+    order_tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
+        'name': 'get_order', 'parameters': {'type': 'object', 'properties': {}}}})
+    adapter = tau_acs_agent.ACSAgent(tools=[tool, order_tool], domain_policy='Official policy')
     _, state = adapter.generate_next_message(UserMessage(role='user', content='Lookup'),
                                              adapter.get_init_state())
     answer, state = adapter.generate_next_message(ToolMessage(

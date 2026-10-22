@@ -1,0 +1,20 @@
+E501 Line too long (101 > 100)
+  --> scripts/preflight_v21_pairs.py:62:101
+   |
+60 |     (out/'summary.json').write_text(json.dumps({'episodes':len(records),'paid_requests':0,
+61 |         'network_forbidden':True,'runtime':str(runtime),'infrastructure_ok':True,
+62 |         'scoring':'not a natural model success rate; scripted wiring and state only'},indent=2)+'\n')
+   |                                                                                                     ^
+
+E501 Line too long (105 > 100)
+  --> src/acs/consultation.py:23:81
+   |
+21 |     policy_terms = r'(?:退货政策|退换货政策|退货期限|退货运费|退货规则)'
+22 |     policy_clauses = [s.strip() for s in re.split(r'[，,。；;！？!?]',message)
+23 |                       if any(t in s for t in ('退货政策','退换货政策','退货期限','退货运费','退货规则'))]
+   |                                                                                                      ^^^^
+24 |     explicit_policy = bool(policy_clauses) and all(re.fullmatch(
+25 |         r'(?:请)?(?:同时)?说明'+policy_terms+r'(?:和'+policy_terms+r')*',s)
+   |
+
+Found 2 errors.

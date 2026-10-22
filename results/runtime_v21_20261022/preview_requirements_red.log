@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/ecommerce-runtime-v21-20261022
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 19 items / 18 deselected / 1 selected
+
+tests/test_v21_write_evidence.py F                                       [100%]
+
+=================================== FAILURES ===================================
+_______ test_preview_rejection_keeps_authoritative_missing_requirements ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_preview_rejection_keeps_authoritative_missing_requirements(settings):
+        frames,_,_=run(settings,[ScriptedResponse(wants_tools=True,tool_calls=[
+            ScriptedToolCall('preview','preview_return','{}')]),
+            ScriptedResponse(text='请补充退货信息。')],'请预览退货申请')
+        result=frames[-1].result
+        payload=next(e.detail['result'] for e in result.trace
+                     if e.type=='tool_result' and e.label=='preview_return')
+        assert payload['ready'] is False
+        assert payload['reasons']
+>       assert all(reason in result.answer for reason in payload['reasons'])
+E       assert False
+E        +  where False = all(<generator object test_preview_rejection_keeps_authoritative_missing_requirements.<locals>.<genexpr> at 0x79a57836eb50>)
+
+tests/test_v21_write_evidence.py:165: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v21_write_evidence.py::test_preview_rejection_keeps_authoritative_missing_requirements
+======================= 1 failed, 18 deselected in 2.78s =======================

@@ -1,0 +1,86 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/ecommerce-runtime-v21-20261022
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 72 items
+
+tests/test_v21_write_evidence.py ..................FFF                   [ 29%]
+tests/test_v21_tau_evidence.py ........                                  [ 40%]
+tests/test_tau_result_protocol.py ..............                         [ 59%]
+tests/test_tau_recovery_protocol.py ....................                 [ 87%]
+tests/test_tau_bridge.py ....                                            [ 93%]
+tests/test_external_tau_protocol.py .....                                [100%]
+
+=================================== FAILURES ===================================
+_______ test_preview_rejection_keeps_authoritative_missing_requirements ________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_preview_rejection_keeps_authoritative_missing_requirements(settings):
+        frames,_,_=run(settings,[ScriptedResponse(wants_tools=True,tool_calls=[
+            ScriptedToolCall('preview','preview_return','{}')]),
+            ScriptedResponse(text='请补充退货信息。')],'请预览退货申请')
+        result=frames[-1].result
+        payload=next(e.detail['result'] for e in result.trace
+                     if e.type=='tool_result' and e.label=='preview_return')
+        assert payload['ready'] is False
+        assert payload['reasons']
+>       assert all(reason in result.answer for reason in payload['reasons'])
+E       assert False
+E        +  where False = all(<generator object test_preview_rejection_keeps_authoritative_missing_requirements.<locals>.<genexpr> at 0x78cdbc6517d0>)
+
+tests/test_v21_write_evidence.py:165: AssertionError
+____ test_cancel_guard_keeps_explicit_authorization_and_actual_state[True] _____
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+authorized = True
+
+    @pytest.mark.parametrize('authorized',[True,False])
+    def test_cancel_guard_keeps_explicit_authorization_and_actual_state(settings,authorized):
+        frames,store,_=run(settings,[ScriptedResponse(wants_tools=True,tool_calls=[
+            ScriptedToolCall('save','update_return_task','{"order_id":"O10024"}')]),
+            ScriptedResponse(text='草稿已记录。')],'我想退O10024')
+        sid=frames[-1].session_id
+        text='我确认取消当前退货草稿' if authorized else '不要取消退货草稿，我只是问一下'
+        frames,_,_=run(settings,[ScriptedResponse(wants_tools=True,tool_calls=[
+            ScriptedToolCall('cancel','cancel_return_task','{}')]),
+            ScriptedResponse(text='草稿已取消。')],text,store=store,sid=sid)
+        actual=store.get_return_task(sid,'USER001')['task']
+>       assert actual['status']==('cancelled' if authorized else 'draft')
+E       AssertionError: assert 'draft' == 'cancelled'
+E         
+E         - cancelled
+E         + draft
+
+tests/test_v21_write_evidence.py:179: AssertionError
+____ test_cancel_guard_keeps_explicit_authorization_and_actual_state[False] ____
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+authorized = False
+
+    @pytest.mark.parametrize('authorized',[True,False])
+    def test_cancel_guard_keeps_explicit_authorization_and_actual_state(settings,authorized):
+        frames,store,_=run(settings,[ScriptedResponse(wants_tools=True,tool_calls=[
+            ScriptedToolCall('save','update_return_task','{"order_id":"O10024"}')]),
+            ScriptedResponse(text='草稿已记录。')],'我想退O10024')
+        sid=frames[-1].session_id
+        text='我确认取消当前退货草稿' if authorized else '不要取消退货草稿，我只是问一下'
+        frames,_,_=run(settings,[ScriptedResponse(wants_tools=True,tool_calls=[
+            ScriptedToolCall('cancel','cancel_return_task','{}')]),
+            ScriptedResponse(text='草稿已取消。')],text,store=store,sid=sid)
+        actual=store.get_return_task(sid,'USER001')['task']
+        assert actual['status']==('cancelled' if authorized else 'draft')
+        assert frames[-1].task_view['task']==actual
+        if not authorized:
+>           assert '尚未核实' in frames[-1].result.answer
+E           AssertionError: assert '尚未核实' in '当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。'
+E            +  where '当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。' = AgentResult(answer='当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。', trace=[TraceEvent(type='tool_call', label='cancel_return_task'..., 'retained_turns': 1, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}).answer
+E            +    where AgentResult(answer='当前退货草稿已保留，未执行取消。确需清空请明确说“中止退货草稿”。', trace=[TraceEvent(type='tool_call', label='cancel_return_task'..., 'retained_turns': 1, 'dropped_turns': 0}, 'budget': {'timeout_s': 120.0, 'max_api_requests': 16, 'api_requests': 0}}) = TurnUpdate(session_id='531613b9c226480f8a56074f2a9f45cf', history=[{'role': 'user', 'content': '我想退O10024'}, {'role': ...确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-22T08:31:05.259723+00:00'}, phase='completed', elapsed_ms=166.58103799272794).result
+
+tests/test_v21_write_evidence.py:182: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v21_write_evidence.py::test_preview_rejection_keeps_authoritative_missing_requirements
+FAILED tests/test_v21_write_evidence.py::test_cancel_guard_keeps_explicit_authorization_and_actual_state[True]
+FAILED tests/test_v21_write_evidence.py::test_cancel_guard_keeps_explicit_authorization_and_actual_state[False]
+======================== 3 failed, 69 passed in 25.91s =========================

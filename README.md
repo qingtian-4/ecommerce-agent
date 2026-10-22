@@ -13,6 +13,10 @@ V1已完成交付；当前独立V2分支增加轻量业务路由、有限故障�
 [简历与面试材料](docs/INTERNSHIP_PROJECT.md) · [交付验收](results/project_handoff_babbfab/REPORT.md) ·
 [范围](docs/PROJECT_SCOPE.md) · [PR 与合并计划](docs/PR_HANDOFF.md)
 
+最新[阶段验收](docs/TAU_V21_STAGE_ACCEPTANCE_20261022.md)：原正式评测119/120已评分，最后1段预算阻塞；
+V2.1独立真实8题配对4/8→3/8，没有证明整题质量提升。实验仍默认关闭，PR保持draft。
+混合咨询有离线保留收益，但模型漏存订单级草稿仍是主要失败；不据少Token宣称更强。
+
 ## 功能与职责
 
 - **Agent Runtime**：手写 Function Calling 循环，工具参数校验、整轮预算、停止原因、
@@ -148,3 +152,8 @@ docs/         架构、范围、问题记录、运行与面试材料
 四个实验开关默认关闭，见 `.env.example`；不自动合并 main，不修改可见性，不重复跑完整τ。
 仓库的许可证、历史大文件和公开前检查建议见 [PUBLICATION_READINESS](docs/PUBLICATION_READINESS.md)。
 源码检查不能证明不存在一切秘密或隐私，公开或授权方式须由维护者决定。
+
+
+V2.1受限混合回答在[独立离线验收](results/v21_mixed_answers_20261022/REPORT.md)中保留操作回执，
+另列可信政策/商品资料：24个已见固定决定的咨询事实满足0→17、冻结安全契约0→14（非用户整题成功），已覆盖错误帧0→0，
+模型调用45→45，后续输入增加582.25字符。不是自然模型成功率；默认关闭，复杂订单咨询未覆盖。

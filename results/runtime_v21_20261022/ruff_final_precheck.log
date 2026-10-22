@@ -1,0 +1,55 @@
+E501 Line too long (104 > 100)
+  --> scripts/replay_v21_successes.py:92:101
+   |
+90 |                         'after_db_match':env.get_db_hash()==record['after_db_hash'],
+91 |                         'model_decisions':len(model.calls),'expected_decisions':len(responses),
+92 |                         'tool_sequence_match':[p['tool'] for p in state.agent.registry.protocol_records]
+   |                                                                                                     ^^^^
+93 |                             == [c['name'] for m in record['simulation']['messages']
+94 |                                 for c in m.get('tool_calls') or []], 'finals':finals}
+   |
+
+SIM401 Use `r.get('tool', 'unknown')` instead of an `if` block
+  --> src/acs/write_evidence.py:42:46
+   |
+40 |     # DSML is content, never a Function Call, even if it visually resembles an SDK envelope.
+41 |     pseudo_call = 'DSML' in text or '<tool_call' in text
+42 |     latest = {r.get('scope', r.get('target', r['tool'] if 'tool' in r else 'unknown')):r
+   |                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+43 |               for r in receipts}
+44 |     verified = [r for r in latest.values() if r['verified']]
+   |
+help: Replace with `r.get('tool', 'unknown')`
+
+E501 Line too long (103 > 100)
+  --> tests/test_v21_tau_evidence.py:83:101
+   |
+81 |     payload={'result':{'order_id':'sample','status':'pending (item modified)',
+82 |                        'items':[{'item_id':'old'},{'item_id':'new'}]}}
+83 |     assert not registry.verify_mutation('modify_pending_order_items',args,payload,None,'x')['verified']
+   |                                                                                                     ^^^
+84 |     payload['result']['items']=[{'item_id':'new'},{'item_id':'new'}]
+85 |     assert registry.verify_mutation('modify_pending_order_items',args,payload,None,'x')['verified']
+   |
+
+E501 Line too long (105 > 100)
+  --> tests/test_v21_tau_evidence.py:96:101
+   |
+94 |     payload={'result':{'order_id':'sample','payment_history':[{'transaction_type':'payment',
+95 |         'payment_method_id':'new','amount':12}]}}
+96 |     assert not registry.verify_mutation('modify_pending_order_payment',args,payload,None,'x')['verified']
+   |                                                                                                     ^^^^^
+97 |     payload['result']['payment_history']=registry.before_mutation['payment_history']+[
+98 |         {'transaction_type':'payment','payment_method_id':'new','amount':12},
+   |
+
+E501 Line too long (101 > 100)
+   --> tests/test_v21_tau_evidence.py:100:101
+    |
+ 98 |         {'transaction_type':'payment','payment_method_id':'new','amount':12},
+ 99 |         {'transaction_type':'refund','payment_method_id':'original','amount':12}]
+100 |     assert registry.verify_mutation('modify_pending_order_payment',args,payload,None,'x')['verified']
+    |                                                                                                     ^
+
+Found 5 errors.
+No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).

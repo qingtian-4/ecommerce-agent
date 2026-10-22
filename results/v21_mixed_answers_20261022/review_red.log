@@ -1,0 +1,35 @@
+..........FF                                                             [100%]
+=================================== FAILURES ===================================
+___________ test_authentic_fragment_without_conditions_is_incomplete ___________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_authentic_fragment_without_conditions_is_incomplete(settings):
+        fragment='此情形下**往返运费由本店铺承担**。'
+        trace=prefix()+[
+            TraceEvent('tool_call','search_knowledge',{'arguments':'{"query":"退货运费"}'}),
+            TraceEvent('tool_result','search_knowledge',{'result':{'found':True,'documents':[
+                {'document_id':'return_policy','content':fragment}]}})]
+        text,detail=consultation_reply('说明退货运费',trace,settings)
+>       assert not detail['verified']
+E       assert not True
+
+tests/test_consultation_edges.py:96: AssertionError
+_______ test_selective_negative_product_request_does_not_render_mentions _______
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_selective_negative_product_request_does_not_render_mentions(settings):
+        trace,payload=product_trace(settings)
+        other=ToolRegistry(settings).db.get_product('P002')
+        trace += [TraceEvent('tool_call','get_product',{'arguments':'{"product_id":"P002"}'}),
+                  TraceEvent('tool_result','get_product',{'result':other})]
+        text,detail=consultation_reply('不要介绍P001的参数，只介绍P002的参数，同时保存草稿',
+                                       trace,settings)
+>       assert not detail['verified']
+E       assert not True
+
+tests/test_consultation_edges.py:107: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_consultation_edges.py::test_authentic_fragment_without_conditions_is_incomplete
+FAILED tests/test_consultation_edges.py::test_selective_negative_product_request_does_not_render_mentions

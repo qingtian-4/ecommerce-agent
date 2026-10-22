@@ -102,3 +102,19 @@ flowchart LR
 不代表本地ReturnService接入这些额外业务。英文Router本次13/13均fallback。
 [完整报告](EXTERNAL_BENCHMARK_V2_REPORT.md)分别说明历史完整τ、本轮三题真模型Pilot、
 脚本接线预演及本地故障实验；不能混用其成功率、价格或覆盖范围。
+
+
+## V2.1待审的资料呈现
+
+```mermaid
+flowchart LR
+  T[实际写工具回执] --> G[原对象与字段核验]
+  R[本轮只读工具 / KB] --> C[受限正向展示 / 对象与来源匹配]
+  G --> A[操作摘要与咨询分别呈现]
+  C --> A
+  A --> P[最终answer / 历史 / Trace / 页面]
+```
+
+C在ChatService最终状态核对后执行，不直接追加模型余文；片段和未知范围标未核实。
+不增加模型调用/业务查询/表结构，沿用默认关闭write_receipt_guard。真实独立8题未证明整题净收益，
+主要剩余失败是漏存草稿；[源码及证据边界](TAU_V21_STAGE_ACCEPTANCE_20261022.md)，不能把离线回放当新成功率。

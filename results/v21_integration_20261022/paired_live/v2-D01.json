@@ -1,0 +1,1793 @@
+{
+  "case": "D01",
+  "arm": "v2",
+  "live": true,
+  "turns": [
+    {
+      "query": "记录O10024的退货草稿，同时介绍P001的参数",
+      "result": {
+        "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续补全草稿。",
+        "trace": [
+          {
+            "type": "route_selected",
+            "label": "mixed",
+            "detail": {
+              "version": 1,
+              "intent": "mixed",
+              "candidates": [
+                "returns",
+                "presales"
+              ],
+              "confidence": "high",
+              "allowed_tools": [
+                "list_products",
+                "list_orders",
+                "get_product",
+                "get_order",
+                "get_knowledge_documents",
+                "get_return_task",
+                "update_return_task",
+                "cancel_return_task",
+                "preview_return",
+                "get_return_requests"
+              ],
+              "basis": "explicit_business_terms",
+              "existing_task": false,
+              "task_action": "preserve_until_authorized_tool"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_call",
+            "label": "get_order",
+            "detail": {
+              "arguments": "{\"order_id\": \"O10024\"}"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_result",
+            "label": "get_order",
+            "detail": {
+              "result": {
+                "order_id": "O10024",
+                "user_id": "USER001",
+                "status": "delivered",
+                "total_amount": 728.0,
+                "paid_amount": 728.0,
+                "created_at": "2026-10-18",
+                "shipped_at": "2026-10-19",
+                "delivered_at": "2026-10-20",
+                "cancelled_at": null,
+                "user_name": "张伟",
+                "items": [
+                  {
+                    "id": 4,
+                    "order_id": "O10024",
+                    "product_id": "P001",
+                    "quantity": 1,
+                    "purchase_price": 529.0,
+                    "product_name": "SoundCore 声阔 Life P3 无线降噪耳机",
+                    "product_category": "无线耳机",
+                    "sku": null,
+                    "current_price": 469.0,
+                    "price_delta": 60.0
+                  },
+                  {
+                    "id": 5,
+                    "order_id": "O10024",
+                    "product_id": "P004",
+                    "quantity": 1,
+                    "purchase_price": 199.0,
+                    "product_name": "Anker 安克 10000mAh 磁吸无线充电宝",
+                    "product_category": "充电配件",
+                    "sku": null,
+                    "current_price": 179.0,
+                    "price_delta": 20.0
+                  }
+                ],
+                "found": true,
+                "today": "2026-10-22",
+                "created_date": "2026-10-18",
+                "delivered_date": "2026-10-20",
+                "created_days_ago": 4,
+                "delivered_days_ago": 2,
+                "return_window_days": 7,
+                "quality_return_window_days": 15,
+                "return_policy_hash": "ac2accea093f9a63849654ca840ea0cb5789f5d41ccc2cd6300671dbab35afc9",
+                "price_protection_days": 15,
+                "within_return_window": true,
+                "within_quality_return_window": true,
+                "within_price_protection": true,
+                "instruction_for_assistant": "日期字段已为你算好：delivered_date 是签收日期，delivered_days_ago 是距今的天数。请直接使用这些值，不要自行推算或改用其他日期。within_return_window只表示政策配置的无理由日期窗口，不适用于质量问题，也不代表完整退货资格。"
+              }
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_call",
+            "label": "get_product",
+            "detail": {
+              "arguments": "{\"product_id\": \"P001\"}"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_result",
+            "label": "get_product",
+            "detail": {
+              "result": {
+                "product_id": "P001",
+                "name": "SoundCore 声阔 Life P3 无线降噪耳机",
+                "category": "无线耳机",
+                "brand": "SoundCore",
+                "price": 499.0,
+                "currency": "CNY",
+                "attributes": [
+                  "蓝牙5.2",
+                  "主动降噪",
+                  "单次续航10小时",
+                  "总续航50小时",
+                  "入耳式",
+                  "IPX5防水",
+                  "USB-C充电"
+                ],
+                "found": true,
+                "current_price": 469.0,
+                "price_changed_at": "2026-10-22",
+                "skus": [],
+                "sku_information": "unknown"
+              }
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_call",
+            "label": "update_return_task",
+            "detail": {
+              "arguments": "{\"order_id\": \"O10024\", \"item_id\": 4}"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_result",
+            "label": "update_return_task",
+            "detail": {
+              "result": {
+                "task": {
+                  "order_id": "O10024",
+                  "item_id": 4,
+                  "quantity": null,
+                  "reason": null,
+                  "condition": null,
+                  "problem_description": null,
+                  "secondary_sale_ok": null,
+                  "quality_non_user_damage": null,
+                  "sources": {
+                    "order_id": {
+                      "turn_id": "618c246e73874c0692aaff4cccebc31d",
+                      "user_text": "记录O10024的退货草稿，同时介绍P001的参数",
+                      "type": "user_claim",
+                      "updated_at": "2026-10-22T13:10:48.572396+00:00"
+                    },
+                    "item_id": {
+                      "turn_id": "618c246e73874c0692aaff4cccebc31d",
+                      "user_text": "记录O10024的退货草稿，同时介绍P001的参数",
+                      "type": "user_claim",
+                      "updated_at": "2026-10-22T13:10:48.572410+00:00"
+                    }
+                  },
+                  "revision": 1,
+                  "status": "draft"
+                },
+                "order": {
+                  "order_id": "O10024",
+                  "status": "delivered",
+                  "delivered_at": "2026-10-20",
+                  "items": [
+                    {
+                      "id": 4,
+                      "product_id": "P001",
+                      "quantity": 1,
+                      "product_name": "SoundCore 声阔 Life P3 无线降噪耳机",
+                      "sku": null
+                    },
+                    {
+                      "id": 5,
+                      "product_id": "P004",
+                      "quantity": 1,
+                      "product_name": "Anker 安克 10000mAh 磁吸无线充电宝",
+                      "sku": null
+                    }
+                  ]
+                },
+                "missing_fields": [
+                  "quantity",
+                  "reason"
+                ],
+                "can_submit": false,
+                "note": "草稿未经审核；生成预览后须通过界面确认提交，尚未创建售后单或退款。",
+                "queried_at": "2026-10-22T13:10:48.572642+00:00",
+                "policy": {
+                  "source": "return_policy.md",
+                  "version": "v1",
+                  "hash": "ac2accea093f9a63849654ca840ea0cb5789f5d41ccc2cd6300671dbab35afc9",
+                  "reason": null,
+                  "window_days": null,
+                  "shipping_payer": null,
+                  "starting_point": "签收日",
+                  "required_conditions": [],
+                  "requires_uploaded_media": false
+                }
+              }
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "final",
+            "label": "answer",
+            "detail": {
+              "text": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续补全草稿。"
+            },
+            "duration_ms": null
+          }
+        ],
+        "steps": 3,
+        "tool_calls": 3,
+        "retrieval_queries": [],
+        "retrieved_documents": [],
+        "errors": [],
+        "stop_reason": "answered",
+        "totals": {
+          "calls": 3,
+          "prompt_tokens": 13046,
+          "completion_tokens": 468,
+          "total_tokens": 13514,
+          "latency_ms": 7204.7,
+          "cost_cny": "0.005951",
+          "unpriced_models": [],
+          "cost_is_partial": false,
+          "tokens_are_partial": false,
+          "usages": [
+            {
+              "model": "deepseek-flash",
+              "stage": "agent_step_1",
+              "prompt_tokens": 3624,
+              "completion_tokens": 77,
+              "total_tokens": 3701,
+              "cached_prompt_tokens": 1536,
+              "latency_ms": 1004.1,
+              "cost_cny": "0.002621",
+              "thinking": false,
+              "reasoning_chars": 0,
+              "usage_missing": false
+            },
+            {
+              "model": "deepseek-flash",
+              "stage": "agent_step_2",
+              "prompt_tokens": 4374,
+              "completion_tokens": 125,
+              "total_tokens": 4499,
+              "cached_prompt_tokens": 3584,
+              "latency_ms": 1327.5,
+              "cost_cny": "0.001471",
+              "thinking": false,
+              "reasoning_chars": 0,
+              "usage_missing": false
+            },
+            {
+              "model": "deepseek-flash",
+              "stage": "agent_step_3",
+              "prompt_tokens": 5048,
+              "completion_tokens": 266,
+              "total_tokens": 5314,
+              "cached_prompt_tokens": 4480,
+              "latency_ms": 1859.7,
+              "cost_cny": "0.001859",
+              "thinking": false,
+              "reasoning_chars": 0,
+              "usage_missing": false
+            }
+          ],
+          "model_input_chars": [
+            7696,
+            10003,
+            11893
+          ],
+          "api_latency_ms": 4191.2,
+          "context": {
+            "limit_chars": 24000,
+            "input_chars": 8199,
+            "retained_turns": 0,
+            "dropped_turns": 0
+          },
+          "budget": {
+            "timeout_s": 90,
+            "max_api_requests": 5,
+            "api_requests": 3
+          }
+        }
+      },
+      "frames": [
+        {
+          "answer": "",
+          "elapsed_ms": 1.0486889950698242
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1.308585997321643
+        },
+        {
+          "answer": "我先",
+          "elapsed_ms": 1025.8096239995211
+        },
+        {
+          "answer": "我先查",
+          "elapsed_ms": 1116.4604029909242
+        },
+        {
+          "answer": "我先查一下",
+          "elapsed_ms": 1152.50199699949
+        },
+        {
+          "answer": "我先查一下订单",
+          "elapsed_ms": 1152.5566969939973
+        },
+        {
+          "answer": "我先查一下订单和",
+          "elapsed_ms": 1153.7275829905411
+        },
+        {
+          "answer": "我先查一下订单和商品",
+          "elapsed_ms": 1153.7901830015471
+        },
+        {
+          "answer": "我先查一下订单和商品信息",
+          "elapsed_ms": 1153.8235819898546
+        },
+        {
+          "answer": "我先查一下订单和商品信息。",
+          "elapsed_ms": 1156.4936520007905
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1855.8994949999033
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1859.3229730031453
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1859.375772997737
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1860.9657630004222
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1861.0120630037272
+        },
+        {
+          "answer": "O",
+          "elapsed_ms": 3024.394009989919
+        },
+        {
+          "answer": "O100",
+          "elapsed_ms": 3157.9245809989516
+        },
+        {
+          "answer": "O10024",
+          "elapsed_ms": 3159.0057739958866
+        },
+        {
+          "answer": "O10024 ",
+          "elapsed_ms": 3159.055873999023
+        },
+        {
+          "answer": "O10024 这",
+          "elapsed_ms": 3159.091473004082
+        },
+        {
+          "answer": "O10024 这单",
+          "elapsed_ms": 3160.2762660040753
+        },
+        {
+          "answer": "O10024 这单里",
+          "elapsed_ms": 3160.3287659963826
+        },
+        {
+          "answer": "O10024 这单里有两",
+          "elapsed_ms": 3162.382752998383
+        },
+        {
+          "answer": "O10024 这单里有两件",
+          "elapsed_ms": 3171.893293998437
+        },
+        {
+          "answer": "O10024 这单里有两件商品",
+          "elapsed_ms": 3171.951693002484
+        },
+        {
+          "answer": "O10024 这单里有两件商品：",
+          "elapsed_ms": 3171.989192996989
+        },
+        {
+          "answer": "O10024 这单里有两件商品：Sound",
+          "elapsed_ms": 3183.606720995158
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore",
+          "elapsed_ms": 3197.50543498958
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore ",
+          "elapsed_ms": 3229.303236992564
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声",
+          "elapsed_ms": 3229.3575369985774
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔",
+          "elapsed_ms": 3229.389836997143
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life",
+          "elapsed_ms": 3229.4342370005324
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P",
+          "elapsed_ms": 3231.4624239952536
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3",
+          "elapsed_ms": 3231.5064239955973
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 ",
+          "elapsed_ms": 3231.534323989763
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线",
+          "elapsed_ms": 3231.5682229964295
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降",
+          "elapsed_ms": 3231.597423000494
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪",
+          "elapsed_ms": 3255.255476004095
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机",
+          "elapsed_ms": 3255.287476000376
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（",
+          "elapsed_ms": 3255.3076759941177
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P",
+          "elapsed_ms": 3255.3316760022426
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001",
+          "elapsed_ms": 3255.3523759997915
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）",
+          "elapsed_ms": 3256.947065994609
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和",
+          "elapsed_ms": 3256.987765998929
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 An",
+          "elapsed_ms": 3257.019165001111
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker",
+          "elapsed_ms": 3257.0599649916403
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker ",
+          "elapsed_ms": 3257.0917650009505
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安",
+          "elapsed_ms": 3428.033703996334
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克",
+          "elapsed_ms": 3428.063703002408
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 ",
+          "elapsed_ms": 3428.0858029960655
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 100",
+          "elapsed_ms": 3428.114102993277
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000",
+          "elapsed_ms": 3428.1369029922644
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000m",
+          "elapsed_ms": 3428.154702996835
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh",
+          "elapsed_ms": 3430.1486909971572
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh ",
+          "elapsed_ms": 3430.1769899902865
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁",
+          "elapsed_ms": 3430.206589997397
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸",
+          "elapsed_ms": 3430.2424899942707
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线",
+          "elapsed_ms": 3430.2723900036654
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电",
+          "elapsed_ms": 3430.302690001554
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝",
+          "elapsed_ms": 3431.0974849940976
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（",
+          "elapsed_ms": 3431.1230839957716
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P",
+          "elapsed_ms": 3432.2147780039813
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004",
+          "elapsed_ms": 3432.2440779942553
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。",
+          "elapsed_ms": 3432.273376994999
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问",
+          "elapsed_ms": 3432.301077002194
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次",
+          "elapsed_ms": 3433.226270994055
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要",
+          "elapsed_ms": 3433.2536709989654
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退",
+          "elapsed_ms": 3433.2735709904227
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是",
+          "elapsed_ms": 3433.291070992709
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪",
+          "elapsed_ms": 3434.5541630027583
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件",
+          "elapsed_ms": 3434.5792629901553
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n",
+          "elapsed_ms": 3434.604562993627
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先",
+          "elapsed_ms": 3434.6235629927833
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按",
+          "elapsed_ms": 3435.49865699606
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你",
+          "elapsed_ms": 3435.523556996486
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你提到的",
+          "elapsed_ms": 3436.2543530005496
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你提到的 P",
+          "elapsed_ms": 3436.2850519974018
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你提到的 P001",
+          "elapsed_ms": 3436.3094519940205
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你提到的 P001 ",
+          "elapsed_ms": 3436.32785200316
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你提到的 P001 记录",
+          "elapsed_ms": 3437.030147993937
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你提到的 P001 记录草",
+          "elapsed_ms": 3437.0494479953777
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你提到的 P001 记录草稿",
+          "elapsed_ms": 3437.0703479944495
+        },
+        {
+          "answer": "O10024 这单里有两件商品：SoundCore 声阔 Life P3 无线降噪耳机（P001）和 Anker 安克 10000mAh 磁吸无线充电宝（P004）。请问这次要退的是哪一件？\n\n我先按你提到的 P001 记录草稿：",
+          "elapsed_ms": 3437.8122429916402
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 4206.160595989786
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 4459.5575319981435
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 4459.62473200052
+        },
+        {
+          "answer": "草",
+          "elapsed_ms": 5563.754257993423
+        },
+        {
+          "answer": "草稿",
+          "elapsed_ms": 5631.058344995836
+        },
+        {
+          "answer": "草稿已",
+          "elapsed_ms": 5631.095445001847
+        },
+        {
+          "answer": "草稿已记录",
+          "elapsed_ms": 5631.118245000835
+        },
+        {
+          "answer": "草稿已记录：",
+          "elapsed_ms": 5674.973176995991
+        },
+        {
+          "answer": "草稿已记录：订单",
+          "elapsed_ms": 5675.04357699363
+        },
+        {
+          "answer": "草稿已记录：订单 O",
+          "elapsed_ms": 5675.080476998119
+        },
+        {
+          "answer": "草稿已记录：订单 O100",
+          "elapsed_ms": 5675.106776994653
+        },
+        {
+          "answer": "草稿已记录：订单 O10024",
+          "elapsed_ms": 5675.13477600005
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，",
+          "elapsed_ms": 5675.739672995405
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品",
+          "elapsed_ms": 5675.779072989826
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为",
+          "elapsed_ms": 5675.804272003006
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 Sound",
+          "elapsed_ms": 5690.605682000751
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore",
+          "elapsed_ms": 5690.636582003208
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore ",
+          "elapsed_ms": 5701.899313004105
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声",
+          "elapsed_ms": 5701.933713004109
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔",
+          "elapsed_ms": 5713.335444001132
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life",
+          "elapsed_ms": 5713.366244002827
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P",
+          "elapsed_ms": 5713.400542997988
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3",
+          "elapsed_ms": 5734.012417990016
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 ",
+          "elapsed_ms": 5734.047417994589
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线",
+          "elapsed_ms": 5734.07861799933
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降",
+          "elapsed_ms": 5734.101116991951
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪",
+          "elapsed_ms": 5734.1241169924615
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机",
+          "elapsed_ms": 5734.148417002871
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。",
+          "elapsed_ms": 5751.531710993731
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还",
+          "elapsed_ms": 5751.570410997374
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺",
+          "elapsed_ms": 5751.594510991708
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项",
+          "elapsed_ms": 5751.621510993573
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息",
+          "elapsed_ms": 5778.9966440032
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：",
+          "elapsed_ms": 5779.0515439992305
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货",
+          "elapsed_ms": 5779.081742992275
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量",
+          "elapsed_ms": 5779.105843001162
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、",
+          "elapsed_ms": 5779.125942994142
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货",
+          "elapsed_ms": 5800.761010992574
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因",
+          "elapsed_ms": 5800.804511003662
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（",
+          "elapsed_ms": 5800.829610991059
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无",
+          "elapsed_ms": 5800.849911000114
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由",
+          "elapsed_ms": 5811.475245995098
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或",
+          "elapsed_ms": 5811.504846002208
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题",
+          "elapsed_ms": 5824.347267989651
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。",
+          "elapsed_ms": 5824.38636799634
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外",
+          "elapsed_ms": 5824.414866990992
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，",
+          "elapsed_ms": 5833.67991099658
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这",
+          "elapsed_ms": 5833.7460109905805
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单",
+          "elapsed_ms": 5833.776209998177
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里",
+          "elapsed_ms": 5848.862817991176
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有",
+          "elapsed_ms": 5848.89491800277
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件",
+          "elapsed_ms": 5848.925117999897
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电",
+          "elapsed_ms": 5865.20171900338
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝",
+          "elapsed_ms": 5865.23661899264
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，",
+          "elapsed_ms": 5865.267318993574
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果",
+          "elapsed_ms": 5865.289818000747
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要",
+          "elapsed_ms": 5873.992164997617
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退",
+          "elapsed_ms": 5902.476991992444
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，",
+          "elapsed_ms": 5902.525691999472
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要",
+          "elapsed_ms": 5902.5511919899145
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独",
+          "elapsed_ms": 5902.572990991757
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理",
+          "elapsed_ms": 5902.604891001829
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n",
+          "elapsed_ms": 5903.76438399835
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**",
+          "elapsed_ms": 5903.8168839906575
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P",
+          "elapsed_ms": 5903.844984000898
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001",
+          "elapsed_ms": 5918.496893995325
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 ",
+          "elapsed_ms": 5918.58759400202
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数",
+          "elapsed_ms": 5918.647693993989
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（",
+          "elapsed_ms": 5942.4655479961075
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（Sound",
+          "elapsed_ms": 5942.53534800373
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore",
+          "elapsed_ms": 5942.5812480039895
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore ",
+          "elapsed_ms": 5942.628546996275
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声",
+          "elapsed_ms": 5942.683246990782
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔",
+          "elapsed_ms": 5942.716346995439
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life",
+          "elapsed_ms": 5956.149364996236
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P",
+          "elapsed_ms": 5956.230365001829
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3",
+          "elapsed_ms": 5956.275763994199
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 ",
+          "elapsed_ms": 5956.323363992851
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线",
+          "elapsed_ms": 5956.35216399387
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降",
+          "elapsed_ms": 5956.3800640025875
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪",
+          "elapsed_ms": 5976.001143993926
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机",
+          "elapsed_ms": 5976.0492439963855
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）",
+          "elapsed_ms": 5976.073443991481
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n",
+          "elapsed_ms": 5976.09484399436
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n-",
+          "elapsed_ms": 5976.140742990538
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- ",
+          "elapsed_ms": 5976.1678429931635
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌",
+          "elapsed_ms": 5987.877571998979
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：",
+          "elapsed_ms": 5987.983671002439
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：Sound",
+          "elapsed_ms": 5988.016670991783
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore",
+          "elapsed_ms": 5988.038971001515
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore ",
+          "elapsed_ms": 5988.060970994411
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声",
+          "elapsed_ms": 5996.651417997782
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔",
+          "elapsed_ms": 5996.692717992119
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n",
+          "elapsed_ms": 5996.716217996436
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n-",
+          "elapsed_ms": 5996.747618002701
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- ",
+          "elapsed_ms": 5996.768217999488
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型",
+          "elapsed_ms": 5997.548312996514
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：",
+          "elapsed_ms": 6010.868432000279
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入",
+          "elapsed_ms": 6010.9122319991
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳",
+          "elapsed_ms": 6029.254619992571
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式",
+          "elapsed_ms": 6029.288120000274
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线",
+          "elapsed_ms": 6029.3460190005135
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机",
+          "elapsed_ms": 6029.400818995782
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n",
+          "elapsed_ms": 6045.534021002823
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n-",
+          "elapsed_ms": 6045.5666210036725
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- ",
+          "elapsed_ms": 6045.603420003317
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙",
+          "elapsed_ms": 6045.625519996975
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 ",
+          "elapsed_ms": 6045.663419994526
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5",
+          "elapsed_ms": 6056.453154000337
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.",
+          "elapsed_ms": 6056.492053990951
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2",
+          "elapsed_ms": 6056.514654002967
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，",
+          "elapsed_ms": 6056.53425399214
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持",
+          "elapsed_ms": 6069.599473994458
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动",
+          "elapsed_ms": 6069.628373996238
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降",
+          "elapsed_ms": 6069.668873999035
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪",
+          "elapsed_ms": 6069.696174003184
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n",
+          "elapsed_ms": 6069.716073994641
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n-",
+          "elapsed_ms": 6070.258070001728
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- ",
+          "elapsed_ms": 6081.921898992732
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航",
+          "elapsed_ms": 6081.987298995955
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：",
+          "elapsed_ms": 6082.037297994248
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单",
+          "elapsed_ms": 6082.063198002288
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次",
+          "elapsed_ms": 6082.088198003476
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 ",
+          "elapsed_ms": 6082.10929800407
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10",
+          "elapsed_ms": 6103.280568990158
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 ",
+          "elapsed_ms": 6103.325368996593
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时",
+          "elapsed_ms": 6103.350068995496
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，",
+          "elapsed_ms": 6103.399168001488
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合",
+          "elapsed_ms": 6103.455367992865
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电",
+          "elapsed_ms": 6104.310462993453
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒",
+          "elapsed_ms": 6104.3530629976885
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总",
+          "elapsed_ms": 6131.668695990811
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航",
+          "elapsed_ms": 6131.7022959992755
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 ",
+          "elapsed_ms": 6131.730295994203
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50",
+          "elapsed_ms": 6131.750995991752
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 ",
+          "elapsed_ms": 6131.771696003852
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时",
+          "elapsed_ms": 6133.094787990558
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n",
+          "elapsed_ms": 6133.144487001118
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n-",
+          "elapsed_ms": 6133.20168700011
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IP",
+          "elapsed_ms": 6133.23358699563
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX",
+          "elapsed_ms": 6133.256686996901
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5",
+          "elapsed_ms": 6133.277285989607
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 ",
+          "elapsed_ms": 6171.364754001843
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水",
+          "elapsed_ms": 6171.405953995418
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，",
+          "elapsed_ms": 6171.432053990429
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB",
+          "elapsed_ms": 6171.4583540015155
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C",
+          "elapsed_ms": 6171.478953998303
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C ",
+          "elapsed_ms": 6171.497453993652
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电",
+          "elapsed_ms": 6171.523953991709
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n",
+          "elapsed_ms": 6171.546953002689
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n-",
+          "elapsed_ms": 6171.569152997108
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- ",
+          "elapsed_ms": 6171.58705300244
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前",
+          "elapsed_ms": 6172.460547997616
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价",
+          "elapsed_ms": 6176.81352100044
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：",
+          "elapsed_ms": 6176.843120992999
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469",
+          "elapsed_ms": 6219.271862995811
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 ",
+          "elapsed_ms": 6219.3074629904
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元",
+          "elapsed_ms": 6219.332262000535
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（",
+          "elapsed_ms": 6219.357262001722
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天",
+          "elapsed_ms": 6219.378162000794
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 ",
+          "elapsed_ms": 6220.916552993003
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10",
+          "elapsed_ms": 6220.950652990723
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 ",
+          "elapsed_ms": 6220.98675199959
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月",
+          "elapsed_ms": 6221.007351996377
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 ",
+          "elapsed_ms": 6221.025751990965
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22",
+          "elapsed_ms": 6221.046352002304
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 ",
+          "elapsed_ms": 6221.064751996892
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日",
+          "elapsed_ms": 6221.098651993088
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚",
+          "elapsed_ms": 6221.128650999162
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整",
+          "elapsed_ms": 6245.394703990314
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过",
+          "elapsed_ms": 6245.440503000282
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n",
+          "elapsed_ms": 6245.47750299098
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充",
+          "elapsed_ms": 6245.504302991321
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下",
+          "elapsed_ms": 6251.409566990333
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：",
+          "elapsed_ms": 6272.394038998755
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你",
+          "elapsed_ms": 6272.432539000874
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 ",
+          "elapsed_ms": 6294.387404996087
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10",
+          "elapsed_ms": 6294.425204992876
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 ",
+          "elapsed_ms": 6294.452604997787
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月",
+          "elapsed_ms": 6294.473704998381
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 ",
+          "elapsed_ms": 6294.49220499373
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18",
+          "elapsed_ms": 6294.50990499754
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 ",
+          "elapsed_ms": 6336.743346997537
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日",
+          "elapsed_ms": 6336.787847001688
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单",
+          "elapsed_ms": 6336.82074699027
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时",
+          "elapsed_ms": 6336.8583470000885
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买",
+          "elapsed_ms": 6336.880446993746
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是",
+          "elapsed_ms": 6336.899246001849
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 ",
+          "elapsed_ms": 6336.920845991699
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529",
+          "elapsed_ms": 6336.94304600067
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 ",
+          "elapsed_ms": 6336.962045999826
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元",
+          "elapsed_ms": 6336.982745997375
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，",
+          "elapsed_ms": 6337.5405429978855
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在",
+          "elapsed_ms": 6474.211209992063
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到",
+          "elapsed_ms": 6474.248610000359
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 ",
+          "elapsed_ms": 6481.100967997918
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469",
+          "elapsed_ms": 6481.1418680037605
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 ",
+          "elapsed_ms": 6481.167467994965
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元",
+          "elapsed_ms": 6481.193268002244
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，",
+          "elapsed_ms": 6481.218367989641
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价",
+          "elapsed_ms": 6481.237667001551
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 ",
+          "elapsed_ms": 6481.255366990808
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60",
+          "elapsed_ms": 6481.275266996818
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 ",
+          "elapsed_ms": 6481.294466997497
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元",
+          "elapsed_ms": 6481.311966999783
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。",
+          "elapsed_ms": 6481.957562995376
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这",
+          "elapsed_ms": 6481.9911630038405
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单",
+          "elapsed_ms": 6482.975056991563
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签",
+          "elapsed_ms": 6483.014557001297
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收",
+          "elapsed_ms": 6483.478453999851
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是",
+          "elapsed_ms": 6483.502353992662
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 ",
+          "elapsed_ms": 6484.944044990698
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10",
+          "elapsed_ms": 6484.980744993663
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 ",
+          "elapsed_ms": 6485.009344003629
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月",
+          "elapsed_ms": 6485.047943991958
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 ",
+          "elapsed_ms": 6485.080443992047
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20",
+          "elapsed_ms": 6485.101143989596
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 ",
+          "elapsed_ms": 6485.119343997212
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日",
+          "elapsed_ms": 6485.141743993154
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，",
+          "elapsed_ms": 6485.160044001532
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价",
+          "elapsed_ms": 6485.18084299576
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保",
+          "elapsed_ms": 6496.516573999543
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期",
+          "elapsed_ms": 6496.555673991679
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 ",
+          "elapsed_ms": 6496.58157399972
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15",
+          "elapsed_ms": 6496.603573992616
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 ",
+          "elapsed_ms": 6496.628773995326
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天",
+          "elapsed_ms": 6496.650973989745
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，",
+          "elapsed_ms": 6496.668972991756
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前",
+          "elapsed_ms": 6496.688972998527
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在",
+          "elapsed_ms": 6496.708972990746
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价",
+          "elapsed_ms": 6496.726872996078
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保",
+          "elapsed_ms": 6496.744172996841
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内",
+          "elapsed_ms": 6496.763072995236
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。",
+          "elapsed_ms": 6496.7805729975225
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过",
+          "elapsed_ms": 6508.752699999604
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们",
+          "elapsed_ms": 6508.789699990302
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边",
+          "elapsed_ms": 6508.814599001198
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能",
+          "elapsed_ms": 6508.8353989995085
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做",
+          "elapsed_ms": 6535.434837001958
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价",
+          "elapsed_ms": 6550.619244997506
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保",
+          "elapsed_ms": 6550.649744996917
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策",
+          "elapsed_ms": 6550.672644996666
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询",
+          "elapsed_ms": 6568.980832991656
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，",
+          "elapsed_ms": 6569.038432993693
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有",
+          "elapsed_ms": 6569.073232996743
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交",
+          "elapsed_ms": 6569.103831992834
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价",
+          "elapsed_ms": 6569.1251319949515
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保",
+          "elapsed_ms": 6569.146631998592
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的",
+          "elapsed_ms": 6569.167631998425
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口",
+          "elapsed_ms": 6569.186331995297
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，",
+          "elapsed_ms": 6595.134474002407
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点",
+          "elapsed_ms": 6595.21267299715
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先",
+          "elapsed_ms": 6595.243673000368
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你",
+          "elapsed_ms": 6605.998707993422
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明",
+          "elapsed_ms": 6625.40828899364
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n",
+          "elapsed_ms": 6625.447789003374
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请",
+          "elapsed_ms": 6625.470988990855
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我",
+          "elapsed_ms": 6639.410803996725
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货",
+          "elapsed_ms": 6639.450003989623
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和",
+          "elapsed_ms": 6639.473903996986
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因",
+          "elapsed_ms": 6639.494303992251
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，",
+          "elapsed_ms": 6652.881522997632
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我",
+          "elapsed_ms": 6652.932921992033
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续",
+          "elapsed_ms": 6652.96232199762
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续补",
+          "elapsed_ms": 6652.9833219974535
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续补全",
+          "elapsed_ms": 6667.079136997927
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续补全草",
+          "elapsed_ms": 6667.124536994379
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续补全草稿",
+          "elapsed_ms": 6667.148535998422
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续补全草稿。",
+          "elapsed_ms": 6667.174535992672
+        },
+        {
+          "answer": "草稿已记录：订单 O10024，商品为 SoundCore 声阔 Life P3 无线降噪耳机。还缺两项信息：退货数量、退货原因（无理由或质量问题）。另外，这单里还有一件充电宝，如果也要退，需要单独处理。\n\n**P001 参数（SoundCore 声阔 Life P3 无线降噪耳机）**\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线耳机\n- 蓝牙 5.2，支持主动降噪\n- 续航：单次 10 小时，配合充电盒总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价：469 元（今天 10 月 22 日刚调整过）\n\n补充一下：你 10 月 18 日下单时买的是 529 元，现在降到 469 元，差价 60 元。这单签收日是 10 月 20 日，价保期 15 天，目前还在价保期内。不过我们这边只能做价保政策咨询，没有提交价保申请的入口，这点先跟你说明。\n\n请告诉我退货数量和原因，我继续补全草稿。",
+          "elapsed_ms": 7516.61355199758
+        }
+      ],
+      "task": {
+        "task": {
+          "order_id": "O10024",
+          "item_id": 4,
+          "quantity": null,
+          "reason": null,
+          "condition": null,
+          "problem_description": null,
+          "secondary_sale_ok": null,
+          "quality_non_user_damage": null,
+          "sources": {
+            "order_id": {
+              "turn_id": "618c246e73874c0692aaff4cccebc31d",
+              "user_text": "记录O10024的退货草稿，同时介绍P001的参数",
+              "type": "user_claim",
+              "updated_at": "2026-10-22T13:10:48.572396+00:00"
+            },
+            "item_id": {
+              "turn_id": "618c246e73874c0692aaff4cccebc31d",
+              "user_text": "记录O10024的退货草稿，同时介绍P001的参数",
+              "type": "user_claim",
+              "updated_at": "2026-10-22T13:10:48.572410+00:00"
+            }
+          },
+          "revision": 1,
+          "status": "draft"
+        },
+        "order": {
+          "order_id": "O10024",
+          "status": "delivered",
+          "delivered_at": "2026-10-20",
+          "items": [
+            {
+              "id": 4,
+              "product_id": "P001",
+              "quantity": 1,
+              "product_name": "SoundCore 声阔 Life P3 无线降噪耳机",
+              "sku": null
+            },
+            {
+              "id": 5,
+              "product_id": "P004",
+              "quantity": 1,
+              "product_name": "Anker 安克 10000mAh 磁吸无线充电宝",
+              "sku": null
+            }
+          ]
+        },
+        "missing_fields": [
+          "quantity",
+          "reason"
+        ],
+        "can_submit": false,
+        "note": "草稿未经审核；生成预览后须通过界面确认提交，尚未创建售后单或退款。",
+        "queried_at": "2026-10-22T13:10:48.825176+00:00"
+      },
+      "synchronized": true
+    }
+  ],
+  "request_start": 1,
+  "started_utc": "2026-10-22T13:10:43.273497+00:00",
+  "counts": {
+    "return_requests": 0,
+    "return_reviews": 0,
+    "return_audit": 0
+  },
+  "elapsed_s": 8.76781769900117,
+  "request_end": 3
+}

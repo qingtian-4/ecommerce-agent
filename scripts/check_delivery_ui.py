@@ -271,7 +271,7 @@ def browser(output, url, baseline, admin, video=False):
         page.screenshot(path=str(output / "order_only.png"), full_page=True)
         send("我想退S20002，耳机退1件，无理由，未拆封，符合二次销售条件。")
         page.wait_for_function(
-            "document.querySelector('#customer-chat').innerText.includes('草稿已保存')"
+            "!document.querySelector('#send-message').disabled"
         )
         page.wait_for_function(
             "document.querySelector('#return-task').innerText.includes('S20002')"

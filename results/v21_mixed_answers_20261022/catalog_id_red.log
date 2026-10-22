@@ -1,0 +1,18 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_presentation_protocol_accepts_non_fixture_catalog_ids __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_presentation_protocol_accepts_non_fixture_catalog_ids(settings):
+        trace,payload=product_trace(settings)
+        payload['product_id']='V201'
+        trace[1].detail['arguments']='{"product_id":"V201"}'
+        text,detail=consultation_reply('保存草稿，同时介绍V201的参数',trace,settings)
+>       assert detail['verified'] and payload['name'] in text
+E       assert (False)
+
+tests/test_consultation_edges.py:117: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_consultation_edges.py::test_presentation_protocol_accepts_non_fixture_catalog_ids
+1 failed in 2.00s

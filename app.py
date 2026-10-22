@@ -359,10 +359,13 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             title = f"Step {step_no} · 重启状态核对"
         elif event.type == "state_check":
             title = f"Step {step_no} · 服务端状态检查 <code>{html.escape(event.label)}</code>"
+        elif event.type == "write_verification":
+            title = f"Step {step_no} · 业务回执核验（原答仅供诊断）"
         elif event.type == "output_gate":
             title = f"Step {step_no} · 输出核验（原答仅供诊断） <code>{html.escape(event.label)}</code>"
         elif event.type == "fact_render":
-            label = "订单统计事实" if event.label == "order_aggregation" else "订单候选事实"
+            label = {"order_aggregation":"订单统计事实", "consultation":"咨询依据"}.get(
+                event.label,"订单候选事实")
             title = f"Step {step_no} · {label} <code>{html.escape(event.label)}</code>"
         else:
             title = f"Step {step_no} · 最终回答"

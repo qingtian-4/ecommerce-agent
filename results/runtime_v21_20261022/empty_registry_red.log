@@ -1,0 +1,18 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_sku_with_foreign_registry_cannot_remove_every_tool[available0] ______
+
+available = []
+
+    @pytest.mark.parametrize('available',[[],['read_account','change_shipping_address']])
+    def test_sku_with_foreign_registry_cannot_remove_every_tool(available):
+        route=route_request('Please use this SKU and proceed',available,False)
+>       assert route['confidence']=='fallback'
+E       AssertionError: assert 'high' == 'fallback'
+E         
+E         - fallback
+E         + high
+
+tests/test_v21_write_evidence.py:18: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v21_write_evidence.py::test_sku_with_foreign_registry_cannot_remove_every_tool[available0]

@@ -1,0 +1,46 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tmp/ecommerce-runtime-v21-20261022
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 15 items
+
+tests/test_v21_write_evidence.py ...........F...                         [100%]
+
+=================================== FAILURES ===================================
+_________ test_false_success_after_failed_or_unverifiable_write[lost] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75d151ad3ce0>
+mode = 'lost'
+
+    @pytest.mark.parametrize('mode',['rejected','lost','unchanged','router_denied'])
+    def test_false_success_after_failed_or_unverifiable_write(settings,monkeypatch,mode):
+        store=SessionStore(settings.db_path)
+        if mode in {'lost','unchanged'}:
+            original=store.update_return_task
+            def faulty(*args,**kwargs):
+                if mode=='lost':
+                    original(*args,**kwargs)
+                    raise OSError('response lost')
+                return store.get_return_task(args[0],args[1])
+            monkeypatch.setattr(store,'update_return_task',faulty)
+        order='O10001' if mode=='rejected' else 'O10024'
+        settings=settings.model_copy(update={'workflow_router_enabled':mode=='router_denied'})
+        message='查询推荐型号参数' if mode=='router_denied' else '我想退'+order
+        frames,_,_=run(settings,[ScriptedResponse(wants_tools=True,tool_calls=[
+            ScriptedToolCall('save','update_return_task',json.dumps({'order_id':order}))]),
+            ScriptedResponse(text='已提交退货申请，退款已到账。')],message,store=store)
+        assert '退款已到账' not in frames[-1].result.answer
+        assert '尚未核实' in frames[-1].result.answer or '未完成' in frames[-1].result.answer
+        with store._connect() as conn:
+            assert conn.execute('SELECT COUNT(*) FROM return_requests').fetchone()[0]==0
+        if mode=='lost':
+>           assert frames[-1].task_view['task']['revision']==1
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: 'NoneType' object is not subscriptable
+
+tests/test_v21_write_evidence.py:105: TypeError
+=========================== short test summary info ============================
+FAILED tests/test_v21_write_evidence.py::test_false_success_after_failed_or_unverifiable_write[lost]
+======================== 1 failed, 14 passed in 20.79s =========================

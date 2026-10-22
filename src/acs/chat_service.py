@@ -14,6 +14,7 @@ from threading import BoundedSemaphore
 from time import perf_counter
 
 from .config import Settings
+from .consultation import consultation_reply
 from .context import ContextLimitExceeded, bounded_context
 from .cs_tools import TraceEvent
 from .order_candidates import _requested_scope, order_candidate_response
@@ -200,14 +201,15 @@ class ChatService:
                     guarded = guarded or cancel_guarded or uncertain_write
                     result.totals["context"] = context_stats
                     result.totals["budget"] = budget.as_dict()
-                    updates = sum(e.type == "tool_result" and e.label in {
+                    updates = sum(e.type in {"tool_result", "write_verification"} and e.label in {
                         "update_return_task", "cancel_return_task",
                     } for e in result.trace)
                     if updates != task_events:
                         try:
                             task = self.store.get_return_task(sid, user_id)
                         except Exception:
-                            if not self.settings.runtime_recovery_enabled:
+                            if not (self.settings.runtime_recovery_enabled
+                                    or self.settings.write_receipt_guard_enabled):
                                 raise
                             readback_failed = True
                             uncertain_write = guarded = True
@@ -407,6 +409,20 @@ class ChatService:
                                 result.trace.append(TraceEvent('final', 'answer', {
                                     'text': result.answer,
                                 }))
+                        if self.settings.write_receipt_guard_enabled:
+                            consultation = consultation_reply(message,result.trace,self.settings)
+                            if consultation:
+                                text, detail = consultation
+                                result.answer += text
+                                agent.messages[-1]['content'] = result.answer
+                                finals = [e for e in result.trace if e.type == 'final']
+                                if finals:
+                                    finals[-1].detail['text'] = result.answer
+                                else:
+                                    result.trace.append(TraceEvent('final','answer',{
+                                        'text':result.answer}))
+                                result.trace.insert(len(result.trace)-1,TraceEvent(
+                                    'fact_render','consultation',detail))
                         project_progress('completed')
                         self.store.finish_turn(
                             sid, user_id, tid, agent.messages[offset:], asdict(result),

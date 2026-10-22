@@ -1,0 +1,1007 @@
+{
+  "case": "D08",
+  "arm": "v21",
+  "live": true,
+  "turns": [
+    {
+      "query": "查询O10024的订单状态，不修改订单",
+      "result": {
+        "answer": "订单 O10024 目前状态是**已签收**，没有做任何修改。\n\n- 下单时间：2026-10-18\n- 发货时间：2026-10-19\n- 签收时间：2026-10-20（距今 2 天）\n- 实付金额：728.00 元\n\n商品明细：\n1. SoundCore 声阔 Life P3 无线降噪耳机 ×1，购买价 529.00 元（现价 469.00 元）\n2. Anker 安克 10000mAh 磁吸无线充电宝 ×1，购买价 199.00 元（现价 179.00 元）\n\n另外提醒一下：这两件商品目前都比购买时便宜了（耳机降 60 元、充电宝降 20 元），订单仍在价保期内。如果需要，我可以帮你核对价保政策的具体条件。",
+        "trace": [
+          {
+            "type": "route_selected",
+            "label": "orders",
+            "detail": {
+              "version": 2,
+              "intent": "orders",
+              "candidates": [
+                "orders"
+              ],
+              "confidence": "high",
+              "allowed_tools": [
+                "list_orders",
+                "get_order"
+              ],
+              "basis": "explicit_business_terms",
+              "existing_task": false,
+              "task_action": "preserve_until_authorized_tool"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_call",
+            "label": "get_order",
+            "detail": {
+              "arguments": "{\"order_id\": \"O10024\"}"
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "tool_result",
+            "label": "get_order",
+            "detail": {
+              "result": {
+                "order_id": "O10024",
+                "user_id": "USER001",
+                "status": "delivered",
+                "total_amount": 728.0,
+                "paid_amount": 728.0,
+                "created_at": "2026-10-18",
+                "shipped_at": "2026-10-19",
+                "delivered_at": "2026-10-20",
+                "cancelled_at": null,
+                "user_name": "张伟",
+                "items": [
+                  {
+                    "id": 4,
+                    "order_id": "O10024",
+                    "product_id": "P001",
+                    "quantity": 1,
+                    "purchase_price": 529.0,
+                    "product_name": "SoundCore 声阔 Life P3 无线降噪耳机",
+                    "product_category": "无线耳机",
+                    "sku": null,
+                    "current_price": 469.0,
+                    "price_delta": 60.0
+                  },
+                  {
+                    "id": 5,
+                    "order_id": "O10024",
+                    "product_id": "P004",
+                    "quantity": 1,
+                    "purchase_price": 199.0,
+                    "product_name": "Anker 安克 10000mAh 磁吸无线充电宝",
+                    "product_category": "充电配件",
+                    "sku": null,
+                    "current_price": 179.0,
+                    "price_delta": 20.0
+                  }
+                ],
+                "found": true,
+                "today": "2026-10-22",
+                "created_date": "2026-10-18",
+                "delivered_date": "2026-10-20",
+                "created_days_ago": 4,
+                "delivered_days_ago": 2,
+                "return_window_days": 7,
+                "quality_return_window_days": 15,
+                "return_policy_hash": "ac2accea093f9a63849654ca840ea0cb5789f5d41ccc2cd6300671dbab35afc9",
+                "price_protection_days": 15,
+                "within_return_window": true,
+                "within_quality_return_window": true,
+                "within_price_protection": true,
+                "instruction_for_assistant": "日期字段已为你算好：delivered_date 是签收日期，delivered_days_ago 是距今的天数。请直接使用这些值，不要自行推算或改用其他日期。within_return_window只表示政策配置的无理由日期窗口，不适用于质量问题，也不代表完整退货资格。"
+              }
+            },
+            "duration_ms": null
+          },
+          {
+            "type": "final",
+            "label": "answer",
+            "detail": {
+              "text": "订单 O10024 目前状态是**已签收**，没有做任何修改。\n\n- 下单时间：2026-10-18\n- 发货时间：2026-10-19\n- 签收时间：2026-10-20（距今 2 天）\n- 实付金额：728.00 元\n\n商品明细：\n1. SoundCore 声阔 Life P3 无线降噪耳机 ×1，购买价 529.00 元（现价 469.00 元）\n2. Anker 安克 10000mAh 磁吸无线充电宝 ×1，购买价 199.00 元（现价 179.00 元）\n\n另外提醒一下：这两件商品目前都比购买时便宜了（耳机降 60 元、充电宝降 20 元），订单仍在价保期内。如果需要，我可以帮你核对价保政策的具体条件。"
+            },
+            "duration_ms": null
+          }
+        ],
+        "steps": 2,
+        "tool_calls": 1,
+        "retrieval_queries": [],
+        "retrieved_documents": [],
+        "errors": [],
+        "stop_reason": "answered",
+        "totals": {
+          "calls": 2,
+          "prompt_tokens": 5804,
+          "completion_tokens": 238,
+          "total_tokens": 6042,
+          "latency_ms": 3733.5,
+          "cost_cny": "0.002013",
+          "unpriced_models": [],
+          "cost_is_partial": false,
+          "tokens_are_partial": false,
+          "usages": [
+            {
+              "model": "deepseek-flash",
+              "stage": "agent_step_1",
+              "prompt_tokens": 2619,
+              "completion_tokens": 40,
+              "total_tokens": 2659,
+              "cached_prompt_tokens": 2432,
+              "latency_ms": 1108.7,
+              "cost_cny": "0.000427",
+              "thinking": false,
+              "reasoning_chars": 0,
+              "usage_missing": false
+            },
+            {
+              "model": "deepseek-flash",
+              "stage": "agent_step_2",
+              "prompt_tokens": 3185,
+              "completion_tokens": 198,
+              "total_tokens": 3383,
+              "cached_prompt_tokens": 2560,
+              "latency_ms": 1407.4,
+              "cost_cny": "0.001586",
+              "thinking": false,
+              "reasoning_chars": 0,
+              "usage_missing": false
+            }
+          ],
+          "model_input_chars": [
+            4943,
+            6636
+          ],
+          "api_latency_ms": 2516.1,
+          "context": {
+            "limit_chars": 24000,
+            "input_chars": 8193,
+            "retained_turns": 0,
+            "dropped_turns": 0
+          },
+          "budget": {
+            "timeout_s": 90,
+            "max_api_requests": 5,
+            "api_requests": 2
+          }
+        }
+      },
+      "frames": [
+        {
+          "answer": "",
+          "elapsed_ms": 1.098692009691149
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1.5045890031615272
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1730.8483290107688
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1733.4978099970613
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 1733.515810003155
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2592.1666479989653
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2710.3585290024057
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2711.255724003422
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2711.2835239968263
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2711.3043240096886
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2711.323223004001
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.1084520026343
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.141852009576
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.162851005327
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.181150999153
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.1968510022853
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.83364700363
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.8575469964417
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.875947005581
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2723.8987470045686
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2729.133715009084
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2729.1850150068058
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2729.2399139987538
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2747.984200002975
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2748.0269000079716
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2748.0558000097517
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2758.14953900408
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2758.1994380016113
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2758.225637997384
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2758.244737997302
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2758.263737996458
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2758.5751360020367
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2772.861849007313
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2772.890449006809
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2772.910749001312
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2772.9287490074057
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2772.9449489997933
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2773.5505449963966
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2810.4631199967116
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2810.544120002305
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2810.569920009584
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2810.589920001803
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2810.6150189996697
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2810.6324190011946
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2811.731713009067
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2811.757511997712
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2811.7841119965306
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2811.806712008547
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2811.8260120099876
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2811.8420120008523
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2816.3140850083437
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2816.3404850056395
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2816.366184008075
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2816.443584000808
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2816.471284008003
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2816.9984810083406
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2832.080089006922
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2832.115989003796
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2832.161388010718
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2832.1846879989607
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2832.2020880004857
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2832.222188008018
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2853.4604590095114
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2853.4895589982625
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2853.5107580100885
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2853.5301579977386
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2853.547058010008
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2853.567058002227
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2868.7279660080094
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2868.7574659998063
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2868.778365998878
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2868.796665003174
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2868.819164999877
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2868.836064997595
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2882.977679008036
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2883.011879006517
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2883.033478996367
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2883.0701789993327
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2913.2993950042874
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2913.330394003424
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2913.351794006303
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2913.3703940024134
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2913.3930940006394
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2914.1813890018966
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2914.2260890075704
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2915.0995840027463
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2915.1253840100253
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2915.1512829994317
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2926.2428160000127
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2926.27371600247
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2944.8704030073714
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2944.9004019988934
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2944.931402002112
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2944.9782020092243
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2945.0055019988213
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2961.915099003818
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2961.946199007798
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2961.9928980100667
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2962.014497999917
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2962.0326980075333
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2962.0489980006823
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2991.6212180105504
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2991.6558179975254
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2991.6779180057347
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2991.695817996515
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2991.712118004216
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2991.731317000813
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2991.750316999969
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 2991.76661700767
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3012.598690998857
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3012.626790005015
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3012.653390003834
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3012.6755899982527
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3012.693490003585
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3012.709989998257
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3020.9580399969127
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3021.001139000873
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3021.026939008152
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3021.0494390048552
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3021.0678389994428
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3021.083339001052
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3039.085229000193
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3039.1435290075606
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3039.1801290097646
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3039.204629007145
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3039.229828005773
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3039.252328002476
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3050.181162005174
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3050.2140620083082
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3050.238062001881
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3050.2564610069385
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3050.2731610031333
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3050.909957004478
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3069.7045429988066
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3069.7338430036325
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3069.754242998897
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3069.7721430042293
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3069.7982420097105
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3069.8149420059053
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3079.6485830069287
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3079.6866820019204
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3079.707482000231
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3079.7278820100473
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3079.7454819985433
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3079.762882000068
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3111.463688997901
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3111.4921889966354
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3111.5194890007842
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3111.5375890076393
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3111.561787998653
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3111.5788879978936
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3112.6381820067763
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3112.6672820100794
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3112.687882006867
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3112.7043809974566
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3112.719880999066
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3114.373571006581
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3114.4117710064165
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3114.433871000074
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3131.388267996954
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3131.4170679979725
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3131.437067000661
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3142.037302997778
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3157.279210005072
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3157.307009998476
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3165.6909590092255
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3165.7182589988224
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3173.9254090061877
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3206.3056120096007
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3206.3351120013976
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3206.355711998185
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3206.9789079978364
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3207.021107999026
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3216.2111520010512
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3216.2398520013085
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3216.2606510100886
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3216.293751000194
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3216.3146509992657
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3234.723739005858
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3234.7531389968935
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3234.773339005187
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3234.791139009758
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3244.6067790006055
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3244.6495790063636
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3244.671478998498
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3244.691077998141
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3244.711178005673
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3244.7299780033063
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3255.507613008376
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3274.154899001587
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3274.2298990051495
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3284.0447390044574
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3284.1042390064104
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3298.6975500098197
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3298.729150003055
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3322.1223069995176
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3322.153207001975
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3330.834253996727
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3339.863499000785
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3339.895299010095
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3339.915299002314
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3356.1828000092646
+        },
+        {
+          "answer": "",
+          "elapsed_ms": 3356.22030000377
+        },
+        {
+          "answer": "订单 O10024 目前状态是**已签收**，没有做任何修改。\n\n- 下单时间：2026-10-18\n- 发货时间：2026-10-19\n- 签收时间：2026-10-20（距今 2 天）\n- 实付金额：728.00 元\n\n商品明细：\n1. SoundCore 声阔 Life P3 无线降噪耳机 ×1，购买价 529.00 元（现价 469.00 元）\n2. Anker 安克 10000mAh 磁吸无线充电宝 ×1，购买价 199.00 元（现价 179.00 元）\n\n另外提醒一下：这两件商品目前都比购买时便宜了（耳机降 60 元、充电宝降 20 元），订单仍在价保期内。如果需要，我可以帮你核对价保政策的具体条件。",
+          "elapsed_ms": 3917.3499989992706
+        }
+      ],
+      "task": {
+        "task": null,
+        "order": null,
+        "missing_fields": [],
+        "can_submit": false,
+        "note": "草稿未经审核；生成预览后须通过界面确认提交，尚未创建售后单或退款。",
+        "queried_at": "2026-10-22T13:12:39.509846+00:00"
+      },
+      "synchronized": true
+    }
+  ],
+  "request_start": 43,
+  "started_utc": "2026-10-22T13:12:39.015582+00:00",
+  "counts": {
+    "return_requests": 0,
+    "return_reviews": 0,
+    "return_audit": 0
+  },
+  "elapsed_s": 4.486207115987781,
+  "request_end": 44
+}

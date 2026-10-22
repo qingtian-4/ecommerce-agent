@@ -1,0 +1,21 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_negated_policy_request_does_not_display_a_full_policy __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...ecovery_enabled=False, execution_progress_enabled=False, transient_retries=1, no_progress_limit=3, reference_date=None)
+
+    def test_negated_policy_request_does_not_display_a_full_policy(settings):
+        doc=next(d for d in load_source_documents(settings) if d['document_id']=='return_policy')
+        trace=prefix()+[
+            TraceEvent('tool_call','get_knowledge_documents',{
+                'arguments':'{"document_ids":["return_policy"]}'}),
+            TraceEvent('tool_result','get_knowledge_documents',{
+                'result':{'complete_documents':True,'documents':[doc]}})]
+        text,detail=consultation_reply('保存草稿，不要说明退货政策',trace,settings)
+>       assert not detail['verified'] and '7 天' not in text
+E       assert (not True)
+
+tests/test_consultation_edges.py:128: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_consultation_edges.py::test_negated_policy_request_does_not_display_a_full_policy
+1 failed in 1.65s
