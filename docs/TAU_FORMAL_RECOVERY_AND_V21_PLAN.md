@@ -3,6 +3,9 @@
 日期：2026-10-22；共同基线 `462569b`。本轮**零付费请求**。
 原正式实验仍为102段完成、1段中断、17段未开始；下面的18段脚本预演不计入真实成绩。
 
+下一轮A–F阶段顺序、混合回答完整性及集成门槛见
+[后续评测与集成计划](TAU_V21_NEXT_PHASE_PLAN.md)。本页既有补充协议及审批要求保持。
+
 交付分开：
 
 - A：[fix/tau-formal-recovery](https://github.com/qingtian-4/ecommerce-agent/tree/fix/tau-formal-recovery)，仅评测续跑/持久化/监督；生产Runtime和Adapter保持原冻结字节。
