@@ -17,6 +17,12 @@ V1已完成交付；当前独立V2分支增加轻量业务路由、有限故障�
 V2.1独立真实8题配对4/8→3/8，没有证明整题质量提升。实验仍默认关闭，PR保持draft。
 混合咨询有离线保留收益，但模型漏存订单级草稿仍是主要失败；不据少Token宣称更强。
 
+2026-10-23只读交付审计：[实际架构/Memory/SSE](docs/CODE_ARCHITECTURE_AUDIT.md)、
+[五批独立Evaluation Scorecard](docs/EVALUATION_SCORECARD.md)、
+[源码关联面试说明](docs/AGENT_ENGINEERING_INTERVIEW.md)、
+[最小修复优先级](docs/RELIABILITY_GAP_PRIORITIES.md)。集成f987474的CI为912 passed/4 skipped；
+PR #4仍指旧V2，未将集成绿灯冒充已合并。
+
 ## 功能与职责
 
 - **Agent Runtime**：手写 Function Calling 循环，工具参数校验、整轮预算、停止原因、
@@ -139,15 +145,15 @@ docs/         架构、范围、问题记录、运行与面试材料
 完整历史条件保存在 [EXPERIMENT_LOG](docs/EXPERIMENT_LOG.md)，
 [ECom-Bench 静态分析](docs/ECOM_BENCH_COMPATIBILITY.md)说明为何没有为得分扩大业务范围。
 
-[正式评测恢复与 V2.1 验收](docs/TAU_FORMAL_RECOVERY_AND_V21_PLAN.md)记录102段已评分、
-剩余18段的独立续跑方案及预算；本轮只做无网络预演，尚未完成120段正式对照。
+[正式评测恢复与 V2.1 验收](docs/TAU_FORMAL_RECOVERY_AND_V21_PLAN.md)保留原102段时点的恢复方案；
+后续已补17段评分，当前119/120，最后1段预算停止，不能重复使用旧18段启动命令。
 
 ## 已知限制与交付状态
 
 本项目适合本机合成数据演示与 Agent 工程实习讲解，尚不具备生产级可靠性。
 客户身份是模拟用户选择，后台管理员才有认证；不要直接开放为公网客服服务。
 有限规则不理解任意同义表达、时间过滤、混合诉求或隐含统计范围；未接管自由文本仍可能编造，
-历史 S20009 附注错误尚未通用修复。没有完整回执时宁可提示未核实，可能降低任务完成度。
+历史 S20009 附注错误尚未通用修复。开启对应保护后，无完整回执会提示未核实；未保护的自由回答仍有虚报风险，保护也可能降低任务完成度。
 
 四个实验开关默认关闭，见 `.env.example`；不自动合并 main，不修改可见性，不重复跑完整τ。
 仓库的许可证、历史大文件和公开前检查建议见 [PUBLICATION_READINESS](docs/PUBLICATION_READINESS.md)。

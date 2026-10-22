@@ -6,7 +6,7 @@ This is the combined tree, including the external adapter, frozen evaluation evi
 
 ## Evidence and limitations
 
-- Full combined offline regression: 909 passed, 4 skipped. Three additional paid-entry proof tests pass; final commit CI must also pass. Ruff and secret checks are required on the combined commit.
+- Combined f987474 CI: 912 passed, 4 skipped; Ruff and secret checks pass (run 39787694111). Local combined regression had 909 tests plus three paid-entry proof tests. The PR head still needs explicit synchronization before these checks can describe PR #4 itself.
 - Real Gradio scripted acceptance: draft correction, refresh restoration, preview/confirmation, authenticated review/query, negative cancellation and aggregate output; new mixed answer preserves policy/product and restores from SQLite. Scripted page checks are not natural model success rates.
 - Frozen 24-case consultation experiment: 0→17 fact-list completion, 0→14 frozen safety-contract passes (including expected rejection, not user task success), no increase in covered false-completion frames; 45→45 model calls, next context +582.25 characters. Complex orders/selective scopes remain unsupported; mixed cancellation authorization still conservatively rejects.
 - Original official Retail experiment: 119/120 scored after authorized recovery, Official35/40, V1 36/40, V2 35/39 with one budget-stopped episode. Same39 V1/V2 rewards are identical, V2 input +2.49%, no valid tool narrowing or natural retry. Do not report a complete V2 pass^1 or new pass^3.
