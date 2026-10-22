@@ -87,6 +87,11 @@ v2 演示使用 `get_knowledge_documents` 选择整篇版本化文档，无需 E
 | V1 真实 DeepSeek | 11 个固定已见任务每臂 1 次，任务 6/11→11/11；58 请求、280628 Token，费用估算 0.143 元 | 五个同次生成错误原答被纠正，无稳定因果或总体成功率结论；最终源码另有 22 段离线重放。[分析](results/final_delivery_c9afdbf/live/analysis.json) |
 | 工程验收 | 完整离线测试、真实 Gradio 页面业务链路及异常帧检查 | 脚本注错不等于真实模型成功率；最新本轮结果见[交付报告](results/project_handoff_babbfab/REPORT.md)。[上一阶段 695 项通过](results/final_delivery_c9afdbf/full_pytest_clean_environment.log) |
 
+外部新增固定 Pilot：官方/V1/V2 三组各三题一次均 **3/3**，共132请求、503,612 Token，
+保守记账2.126384元（独立5元授权）。V2的13次路由均fallback，自然重试为0，
+不据此宣称Router或普通任务质量提升。[适配、逐例结果与限制](docs/EXTERNAL_BENCHMARK_V2_REPORT.md)。
+完整历史τ分数保持原口径；正式40题三臂实验尚未运行。
+
 原始失败、原评分和冻结结果均保留。最新真实对照的逐例复核由编码助手按冻结契约完成，
 未经独立外部人工盲审；同供应商语义裁判也有误判。数字说明特定实验，不能互相替代。
 四开关开启不增加审查模型调用，但会增加部分后续上下文，并延迟受保护请求的首个回答文字。

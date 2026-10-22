@@ -1,0 +1,329 @@
+.FFF                                                                     [100%]
+=================================== FAILURES ===================================
+______ test_v2_adapter_runs_actual_router_and_exposes_official_tool_names ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x71b2d9f0afd0>
+
+    def test_v2_adapter_runs_actual_router_and_exposes_official_tool_names(monkeypatch):
+        from types import SimpleNamespace
+    
+        from acs import service_agent
+    
+        model = ScriptedLLM([ScriptedResponse(text='Please provide an order id.')])
+        settings = Settings(_env_file=None, workflow_router_enabled=True,
+                            runtime_recovery_enabled=True)
+        monkeypatch.setattr(service_agent, 'LLMClient', lambda **kw: model)
+        monkeypatch.setattr(tau_acs_agent, 'get_settings', lambda: settings)
+        tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
+            'name': 'get_order_details', 'parameters': {'type': 'object', 'properties': {}}}})
+        adapter = tau_acs_agent.ACSAgent(tools=[tool], domain_policy='Official policy')
+        state = adapter.get_init_state()
+>       reply, state = adapter.generate_next_message(
+            UserMessage(role='user', content='Can you help with my order?'), state,
+        )
+
+tests/test_tau_bridge.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/tau_acs_agent.py:104: in generate_next_message
+    for result in state.stream:
+                  ^^^^^^^^^^^^
+src/acs/service_agent.py:238: in chat_stream
+    yield from self._run_turn(user_message, stream_text=True, budget=budget)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <acs.service_agent.CustomerServiceAgent object at 0x71b2d9f6f390>
+user_message = 'Can you help with my order?', stream_text = True
+budget = RunBudget(timeout_s=120.0, max_requests=16, started=84957.981851537, requests=0)
+
+    def _run_turn(self, user_message: str, *, stream_text: bool,
+                  budget: RunBudget | None = None) -> Iterator[AgentResult]:
+        started = perf_counter()
+        self.llm.reset_usage()
+        current_start = len(self.messages)
+        self.messages.append({"role": "user", "content": user_message})
+    
+        result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
+        route = None
+        if self.settings.workflow_router_enabled:
+>           route = self.route or route_request(user_message, self.registry.names, False)
+                                                              ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'OfficialRegistry' object has no attribute 'names'
+
+src/acs/service_agent.py:252: AttributeError
+_ test_route_rejection_cannot_escape_to_official_environment_before_loop_check _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x71b2da0cae70>
+
+    def test_route_rejection_cannot_escape_to_official_environment_before_loop_check(monkeypatch):
+        from types import SimpleNamespace
+    
+        from acs import service_agent
+    
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('blocked', 'get_product', '{"product_id":"X"}'),
+            ]), ScriptedResponse(text='No external tool was executed.'),
+        ])
+        monkeypatch.setattr(service_agent, 'LLMClient', lambda **kw: model)
+        monkeypatch.setattr(tau_acs_agent, 'get_settings', lambda: Settings(
+            _env_file=None, workflow_router_enabled=True, runtime_recovery_enabled=True,
+        ))
+        tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
+            'name': 'get_product', 'parameters': {'type': 'object', 'properties': {}}}})
+        adapter = tau_acs_agent.ACSAgent(tools=[tool], domain_policy='Official policy')
+>       reply, state = adapter.generate_next_message(
+            UserMessage(role='user', content='查订单'), adapter.get_init_state(),
+        )
+
+tests/test_tau_bridge.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/tau_acs_agent.py:104: in generate_next_message
+    for result in state.stream:
+                  ^^^^^^^^^^^^
+src/acs/service_agent.py:238: in chat_stream
+    yield from self._run_turn(user_message, stream_text=True, budget=budget)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <acs.service_agent.CustomerServiceAgent object at 0x71b2d9d74190>
+user_message = '查订单', stream_text = True
+budget = RunBudget(timeout_s=120.0, max_requests=16, started=84958.121997726, requests=0)
+
+    def _run_turn(self, user_message: str, *, stream_text: bool,
+                  budget: RunBudget | None = None) -> Iterator[AgentResult]:
+        started = perf_counter()
+        self.llm.reset_usage()
+        current_start = len(self.messages)
+        self.messages.append({"role": "user", "content": user_message})
+    
+        result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
+        route = None
+        if self.settings.workflow_router_enabled:
+>           route = self.route or route_request(user_message, self.registry.names, False)
+                                                              ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'OfficialRegistry' object has no attribute 'names'
+
+src/acs/service_agent.py:252: AttributeError
+_______ test_official_error_text_is_classified_without_dict_union_crash ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x71b2d9f8d260>
+
+    def test_official_error_text_is_classified_without_dict_union_crash(monkeypatch):
+        from types import SimpleNamespace
+    
+        from acs import service_agent
+    
+        model = ScriptedLLM([
+            ScriptedResponse(wants_tools=True, tool_calls=[
+                ScriptedToolCall('bad', 'lookup', '{}'),
+            ]), ScriptedResponse(text='The official lookup failed.'),
+        ])
+        monkeypatch.setattr(service_agent, 'LLMClient', lambda **kw: model)
+        monkeypatch.setattr(tau_acs_agent, 'get_settings', lambda: Settings(
+            _env_file=None, runtime_recovery_enabled=True,
+        ))
+        tool = SimpleNamespace(openai_schema={'type': 'function', 'function': {
+            'name': 'lookup', 'parameters': {'type': 'object', 'properties': {}}}})
+        adapter = tau_acs_agent.ACSAgent(tools=[tool], domain_policy='Official policy')
+        _, state = adapter.generate_next_message(UserMessage(role='user', content='Lookup'),
+                                                 adapter.get_init_state())
+>       answer, state = adapter.generate_next_message(ToolMessage(
+            role='tool', id='bad', content='Official error text', error=True,
+        ), state)
+
+tests/test_tau_bridge.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/tau_acs_agent.py:104: in generate_next_message
+    for result in state.stream:
+                  ^^^^^^^^^^^^
+src/acs/service_agent.py:238: in chat_stream
+    yield from self._run_turn(user_message, stream_text=True, budget=budget)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <acs.service_agent.CustomerServiceAgent object at 0x71b2d9ee8770>
+user_message = 'Lookup', stream_text = True
+budget = RunBudget(timeout_s=120.0, max_requests=16, started=84958.147644678, requests=0)
+
+    def _run_turn(self, user_message: str, *, stream_text: bool,
+                  budget: RunBudget | None = None) -> Iterator[AgentResult]:
+        started = perf_counter()
+        self.llm.reset_usage()
+        current_start = len(self.messages)
+        self.messages.append({"role": "user", "content": user_message})
+    
+        result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
+        route = None
+        if self.settings.workflow_router_enabled:
+            route = self.route or route_request(user_message, self.registry.names, False)
+            result.trace.append(TraceEvent('route_selected', route['intent'], route))
+        schemas = [s for s in self.registry.schemas()
+                   if route is None or s['function']['name'] in route['allowed_tools']]
+        retrievals = 0
+        previous_signature, repeated = None, 0
+    
+        for step in range(1, self.max_steps + 1):
+            result.steps = step
+            yield self._snapshot(result, started)
+            retry_exhausted = False
+            try:
+                if budget:
+                    budget.remaining()
+                model_messages = model_context(
+                    self.messages, current_start, schemas, self.settings.context_max_chars,
+                )
+                result.totals["model_input_chars"].append(input_chars(model_messages, schemas))
+                retry_exhausted = False
+                for attempt in range(self.settings.transient_retries + 1):
+                    content_seen = False
+                    try:
+                        if stream_text:
+                            response = None
+                            with closing(self.llm.chat_stream(
+                                model_messages, tools=schemas, stage=f"agent_step_{step}",
+                            )) as events:
+                                for event in events:
+                                    if isinstance(event, str):
+                                        content_seen = content_seen or bool(event)
+                                        result.answer += event
+                                        yield self._snapshot(result, started)
+                                    else:
+                                        response = event
+                            if response is None:
+                                raise IncompleteResponse("模型未返回完整响应")
+                        else:
+                            response = self.llm.chat(
+                                model_messages, tools=schemas, stage=f"agent_step_{step}",
+                            )
+                        if self.settings.runtime_recovery_enabled and (
+                                getattr(response, 'finish_reason', None) == 'length'
+                                or (not response.wants_tools and not response.text.strip())
+                                or (response.wants_tools and not response.tool_calls)):
+                            raise IncompleteResponse("模型响应为空、截断或缺少工具调用")
+                        break
+                    except Exception as exc:
+                        failure = classify_failure(exc=exc)
+                        eligible = (self.settings.runtime_recovery_enabled and budget is not None
+                                    and failure['retryable'] and not content_seen)
+                        if eligible and attempt < self.settings.transient_retries:
+                            delay = retry_delay(exc, attempt)
+                            if budget and delay >= budget.remaining():
+                                raise BudgetExceeded("重试等待超过本轮剩余预算") from exc
+                            result.trace.append(TraceEvent('retry_scheduled', 'llm', {
+                                **failure, 'attempt': attempt + 1, 'delay_s': delay,
+                            }))
+                            yield self._snapshot(result, started)
+                            sleep(delay)
+                            if budget:
+                                budget.remaining()
+                            continue
+                        retry_exhausted = eligible
+                        raise
+            except Exception as exc:  # noqa: BLE001 - must surface, not crash the UI
+                message = f"{type(exc).__name__}: {exc}"
+                result.errors.append(f"llm_error: {message}")
+                result.trace.append(
+                    TraceEvent(
+                        type="error",
+                        label="llm",
+                        detail={"error_type": "llm_api_error", "message": message},
+                    )
+                )
+                if isinstance(exc, (BudgetExceeded, ContextLimitExceeded)):
+                    result.stop_reason = ("context_limit" if isinstance(exc, ContextLimitExceeded)
+                                          else "budget_exceeded")
+                    result.answer = (result.answer + "\n\n" if result.answer else "") + (
+                        str(exc) + "，本次回答未完成，请缩小问题范围后重试。"
+                    )
+                    result.trace[-1].detail["error_type"] = result.stop_reason
+                else:
+                    failure = classify_failure(exc=exc)
+                    result.trace[-1].detail['recovery'] = failure
+                    result.stop_reason = ('retry_exhausted' if retry_exhausted
+                                          else 'llm_error')
+                    if result.answer:
+                        result.answer += "\n\n⚠️ 回答中断，以上内容尚未完成，请重试。"
+                    else:
+                        result.answer = (
+                            "抱歉，我这边连接服务时出了点问题，请稍后再试一次。"
+                            "当前没有人工接入此窗口的功能。"
+                        )
+                self.messages.append({"role": "assistant", "content": result.answer})
+                break
+    
+            # --- no tool calls: this is the final answer ------------------ #
+            if not response.wants_tools:
+                result.answer = (
+                    response.text.strip()
+                    or "抱歉，我没能组织出回答，请再描述一下您的问题。"
+                )
+                result.trace.append(
+                    TraceEvent(type="final", label="answer", detail={"text": result.answer})
+                )
+                result.stop_reason = "answered"
+                self.messages.append({"role": "assistant", "content": result.answer})
+                break
+    
+            # --- tool calls: execute, append results, continue ------------- #
+            result.answer = ""
+            self.messages.append(self._assistant_message(response))
+            stopped = None
+            limit_reason = "budget_exceeded"
+            for call in response.tool_calls:
+                is_retrieval = call.name in {"search_knowledge", "get_knowledge_documents"}
+                try:
+                    if stopped:
+                        raise BudgetExceeded(stopped)
+                    if budget:
+                        budget.remaining()
+                    if result.tool_calls >= self.settings.max_tool_calls:
+                        raise BudgetExceeded("整轮工具调用数已达上限")
+                    if is_retrieval and retrievals >= self.settings.max_retrieval_calls:
+                        raise BudgetExceeded("整轮知识查询数已达上限")
+                except BudgetExceeded as exc:
+                    stopped = str(exc)
+                if stopped:
+                    payload = {"error_type": limit_reason, "executed": False,
+                               "reason": stopped}
+                    result.trace.append(TraceEvent(type="error", label=call.name, detail=payload))
+                    self.messages.append({"role": "tool", "tool_call_id": call.id,
+                                          "content": json.dumps(payload, ensure_ascii=False)})
+                    continue
+                result.tool_calls += 1
+                retrievals += int(is_retrieval)
+                result.trace.append(TraceEvent(
+                    type="tool_call", label=call.name, detail={"arguments": call.arguments},
+                ))
+                yield self._snapshot(result, started)
+                try:
+                    if route is not None and call.name not in route['allowed_tools']:
+                        payload = {'error_type': 'route_scope', 'executed': False,
+                                   'message': '工具不属于本轮业务范围，未执行'}
+                        events = [result.trace[-1], TraceEvent('error', call.name, payload)]
+                        error = 'route_scope'
+                    else:
+                        payload, events, error = self.registry.run(
+                            call.name, call.arguments, current_user_id=self.current_user_id
+                        )
+                except (BudgetExceeded, ContextLimitExceeded) as exc:
+                    stopped = str(exc)
+                    limit_reason = ("context_limit" if isinstance(exc, ContextLimitExceeded)
+                                    else "budget_exceeded")
+                    payload = {"error_type": limit_reason, "reason": stopped}
+                    events = [result.trace[-1], TraceEvent(type="error", label=call.name,
+                                                          detail=payload)]
+                    error = limit_reason
+                if self.settings.runtime_recovery_enabled:
+                    failure_payload = payload
+                    if error:
+                        detail = next((e.detail for e in reversed(events) if e.type == 'error'), {})
+>                       failure_payload = payload | {
+                            'error_type': detail.get('recovery_category',
+                                                     detail.get('error_type', 'tool_exception')),
+                        }
+E                       TypeError: unsupported operand type(s) for |: 'str' and 'dict'
+
+src/acs/service_agent.py:414: TypeError
+=========================== short test summary info ============================
+FAILED tests/test_tau_bridge.py::test_v2_adapter_runs_actual_router_and_exposes_official_tool_names
+FAILED tests/test_tau_bridge.py::test_route_rejection_cannot_escape_to_official_environment_before_loop_check
+FAILED tests/test_tau_bridge.py::test_official_error_text_is_classified_without_dict_union_crash
+3 failed, 1 passed in 4.35s

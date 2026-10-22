@@ -1,0 +1,226 @@
+[
+  {
+    "arm": "acs_v1",
+    "task": "17",
+    "write_count": 1,
+    "writes": [
+      {
+        "tool": "modify_pending_order_address",
+        "arguments": {
+          "order_id": "#W8665881",
+          "address1": "123 Elm Street",
+          "address2": "Suite 641",
+          "city": "Austin",
+          "state": "TX",
+          "country": "USA",
+          "zip": "78712"
+        },
+        "preceding_dialogue": [
+          {
+            "role": "assistant",
+            "content": ""
+          },
+          {
+            "role": "assistant",
+            "content": "I found your order. Here are the details:\n\n- **Order ID:** #W8665881\n- **Status:** Pending\n- **Current address:** 123 Elm Street, Suite 640, Austin, TX 78712, USA\n\nYou'd like to change the address to **Suite 641** (keeping the rest the same): 123 Elm Street, Suite 641, Austin, TX 78712, USA.\n\nCan you confirm you'd like me to proceed with this change? (yes/no)"
+          },
+          {
+            "role": "user",
+            "content": "Yes, please proceed with changing it to Suite 641."
+          }
+        ]
+      }
+    ],
+    "reward": 1.0,
+    "termination": "user_stop"
+  },
+  {
+    "arm": "acs_v1",
+    "task": "51",
+    "write_count": 1,
+    "writes": [
+      {
+        "tool": "return_delivered_order_items",
+        "arguments": {
+          "order_id": "#W4689314",
+          "item_ids": [
+            "5996159312"
+          ],
+          "payment_method_id": "credit_card_8105988"
+        },
+        "preceding_dialogue": [
+          {
+            "role": "assistant",
+            "content": ""
+          },
+          {
+            "role": "assistant",
+            "content": "I found it! The digital camera is in order **#W4689314**:\n\n- **Digital Camera** — 24MP, 3x zoom, SD card — **$2,895.55**\n- Status: **delivered** ✅ (eligible for return)\n- Original payment method: **credit card ending in 8484**\n\nHere's the return plan:\n- **Order:** #W4689314\n- **Item to return:** Digital Camera (item id 5996159312)\n- **Refund:** $2,895.55 back to the original payment method (credit card ending in 8484)\n\nWould you like me to proceed with this return? Please confirm with a **yes**."
+          },
+          {
+            "role": "user",
+            "content": "Yes, please proceed with the return for the digital camera on order #W4689314 and refund the $2,895.55 to the original payment method (credit card ending in 8484). What are the next steps—will you send me a return label and instructions?"
+          }
+        ]
+      }
+    ],
+    "reward": 1.0,
+    "termination": "user_stop"
+  },
+  {
+    "arm": "acs_v1",
+    "task": "68",
+    "write_count": 0,
+    "writes": [],
+    "reward": 1.0,
+    "termination": "user_stop"
+  },
+  {
+    "arm": "acs_v2",
+    "task": "17",
+    "write_count": 1,
+    "writes": [
+      {
+        "tool": "modify_pending_order_address",
+        "arguments": {
+          "order_id": "#W8665881",
+          "address1": "123 Elm Street",
+          "address2": "Suite 641",
+          "city": "Austin",
+          "state": "TX",
+          "country": "USA",
+          "zip": "78712"
+        },
+        "preceding_dialogue": [
+          {
+            "role": "assistant",
+            "content": ""
+          },
+          {
+            "role": "assistant",
+            "content": "I found your order. It's currently **pending**, so we can update the address. Here are the details:\n\n**Current address:**\n- 123 Elm Street, Suite 640, Austin, TX 78712, USA\n\n**New address:**\n- 123 Elm Street, **Suite 641**, Austin, TX 78712, USA\n\nJust to confirm — you only want to change the suite number from **640** to **641**, and everything else stays the same. Is that correct? Please confirm with a \"yes\" to proceed."
+          },
+          {
+            "role": "user",
+            "content": "Yes, that’s correct. Please change it to Suite 641 and keep the rest the same."
+          }
+        ]
+      }
+    ],
+    "reward": 1.0,
+    "termination": "user_stop"
+  },
+  {
+    "arm": "acs_v2",
+    "task": "51",
+    "write_count": 1,
+    "writes": [
+      {
+        "tool": "return_delivered_order_items",
+        "arguments": {
+          "order_id": "#W4689314",
+          "item_ids": [
+            "5996159312"
+          ],
+          "payment_method_id": "credit_card_8105988"
+        },
+        "preceding_dialogue": [
+          {
+            "role": "assistant",
+            "content": ""
+          },
+          {
+            "role": "assistant",
+            "content": "I found it! The digital camera is in order **#W4689314**:\n\n- **Digital Camera** — 24MP, 3x zoom, SD card — **$2,895.55**\n- Status: **delivered** ✅ (eligible for return)\n- Original payment method: **credit card ending in 8484**\n\nTo confirm the return details:\n- **Order:** #W4689314\n- **Item to return:** Digital Camera (item ID 5996159312)\n- **Refund to:** original payment method (credit card ending in 8484)\n\nWould you like me to proceed with this return? Please reply **yes** to confirm."
+          },
+          {
+            "role": "user",
+            "content": "Yes, please go ahead and process the return for the digital camera and refund it to my original payment method. Thank you!"
+          }
+        ]
+      }
+    ],
+    "reward": 1.0,
+    "termination": "user_stop"
+  },
+  {
+    "arm": "acs_v2",
+    "task": "68",
+    "write_count": 0,
+    "writes": [],
+    "reward": 1.0,
+    "termination": "user_stop"
+  },
+  {
+    "arm": "official",
+    "task": "17",
+    "write_count": 1,
+    "writes": [
+      {
+        "tool": "modify_pending_order_address",
+        "arguments": {
+          "order_id": "#W8665881",
+          "address1": "123 Elm Street",
+          "address2": "Suite 641",
+          "city": "Austin",
+          "state": "TX",
+          "country": "USA",
+          "zip": "78712"
+        },
+        "preceding_dialogue": [
+          {
+            "role": "assistant",
+            "content": ""
+          },
+          {
+            "role": "assistant",
+            "content": "I found your order #W8665881. It's currently **pending**, so we can update the address.\n\nHere's the change you'd like to make:\n- **Current address:** 123 Elm Street, Suite 640, Austin, TX 78712, USA\n- **New address:** 123 Elm Street, Suite 641, Austin, TX 78712, USA\n\nJust to confirm — you only want to change the suite number from **640** to **641**, keeping everything else the same. Is that correct? Please confirm with a \"yes\" to proceed."
+          },
+          {
+            "role": "user",
+            "content": "Yes, that’s correct. Please change the suite to 641 and keep the rest the same."
+          }
+        ]
+      }
+    ],
+    "reward": 1.0,
+    "termination": "user_stop"
+  },
+  {
+    "arm": "official",
+    "task": "51",
+    "write_count": 1,
+    "writes": [
+      {
+        "tool": "return_delivered_order_items",
+        "arguments": {
+          "order_id": "#W4689314",
+          "item_ids": [
+            "5996159312"
+          ],
+          "payment_method_id": "credit_card_8105988"
+        },
+        "preceding_dialogue": [
+          {
+            "role": "assistant",
+            "content": "I found it! Order **#W4689314** contains the **Digital Camera** (24MP, 3x zoom, SD card) for **$2,895.55**, and its status is **delivered** — so it's eligible for return.\n\nHere are the return details:\n- **Order:** #W4689314\n- **Item to return:** Digital Camera (item ID 5996159312) – $2,895.55\n- **Refund method:** Original payment method — credit card ending in 8484 (Mastercard)\n\nAfter you confirm, the order status will change to \"return requested,\" and you'll receive an email with instructions on how to return the item.\n\nWould you like me to proceed with this return? Please confirm with a **yes**."
+          },
+          {
+            "role": "user",
+            "content": "Yes, please go ahead and process the return for the digital camera. I want the refund to go back to my original payment method."
+          }
+        ]
+      }
+    ],
+    "reward": 1.0,
+    "termination": "user_stop"
+  },
+  {
+    "arm": "official",
+    "task": "68",
+    "write_count": 0,
+    "writes": [],
+    "reward": 1.0,
+    "termination": "user_stop"
+  }
+]

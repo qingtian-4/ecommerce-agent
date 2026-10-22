@@ -26,6 +26,10 @@ class OfficialRegistry:
         self.tools = tools
         self.reply = None
 
+    @property
+    def names(self):
+        return [t.openai_schema['function']['name'] for t in self.tools]
+
     def schemas(self):
         return [t.openai_schema for t in self.tools]
 
@@ -37,6 +41,8 @@ class OfficialRegistry:
             payload = json.loads(reply.content or "null")
         except json.JSONDecodeError:
             payload = reply.content
+        if reply.error and not isinstance(payload, dict):
+            payload = {'error': payload, 'error_type': 'official_tool_error'}
         return (
             payload,
             [
@@ -57,9 +63,17 @@ class ACSState:
 
 
 class ACSAgent(HalfDuplexAgent[ACSState]):
+    def __init__(self, tools, domain_policy, *, settings=None,
+                 loop_class=CustomerServiceAgent, llm_factory=None):
+        super().__init__(tools, domain_policy)
+        self.settings = settings
+        self.loop_class = loop_class
+        self.llm_factory = llm_factory
+
     def get_init_state(self, message_history=None):
-        settings = get_settings().model_copy(update={"context_max_chars": 64000})
-        agent = CustomerServiceAgent(settings=settings, registry=OfficialRegistry(self.tools))
+        settings = (self.settings or get_settings()).model_copy(update={"context_max_chars": 64000})
+        llm = self.llm_factory(settings) if self.llm_factory else None
+        agent = self.loop_class(settings=settings, llm=llm, registry=OfficialRegistry(self.tools))
         agent.messages = [
             {
                 "role": "system",
@@ -116,6 +130,11 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
                     if m.get("tool_call_id") in {c["id"] for c in calls}
                 )
                 call = calls[completed]
+                route = next((e.detail for e in result.trace if e.type == 'route_selected'), None)
+                if route is not None and call['function']['name'] not in route['allowed_tools']:
+                    # Loop publishes the intent before it enforces scope. Do not let the
+                    # half-duplex bridge execute a rejected intent in the official env.
+                    continue
                 state.pending_id = call["id"]
                 return AssistantMessage.text(
                     "",
@@ -144,6 +163,15 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
                     },
                 ), state
         raise RuntimeError("ACS loop ended without a final result")
+
+    def stop(self, message=None, state=None):
+        if state is not None:
+            if state.stream is not None:
+                state.stream.close()
+                state.stream = None
+            client = getattr(state.agent.llm, '_client', None)
+            if client is not None:
+                client.close()
 
 
 def create_acs_agent(tools, domain_policy, **kwargs):

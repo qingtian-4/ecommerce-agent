@@ -77,3 +77,28 @@ flowchart TD
 本轮真实对照为已见开发/回归任务、每臂一次。结果支持有限路径 Demo，不支持总体成功率、
 稳定因果收益、默认启用或生产上线承诺。原模型 S20009 自由附注的错误仍未被通用治理。
 管理员通过只意味着申请允许退回，不执行退款、换货或实时人工接管。
+
+## 外部 V1/V2 三臂适配
+
+```mermaid
+flowchart LR
+  CFG[冻结任务 / 源码 / 预算] --> ORCH[官方 Orchestrator 与用户模拟器]
+  ORCH --> REF[官方 LLMAgent]
+  ORCH --> BRIDGE[HalfDuplex Adapter]
+  BRIDGE --> V1[实际 V1 Loop 源码]
+  BRIDGE --> V2[实际 V2 Loop / Router / Recovery]
+  BRIDGE --> GATE[出口范围核对]
+  GATE --> ENV[官方工具 / 隔离业务状态]
+  ENV --> BRIDGE
+  ENV --> SCORE[官方 ALL 评分 / strict replay]
+  REF --> METER[逐请求全角色预算账本]
+  V1 --> METER
+  V2 --> METER
+  ORCH --> METER
+  SCORE --> METER
+```
+
+本路径不经过ChatService、本地SQL/RAG/UI或四项业务保护；官方环境有独立的身份/确认政策，
+不代表本地ReturnService接入这些额外业务。英文Router本次13/13均fallback。
+[完整报告](EXTERNAL_BENCHMARK_V2_REPORT.md)分别说明历史完整τ、本轮三题真模型Pilot、
+脚本接线预演及本地故障实验；不能混用其成功率、价格或覆盖范围。
