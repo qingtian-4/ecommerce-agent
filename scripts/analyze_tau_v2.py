@@ -29,7 +29,17 @@ def analyze(directory):
     rows = []
     for record in episodes:
         arm, task = record['arm'], record['task']
-        calls = [c for c in ledger['calls'] if c.get('arm') == arm and c.get('task') == task]
+        if 'request_start' in record and 'request_end' in record:
+            start, end = record['request_start'], record['request_end']
+            if (type(start) is not int or type(end) is not int
+                    or not 1 <= start <= end <= len(ledger['calls'])):
+                raise ValueError('Invalid episode request range')
+            calls = ledger['calls'][start-1:end]
+            if any((c.get('task'),c.get('arm')) != (task,arm) for c in calls):
+                raise ValueError('Episode request ownership mismatch')
+        else:
+            # Legacy records without ranges were created before attempt-aware accounting.
+            calls = [c for c in ledger['calls'] if c.get('arm') == arm and c.get('task') == task]
         simulation = record.get('simulation') or {}
         messages = simulation.get('messages', record.get('partial_trajectory', []))
         traces = [e for m in messages for e in (m.get('raw_data') or {}).get('acs_trace', [])]
@@ -140,11 +150,14 @@ def analyze(directory):
                 'guard_rate_projection_with_25pct_cny': str(Decimal(ledger['spent_guard_cny'])
                                                            /max(len(rows), 1)*450)}
     result = {'execution_complete': len(rows) == planned_per_arm * len(ARMS)
-                  and not unfinished and not unsettled,
+                  and not unfinished and not unsettled
+                  and all(r['reward'] is not None for r in rows),
+              'attempts_complete':len(rows) == planned_per_arm * len(ARMS) and not unfinished,
               'effective_stop_reason': ledger['halted'] or (
                   'interrupted_unsettled_request' if unsettled else
                   'interrupted_attempt' if unfinished else
-                  'incomplete_plan' if len(rows) != planned_per_arm * len(ARMS) else None),
+                  'incomplete_plan' if len(rows) != planned_per_arm * len(ARMS) else
+                  'unscored_episodes' if any(r['reward'] is None for r in rows) else None),
               'unfinished_attempts': unfinished,
               'unsettled_request_sequences': [c['sequence'] for c in unsettled],
               'guard_including_unsettled_cny': str(Decimal(ledger['spent_guard_cny'])

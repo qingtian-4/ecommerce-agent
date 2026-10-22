@@ -1,5 +1,96 @@
 # 电商客服 Agent τ² Retail 正式评测
 
+更新：2026-10-22。原始 V2 的获批补充运行已结束，**119/120 段完成官方评分**；
+最后 ACS V2/task111 因逐请求费用预留不足而停止，不能称三臂正式评测完整完成。
+没有更换 V2 源码，没有重跑已评分失败，没有 V2.1 付费成绩，也没有新的 pass^3。
+
+| 指标 | Official | ACS V1 | 原始 ACS V2 |
+| --- | ---: | ---: | ---: |
+| 官方已评分 / 计划 | 40/40 | 40/40 | 39/40 |
+| 官方成功 | 35/40 | 36/40 | 35/39，1段未评分 |
+| 完整单臂 pass^1 | 87.5% | 90.0% | 不报告 |
+| 相同39题成功 | 34/39 | 35/39 | 35/39 |
+| 相同39题模型请求，含全部角色 | 647 | 647 | 656 |
+| 相同39题输入 / 输出 Token | 2,955,906 / 60,565 | 2,947,277 / 60,157 | 3,020,545 / 62,007 |
+| 相同39题实际工具调用 | 297 | 292 | 303 |
+| 相同39题错误工具回执 / 参数错误 | 7 / 0 | 7 / 0 | 9 / 0 |
+| 相同39题 Router / fallback / 空范围 | 0 / 0 / 0 | 0 / 0 / 0 | 199 / 197 / 2 |
+| 相同39题 Recovery retry | 0 | 0 | 0 |
+| 相同39题延迟 p50 / p95，秒 | 34.99 / 60.28 | 38.45 / 66.04 | 39.46 / 64.86 |
+| 相同39题保守记账 CNY | 12.792664 | 12.751620 | 13.074292 |
+
+[40题逐项表](../results/tau_retail_formal_combined_20261022_final/task_comparison.csv) ·
+[完整指标与逐段回执来源](../results/tau_retail_formal_combined_20261022_final/analysis.json) ·
+[39题同条件统计](../results/tau_retail_formal_combined_20261022_final/common_39_metrics.json) ·
+[官方 DB/NL/Action](../results/tau_retail_formal_combined_20261022_final/score_components.json) ·
+[失败索引](../results/tau_retail_formal_combined_20261022_final/badcase_index.json)。
+Action write 匹配分别51/56、51/56、48/53；DB分别35/40、36/40、35/39，
+NL=1分别39、39、38，另各1题没有NL分项。Action不等于reward，保留官方判据。
+
+## 补充运行与费用
+
+用户“直接执行吧”批准既有恢复计划，仅沿用原独立40元总保护上限。
+原102个结果全部跳过，task97/V1从全新官方环境作attempt2；旧中断尝试和#1668未知usage保留。
+补充18段全部开始，17段评分完成，最后task111/V2记录BudgetExceeded和部分轨迹。
+332个新请求均有usage；历史#1668仍未知，按0.163316元全额预留计费。
+
+- 全链2000请求，保守记账 **39.840192/40元**，余额0.159808元不足下一次保守预留。
+- 本次新增保守记账7.057224元，新增已知输入1,619,818 / 输出36,122 Token。
+- 已知usage按原配置价格估算总计3.369738元，新增0.337061元；未知#1668不在此估算中。
+  **估算不是供应商账单，也不是放松硬预算的理由。** 所有角色及中断尝试均计入保护。
+- 有效120个尝试文件对应1989请求；另外11请求属于旧task97/V1，费用0.360564元。
+  有效尝试指标与总费用分列，不能把旧尝试Token混入新task97。
+- tmux监督进程真实退出码2，持久exit标记request_or_money_limit。此次是正常预算终止；
+  原102段后的异常退出仍为UNKNOWN，不能据本次日志倒推其原因。
+
+[批准与启动](../results/tau_recovery_authorized_20261022/) ·
+[新增原始轨迹/账本/单请求记录](../results/tau_retail_formal_supplement_attempt2/) ·
+[监督退出码](../results/tau_retail_formal_supplement_attempt2.process.json) ·
+[只读父链审计](../results/tau_retail_formal_combined_20261022_final/source_audit.json)。
+1973份历史结果及3份用户工作哈希未变。预演与live恢复协议JSON语义相同，但对象序列化顺序使
+字节SHA不同：e732daa…与463eca5…。批准绑定预演文件；CLI比对解码后计划，未改任务或预算。
+[完整校验](../results/tau_retail_formal_combined_20261022_final/preservation_audit.json)。
+原102段版本保留为[历史报告快照](../results/tau_retail_formal_combined_20261022_final/FORMAL_REPORT_BEFORE_SUPPLEMENT.md)。
+
+## 新增分歧与结论
+
+同39题V1与V2逐题reward完全一致：V2修复V1失败0题、新增reward回归0题。
+这不等于没有行为回归：task39的空工具范围和无写回执虚报依然存在，详见下面保留的轨迹复核。
+V2比V1请求多1.39%、输入Token多2.49%、输出多3.08%、工具多3.77%、保守费用多2.53%。
+Router没有一次合法非空收窄，Recovery自然重试0次；**未证明原始V2更强或更便宜**。
+也不能把缺失task111视作失败或成功来制造完整排名。
+
+共同失败27/38/56；Official独对39，V1/V2独对79/108。新增108：
+Official算出退款346.93美元，但面对用户追问退货运费选择转人工，未实际执行return。
+V1/V2说明未知运费及退款时间，用户随后明确确认后，实际执行同三件商品退货并变更DB。
+V2另作email问题转人工。三臂模拟用户后续话语不同，不能将此差异归因Router/Recovery。
+官方Action因item_ids排列顺序判V1/V2不匹配，但DB/NL均通过，reward=1；不改分。
+[108逐消息与调用证据](../results/tau_retail_formal_combined_20261022_final/task108_review.json)。
+其余逐例证据沿用下方原始复核，未看结果修改规则或调优官方测试题。
+
+优先级：先保留119段完整证据和1段预算阻塞；不要挪用余额/加重复/重跑全40题。
+补task111需要新预算、从最新父链的新补充协议及明确批准，不能调用旧18段命令。
+V2.1仅离线路由/回执/混合回答验证，不能混入此表。当前不建议支付3次重复或接入ECom-Bench：
+先验证通用能力映射、混合任务完整性及新独立小样本是否有收益，再决定投入。
+工程优势可据实表述为官方协议复用、原始轨迹保全、事务/回执安全及可审计断点续跑；
+不能表述为Router提升通用任务成功率。
+
+## 复现与停止条件
+
+```bash
+# 纯离线分析；新目录必须尚不存在，不发模型请求
+uv run python scripts/analyze_tau_resume.py \
+  --source results/tau_retail_formal_supplement_attempt2 --out /tmp/tau-joint-new
+uv run pytest tests/test_resume_analysis.py tests/test_external_analysis.py tests/test_formal_resume.py
+```
+
+三臂120段完成状态仍为 **No-Go（缺1段评分、预算已停止）**；
+分析和原始证据可交付。保留下面原102段时点报告，以明确结果演进和当时停止原因。
+
+---
+
+# 原102段时点报告
+
 日期：2026-10-22。**正式协议冻结了 40 题三臂一次，但真实执行中断：完成 102/120 段，
 另有一段已开始、17 段未开始。不是完整 test split 成绩，不报告新的 pass^1/pass^3。**
 已完成的相同 34 题上，Official、ACS V1、原始 ACS V2 均为 30/34；没有证明 V2 更强。

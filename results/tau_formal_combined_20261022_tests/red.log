@@ -1,0 +1,773 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_____ test_effective_attempt_uses_request_range_but_total_spend_keeps_all ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-136/test_effective_attempt_uses_re0')
+
+    def test_effective_attempt_uses_request_range_but_total_spend_keeps_all(tmp_path):
+        fixture(tmp_path)
+        result=analyze(tmp_path)
+>       assert result['arms']['acs_v1']['requests']==1
+E       assert 3 == 1
+
+tests/test_resume_analysis.py:29: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{
+  "execution_complete": false,
+  "effective_stop_reason": "incomplete_plan",
+  "unfinished_attempts": [],
+  "unsettled_request_sequences": [],
+  "guard_including_unsettled_cny": "0.00036",
+  "arms": {
+    "official": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v1": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 3,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 1,
+      "scored": 1,
+      "success": 1,
+      "pass_1": 1.0,
+      "planned": 1,
+      "success_over_scored": 1.0,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 0,
+      "pass_3": null,
+      "guard_cny": "0.00036",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": 1,
+      "elapsed_p95_s": 1,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v2": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    }
+  },
+  "formal_run_estimate": {
+    "description": "Proposal only, no authorization to run: 40 test tasks x 3 arms x 3",
+    "episodes": 360,
+    "coverage_warning": "One trial of 40 tasks; no repeated-trial stability estimate. 25% headroom is a planning assumption, not an upper bound.",
+    "estimated_requests": 1080.0,
+    "estimated_tokens": 16200.0,
+    "guard_rate_mean_projection_cny": "0.12960",
+    "guard_rate_projection_with_25pct_cny": "0.16200"
+  },
+  "same_initial_db": true,
+  "guard_spent_cny": "0.00036",
+  "halted": null,
+  "actual_requests": 3,
+  "roles": {
+    "agent": 3
+  },
+  "role_usage": {
+    "agent": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15
+    },
+    "user": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    "judge": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    }
+  },
+  "provider_models": [
+    "unknown"
+  ],
+  "limitations": "One trial, known tasks, no ChatService/UI/RAG/local guards; alias not weights snapshot; no pass^3; no selection or reruns."
+}
+_________ test_invalid_request_bounds_are_not_silently_aggregated[0-3] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-136/test_invalid_request_bounds_ar0')
+start = 0, end = 3
+
+    @pytest.mark.parametrize('start,end',[(0,3),(3,4),(3,2)])
+    def test_invalid_request_bounds_are_not_silently_aggregated(tmp_path,start,end):
+        fixture(tmp_path,start,end)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_resume_analysis.py:38: Failed
+----------------------------- Captured stdout call -----------------------------
+{
+  "execution_complete": false,
+  "effective_stop_reason": "incomplete_plan",
+  "unfinished_attempts": [],
+  "unsettled_request_sequences": [],
+  "guard_including_unsettled_cny": "0.00036",
+  "arms": {
+    "official": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v1": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 3,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 1,
+      "scored": 1,
+      "success": 1,
+      "pass_1": 1.0,
+      "planned": 1,
+      "success_over_scored": 1.0,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 0,
+      "pass_3": null,
+      "guard_cny": "0.00036",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": 1,
+      "elapsed_p95_s": 1,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v2": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    }
+  },
+  "formal_run_estimate": {
+    "description": "Proposal only, no authorization to run: 40 test tasks x 3 arms x 3",
+    "episodes": 360,
+    "coverage_warning": "One trial of 40 tasks; no repeated-trial stability estimate. 25% headroom is a planning assumption, not an upper bound.",
+    "estimated_requests": 1080.0,
+    "estimated_tokens": 16200.0,
+    "guard_rate_mean_projection_cny": "0.12960",
+    "guard_rate_projection_with_25pct_cny": "0.16200"
+  },
+  "same_initial_db": true,
+  "guard_spent_cny": "0.00036",
+  "halted": null,
+  "actual_requests": 3,
+  "roles": {
+    "agent": 3
+  },
+  "role_usage": {
+    "agent": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15
+    },
+    "user": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    "judge": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    }
+  },
+  "provider_models": [
+    "unknown"
+  ],
+  "limitations": "One trial, known tasks, no ChatService/UI/RAG/local guards; alias not weights snapshot; no pass^3; no selection or reruns."
+}
+_________ test_invalid_request_bounds_are_not_silently_aggregated[3-4] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-136/test_invalid_request_bounds_ar1')
+start = 3, end = 4
+
+    @pytest.mark.parametrize('start,end',[(0,3),(3,4),(3,2)])
+    def test_invalid_request_bounds_are_not_silently_aggregated(tmp_path,start,end):
+        fixture(tmp_path,start,end)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_resume_analysis.py:38: Failed
+----------------------------- Captured stdout call -----------------------------
+{
+  "execution_complete": false,
+  "effective_stop_reason": "incomplete_plan",
+  "unfinished_attempts": [],
+  "unsettled_request_sequences": [],
+  "guard_including_unsettled_cny": "0.00036",
+  "arms": {
+    "official": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v1": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 3,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 1,
+      "scored": 1,
+      "success": 1,
+      "pass_1": 1.0,
+      "planned": 1,
+      "success_over_scored": 1.0,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 0,
+      "pass_3": null,
+      "guard_cny": "0.00036",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": 1,
+      "elapsed_p95_s": 1,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v2": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    }
+  },
+  "formal_run_estimate": {
+    "description": "Proposal only, no authorization to run: 40 test tasks x 3 arms x 3",
+    "episodes": 360,
+    "coverage_warning": "One trial of 40 tasks; no repeated-trial stability estimate. 25% headroom is a planning assumption, not an upper bound.",
+    "estimated_requests": 1080.0,
+    "estimated_tokens": 16200.0,
+    "guard_rate_mean_projection_cny": "0.12960",
+    "guard_rate_projection_with_25pct_cny": "0.16200"
+  },
+  "same_initial_db": true,
+  "guard_spent_cny": "0.00036",
+  "halted": null,
+  "actual_requests": 3,
+  "roles": {
+    "agent": 3
+  },
+  "role_usage": {
+    "agent": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15
+    },
+    "user": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    "judge": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    }
+  },
+  "provider_models": [
+    "unknown"
+  ],
+  "limitations": "One trial, known tasks, no ChatService/UI/RAG/local guards; alias not weights snapshot; no pass^3; no selection or reruns."
+}
+_________ test_invalid_request_bounds_are_not_silently_aggregated[3-2] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-136/test_invalid_request_bounds_ar2')
+start = 3, end = 2
+
+    @pytest.mark.parametrize('start,end',[(0,3),(3,4),(3,2)])
+    def test_invalid_request_bounds_are_not_silently_aggregated(tmp_path,start,end):
+        fixture(tmp_path,start,end)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_resume_analysis.py:38: Failed
+----------------------------- Captured stdout call -----------------------------
+{
+  "execution_complete": false,
+  "effective_stop_reason": "incomplete_plan",
+  "unfinished_attempts": [],
+  "unsettled_request_sequences": [],
+  "guard_including_unsettled_cny": "0.00036",
+  "arms": {
+    "official": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v1": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 3,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 1,
+      "scored": 1,
+      "success": 1,
+      "pass_1": 1.0,
+      "planned": 1,
+      "success_over_scored": 1.0,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 0,
+      "pass_3": null,
+      "guard_cny": "0.00036",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": 1,
+      "elapsed_p95_s": 1,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v2": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    }
+  },
+  "formal_run_estimate": {
+    "description": "Proposal only, no authorization to run: 40 test tasks x 3 arms x 3",
+    "episodes": 360,
+    "coverage_warning": "One trial of 40 tasks; no repeated-trial stability estimate. 25% headroom is a planning assumption, not an upper bound.",
+    "estimated_requests": 1080.0,
+    "estimated_tokens": 16200.0,
+    "guard_rate_mean_projection_cny": "0.12960",
+    "guard_rate_projection_with_25pct_cny": "0.16200"
+  },
+  "same_initial_db": true,
+  "guard_spent_cny": "0.00036",
+  "halted": null,
+  "actual_requests": 3,
+  "roles": {
+    "agent": 3
+  },
+  "role_usage": {
+    "agent": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15
+    },
+    "user": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    "judge": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    }
+  },
+  "provider_models": [
+    "unknown"
+  ],
+  "limitations": "One trial, known tasks, no ChatService/UI/RAG/local guards; alias not weights snapshot; no pass^3; no selection or reruns."
+}
+____________________ test_range_must_belong_to_the_episode _____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-136/test_range_must_belong_to_the_0')
+
+    def test_range_must_belong_to_the_episode(tmp_path):
+        calls=fixture(tmp_path)
+        calls[-1]['task']='other'
+        (tmp_path/'requests.json').write_text(json.dumps({
+            'calls':calls,'spent_guard_cny':'0.00036','halted':None}))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_resume_analysis.py:47: Failed
+----------------------------- Captured stdout call -----------------------------
+{
+  "execution_complete": false,
+  "effective_stop_reason": "incomplete_plan",
+  "unfinished_attempts": [],
+  "unsettled_request_sequences": [],
+  "guard_including_unsettled_cny": "0.00036",
+  "arms": {
+    "official": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v1": {
+      "requests": 2,
+      "prompt_tokens": 20,
+      "completion_tokens": 10,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 2,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 1,
+      "scored": 1,
+      "success": 1,
+      "pass_1": 1.0,
+      "planned": 1,
+      "success_over_scored": 1.0,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 0,
+      "pass_3": null,
+      "guard_cny": "0.00024",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": 1,
+      "elapsed_p95_s": 1,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    },
+    "acs_v2": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "route_events": 0,
+      "fallback_routes": 0,
+      "retries": 0,
+      "missing_usage": 0,
+      "unpriced_calls": 0,
+      "empty_scope_routes": 0,
+      "scope_denials": 0,
+      "invalid_argument_calls": 0,
+      "episodes": 0,
+      "scored": 0,
+      "success": 0,
+      "pass_1": null,
+      "planned": 1,
+      "success_over_scored": null,
+      "unscored": 0,
+      "unfinished": 0,
+      "not_started": 1,
+      "pass_3": null,
+      "guard_cny": "0",
+      "configured_price_estimate_cny": "0",
+      "elapsed_p50_s": null,
+      "elapsed_p95_s": null,
+      "stop_reasons": {},
+      "protocol_categories": {}
+    }
+  },
+  "formal_run_estimate": {
+    "description": "Proposal only, no authorization to run: 40 test tasks x 3 arms x 3",
+    "episodes": 360,
+    "coverage_warning": "One trial of 40 tasks; no repeated-trial stability estimate. 25% headroom is a planning assumption, not an upper bound.",
+    "estimated_requests": 1080.0,
+    "estimated_tokens": 16200.0,
+    "guard_rate_mean_projection_cny": "0.12960",
+    "guard_rate_projection_with_25pct_cny": "0.16200"
+  },
+  "same_initial_db": true,
+  "guard_spent_cny": "0.00036",
+  "halted": null,
+  "actual_requests": 3,
+  "roles": {
+    "agent": 3
+  },
+  "role_usage": {
+    "agent": {
+      "requests": 3,
+      "prompt_tokens": 30,
+      "completion_tokens": 15
+    },
+    "user": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    "judge": {
+      "requests": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    }
+  },
+  "provider_models": [
+    "unknown"
+  ],
+  "limitations": "One trial, known tasks, no ChatService/UI/RAG/local guards; alias not weights snapshot; no pass^3; no selection or reruns."
+}
+=========================== short test summary info ============================
+FAILED tests/test_resume_analysis.py::test_effective_attempt_uses_request_range_but_total_spend_keeps_all
+FAILED tests/test_resume_analysis.py::test_invalid_request_bounds_are_not_silently_aggregated[0-3]
+FAILED tests/test_resume_analysis.py::test_invalid_request_bounds_are_not_silently_aggregated[3-4]
+FAILED tests/test_resume_analysis.py::test_invalid_request_bounds_are_not_silently_aggregated[3-2]
+FAILED tests/test_resume_analysis.py::test_range_must_belong_to_the_episode
+5 failed in 0.16s
