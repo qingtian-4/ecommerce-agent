@@ -1,0 +1,61 @@
+{
+  "status": "PROPOSAL_ONLY_NOT_EXECUTED",
+  "upstream_commit": "dd8757d4c8791dad7b3cdaf02a105a3d5f9d86bd",
+  "upstream_version": "1.0.1",
+  "task_split": "base",
+  "task_ids": [
+    "33",
+    "34"
+  ],
+  "selection_note": "These tasks were used for protocol development; they are not unseen quality tests.",
+  "arms": [
+    "acs_loop_with_shared_receipt_guard",
+    "tau_langgraph"
+  ],
+  "trials_per_task_per_arm": 1,
+  "episodes": 4,
+  "seed": 20261023,
+  "workers": 1,
+  "agent_model": "deepseek-flash",
+  "user": "official user_simulator; same DeepSeek model and sampling settings across arms",
+  "evaluation": {
+    "type": "all",
+    "strict_replay": true,
+    "reward_basis": [
+      "DB"
+    ]
+  },
+  "communication_protocol": false,
+  "proposed_episode_limits": {
+    "model_attempts": 8,
+    "tool_intents": 12,
+    "orchestrator_steps": 40,
+    "model_timeout_s": 60,
+    "task_timeout_s": 180,
+    "model_retries": 0
+  },
+  "suggested_total_cny_cap": "5.00",
+  "suggested_total_paid_request_cap": 48,
+  "reserve_cny": "1.00",
+  "max_output_tokens_per_request": 1024,
+  "stop_conditions": [
+    "Before each agent, user or judge request, reserve conservative uncached-input plus max-output cost.",
+    "Stop if cumulative observed cost plus all outstanding reservations plus next reservation exceeds CNY 5.00.",
+    "Stop at 48 total paid requests; failed and interrupted attempts consume request count and reservations.",
+    "Unknown prices or missing usage stop the pilot; never record unknown cost as zero.",
+    "Any uncertain write or protocol violation stops that episode without tool replay.",
+    "Do not rerun failed episodes automatically or change frozen tasks, policy, DB or scorer."
+  ],
+  "preflight_required": [
+    "Implement one episode-level outer request/tool budget for both arms, including per-turn legacy Loop resets.",
+    "Add shared agent+user+judge ledger; native LangGraph token accounting is not wired into official cost export yet.",
+    "Verify and freeze actual provider model, current official prices, exchange estimate and user-simulator config before authorization.",
+    "Freeze exact code SHA, dependency lock, original task/data/policy/source hashes and separate checkpoint path per episode.",
+    "This proposal is not authorization to send requests; current task is offline-only."
+  ],
+  "user_model": "openai/deepseek-flash",
+  "api_base": "https://api.deepseek.com/v1",
+  "temperature": 0.0,
+  "thinking": false,
+  "model_config_basis": "Repository Settings defaults; provider availability and current prices must be verified before any paid run."
+}

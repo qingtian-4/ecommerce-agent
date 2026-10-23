@@ -1160,3 +1160,23 @@ main f34981f 建立 create_agent + SqliteSaver 的只读实验，保留原默认
 协议修正后检查分别记录，后续关闭流/超限调整由离线回归验证，不拼成未知集成功率。
 没有完整写链路迁移、Interrupt 确认桥、HTTP SSE 或完整 Benchmark 运行。
 结论为继续隔离只读/Adapter 合同验证，默认替换、完整退货与生产启用仍 No-Go。
+
+## 2026-10-23：官方工具执行权与 LangGraph Checkpoint 分离
+
+只读 PoC 的原生 ToolNode 会直接执行本地工具，不能直接接到官方 τ Retail 执行器，
+否则同一写操作可能被两套 Runtime 执行。独立 Adapter 用 create_agent 原生 tools 前暂停，
+将整个模型批次按顺序交给官方执行器，回执按 tool_call_id 收齐后再投影为原生 ToolMessage。
+派发日志先于输出提交；缺失回执标为不确定，不以 checkpoint 推断业务成功，也不重放写操作。
+
+审查发现风险回执与停止原因分开提交时，进程退出可绕过停止条件；改为单事务保存并在恢复时
+重新检查风险。另修复多工具暂停节点识别、官方 Factory 参数、任务超时误分类及最终回答交付
+空窗。真实子进程退出测试覆盖执行前后，Graph 回执投影和最终回答分别验证恢复边界。
+真实 ChatOpenAI 离线 transport 还复现跨回执更换事件循环的问题，改为同一 Adapter 复用
+asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送模型请求。
+
+固定官方 dd8757d / 1.0.1 的 Orchestrator、UserSimulator、Retail DB 和 ALL strict replay；
+仅替换模型传输为脚本决定。原任务 33、34 各六次官方工具执行的 DB／Reward 对照，以及异常
+合同、完整回归与费用零消费记录见 [Adapter 报告](v3/TAU_LANGGRAPH_ADAPTER_REPORT.md)。
+不确定回执的合成故障被官方严格重放拒绝时保留 null Reward，不放宽评分器。
+离线验收不证明成功率提升；episode／turn 预算口径、全链路费用账本及未配对初始工具历史
+仍是后续边界，不启用生产或付费 Benchmark。

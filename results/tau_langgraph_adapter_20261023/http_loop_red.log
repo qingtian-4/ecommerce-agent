@@ -1,0 +1,185 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_real_chatopenai_transport_uses_one_loop_across_official_receipts _____
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-196/test_real_chatopenai_transport0')
+
+    def test_real_chatopenai_transport_uses_one_loop_across_official_receipts(tmp_path):
+        import httpx
+        from langchain_openai import ChatOpenAI
+    
+        seen = []
+    
+        async def transport(request):
+            loop = asyncio.get_running_loop()
+            if seen:
+                assert loop is seen[0], "HTTP model transport changed event loops"
+            seen.append(loop)
+            message = (
+                {"role": "assistant", "content": "Done"}
+                if len(seen) == 2
+                else {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "http-1",
+                            "type": "function",
+                            "function": {
+                                "name": "get_order_details",
+                                "arguments": '{"order_id":"#W1845024"}',
+                            },
+                        }
+                    ],
+                }
+            )
+            return httpx.Response(
+                200,
+                json={
+                    "id": "offline",
+                    "object": "chat.completion",
+                    "created": 0,
+                    "model": "offline",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": message,
+                            "finish_reason": "stop" if len(seen) == 2 else "tool_calls",
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+                },
+            )
+    
+        client = httpx.AsyncClient(transport=httpx.MockTransport(transport))
+        model = ChatOpenAI(
+            model="offline",
+            api_key="offline-fixture",
+            http_async_client=client,
+            max_retries=0,
+            use_responses_api=False,
+        )
+        env = get_environment()
+        agent = LangGraphAgent(
+            env.get_tools(), env.get_policy(), checkpoint_path=tmp_path / "http.sqlite", model=model
+        )
+        state = agent.get_init_state()
+        try:
+            intent, _ = agent.generate_next_message(UserMessage(role="user", content="Check"), state)
+            assert intent.tool_calls[0].id == "http-1"
+>           reply, _ = agent.generate_next_message(env.get_response(intent.tool_calls[0]), state)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tau_langgraph_adapter.py:791: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/tau_langgraph_agent.py:253: in generate_next_message
+    return asyncio.run(self._advance(state, record)), state
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/qingtian/miniconda3/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/home/qingtian/miniconda3/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/qingtian/miniconda3/lib/python3.13/asyncio/base_events.py:725: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+scripts/tau_langgraph_agent.py:394: in _advance
+    await asyncio.wait_for(
+/home/qingtian/miniconda3/lib/python3.13/asyncio/tasks.py:507: in wait_for
+    return await fut
+           ^^^^^^^^^
+.venv/lib/python3.13/site-packages/langgraph/pregel/main.py:4178: in ainvoke
+    async for chunk in self.astream(
+.venv/lib/python3.13/site-packages/langgraph/pregel/main.py:3529: in astream
+    async for _ in runner.atick(
+.venv/lib/python3.13/site-packages/langgraph/pregel/_runner.py:397: in atick
+    await arun_with_retry(
+.venv/lib/python3.13/site-packages/langgraph/pregel/_retry.py:737: in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/langgraph/_internal/_runnable.py:756: in ainvoke
+    input = await asyncio.create_task(
+.venv/lib/python3.13/site-packages/langgraph/_internal/_runnable.py:522: in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/langchain/agents/factory.py:1602: in amodel_node
+    result = await awrap_model_call_handler(request, _execute_model_async)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/langchain/agents/factory.py:418: in normalized_single
+    return _to_composed_result(await single_handler(request, handler))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/langchain/agents/middleware/types.py:1964: in async_wrapped
+    return await cast(
+scripts/tau_langgraph_agent.py:310: in model_boundary
+    response = await asyncio.wait_for(
+/home/qingtian/miniconda3/lib/python3.13/asyncio/tasks.py:507: in wait_for
+    return await fut
+           ^^^^^^^^^
+.venv/lib/python3.13/site-packages/langchain/agents/factory.py:1565: in _execute_model_async
+    output = await model_.ainvoke(messages)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/langchain_core/runnables/base.py:6031: in ainvoke
+    return await self.bound.ainvoke(
+.venv/lib/python3.13/site-packages/langchain_core/language_models/chat_models.py:511: in ainvoke
+    llm_result = await self.agenerate_prompt(
+.venv/lib/python3.13/site-packages/langchain_core/language_models/chat_models.py:1888: in agenerate_prompt
+    return await self.agenerate(
+.venv/lib/python3.13/site-packages/langchain_core/language_models/chat_models.py:1846: in agenerate
+    raise exceptions[0]
+.venv/lib/python3.13/site-packages/langchain_core/language_models/chat_models.py:2179: in _agenerate_with_cache
+    result = await self._agenerate(
+.venv/lib/python3.13/site-packages/langchain_openai/chat_models/base.py:2306: in _agenerate
+    raise e
+.venv/lib/python3.13/site-packages/langchain_openai/chat_models/base.py:2295: in _agenerate
+    raw_response = await self.async_client.with_raw_response.create(
+.venv/lib/python3.13/site-packages/openai/_legacy_response.py:386: in wrapped
+    return cast(LegacyAPIResponse[R], await func(*args, **kwargs))
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/openai/resources/chat/completions/completions.py:2952: in create
+    return await self._post(
+.venv/lib/python3.13/site-packages/openai/_base_client.py:2053: in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/openai/_base_client.py:1773: in request
+    response = await self._send_request(
+.venv/lib/python3.13/site-packages/openai/_client.py:1375: in _send_request
+    response = await self._send_with_auth_retry(request, stream=stream, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/openai/_client.py:1354: in _send_with_auth_retry
+    response = await super()._send_request(request, stream=stream, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/openai/_base_client.py:1690: in _send_request
+    return await self._client.send(request, stream=stream, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/httpx/_client.py:1629: in send
+    response = await self._send_handling_auth(
+.venv/lib/python3.13/site-packages/httpx/_client.py:1657: in _send_handling_auth
+    response = await self._send_handling_redirects(
+.venv/lib/python3.13/site-packages/httpx/_client.py:1694: in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/httpx/_client.py:1730: in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/httpx/_transports/mock.py:41: in handle_async_request
+    response = await response
+               ^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+request = <Request('POST', 'https://api.openai.com/v1/chat/completions')>
+
+    async def transport(request):
+        loop = asyncio.get_running_loop()
+        if seen:
+>           assert loop is seen[0], "HTTP model transport changed event loops"
+E           AssertionError: HTTP model transport changed event loops
+E           assert <_UnixSelectorEventLoop running=True closed=False debug=False> is <_UnixSelectorEventLoop running=False closed=True debug=False>
+E           During task with name 'model' and id 'b7e9da77-2163-85d2-eb05-62b9c2ae07e5'
+
+tests/test_tau_langgraph_adapter.py:737: AssertionError
+----------------------------- Captured stderr call -----------------------------
+2026-10-23 18:14:31.277 | DEBUG    | tau2.environment.environment:get_response:482 - Response: order_id='#W1845024' user_id='noah_patel_6952' address=UserAddress(address1='517 Lakeview Drive', address2='Suite 183', city='Seattle', country='USA', state='WA', zip='98195') items=[OrderItem(name='Mechanical Keyboard', product_id='1656367028', item_id='1340995114', price=235.13, options={'switch type': 'tactile', 'backlight': 'none', 'size': 'full size'}), OrderItem(name='Cycling Helmet', product_id='7765186836', item_id='3358616356', price=197.33, options={'size': 'S', 'color': 'red', 'ventilation': 'low'}), OrderItem(name='Headphones', product_id='6992792935', item_id='7493556126', price=346.97, options={'type': 'over-ear', 'connectivity': 'wireless', 'color': 'black'}), OrderItem(name='Office Chair', product_id='4794339885', item_id='8323284863', price=511.24, options={'material': 'fabric', 'color': 'blue', 'armrest': 'adjustable', 'backrest height': 'standard'}), OrderItem(name='Hiking Boots', product_id='7363354090', item_id='8277474082', price=236.57, options={'size': '12', 'material': 'leather', 'waterproof': 'yes'})] status='pending' fulfillments=[] payment_history=[OrderPayment(transaction_type='payment', amount=1527.24, payment_method_id='paypal_3169710')] cancel_reason=None exchange_items=None exchange_new_items=None exchange_payment_method_id=None exchange_price_difference=None return_items=None return_payment_method_id=None
+=========================== short test summary info ============================
+FAILED tests/test_tau_langgraph_adapter.py::test_real_chatopenai_transport_uses_one_loop_across_official_receipts
+1 failed in 11.75s

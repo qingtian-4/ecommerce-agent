@@ -1,7 +1,7 @@
 # V3 实施路线与运行手册
 
-本轮范围结束于隔离只读 PoC、架构与评价设计、离线及小额真实验收。后续阶段是建议，
-没有自动执行授权。本轮不合并 main，不替换 Gradio 默认 Loop，不开启生产配置。
+第 1 节记录初始只读 PoC，第 2 节更新后续官方 Adapter 的实际进度。初始 PoC 的小额真实
+请求授权不适用于当前仅离线的 Adapter 任务。其后阶段仍是建议，不合并 main，不替换默认 Loop。
 
 ## 1. 本轮已落地的运行路径
 
@@ -60,19 +60,25 @@ uv run python scripts/check_secrets.py --all-tracked
 真实请求只按已冻结 [smoke_plan](../../results/v3_langgraph_poc_20261023/smoke_plan.json)
 运行；其十轮烟测通过与否在 REPORT 中逐项列出，不作为官方 Benchmark 或未知测试集。
 
-## 2. 下一轮最小范围：官方 HalfDuplex Adapter 离线合同
+## 2. 官方 HalfDuplex Adapter：已实现离线合同
 
-建议维护者下一轮只授权一个独立交付：在固定 τ `dd8757d` 环境接入候选 Graph Adapter，
-先不搬退货、不新增任务账本实现、不启动全量收费评测。
+后续独立分支 `feat/v3-tau-langgraph-adapter` 已实现 `scripts/tau_langgraph_agent.py`，
+固定 τ `dd8757d` / 1.0.1，保留原官方 Orchestrator、UserSimulator、Retail DB、Policy、
+Toolkit、Task 和 ALL strict replay。模型决定与用户模型传输固定为离线脚本，没有付费请求。
 
-改动集中在 `scripts/tau_langgraph_agent.py`、Adapter 合同测试与现有评测工厂注册；
-官方 Domain/policy/tool/Task/reward 完全不改。用相同脚本轨迹核对旧 Loop 与 Graph 的工具意图、
-官方执行次数、工具结果 ID、结束状态及 Reward，并测试错误参数、未知写回执和进程退出。
-每条脚本至少包含真正执行的官方环境路径，不能仅校验 schema 或跳过可选依赖后报通过。
+候选用原生 create_agent 在 tools 前暂停；仅官方执行器执行业务工具。批次回执按 ID 收齐后
+投影为原生 ToolMessage；持久化派发和真实回执分别记录，不从 Graph 推断写操作成功。
+覆盖真实子进程退出、未知写回执停止、重复 ID、预算、HTTP 模型客户端事件循环生命周期。
 
-Go 条件：无本地工具越过官方执行器；同条件最终状态/评分一致；异常停止有轨迹；脚本测试不冒充
-真实模型能力。通过后才申请下一笔小额 paired pilot 预算，预注册相同模型/模拟器/评价器条件。
-当前未实现该 Adapter，所以本轮结论是“接口机制可复用，不能直接运行候选版”。
+42 项合同、14 组旧 Loop／Graph 对照已通过。任务 33、34 的原始参考动作分别覆盖用户地址和
+订单地址写操作，官方 DB／Reward 一致；这不是模型任务成功率。完整回归、运行命令、恢复方式、
+失败日志和最终交付状态见 [Adapter 报告](TAU_LANGGRAPH_ADAPTER_REPORT.md) 与
+[执行记录](../../results/tau_langgraph_adapter_20261023/REPORT.md)。
+
+下一轮最小范围是统一 episode 级外层预算和 Agent／User／Judge 全链路 token／费用账本，
+补充多回合公平性合同，再冻结真实 DeepSeek Pilot 配置和当前报价。候选与旧 Loop 的预算
+目前分别按 episode 与 turn 计数，候选 usage 尚未接入官方费用导出，因此立即付费 Pilot
+仍 No-Go。不新增退货、换货、任务账本或全量收费评测。
 
 ## 3. 其后只读 Task/Fact 状态实验
 

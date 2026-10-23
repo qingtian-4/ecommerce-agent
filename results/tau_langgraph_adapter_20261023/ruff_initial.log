@@ -1,0 +1,126 @@
+E501 Line too long (103 > 100)
+  --> scripts/tau_acs_agent.py:78:101
+   |
+76 |         settings = (self.settings or get_settings()).model_copy(update={"context_max_chars": 64000})
+77 |         agent = CustomerServiceAgent(
+78 |             settings=settings, registry=OfficialRegistry(self.tools, receipt_guard=self.receipt_guard),
+   |                                                                                                     ^^^
+79 |             llm=self.llm_factory(settings) if self.llm_factory else None,
+80 |         )
+   |
+
+E501 Line too long (101 > 100)
+   --> scripts/tau_acs_agent.py:127:101
+    |
+125 |                 state.stream.close()
+126 |                 state.stream = None
+127 |                 reason = "state_uncertain" if record["uncertain_write"] else "adapter_protocol_error"
+    |                                                                                                     ^
+128 |                 return AssistantMessage.text(
+129 |                     "Official tool outcome is unverified. No further operations were attempted.",
+    |
+
+E501 Line too long (101 > 100)
+   --> scripts/tau_acs_agent.py:178:101
+    |
+176 |     def is_stop(cls, message):
+177 |         return (message.raw_data or {}).get("acs_stop_reason") in {
+178 |             "state_uncertain", "adapter_protocol_error", "budget_exceeded", "max_steps", "llm_error",
+    |                                                                                                     ^
+179 |         }
+    |
+
+E501 Line too long (102 > 100)
+   --> scripts/tau_langgraph_agent.py:171:101
+    |
+169 |             if isinstance(message, UserMessage):
+170 |                 if record["status"] != "idle" or message.is_tool_call() or message.is_audio:
+171 |                     raise ValueError("Expected pending official tool receipt or text-only user input")
+    |                                                                                                     ^^
+172 |                 record["status"] = "model"
+173 |                 record["input"] = {"id": "input:" + uuid4().hex, "text": message.content or ""}
+    |
+
+E501 Line too long (101 > 100)
+   --> scripts/tau_langgraph_agent.py:207:101
+    |
+205 |                 return AssistantMessage.text(
+206 |                     "An official tool receipt is missing. No operation was replayed.",
+207 |                     raw_data={"acs_stop_reason": "state_uncertain", "pending_id": record["pending"]},
+    |                                                                                                     ^
+208 |                 ), state
+209 |             if record["status"] == "idle":
+    |
+
+E501 Line too long (116 > 100)
+   --> scripts/tau_langgraph_agent.py:292:101
+    |
+290 |                 # If the model checkpoint committed before a crash, inspect it before advancing.
+291 |                 last = (snapshot.values.get("messages") or [None])[-1]
+292 |                 if not ((snapshot.next and all(n == "tools" for n in snapshot.next)) and isinstance(last, AIMessage)
+    |                                                                                                     ^^^^^^^^^^^^^^^^
+293 |                         and last.tool_calls):
+294 |                     if inputs is not None or snapshot.next:
+    |
+
+E501 Line too long (132 > 100)
+   --> scripts/tau_langgraph_agent.py:300:101
+    |
+298 |                     snapshot = await graph.aget_state(config)
+299 |                 last = (snapshot.values.get("messages") or [None])[-1]
+300 |                 if isinstance(last, AIMessage) and last.tool_calls and (snapshot.next and all(n == "tools" for n in snapshot.next)):
+    |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+301 |                     record["batch"] = [ToolCall(id=c["id"], name=c["name"],
+302 |                                                 arguments=c["args"]).model_dump(mode="json")
+    |
+
+E501 Line too long (103 > 100)
+   --> tests/test_tau_langgraph_adapter.py:100:101
+    |
+ 99 | def plan_task(task_id):
+100 |     return [tool(a.name, a.arguments, a.action_id) for a in TASKS[task_id].evaluation_criteria.actions]
+    |                                                                                                     ^^^
+
+B023 Function definition does not bind loop variable `executed`
+   --> tests/test_tau_langgraph_adapter.py:123:13
+    |
+122 |         def execute(call):
+123 |             executed.append(call.model_dump(mode="json"))
+    |             ^^^^^^^^
+124 |             return original(call)
+    |
+
+B023 Function definition does not bind loop variable `original`
+   --> tests/test_tau_langgraph_adapter.py:124:20
+    |
+122 |         def execute(call):
+123 |             executed.append(call.model_dump(mode="json"))
+124 |             return original(call)
+    |                    ^^^^^^^^
+125 |
+126 |         env.get_response = execute
+    |
+
+E501 Line too long (107 > 100)
+   --> tests/test_tau_langgraph_adapter.py:130:101
+    |
+128 |             model = legacy_decisions(responses)
+129 |             agent = ACSAgent(env.get_tools(), env.get_policy(), receipt_guard=True,
+130 |                              settings=Settings(_env_file=None, max_steps=limits.get("max_model_calls", 10),
+    |                                                                                                     ^^^^^^^
+131 |                                  max_tool_calls=limits.get("max_tool_calls", 12),
+132 |                                  context_max_chars=64000), llm_factory=lambda _: model)
+    |
+
+B023 Function definition does not bind loop variable `model`
+   --> tests/test_tau_langgraph_adapter.py:132:82
+    |
+130 |                              settings=Settings(_env_file=None, max_steps=limits.get("max_model_calls", 10),
+131 |                                  max_tool_calls=limits.get("max_tool_calls", 12),
+132 |                                  context_max_chars=64000), llm_factory=lambda _: model)
+    |                                                                                  ^^^^^
+133 |         else:
+134 |             agent, model = candidate(env, tmp_path / (arm + ".sqlite"), list(responses),
+    |
+
+Found 17 errors (5 fixed, 12 remaining).

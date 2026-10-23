@@ -37,15 +37,17 @@ DB、COMMUNICATE、NL_ASSERTION、ACTION、ENV_ASSERTION 按该版本和每个 t
 费用中止或基础设施失败按固定上游实现和预注册报告，不把缺失样本补成成功，也不拼接新旧版本。
 依据：[官方指标源码](https://github.com/sierra-research/tau2-bench/blob/cc1df47baa1544a34bb8c8e5c4ca72ad223b96a2/src/tau2/metrics/agent_metrics.py)。
 
-## 3. LangGraph Adapter 的具体接线方案，尚未实现
+## 3. LangGraph Adapter 的接线与离线实现状态
 
-现有 `scripts/tau_acs_agent.py` 位于外部评测/V2 分支。其 ACSAgent 依赖旧 agent.messages、
+现有 `scripts/tau_acs_agent.py` 已在当前基线内。其 ACSAgent 依赖旧 agent.messages、
 chat_stream、RunBudget、AgentResult.trace 与 stop_reason，因此不能把 loop_class 直接改为 PoC。
 OfficialRegistry 的官方 schema、消息 ID 配对、返回协议校验和 uncertain_write 保护可借用；
 预算账本、任务冻结、官方 Orchestrator 和评分入口继续复用。
 
-拟新增 `scripts/tau_langgraph_agent.py`，实现官方 HalfDuplexAgent 的 get_init_state、
-generate_next_message 与 stop，注册一个候选 Agent 工厂。
+后续分支 `feat/v3-tau-langgraph-adapter` 已新增 `scripts/tau_langgraph_agent.py`，
+实现官方 HalfDuplexAgent 的 get_init_state、generate_next_message、stop 与 Factory；
+42 项离线合同和 14 组对照已执行通过。以下为接线合同；实现边界与结果详见
+[Adapter 报告](TAU_LANGGRAPH_ADAPTER_REPORT.md)，不得把离线脚本视为真实模型成绩。
 
 1. get_init_state 使用官方 tools 的 schema 和原 domain_policy，导入完整配对的官方消息；
    每个 task/trial/arm 使用独立 thread 与官方隔离环境。模型配置、thinking、输出上限、
@@ -56,8 +58,9 @@ generate_next_message 与 stop，注册一个候选 Agent 工厂。
    并行批次先实现串行出口：每次只交付一个尚未返回的调用，不丢失已排队意图。
 4. 官方工具的业务错误按同一协议映射；未知写/畸形成功回执均停止并核对，原始返回保留。
    Graph Checkpoint 不能代替官方环境的写回执。结束时关闭模型流/客户端，清理本段执行资源。
-5. 输出自然回答时生成官方 AssistantMessage 和原始 usage/审计字段。evaluate_simulation
-   接收未改的官方 Task、trajectory、最终环境和冻结的 evaluation_type。
+5. 输出自然回答时生成官方 AssistantMessage 与审计字段。原生候选的官方 usage／cost 导出
+   尚未接入，是付费 Pilot 前置条件。evaluate_simulation 接收未改的官方 Task、trajectory、
+   最终环境和冻结的 evaluation_type。
 
 本店 PoC 的六工具白名单、中文 prompt、PocBudget 只适用本轮只读冒烟；官方 Adapter 必须
 动态接收官方工具和政策，不能把本店身份工具、商品、退货预览或知识文档塞进官方 Domain。

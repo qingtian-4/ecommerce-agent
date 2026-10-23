@@ -22,9 +22,15 @@ from acs.service_agent import CustomerServiceAgent
 
 
 class OfficialRegistry:
-    def __init__(self, tools):
+    def __init__(self, tools, *, receipt_guard=False):
         self.tools = tools
         self.reply = None
+        self.protocol = None
+        self.protocol_record = None
+        if receipt_guard:
+            from tau_tool_protocol import OfficialToolProtocol
+
+            self.protocol = OfficialToolProtocol(tools)
 
     def schemas(self):
         return [t.openai_schema for t in self.tools]
@@ -33,6 +39,15 @@ class OfficialRegistry:
         if self.reply is None:
             raise RuntimeError("Official tool result was not supplied")
         reply, self.reply = self.reply, None
+        if self.protocol:
+            self.protocol_record = self.protocol.inspect(
+                ToolCall(
+                    id=reply.id,
+                    name=name,
+                    arguments=json.loads(arguments),
+                ),
+                reply,
+            )
         try:
             payload = json.loads(reply.content or "null")
         except json.JSONDecodeError:
@@ -57,9 +72,19 @@ class ACSState:
 
 
 class ACSAgent(HalfDuplexAgent[ACSState]):
+    def __init__(
+        self, tools, domain_policy, *, settings=None, llm_factory=None, receipt_guard=False
+    ):
+        super().__init__(tools, domain_policy)
+        self.settings, self.llm_factory, self.receipt_guard = settings, llm_factory, receipt_guard
+
     def get_init_state(self, message_history=None):
-        settings = get_settings().model_copy(update={"context_max_chars": 64000})
-        agent = CustomerServiceAgent(settings=settings, registry=OfficialRegistry(self.tools))
+        settings = (self.settings or get_settings()).model_copy(update={"context_max_chars": 64000})
+        agent = CustomerServiceAgent(
+            settings=settings,
+            registry=OfficialRegistry(self.tools, receipt_guard=self.receipt_guard),
+            llm=self.llm_factory(settings) if self.llm_factory else None,
+        )
         agent.messages = [
             {
                 "role": "system",
@@ -71,14 +96,18 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
         ]
         for message in message_history or []:
             if isinstance(message, ToolMessage):
-                agent.messages.append({"role": "tool", "tool_call_id": message.id,
-                                       "content": message.content})
+                agent.messages.append(
+                    {"role": "tool", "tool_call_id": message.id, "content": message.content}
+                )
             else:
                 row = {"role": message.role, "content": message.content}
                 if message.tool_calls:
                     row["tool_calls"] = [
-                        {"id": c.id, "type": "function", "function": {
-                            "name": c.name, "arguments": json.dumps(c.arguments)}}
+                        {
+                            "id": c.id,
+                            "type": "function",
+                            "function": {"name": c.name, "arguments": json.dumps(c.arguments)},
+                        }
                         for c in message.tool_calls
                     ]
                 agent.messages.append(row)
@@ -102,6 +131,21 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
         else:
             raise TypeError("Adapter emits serial tool calls; expected a single ToolMessage")
         for result in state.stream:
+            record = state.agent.registry.protocol_record
+            if record and (record["uncertain_write"] or record["protocol_error"]):
+                state.stream.close()
+                state.stream = None
+                reason = (
+                    "state_uncertain" if record["uncertain_write"] else "adapter_protocol_error"
+                )
+                return AssistantMessage.text(
+                    "Official tool outcome is unverified. No further operations were attempted.",
+                    raw_data={
+                        "acs_stop_reason": reason,
+                        "protocol_guard": record,
+                        "acs_receipt_guard": True,
+                    },
+                ), state
             for event in result.trace[state.trace_cursor :]:
                 state.trace_cursor += 1
                 if event.type != "tool_call":
@@ -139,11 +183,30 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
                     },
                     raw_data={
                         "acs_stop_reason": result.stop_reason,
+                        "acs_receipt_guard": self.receipt_guard,
                         "acs_totals": result.totals,
                         "acs_trace": [e.as_dict() for e in result.trace],
                     },
                 ), state
         raise RuntimeError("ACS loop ended without a final result")
+
+    @classmethod
+    def is_stop(cls, message):
+        return bool((message.raw_data or {}).get("acs_receipt_guard")) and (
+            (message.raw_data or {}).get("acs_stop_reason")
+            in {
+                "state_uncertain",
+                "adapter_protocol_error",
+                "budget_exceeded",
+                "max_steps",
+                "llm_error",
+            }
+        )
+
+    def stop(self, message=None, state=None):
+        if state is not None and state.stream is not None:
+            state.stream.close()
+            state.stream = None
 
 
 def create_acs_agent(tools, domain_policy, **kwargs):

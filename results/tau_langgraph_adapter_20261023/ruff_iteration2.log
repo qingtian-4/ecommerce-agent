@@ -1,0 +1,95 @@
+B023 Function definition does not bind loop variable `executed`
+   --> tests/test_tau_langgraph_adapter.py:144:13
+    |
+143 |         def execute(call):
+144 |             executed.append(call.model_dump(mode="json"))
+    |             ^^^^^^^^
+145 |             return original(call)
+    |
+
+B023 Function definition does not bind loop variable `original`
+   --> tests/test_tau_langgraph_adapter.py:145:20
+    |
+143 |         def execute(call):
+144 |             executed.append(call.model_dump(mode="json"))
+145 |             return original(call)
+    |                    ^^^^^^^^
+146 |
+147 |         env.get_response = execute
+    |
+
+B023 Function definition does not bind loop variable `model`
+   --> tests/test_tau_langgraph_adapter.py:160:39
+    |
+158 |                     context_max_chars=64000,
+159 |                 ),
+160 |                 llm_factory=lambda _: model,
+    |                                       ^^^^^
+161 |             )
+162 |         else:
+    |
+
+E501 Line too long (104 > 100)
+   --> tests/test_tau_langgraph_adapter.py:417:101
+    |
+415 |     registry.register_agent_factory(partial(create_langgraph_agent,
+416 |         checkpoint_path=tmp_path / "factory.sqlite", model=model), "offline_langgraph_contract")
+417 |     agent = build_agent("offline_langgraph_contract", env, llm="offline", llm_args={}, task=TASKS["33"])
+    |                                                                                                     ^^^^
+418 |     state = agent.get_init_state([AssistantMessage.text("Official greeting")])
+419 |     assert agent.generate_next_message(UserMessage(role="user", content="One"), state)[0].content == "First"
+    |
+
+F821 Undefined name `AssistantMessage`
+   --> tests/test_tau_langgraph_adapter.py:418:35
+    |
+416 |         checkpoint_path=tmp_path / "factory.sqlite", model=model), "offline_langgraph_contract")
+417 |     agent = build_agent("offline_langgraph_contract", env, llm="offline", llm_args={}, task=TASKS["33"])
+418 |     state = agent.get_init_state([AssistantMessage.text("Official greeting")])
+    |                                   ^^^^^^^^^^^^^^^^
+419 |     assert agent.generate_next_message(UserMessage(role="user", content="One"), state)[0].content == "First"
+420 |     assert agent.generate_next_message(UserMessage(role="user", content="Two"), state)[0].content == "Second"
+    |
+
+E501 Line too long (108 > 100)
+   --> tests/test_tau_langgraph_adapter.py:419:101
+    |
+417 |     agent = build_agent("offline_langgraph_contract", env, llm="offline", llm_args={}, task=TASKS["33"])
+418 |     state = agent.get_init_state([AssistantMessage.text("Official greeting")])
+419 |     assert agent.generate_next_message(UserMessage(role="user", content="One"), state)[0].content == "First"
+    |                                                                                                     ^^^^^^^^
+420 |     assert agent.generate_next_message(UserMessage(role="user", content="Two"), state)[0].content == "Second"
+421 |     assert [m.content for m in model.observed[-1]][-3:] == ["One", "First", "Two"]
+    |
+
+E501 Line too long (109 > 100)
+   --> tests/test_tau_langgraph_adapter.py:420:101
+    |
+418 |     state = agent.get_init_state([AssistantMessage.text("Official greeting")])
+419 |     assert agent.generate_next_message(UserMessage(role="user", content="One"), state)[0].content == "First"
+420 |     assert agent.generate_next_message(UserMessage(role="user", content="Two"), state)[0].content == "Second"
+    |                                                                                                     ^^^^^^^^^
+421 |     assert [m.content for m in model.observed[-1]][-3:] == ["One", "First", "Two"]
+    |
+
+E501 Line too long (102 > 100)
+   --> tests/test_tau_langgraph_adapter.py:424:101
+    |
+424 | @pytest.mark.parametrize("phase", ["model_checkpoint", "dispatched", "executed", "uncertain_receipt"])
+    |                                                                                                     ^^
+425 | def test_real_process_exit_and_recovery(tmp_path, phase):
+426 |     """A child really exits; Graph and external RetailDB are restored independently."""
+    |
+
+E501 Line too long (102 > 100)
+   --> tests/test_tau_langgraph_adapter.py:443:101
+    |
+441 |             if phase == "uncertain_receipt":
+442 |                 agent._stopped = lambda *args: os._exit(71)
+443 |             intent, _ = agent.generate_next_message(UserMessage(role="user", content="Update"), state)
+    |                                                                                                     ^^
+444 |             (tmp_path / "intent.json").write_text(intent.model_dump_json())
+445 |             if phase == "dispatched":
+    |
+
+Found 9 errors.

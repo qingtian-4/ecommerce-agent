@@ -1,0 +1,138 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.12, pytest-9.1.1, pluggy-1.6.0 -- /tmp/ecommerce-v3-tau-adapter-20261023/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/ecommerce-v3-tau-adapter-20261023
+configfile: pyproject.toml
+plugins: anyio-4.15.1, langsmith-0.14.12
+collecting ... 2026-10-23 17:38:13.454 | WARNING  | tau2.utils.utils:<module>:15 - No .env file found
+2026-10-23 17:38:13.454 | INFO     | tau2.utils.utils:<module>:23 - Using data directory from environment: /tmp/acs-external-tau-20261022/data
+2026-10-23 17:38:35.928 | INFO     | tau2.utils.llm_utils:<module>:102 - LiteLLM: Cache is disabled
+2026-10-23 17:38:36.670 | DEBUG    | tau2.registry:<module>:281 - Registering default components...
+2026-10-23 17:38:36.676 | DEBUG    | tau2.registry:<module>:292 - Voice dependencies not installed, skipping voice user registration
+2026-10-23 17:38:36.677 | DEBUG    | tau2.registry:<module>:350 - Default components registered successfully. Registry info: {
+  "domains": [
+    "mock",
+    "airline",
+    "retail",
+    "telecom",
+    "telecom-workflow",
+    "banking_knowledge"
+  ],
+  "agents": [
+    "llm_agent",
+    "llm_agent_gt",
+    "llm_agent_solo",
+    "discrete_time_audio_native_agent"
+  ],
+  "users": [
+    "user_simulator",
+    "dummy_user"
+  ],
+  "task_sets": [
+    "mock",
+    "airline",
+    "retail",
+    "telecom_full",
+    "telecom_small",
+    "telecom",
+    "telecom-workflow",
+    "banking_knowledge"
+  ]
+}
+collected 19 items
+
+tests/test_tau_langgraph_adapter.py::test_official_pair_contracts[direct] 2026-10-23 17:38:46.349 | INFO     | tau2.orchestrator.orchestrator:_validate_mode_compatibility:477 - Orchestrator initialized in HALF_DUPLEX mode (turn-based) with agent=ACSAgent, user=ScriptedUser
+2026-10-23 17:38:46.349 | WARNING  | tau2.agent.base.participant:set_seed:112 - Setting seed for participant is not implemented for class ACSAgent
+2026-10-23 17:38:46.349 | WARNING  | tau2.agent.base.participant:set_seed:112 - Setting seed for participant is not implemented for class ScriptedUser
+2026-10-23 17:38:46.362 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 0. Sending message from Role.AGENT to Role.USER
+2026-10-23 17:38:46.362 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 0.
+From role: Role.AGENT
+To role: Role.USER
+Message: AssistantMessage
+content: Hi! How can I help you today?
+is_final_chunk: True
+2026-10-23 17:38:46.363 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 1. Sending message from Role.USER to Role.AGENT
+2026-10-23 17:38:46.363 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 1.
+From role: Role.USER
+To role: Role.AGENT
+Message: UserMessage
+content: Please follow the requested task.
+is_final_chunk: True
+2026-10-23 17:38:46.367 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 2. Sending message from Role.AGENT to Role.USER
+2026-10-23 17:38:46.367 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 2.
+From role: Role.AGENT
+To role: Role.USER
+Message: AssistantMessage
+content: Task response complete.
+is_final_chunk: True
+2026-10-23 17:38:46.368 | WARNING  | tau2.utils.llm_utils:get_cost:494 - User message has no cost: Please follow the requested task.
+2026-10-23 17:38:46.368 | WARNING  | tau2.utils.llm_utils:get_cost:488 - Agent message has no cost: Task response complete.
+2026-10-23 17:38:46.368 | WARNING  | tau2.utils.llm_utils:get_cost:494 - User message has no cost: ###STOP###
+2026-10-23 17:38:53.027 | INFO     | tau2.orchestrator.orchestrator:_validate_mode_compatibility:477 - Orchestrator initialized in HALF_DUPLEX mode (turn-based) with agent=LangGraphAgent, user=ScriptedUser
+2026-10-23 17:38:53.039 | WARNING  | tau2.agent.base.participant:set_seed:112 - Setting seed for participant is not implemented for class LangGraphAgent
+2026-10-23 17:38:53.039 | WARNING  | tau2.agent.base.participant:set_seed:112 - Setting seed for participant is not implemented for class ScriptedUser
+2026-10-23 17:38:54.020 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 0. Sending message from Role.AGENT to Role.USER
+2026-10-23 17:38:54.020 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 0.
+From role: Role.AGENT
+To role: Role.USER
+Message: AssistantMessage
+content: Hi! How can I help you today?
+is_final_chunk: True
+2026-10-23 17:38:54.020 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 1. Sending message from Role.USER to Role.AGENT
+2026-10-23 17:38:54.020 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 1.
+From role: Role.USER
+To role: Role.AGENT
+Message: UserMessage
+content: Please follow the requested task.
+is_final_chunk: True
+Timeout (0:00:20)!
+Thread 0x000076f84d080640 (most recent call first):
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/aiosqlite/core.py", line 59 in _connection_worker_thread
+  File "/home/qingtian/miniconda3/lib/python3.13/threading.py", line 995 in run
+  File "/home/qingtian/miniconda3/lib/python3.13/threading.py", line 1044 in _bootstrap_inner
+  File "/home/qingtian/miniconda3/lib/python3.13/threading.py", line 1015 in _bootstrap
+
+Thread 0x000076f8c6bfa440 (most recent call first):
+  File "/home/qingtian/miniconda3/lib/python3.13/selectors.py", line 452 in select
+  File "/home/qingtian/miniconda3/lib/python3.13/asyncio/base_events.py", line 2012 in _run_once
+  File "/home/qingtian/miniconda3/lib/python3.13/asyncio/base_events.py", line 683 in run_forever
+  File "/home/qingtian/miniconda3/lib/python3.13/asyncio/base_events.py", line 712 in run_until_complete
+  File "/home/qingtian/miniconda3/lib/python3.13/asyncio/runners.py", line 118 in run
+  File "/home/qingtian/miniconda3/lib/python3.13/asyncio/runners.py", line 195 in run
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/scripts/tau_langgraph_agent.py", line 179 in generate_next_message
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/tau2/orchestrator/orchestrator.py", line 858 in step
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/tau2/orchestrator/orchestrator.py", line 280 in run
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/tests/test_tau_langgraph_adapter.py", line 139 in paired_run
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/tests/test_tau_langgraph_adapter.py", line 163 in test_official_pair_contracts
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/python.py", line 167 in pytest_pyfunc_call
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/python.py", line 1707 in runtest
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 184 in pytest_runtest_call
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 250 in <lambda>
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 361 in from_call
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 249 in call_and_report
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 139 in runtestprotocol
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 118 in pytest_runtest_protocol
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/main.py", line 408 in pytest_runtestloop
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/main.py", line 384 in _main
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/main.py", line 330 in wrap_session
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/main.py", line 377 in pytest_cmdline_main
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py", line 229 in _main
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py", line 253 in _console_main
+  File "/tmp/ecommerce-v3-tau-adapter-20261023/.venv/lib/python3.13/site-packages/pytest/__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main

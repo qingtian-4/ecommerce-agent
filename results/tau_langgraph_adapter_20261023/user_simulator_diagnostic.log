@@ -1,0 +1,244 @@
+F
+=================================== FAILURES ===================================
+_____________________ test_official_pair_contracts[direct] _____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-192/test_official_pair_contracts_d0')
+scenario = 'direct'
+
+    @pytest.mark.parametrize("scenario", ["direct", "single", "steps", "batch", "bad_args", "refusal"])
+    def test_official_pair_contracts(tmp_path, scenario):
+        plans = {
+            "direct": [],
+            "single": [tool()],
+            "steps": [tool(), tool("get_user_details", {"user_id": "noah_patel_6952"}, "c2")],
+            "batch": [
+                AIMessage(
+                    content="",
+                    tool_calls=tool().tool_calls
+                    + tool("get_user_details", {"user_id": "noah_patel_6952"}, "c2").tool_calls,
+                )
+            ],
+            "bad_args": [tool(args={})],
+            "refusal": [tool("cancel_pending_order", {"order_id": "#W6111398", "reason": "other"})],
+        }
+>       rows = paired_run(tmp_path, plans[scenario] + [AIMessage(content="Task response complete.")])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tau_langgraph_adapter.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-192/test_official_pair_contracts_d0')
+responses = [AIMessage(content='Task response complete.', additional_kwargs={}, response_metadata={}, id='lc_run--01a16832-945a-707f-aea2-65bba5d7184f-0', tool_calls=[], invalid_tool_calls=[])]
+task_id = '33', receipt_fault = None, limits = {}
+
+    def paired_run(tmp_path, responses, task_id="33", receipt_fault=None, **limits):
+        rows = []
+        for arm in ["old", "graph"]:
+            env = get_environment()
+            executed = []
+            original = env.get_response
+    
+            def execute(call, executed=executed, original=original):
+                executed.append(call.model_dump(mode="json"))
+                reply = original(call)
+                if receipt_fault and call.name == "modify_user_address":
+                    reply = reply.model_copy(update=receipt_fault)
+                return reply
+    
+            env.get_response = execute
+            if arm == "old":
+                model = legacy_decisions(responses)
+                agent = ACSAgent(
+                    env.get_tools(),
+                    env.get_policy(),
+                    receipt_guard=True,
+                    settings=Settings(
+                        _env_file=None,
+                        max_steps=limits.get("max_model_calls", 10),
+                        max_tool_calls=limits.get("max_tool_calls", 12),
+                        context_max_chars=64000,
+                    ),
+                    llm_factory=lambda _, model=model: model,
+                )
+            else:
+                agent, model = candidate(
+                    env,
+                    tmp_path / (arm + ".sqlite"),
+                    list(responses),
+                    max_model_calls=limits.get("max_model_calls", 10),
+                    max_tool_calls=limits.get("max_tool_calls", 12),
+                )
+            orchestrator = Orchestrator(
+                "retail",
+                agent,
+                build_user("user_simulator", env, TASKS[task_id], llm="offline-fixed-decisions"),
+                env,
+                TASKS[task_id],
+                max_steps=40,
+                max_errors=10,
+                timeout=120,
+                seed=17,
+            )
+            user_requests = []
+    
+            def user_model(*, model, messages, tools, call_name, user_requests=user_requests, **kwargs):
+                user_requests.append(
+                    {
+                        "model": model,
+                        "call_name": call_name,
+                        "messages": [m.model_dump(mode="json") for m in messages],
+                    }
+                )
+                return AssistantMessage.text(
+                    "Please follow the requested task." if len(user_requests) == 1 else "###STOP###"
+                )
+    
+            # Replace only the user's model transport; official simulator/persona/history run unchanged.
+            with patch.object(user_simulator, "generate", user_model):
+                result = orchestrator.run()
+            # DB-only official tasks do not require paid NL judges. ALL is unmodified.
+            try:
+                reward = evaluate_simulation(
+                    result,
+                    TASKS[task_id],
+                    EvaluationType.ALL,
+                    solo_mode=False,
+                    domain="retail",
+                    strict_replay=True,
+                ).model_dump(mode="json")
+            except ValueError as error:
+                if not receipt_fault:
+                    raise
+                # Synthetic transport faults cannot pass the official strict replay.
+                # Preserve that refusal; never relax the scorer or invent a reward.
+                reward = {
+                    "reward": None,
+                    "status": "strict_replay_rejected_injected_receipt",
+                    "error_type": type(error).__name__,
+                }
+    
+            rows.append(
+                {
+                    "arm": arm,
+                    "task_id": task_id,
+                    "db": env.get_db_hash(),
+                    "reward": reward,
+                    "executed": executed,
+                    "messages": result.messages,
+                    "termination": result.termination_reason.value,
+                    "model": model,
+                    "model_requests": model.calls
+                    if arm == "old"
+                    else [
+                        {
+                            "messages": [_convert_message_to_dict(m) for m in messages],
+                            "tools": model.bound[i],
+                        }
+                        for i, messages in enumerate(model.observed)
+                    ],
+                    "user_requests": user_requests,
+                    "state_note": "Official environment hash and raw receipts are authoritative",
+                }
+            )
+        if output := os.environ.get("ACS_TAU_CONTRACT_OUT"):
+            path = Path(output) / (tmp_path.name + ".json")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps(
+                    [
+                        {
+                            k: ([m.model_dump(mode="json") for m in v] if k == "messages" else v)
+                            for k, v in row.items()
+                            if k != "model"
+                        }
+                        for row in rows
+                    ],
+                    indent=2,
+                )
+                + "\n"
+            )
+        assert rows[0]["db"] == rows[1]["db"]
+        assert rows[0]["reward"]["reward"] == rows[1]["reward"]["reward"]
+        assert rows[0]["executed"] == rows[1]["executed"]
+>       assert rows[0]["user_requests"][0] == rows[1]["user_requests"][0]
+E       AssertionError: assert {'model': 'of... False, ...}]} == {'model': 'of... False, ...}]}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'messages': [{'role': 'system', 'content': '# User Simulation Guidelines\nYou are playing the role of a customer cont...24.737777'}, {'role': 'user', 'content': 'Hi! How can I help you today?', 'tool_calls': None, 'is_audio': False, ...}]} != {'messages': [{'role': 'system', 'content': '# User Simulation Guidelines\nYou are playing the role of a customer cont...25.200474'}, {'role': 'user', 'content': 'Hi! How can I help you today?', 'tool_calls': None, 'is_audio': False, ...}]}
+E         Use -v to get more diff
+
+tests/test_tau_langgraph_adapter.py:258: AssertionError
+----------------------------- Captured stderr call -----------------------------
+2026-10-23 17:58:24.737 | INFO     | tau2.orchestrator.orchestrator:_validate_mode_compatibility:477 - Orchestrator initialized in HALF_DUPLEX mode (turn-based) with agent=ACSAgent, user=UserSimulator
+2026-10-23 17:58:24.737 | WARNING  | tau2.agent.base.participant:set_seed:112 - Setting seed for participant is not implemented for class ACSAgent
+2026-10-23 17:58:24.766 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 0. Sending message from Role.AGENT to Role.USER
+2026-10-23 17:58:24.766 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 0.
+From role: Role.AGENT
+To role: Role.USER
+Message: AssistantMessage
+content: Hi! How can I help you today?
+is_final_chunk: True
+2026-10-23 17:58:24.767 | DEBUG    | tau2.user.user_simulator:_generate_next_message:222 - User responds to message: AssistantMessage
+content: Hi! How can I help you today?
+is_final_chunk: True
+2026-10-23 17:58:24.767 | DEBUG    | tau2.user.user_simulator:_generate_next_message:244 - Response: Please follow the requested task.
+2026-10-23 17:58:24.767 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 1. Sending message from Role.USER to Role.AGENT
+2026-10-23 17:58:24.767 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 1.
+From role: Role.USER
+To role: Role.AGENT
+Message: UserMessage
+content: Please follow the requested task.
+is_final_chunk: True
+2026-10-23 17:58:24.770 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 2. Sending message from Role.AGENT to Role.USER
+2026-10-23 17:58:24.771 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 2.
+From role: Role.AGENT
+To role: Role.USER
+Message: AssistantMessage
+content: Task response complete.
+is_final_chunk: True
+2026-10-23 17:58:24.771 | DEBUG    | tau2.user.user_simulator:_generate_next_message:222 - User responds to message: AssistantMessage
+content: Task response complete.
+is_final_chunk: True
+2026-10-23 17:58:24.771 | DEBUG    | tau2.user.user_simulator:_generate_next_message:244 - Response: ###STOP###
+2026-10-23 17:58:24.771 | WARNING  | tau2.utils.llm_utils:get_cost:494 - User message has no cost: Please follow the requested task.
+2026-10-23 17:58:24.771 | WARNING  | tau2.utils.llm_utils:get_cost:488 - Agent message has no cost: Task response complete.
+2026-10-23 17:58:24.771 | WARNING  | tau2.utils.llm_utils:get_cost:494 - User message has no cost: ###STOP###
+2026-10-23 17:58:25.200 | INFO     | tau2.orchestrator.orchestrator:_validate_mode_compatibility:477 - Orchestrator initialized in HALF_DUPLEX mode (turn-based) with agent=LangGraphAgent, user=UserSimulator
+2026-10-23 17:58:25.200 | WARNING  | tau2.agent.base.participant:set_seed:112 - Setting seed for participant is not implemented for class LangGraphAgent
+2026-10-23 17:58:26.096 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 0. Sending message from Role.AGENT to Role.USER
+2026-10-23 17:58:26.096 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 0.
+From role: Role.AGENT
+To role: Role.USER
+Message: AssistantMessage
+content: Hi! How can I help you today?
+is_final_chunk: True
+2026-10-23 17:58:26.096 | DEBUG    | tau2.user.user_simulator:_generate_next_message:222 - User responds to message: AssistantMessage
+content: Hi! How can I help you today?
+is_final_chunk: True
+2026-10-23 17:58:26.096 | DEBUG    | tau2.user.user_simulator:_generate_next_message:244 - Response: Please follow the requested task.
+2026-10-23 17:58:26.096 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 1. Sending message from Role.USER to Role.AGENT
+2026-10-23 17:58:26.096 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 1.
+From role: Role.USER
+To role: Role.AGENT
+Message: UserMessage
+content: Please follow the requested task.
+is_final_chunk: True
+2026-10-23 17:58:28.293 | DEBUG    | tau2.orchestrator.orchestrator:step:829 - Step 2. Sending message from Role.AGENT to Role.USER
+2026-10-23 17:58:28.293 | DEBUG    | tau2.orchestrator.orchestrator:step:832 - Step 2.
+From role: Role.AGENT
+To role: Role.USER
+Message: AssistantMessage
+content: Task response complete.
+is_final_chunk: True
+2026-10-23 17:58:28.293 | DEBUG    | tau2.user.user_simulator:_generate_next_message:222 - User responds to message: AssistantMessage
+content: Task response complete.
+is_final_chunk: True
+2026-10-23 17:58:28.293 | DEBUG    | tau2.user.user_simulator:_generate_next_message:244 - Response: ###STOP###
+2026-10-23 17:58:28.293 | WARNING  | tau2.utils.llm_utils:get_cost:494 - User message has no cost: Please follow the requested task.
+2026-10-23 17:58:28.293 | WARNING  | tau2.utils.llm_utils:get_cost:488 - Agent message has no cost: Task response complete.
+2026-10-23 17:58:28.293 | WARNING  | tau2.utils.llm_utils:get_cost:494 - User message has no cost: ###STOP###
+=========================== short test summary info ============================
+FAILED tests/test_tau_langgraph_adapter.py::test_official_pair_contracts[direct]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 8.60s

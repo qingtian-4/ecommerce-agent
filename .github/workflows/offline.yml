@@ -10,13 +10,20 @@ jobs:
       GRADIO_ANALYTICS_ENABLED: 'False'
       ACS_LLM_API_KEY: ''
       ACS_EMBEDDING_API_KEY: ''
+      LITELLM_LOCAL_MODEL_COST_MAP: 'True'
+      TAU2_DATA_DIR: ${{ github.workspace }}/.tau-upstream/data
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: sierra-research/tau2-bench
+          ref: dd8757d4c8791dad7b3cdaf02a105a3d5f9d86bd
+          path: .tau-upstream
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
       - run: python -m pip install uv==0.11.8
-      - run: uv sync --extra dev --extra v3 --frozen
+      - run: uv sync --extra dev --extra v3 --extra tau --frozen
       - run: uv run pytest
       - run: uv run ruff check .
       - run: uv run python scripts/check_secrets.py --all-tracked

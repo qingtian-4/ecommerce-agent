@@ -31,6 +31,9 @@ v3 = [
     "langgraph>=1.2.16",
     "langgraph-checkpoint-sqlite>=3.1.2",
 ]
+tau = [
+    "tau2 ; python_full_version >= '3.12' and python_full_version < '3.14'",
+]
 
 [project.scripts]
 acs = "acs.cli:app"
@@ -44,6 +47,9 @@ packages = ["src/acs"]
 
 [tool.uv]
 package = true
+
+[tool.uv.sources]
+tau2 = { git = "https://github.com/sierra-research/tau2-bench", rev = "dd8757d4c8791dad7b3cdaf02a105a3d5f9d86bd" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
