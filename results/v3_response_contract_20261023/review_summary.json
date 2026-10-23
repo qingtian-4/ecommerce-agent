@@ -1,0 +1,40 @@
+{
+  "baseline": "93db5cf",
+  "depth": "deep",
+  "source_scope": "official adapters, actual HTTP/callback evidence, episode resume and pilot export",
+  "reviews": [
+    {
+      "scope": "security + assumptions/abuse",
+      "status": "completed; fixes re-reviewed",
+      "findings_fixed": [
+        "resume tool dispatch budget bypass",
+        "persist structural evidence before usage failure",
+        "public tool call ID privacy"
+      ],
+      "remaining_blockers": []
+    },
+    {
+      "scope": "architecture + composition/cascade",
+      "status": "completed",
+      "remaining_blockers": [],
+      "advisory": [
+        "unexpected multiple choices outside frozen n=1 configuration"
+      ]
+    }
+  ],
+  "regression_red": {
+    "test": "test_mixed_response_preserves_semantics_and_official_parity",
+    "baseline": "93db5cf",
+    "outcome": "1 failed before implementation",
+    "log": ".ci-artifacts/response-contract/red.log"
+  },
+  "paid_requests_at_review": 0,
+  "history_overwritten": false,
+  "default_local_runtime_changed": false,
+  "failures_retained_locally": [
+    "Early targeted runs exposed a misplaced test branch and duplicate fixture alias; corrected before final acceptance.",
+    "The I/O timeout fixture included unrelated setup/fsync under a 0.2 second deadline; use a fixed ledger wall clock and start immediately before HTTP; original timeout assertion retained.",
+    "Superseded full runs were deliberately interrupted when review fixes changed source; only verified-full is a final gate.",
+    "First completed full suite: 838 passed, 1 failed. New ContractLLM incorrectly assumed tool.name. Fixed by reading the existing openai_schema function name; original bridge test and assertions unchanged. Final full CI required before paid requests."
+  ]
+}

@@ -578,6 +578,11 @@ def test_invalid_model_calls_never_reach_official_execution(tmp_path, kind):
     agent, _ = candidate(env, tmp_path / "bad.sqlite", [messages[kind]])
     state = agent.get_init_state()
     result, _ = agent.generate_next_message(UserMessage(role="user", content="Check"), state)
+    if kind == "mixed":
+        assert result.tool_calls[0].id == "c1"
+        assert result.content == ""
+        assert agent._load(state)["tool_calls"] == 1
+        return
     assert result.raw_data["acs_stop_reason"] == "adapter_protocol_error"
     assert agent._load(state)["tool_calls"] == 0
 

@@ -11,6 +11,7 @@ import hashlib
 import importlib.metadata
 import json
 import os
+import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
@@ -22,9 +23,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from check_tau_langgraph_adapter import digest, verify_upstream  # noqa: E402
+from tau_pilot_artifacts import export_ledger, public_trace  # noqa: E402
 
 from acs.config import Settings  # noqa: E402
 from acs.episode_budget import PRICE, EpisodeLedger, EpisodeLimits  # noqa: E402
+from acs.response_evidence import ResponseEvidence  # noqa: E402
 
 ARMS = ["acs_loop_receipt_guard", "langgraph"]
 LIMITS = EpisodeLimits(requests=24, tools=24, steps=80, episode_timeout_s=300)
@@ -38,7 +41,7 @@ def fingerprints():
     return {str(p.relative_to(ROOT)): digest(p) for p in sorted([
         *ROOT.joinpath("src/acs").glob("*.py"),
         *ROOT.joinpath("scripts").glob("tau_*.py"), Path(__file__),
-        ROOT / "tests/test_episode_budget.py",
+        *ROOT.joinpath("tests").glob("test_*.py"),
     ])}
 
 
@@ -58,6 +61,8 @@ def validate_gates(path):
 
 def manifest(upstream):
     return {"scope": "Development Pilot, exposed tasks; no generalization or pass^k claim",
+            "source_commit": subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
             "upstream": verify_upstream(upstream), "order": [
                 {"task": task, "arm": arm} for task in ("33", "34") for arm in ARMS],
             "roles": {r: "deepseek-flash" for r in ("agent", "user", "judge")},
@@ -66,6 +71,8 @@ def manifest(upstream):
             "limits": asdict(LIMITS), "global_requests": 48, "global_cap_cny": 5,
             "workers": 1, "seed": 20261023, "evaluation": "official ALL / strict_replay",
             "receipt_guard": "enabled for BOTH arms; old default is unchanged",
+            "smoke": {"arms": ARMS, "requests_per_arm": 4, "read_only": True,
+                      "shares_global_ledger": True},
             "price": PRICE, "source": fingerprints(), "python": sys.version,
             "packages": {p: importlib.metadata.version(p) for p in (
                 "tau2", "openai", "litellm", "langchain", "langgraph", "httpx")}}
@@ -130,6 +137,7 @@ def price_preflight(settings, out):
 
 
 def run(out, upstream, env_file):
+    os.umask(0o077)  # All local runtime evidence, checkpoints and raw traces are private.
     validate_gates(out / "gates.json")
     frozen = json.loads((out / "manifest.json").read_text())
     if frozen != manifest(upstream):
@@ -157,8 +165,15 @@ def run(out, upstream, env_file):
     from tau2.runner.simulation import run_simulation
     from tau_episode import make_agent, sync_client
 
-    ledger = EpisodeLedger(out / "ledger.jsonl")
+    private = ResponseEvidence(out / ".private-evidence").root
+    ledger = EpisodeLedger(private / "ledger.jsonl")
     tasks = {t.id: t for t in get_tasks("base")}
+    if not run_smoke(settings, ledger, private, out):
+        write_json(out / "scorecard.json", {"scope": frozen["scope"],
+            "episodes": [{**item, "reward": None, "status": "not_started_smoke_failed"}
+                         for item in frozen["order"]], "accounting": ledger.summary()})
+        export_ledger(ledger, out)
+        return
     scorecard, halt = [], False
     for item in frozen["order"]:
         episode = item["task"] + "-" + item["arm"]
@@ -166,7 +181,7 @@ def run(out, upstream, env_file):
         if halt:
             scorecard.append(entry | {"status": "not_started_after_failure_or_budget_stop"})
             continue
-        episode_out = out / "intermediate" / episode
+        episode_out = private / episode
         episode_out.mkdir(parents=True, exist_ok=False)
         ledger.begin(episode, LIMITS)
         started = time.perf_counter()
@@ -210,20 +225,23 @@ def run(out, upstream, env_file):
                                        if m["role"] == "user")
                 entry.update(status="evaluated", reward=result.reward_info.reward,
                     db_reward=(result.reward_info.reward_breakdown or {}).get("DB"),
-                    reward_info=result.reward_info.model_dump(mode="json"),
+                    reward_breakdown=result.reward_info.reward_breakdown,
                     termination=result.termination_reason.value)
             except Exception as exc:
                 # No retry and no fabricated zero reward for an unscored run.
                 entry.update(status="failed_unscored", error_type=type(exc).__name__,
-                    error=str(exc).replace(settings.llm_api_key, "[REDACTED]")[:1000])
+                    error="Raw exception retained in restricted local trace")
                 raw = {"messages": [m.model_dump(mode="json")
                                     for m in orchestrator.get_trajectory()],
-                       "error": entry["error"]}
+                       "error_type": type(exc).__name__, "error": str(exc).replace(
+                           settings.llm_api_key, "[REDACTED]")}
                 halt = True
             finally:
                 agent.stop(state=getattr(orchestrator, "agent_state", None))
-            with gzip.open(out / (episode + ".trace.json.gz"), "wt", encoding="utf-8") as trace:
+            with gzip.open(private / (episode + ".trace.json.gz"), "wt", encoding="utf-8") as trace:
                 json.dump(raw, trace, ensure_ascii=False)
+            write_json(out / (episode + ".trace.public.json"), public_trace(
+                raw, {t.name for t in environment.get_tools()}))
         entry.update(duration_s=time.perf_counter()-started, initial_db=initial_db,
                      final_db=environment.get_db_hash(), accounting=ledger.summary(episode),
                      tool_executions=sum(r["type"] == "tool_execute_started"
@@ -235,10 +253,69 @@ def run(out, upstream, env_file):
         scorecard.append(entry)
         write_json(out / "scorecard.json", {"scope": frozen["scope"], "episodes": scorecard,
                                               "accounting": ledger.summary()})
+        export_ledger(ledger, out)
         print(json.dumps({k: entry[k] for k in ("episode", "status", "reward", "db_reward")}),
               flush=True)
     write_json(out / "scorecard.json", {"scope": frozen["scope"], "episodes": scorecard,
                                           "accounting": ledger.summary()})
+    export_ledger(ledger, out)
+
+
+def run_smoke(settings, ledger, private, out):
+    """Real SDK/runtime read-only connectivity; not an official task score."""
+    from tau2.data_model.message import UserMessage
+    from tau2.domains.retail.environment import get_environment
+    from tau_episode import make_agent
+
+    results = []
+    prompt = (
+        'Read-only connectivity check. My user_id is noah_patel_6952, name Noah Patel, '
+        'email noah.patel1792@example.com and zip 10108. Please use the official tools '
+        'to check my order #W1845024 and report its status. Do not modify anything.'
+    )
+    for arm in ARMS:
+        episode = 'smoke-' + arm
+        ledger.begin(episode, EpisodeLimits(requests=4, tools=4, steps=12, episode_timeout_s=120))
+        env = get_environment()
+        before = env.get_db_hash()
+        agent = make_agent(arm, env, settings, ledger, episode, private / (episode + '.sqlite'))
+        state = agent.get_init_state()
+        row = {'episode': episode, 'status': 'not_completed', 'tool_executions': 0}
+        try:
+            message = UserMessage(role='user', content=prompt)
+            for _ in range(6):
+                reply, state = agent.generate_next_message(message, state)
+                if agent.is_stop(reply):
+                    row['status'] = 'runtime_stopped'
+                    break
+                if not reply.tool_calls:
+                    row['status'] = 'passed' if row['tool_executions'] else 'no_tool_call'
+                    break
+                # The smoke authorizes reads only; official tools/policy are unchanged.
+                for call in reply.tool_calls:
+                    tool = next(t for t in env.get_tools() if t.name == call.name)
+                    if getattr(tool._func, '__mutates_state__', True):
+                        ledger.stop(episode, 'smoke_write_not_authorized')
+                        raise RuntimeError('Smoke attempted a write; not executed')
+                    ledger.remaining(episode)
+                    ledger.event(episode, 'tool_execute_started', call=call.model_dump(mode='json'))
+                    message = env.get_response(call)
+                    ledger.event(episode, 'tool_execute_returned',
+                                 receipt=message.model_dump(mode='json'))
+                    row['tool_executions'] += 1
+        except Exception as exc:
+            row.update(status='failed', error_type=type(exc).__name__)
+        finally:
+            agent.stop(state=state)
+        row.update(db_unchanged=env.get_db_hash() == before, accounting=ledger.summary(episode))
+        results.append(row)
+        write_json(out / 'smoke.json', {'scope': 'Real read-only Development Smoke; no task Reward',
+                                       'episodes': results, 'accounting': ledger.summary()})
+        export_ledger(ledger, out)
+        if (row['status'] != 'passed' or not row['db_unchanged']
+                or row['accounting']['stop_reasons']):
+            return False
+    return True
 
 
 def main():

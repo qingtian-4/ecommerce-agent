@@ -284,9 +284,9 @@ def test_official_judge_uses_guarded_sdk(tmp_path, monkeypatch):
 @pytest.mark.parametrize("episode_timeout,model_timeout,reason", [
     (2, 0.02, "TimeoutError"), (0.2, 2, "TimeoutError")])
 def test_total_response_timeout_not_per_chunk(tmp_path, episode_timeout, model_timeout, reason):
-    ledger = EpisodeLedger(tmp_path / "ledger")
-    ledger.begin("e", EpisodeLimits(episode_timeout_s=episode_timeout,
-                                    model_timeout_s=model_timeout))
+    # Test the total I/O timer independently of host fsync scheduling. Exact durable
+    # deadline boundaries are covered by test_deadline_and_limits_survive_reopen.
+    ledger = EpisodeLedger(tmp_path / "ledger", clock=lambda: 100)
     class Trickle(httpx.AsyncByteStream):
         async def __aiter__(self):
             while True:
@@ -295,6 +295,8 @@ def test_total_response_timeout_not_per_chunk(tmp_path, episode_timeout, model_t
     async def run():
         async with httpx.AsyncClient(transport=EpisodeAsyncTransport(ledger, "e", "agent",
             httpx.MockTransport(lambda r: httpx.Response(200, stream=Trickle())))) as client:
+            ledger.begin("e", EpisodeLimits(episode_timeout_s=episode_timeout,
+                                            model_timeout_s=model_timeout))
             with pytest.raises(TimeoutError):
                 await client.post("https://offline.test", content=BODY)
     asyncio.run(run())

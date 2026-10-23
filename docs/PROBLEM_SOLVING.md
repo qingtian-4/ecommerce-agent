@@ -1190,3 +1190,11 @@ asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送�
 审查中关闭了迟到真实回执丢失、未知写 guard 可被新实例绕过、最终输出恢复后漏记费用，以及官方提前结束空 breakdown 被展示逻辑误判四个窗口。实际测试、开发期真实 Pilot、失败与费用记录见 [统一预算报告](v3/EPISODE_BUDGET_PILOT_REPORT.md) 和 [本次实验](../results/tau_development_pilot_20261023/REPORT.md)。本轮不替换默认 Agent，也不把两个开发任务的 DB Reward 当作泛化能力或 Judge 准确性。
 
 本轮实际结果：全仓 810 passed、0 skipped；真实执行 17 次请求，任务 33 旧 Loop 的 Task/DB Reward 为 1，V3 因模型协议守卫为 0，任务 34 两臂未启动。真实调用费用按 usage 估算 0.0123984 CNY，保守预留 1.372904 CNY。另一个离线配对诊断暴露“文本＋工具调用”的守卫不一致；真实拒绝输出未保存，不能把该诊断当作实际失败谓词的证明。最终 No-Go，先关闭协议与取证阻塞，暂缓本地退货迁移；没有重跑失败题。
+
+## V3：共享响应合同与拒绝前取证
+
+上轮真实 Task 33 的复合拒绝谓词无法从历史文件还原，不能把 mixed 输出猜测写成根因。本轮先在 `93db5cf` 上实际运行新增 mixed 回归，官方配对断言失败；旧 Loop 接受而 V3 拒绝同一合法响应，证实了一个独立的协议根因。
+
+将完整响应判断共享到两个官方 Adapter，混合文本保留模型上下文、仅投影工具意图给官方执行器；坏 JSON、异常完成标记及 ID 仍整批拒绝。HTTP 响应在 SDK/Guard 之前进入本地受限证据目录，公开结果仅投影结构。恢复后首次工具派发也复用外层预算检查，避免 checkpoint 已提交时绕过工具额度。
+
+本轮历史证据不覆盖，真实验证采用新运行 ID、源码 SHA 和共用的 5 元/48 次账本。实际红绿、完整测试和新 Pilot 结果在本轮结果报告；设计边界见 [响应合同根因](v3/RESPONSE_PROTOCOL_ROOT_CAUSE.md)、[Worktree 审计](v3/WORKTREE_AUDIT.md) 和 [下一里程碑](v3/V3_NEXT_MILESTONE.md)。

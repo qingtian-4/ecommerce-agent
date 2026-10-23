@@ -33,15 +33,16 @@ from tau2.data_model.message import AssistantMessage, ToolCall, ToolMessage, Use
 from tau_tool_protocol import OfficialToolProtocol
 
 from acs.langgraph_poc import deepseek_model
+from acs.model_response_contract import ModelResponseError, require_response
 
-VERSION = "tau-langgraph-halfduplex-1"
+VERSION = "tau-langgraph-halfduplex-2"
 
 
 class TaskBudgetExceeded(RuntimeError):
     pass
 
 
-class IncompleteModelResponse(RuntimeError):
+class IncompleteModelResponse(ModelResponseError):
     pass
 
 
@@ -86,6 +87,7 @@ class LangGraphAgent(HalfDuplexAgent[LangGraphState]):
         max_tool_calls=12,
         model_timeout_s=60,
         task_timeout_s=120,
+        response_observer=None,
     ):
         super().__init__(tools, domain_policy)
         if min(max_model_calls, max_tool_calls, model_timeout_s, task_timeout_s) <= 0:
@@ -95,6 +97,7 @@ class LangGraphAgent(HalfDuplexAgent[LangGraphState]):
         self.max_model_calls, self.max_tool_calls = max_model_calls, max_tool_calls
         self.model_timeout_s, self.task_timeout_s = model_timeout_s, task_timeout_s
         self.protocol = OfficialToolProtocol(tools)
+        self.response_observer = response_observer
         self.prompt = SYSTEM_PROMPT.format(
             agent_instruction=AGENT_INSTRUCTION, domain_policy=domain_policy
         )
@@ -303,6 +306,7 @@ class LangGraphAgent(HalfDuplexAgent[LangGraphState]):
                 "model_calls": record["model_calls"],
                 "tool_calls": record["tool_calls"],
                 "protocol": record["protocol"],
+                "response_predicate": record.get("response_predicate"),
             },
         )
 
@@ -317,6 +321,13 @@ class LangGraphAgent(HalfDuplexAgent[LangGraphState]):
             record["model_calls"] += 1
             self._save(state, record)  # Count attempted requests, including failures and restarts.
             remaining = self._remaining(record)
+            snapshot_before = await graph.aget_state(config)
+            context = {"thread_id": state.thread_id,
+                       "checkpoint_id": (snapshot_before.config or {}).get(
+                           "configurable", {}).get("checkpoint_id"),
+                       "model_call": record["model_calls"]}
+            if self.response_observer:
+                self.response_observer(None, context)
             response = await asyncio.wait_for(
                 handler(request.override(tools=self.schemas)), min(self.model_timeout_s, remaining)
             )
@@ -324,19 +335,16 @@ class LangGraphAgent(HalfDuplexAgent[LangGraphState]):
             for msg in response.result:
                 if not isinstance(msg, AIMessage):
                     continue
-                if (
-                    msg.response_metadata.get("finish_reason") not in {None, "stop", "tool_calls"}
-                    or msg.invalid_tool_calls
-                    or (msg.tool_calls and msg.content)
-                ):
-                    raise IncompleteModelResponse("Partial, malformed or mixed model response")
-                ids = [c["id"] for c in msg.tool_calls]
-                if (
-                    len(ids) != len(set(ids))
-                    or any(not i for i in ids)
-                    or set(ids).intersection(record["used_ids"])
-                ):
-                    raise IncompleteModelResponse("Repeated or empty model tool call ID")
+                report = require_response(
+                    msg.content,
+                    [{"id": c["id"], "name": c["name"], "arguments": c["args"]}
+                     for c in msg.tool_calls],
+                    msg.response_metadata.get("finish_reason"),
+                    known_tools=self.protocol.tools, used_ids=record["used_ids"],
+                    invalid_calls=msg.invalid_tool_calls,
+                    evidence=self.response_observer, context=context,
+                )
+                record["last_model_response"] = report
             return response
 
         async with AsyncSqliteSaver.from_conn_string(str(self.path)) as saver:
@@ -439,7 +447,8 @@ class LangGraphAgent(HalfDuplexAgent[LangGraphState]):
                 record["final_reply"] = reply.model_dump(mode="json")
                 self._save(state, record)
                 return reply
-            except IncompleteModelResponse:
+            except ModelResponseError as exc:
+                record["response_predicate"] = exc.predicate
                 return self._stopped(state, record, "adapter_protocol_error")
             except TaskBudgetExceeded:
                 return self._stopped(state, record, "budget_exceeded")

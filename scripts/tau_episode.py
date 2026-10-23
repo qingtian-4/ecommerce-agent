@@ -15,6 +15,7 @@ from tau_langgraph_agent import LangGraphAgent
 from acs.episode_transport import EpisodeAsyncTransport, EpisodeCallback, EpisodeSyncTransport
 from acs.langgraph_poc import deepseek_model
 from acs.llm import LLMClient
+from acs.response_evidence import ResponseEvidence
 from acs.runtime import BudgetExceeded
 
 
@@ -44,13 +45,7 @@ class EpisodeAgent(HalfDuplexAgent):
                 self.ledger.tool_receipt(self.episode, message.model_dump(mode="json"))
             self.ledger.remaining(self.episode)
             reply, state = self.inner.generate_next_message(message, state)
-            if self.inner.is_stop(reply):
-                self.ledger.stop(self.episode, (reply.raw_data or {}).get(
-                    "acs_stop_reason", "adapter_protocol_error"))
-            # Check after I/O as well; a response arriving at the deadline is unfinished.
-            self.ledger.remaining(self.episode)
-            for call in reply.tool_calls or []:
-                self.ledger.tool_intent(self.episode, call.model_dump(mode="json"))
+            self._record_output(reply)
         except BudgetExceeded as exc:
             reply = AssistantMessage.text(
                 "Episode execution stopped; no further operations attempted.",
@@ -95,12 +90,23 @@ class EpisodeAgent(HalfDuplexAgent):
                     "request_ids": [r["request_id"] for r in ends]})
 
     def resume(self, state):
-        self.ledger.remaining(self.episode)
-        reply, state = self.inner.resume(state)
-        if self.inner.is_stop(reply):
-            self.ledger.stop(self.episode, reply.raw_data["acs_stop_reason"])
+        try:
+            self.ledger.remaining(self.episode)
+            reply, state = self.inner.resume(state)
+            self._record_output(reply)
+        except BudgetExceeded as exc:
+            reply = AssistantMessage.text("Episode execution stopped; no operation replayed.",
+                                          raw_data={"episode_stop_reason": str(exc)})
         self._export_usage(reply)
         return reply, state
+
+    def _record_output(self, reply):
+        if self.inner.is_stop(reply):
+            self.ledger.stop(self.episode, (reply.raw_data or {}).get(
+                "acs_stop_reason", "adapter_protocol_error"))
+        self.ledger.remaining(self.episode)
+        for call in reply.tool_calls or []:
+            self.ledger.tool_intent(self.episode, call.model_dump(mode="json"))
 
     @classmethod
     def is_stop(cls, message):
@@ -115,6 +121,7 @@ class EpisodeAgent(HalfDuplexAgent):
 
 
 def sync_client(settings, ledger, episode, role, *, inner_factory=None):
+    configure_evidence(settings, ledger)
     return OpenAI(api_key=settings.llm_api_key, base_url=settings.llm_base_url,
                   max_retries=0, timeout=settings.llm_timeout_s,
                   http_client=httpx.Client(transport=EpisodeSyncTransport(
@@ -122,6 +129,7 @@ def sync_client(settings, ledger, episode, role, *, inner_factory=None):
 
 
 def make_agent(arm, environment, settings, ledger, episode, checkpoint, *, transport_factory=None):
+    configure_evidence(settings, ledger)
     tools, policy = environment.get_tools(), environment.get_policy()
     limits = ledger._state(ledger.rows(), episode)["limits"]
     # Both inner protections exceed the ENTIRE outer experiment; they cannot stop
@@ -145,6 +153,15 @@ def make_agent(arm, environment, settings, ledger, episode, checkpoint, *, trans
         inner = ACSAgent(tools, policy, settings=settings, llm_factory=llm_factory,
                          receipt_guard=True)
     elif arm == "langgraph":
+        def observe(report, context):
+            if report is None:
+                ledger.event(episode, "graph_context", **context)
+            else:
+                latest = next((r for r in reversed(ledger.rows(episode))
+                    if r["type"] == "request_end" and r["role"] == "agent"), {})
+                ledger.event(episode, "adapter_response", request_id=latest.get("request_id"),
+                             **context, **report)
+
         model = deepseek_model(settings, callbacks=[EpisodeCallback(ledger, episode)],
                                http_async_client=http_async(),
                                http_client=httpx.Client(transport=EpisodeSyncTransport(
@@ -152,7 +169,14 @@ def make_agent(arm, environment, settings, ledger, episode, checkpoint, *, trans
         inner = LangGraphAgent(tools, policy, checkpoint_path=checkpoint, model=model,
                               max_model_calls=49, max_tool_calls=49,
                               model_timeout_s=limits["model_timeout_s"] + 1,
-                              task_timeout_s=limits["episode_timeout_s"] + 1000)
+                              task_timeout_s=limits["episode_timeout_s"] + 1000,
+                              response_observer=observe)
     else:
         raise ValueError("Unknown comparison arm")
     return EpisodeAgent(inner, ledger, episode)
+
+
+def configure_evidence(settings, ledger):
+    if not hasattr(ledger, "evidence"):
+        ledger.evidence = ResponseEvidence(ledger.journal.path.parent / ".private-evidence",
+                                         secrets=(settings.llm_api_key,))

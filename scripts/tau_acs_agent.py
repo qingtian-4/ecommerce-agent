@@ -14,6 +14,7 @@ from typing import Any
 from tau2.agent.base_agent import HalfDuplexAgent
 from tau2.agent.llm_agent import AGENT_INSTRUCTION, SYSTEM_PROMPT
 from tau2.data_model.message import AssistantMessage, ToolCall, ToolMessage, UserMessage
+from tau_model_response import ContractLLM
 
 from acs.config import get_settings
 from acs.cs_tools import TraceEvent
@@ -111,6 +112,8 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
                         for c in message.tool_calls
                     ]
                 agent.messages.append(row)
+        used = [c["id"] for m in agent.messages for c in m.get("tool_calls", [])]
+        agent.llm = ContractLLM(agent.llm, self.tools, used)
         return ACSState(agent)
 
     def generate_next_message(self, message, state):
@@ -131,6 +134,15 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
         else:
             raise TypeError("Adapter emits serial tool calls; expected a single ToolMessage")
         for result in state.stream:
+            if state.agent.llm.rejection:
+                state.stream.close()
+                state.stream = None
+                return AssistantMessage.text(
+                    "Execution stopped: adapter_protocol_error. No further operations attempted.",
+                    raw_data={"acs_stop_reason": "adapter_protocol_error",
+                              "response_predicate": state.agent.llm.rejection,
+                              "acs_receipt_guard": True},
+                ), state
             record = state.agent.registry.protocol_record
             if record and (record["uncertain_write"] or record["protocol_error"]):
                 state.stream.close()
