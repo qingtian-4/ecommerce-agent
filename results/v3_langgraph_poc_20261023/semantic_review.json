@@ -1,0 +1,20 @@
+{
+  "reviewer": "author coding assistant; not independent human blind review",
+  "basis": "smoke_plan.json frozen before first live attempt; actual tool receipts and initial_business.sql",
+  "task_labels": "small development smoke, not unseen validation or official benchmark",
+  "cases": [
+    {"id": "p1", "pass": true, "evidence": "live_p1_resumed.jsonl", "note": "Catalog queried; six <=400 headphone candidates. Out-of-budget models explicitly separated. H2 unavailability disclosed."},
+    {"id": "p2", "pass": true, "evidence": "live_p2.jsonl", "note": "Historical catalog reused; 250 budget and in-ear constraint leave V201 at179, exclude V202 at369."},
+    {"id": "p3", "pass": true, "evidence": "live_p3.jsonl", "note": "Pronoun bound to V201 via get_product;179, black/white available."},
+    {"id": "o1", "pass": true, "evidence": "live_o1.jsonl", "note": "get_order and get_logistics for S20004; pending and no tracking, no invented carrier."},
+    {"id": "o2", "pass": true, "evidence": "live_o2.jsonl", "note": "Order reference maps S20004 to V209;get_product returns119."},
+    {"id": "i1", "pass": true, "evidence": "live_i1.jsonl", "note": "get_logistics reads S20010; no tracking, cancelled status. Previous V201 context retained."},
+    {"id": "i2", "pass": true, "evidence": "live_i2.jsonl", "note": "Return to V201; earlier actual SKU result supports anc=1. No new tool needed for this static property."},
+    {"id": "a1", "pass": true, "evidence": "live_a1.jsonl", "note": "list_orders then enumerates multiple charger order candidates and asks which order; no guessed unique binding."},
+    {"id": "a2", "pass": true, "evidence": "live_a2.jsonl", "note": "Explicit S20004 selected via get_order; pending and119."},
+    {"id": "c1", "pass": true, "evidence": "live_c1.jsonl", "note": "Explicit correction from V201 to V202; get_product369. Earlier250 budget noted without overriding explicit lookup."},
+    {"id": "final1", "pass": true, "evidence": "live_final1.jsonl", "note": "Post protocol-review source: two intents both answered with get_product/get_order; V201179 and S20004pending."},
+    {"id": "final2", "pass": true, "evidence": "live_final2.jsonl", "note": "New OS process: order pronoun resolved to S20004; real get_logistics, no tracking fabricated."}
+  ],
+  "limits": ["No paid semantic judge", "No natural wrong-tool-argument failure observed; covered by offline injected tests", "Connection failure was sandbox-side, not evidence of vendor outage recovery", "No full return or exchange task tested", "Initial ten turns preceded protocol-review fixes; two post-review real turns are separate evidence", "Final generator-close and tool-limit adjustments are verified offline and do not change the normal streamed CLI path used by these real turns"]
+}

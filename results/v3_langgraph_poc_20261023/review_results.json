@@ -1,0 +1,26 @@
+{
+  "baseline": "f34981fa1324310a9d0f0de4430fe1980ba664e9",
+  "scope": "all added runtime, CLI, budget, tests, dependency and CI changes; docs and generated evidence checked by primary agent",
+  "depth": "deep",
+  "specialists": ["architecture", "security"],
+  "findings_found": 5,
+  "findings_fixed": 5,
+  "findings_deferred": 0,
+  "findings": [
+    {"issue": "length-truncated response declared completed", "regression": "test_truncated_model_output_never_completes"},
+    {"issue": "registry error mapped to native tool success", "regression": "test_tool_execution_failure_has_consistent_native_status"},
+    {"issue": "denied write intent followed by fabricated success answer", "regression": "test_write_tools_not_exposed_or_executed"},
+    {"issue": "consumer-close event missed or duplicated after terminal", "regression": "test_generator_close_terminal_event[False/True]"},
+    {"issue": "native tool-limit error stranded pending session", "regression": "test_tool_limit_blocks_excess_calls_without_stranding_session"}
+  ],
+  "adversarial_ledger": [
+    {"angle": "assumption violation", "status": "returned; generator-close issue fixed and covered"},
+    {"angle": "composition failures", "status": "returned; native limit issue fixed and covered"},
+    {"angle": "cascade construction", "status": "returned; fixed limit followed by next turn and completed-stream close verified"},
+    {"angle": "abuse cases", "status": "returned; 1000 reinitialized-budget attempts, 1000 cross-user accesses, competing process lock checked offline"}
+  ],
+  "sibling_sweep": "all stream terminal paths, model/tool error projections, ask/resume/inspect owner checks, limit and failure request paths",
+  "unreviewed_remainder": [],
+  "limits": ["No independent human review", "No live API calls by review agents", "No guarantee against arbitrary ungrounded model prose", "No production or writable Graph evaluation"],
+  "doc_debt": "none within PoC scope; future capabilities are explicitly labelled design"
+}

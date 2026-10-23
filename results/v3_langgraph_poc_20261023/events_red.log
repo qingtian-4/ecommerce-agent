@@ -1,0 +1,58 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_________ test_generator_close_has_one_truthful_terminal_event[False] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-176/test_generator_close_has_one_t0')
+close_after_completion = False
+
+    @pytest.mark.parametrize("close_after_completion", [False, True])
+    def test_generator_close_has_one_truthful_terminal_event(settings, tmp_path, close_after_completion):
+        model = ScriptedModel(responses=[AIMessage(content="完整回答")])
+        with ReadOnlyPoc(settings, tmp_path / "graph.sqlite", "USER001", model=model) as poc:
+            stream = poc.stream("session", "查询")
+            assert next(stream).type == "run_started"
+            if close_after_completion:
+                for event in stream:
+                    if event.type == "run_completed":
+                        break
+            stream.close()
+        events = [json.loads(line) for line in poc.audit_path.read_text().splitlines()]
+        terminal = [e["type"] for e in events if e["type"] in {"run_completed", "run_interrupted"}]
+>       assert terminal == ["run_completed" if close_after_completion else "run_interrupted"]
+E       AssertionError: assert [] == ['run_interrupted']
+E         
+E         Right contains one more item: 'run_interrupted'
+E         Use -v to get more diff
+
+tests/test_langgraph_poc.py:158: AssertionError
+__________ test_generator_close_has_one_truthful_terminal_event[True] __________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-176/test_generator_close_has_one_t1')
+close_after_completion = True
+
+    @pytest.mark.parametrize("close_after_completion", [False, True])
+    def test_generator_close_has_one_truthful_terminal_event(settings, tmp_path, close_after_completion):
+        model = ScriptedModel(responses=[AIMessage(content="完整回答")])
+        with ReadOnlyPoc(settings, tmp_path / "graph.sqlite", "USER001", model=model) as poc:
+            stream = poc.stream("session", "查询")
+            assert next(stream).type == "run_started"
+            if close_after_completion:
+                for event in stream:
+                    if event.type == "run_completed":
+                        break
+            stream.close()
+        events = [json.loads(line) for line in poc.audit_path.read_text().splitlines()]
+        terminal = [e["type"] for e in events if e["type"] in {"run_completed", "run_interrupted"}]
+>       assert terminal == ["run_completed" if close_after_completion else "run_interrupted"]
+E       AssertionError: assert ['run_complet..._interrupted'] == ['run_completed']
+E         
+E         Left contains one more item: 'run_interrupted'
+E         Use -v to get more diff
+
+tests/test_langgraph_poc.py:158: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_langgraph_poc.py::test_generator_close_has_one_truthful_terminal_event[False]
+FAILED tests/test_langgraph_poc.py::test_generator_close_has_one_truthful_terminal_event[True]
+2 failed, 17 deselected in 6.54s

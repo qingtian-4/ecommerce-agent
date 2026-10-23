@@ -1,0 +1,66 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+___________________ test_write_tools_not_exposed_or_executed ___________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-170/test_write_tools_not_exposed_o0')
+
+    def test_write_tools_not_exposed_or_executed(settings, tmp_path):
+        model = ScriptedModel(responses=[call("update_return_task", {"order_id": "O10023"}),
+                                         AIMessage(content="退货申请已提交，退款已经完成。")])
+        before = settings.db_path.read_bytes()
+        with ReadOnlyPoc(settings, tmp_path / "graph.sqlite", "USER001", model=model) as poc:
+            assert set(READ_TOOLS) == {"list_products", "get_product", "list_orders", "get_order",
+                                       "get_logistics", "get_price_history"}
+>           with pytest.raises(PermissionError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE PermissionError
+
+tests/test_langgraph_poc.py:126: Failed
+_________________ test_truncated_model_output_never_completes __________________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-170/test_truncated_model_output_ne0')
+
+    def test_truncated_model_output_never_completes(settings, tmp_path):
+        model = ScriptedModel(responses=[AIMessage(content="尚未写完的回答",
+                                                   response_metadata={"finish_reason": "length"})])
+        with ReadOnlyPoc(settings, tmp_path / "graph.sqlite", "USER001", model=model) as poc:
+>           with pytest.raises(RuntimeError, match="Incomplete"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE RuntimeError
+
+tests/test_langgraph_poc.py:138: Failed
+___________ test_tool_execution_failure_has_consistent_native_status ___________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-170/test_tool_execution_failure_ha0')
+
+    def test_tool_execution_failure_has_consistent_native_status(settings, tmp_path):
+        import sqlite3
+    
+        registry = ToolRegistry(settings)
+    
+        def fail(*a, **kw):
+            raise sqlite3.OperationalError("controlled DB failure")
+    
+        registry.db.get_product = fail
+        model = ScriptedModel(responses=[call("get_product", {"product_id": "P001"}),
+                                         AIMessage(content="查询失败，尚未核实价格")])
+        with ReadOnlyPoc(settings, tmp_path / "graph.sqlite", "USER001",
+                         model=model, registry=registry) as poc:
+            events = run(poc)
+            tool_message = next(m for m in poc.snapshot("session").values["messages"]
+                                if isinstance(m, ToolMessage))
+>           assert tool_message.status == "error"
+E           AssertionError: assert 'success' == 'error'
+E             
+E             - error
+E             + success
+
+tests/test_langgraph_poc.py:161: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_langgraph_poc.py::test_write_tools_not_exposed_or_executed
+FAILED tests/test_langgraph_poc.py::test_truncated_model_output_never_completes
+FAILED tests/test_langgraph_poc.py::test_tool_execution_failure_has_consistent_native_status
+3 failed, 12 deselected in 9.94s

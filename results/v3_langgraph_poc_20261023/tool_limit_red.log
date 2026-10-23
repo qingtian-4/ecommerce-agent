@@ -1,0 +1,145 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_tool_limit_blocks_excess_calls_without_stranding_session _________
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-177/test_tool_limit_blocks_excess_0')
+
+    def test_tool_limit_blocks_excess_calls_without_stranding_session(settings, tmp_path):
+        batch = AIMessage(content="", tool_calls=[
+            {"id": f"c{i}", "name": "get_product", "args": {"product_id": "P001"}}
+            for i in range(13)
+        ])
+        model = ScriptedModel(responses=[batch, AIMessage(content="有一个查询超过调用上限，未执行"),
+                                         AIMessage(content="新问题可以继续")])
+        with ReadOnlyPoc(settings, tmp_path / "graph.sqlite", "USER001", model=model) as poc:
+>           events = run(poc)
+                     ^^^^^^^^
+
+tests/test_langgraph_poc.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_langgraph_poc.py:50: in run
+    return list(poc.stream(sid, text))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/acs/langgraph_poc.py:219: in stream
+    for mode, data in self.graph.stream(
+.venv/lib/python3.13/site-packages/langgraph/pregel/main.py:3058: in stream
+    for _ in runner.tick(
+.venv/lib/python3.13/site-packages/langgraph/pregel/_runner.py:345: in tick
+    _panic_or_proceed(
+.venv/lib/python3.13/site-packages/langgraph/pregel/_runner.py:694: in _panic_or_proceed
+    raise exc
+.venv/lib/python3.13/site-packages/langgraph/pregel/_executor.py:80: in done
+    task.result()
+/home/qingtian/miniconda3/lib/python3.13/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/home/qingtian/miniconda3/lib/python3.13/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/home/qingtian/miniconda3/lib/python3.13/concurrent/futures/thread.py:59: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/langgraph/pregel/_retry.py:617: in run_with_retry
+    return task.proc.invoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/langgraph/_internal/_runnable.py:707: in invoke
+    input = context.run(step.invoke, input, config, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/langgraph/_internal/_runnable.py:447: in invoke
+    ret = self.func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <langchain.agents.middleware.tool_call_limit.ToolCallLimitMiddleware object at 0x76ce7dbd2a50>
+state = {'messages': [HumanMessage(content='查询商品P001', additional_kwargs={}, response_metadata={}, id='bfe98f4e-a059-4592-8f9a...}, {'name': 'get_product', 'args': {'product_id': 'P001'}, 'id': 'c12', 'type': 'tool_call'}], invalid_tool_calls=[])]}
+runtime = Runtime(context=None, store=None, stream_writer=<function Pregel.stream.<locals>.stream_writer at 0x76ce7d7ee0c0>, hea...rst_attempt_time=1792744199.705863), server_info=None, control=<langgraph.runtime.RunControl object at 0x76ce7e3f19f0>)
+
+    @hook_config(can_jump_to=["end"])
+    @override
+    def after_model(
+        self,
+        state: ToolCallLimitState[ResponseT],
+        runtime: Runtime[ContextT],
+    ) -> dict[str, Any] | None:
+        """Increment tool call counts after a model call and check limits.
+    
+        Args:
+            state: The current agent state.
+            runtime: The langgraph runtime.
+    
+        Returns:
+            State updates with incremented tool call counts. If limits are exceeded
+                and exit_behavior is `'end'`, also includes a jump to end with a
+                `ToolMessage` for each exceeded tool call, an explanatory
+                `ToolMessage` for any other pending tool calls, and an AI message.
+    
+        Raises:
+            ToolCallLimitExceededError: If limits are exceeded and `exit_behavior`
+                is `'error'`.
+        """
+        # Get the last AIMessage to check for tool calls
+        messages = state.get("messages", [])
+        if not messages:
+            return None
+    
+        # Find the last AIMessage
+        last_ai_message = None
+        for message in reversed(messages):
+            if isinstance(message, AIMessage):
+                last_ai_message = message
+                break
+    
+        if not last_ai_message or not last_ai_message.tool_calls:
+            return None
+    
+        # Get the count key for this middleware instance
+        count_key = self.tool_name or "__all__"
+    
+        # Get current counts
+        thread_counts = state.get("thread_tool_call_count", {}).copy()
+        run_counts = state.get("run_tool_call_count", {}).copy()
+        current_thread_count = thread_counts.get(count_key, 0)
+        current_run_count = run_counts.get(count_key, 0)
+    
+        # Separate tool calls into allowed and blocked
+        allowed_calls, blocked_calls, new_thread_count, new_run_count = self._separate_tool_calls(
+            last_ai_message.tool_calls, current_thread_count, current_run_count
+        )
+    
+        # Update counts to include only allowed calls for thread count
+        # (blocked calls don't count towards thread-level tracking)
+        # But run count includes blocked calls since they were attempted in this run
+        thread_counts[count_key] = new_thread_count
+        run_counts[count_key] = new_run_count + len(blocked_calls)
+    
+        # If no tool calls are blocked, just update counts
+        if not blocked_calls:
+            if allowed_calls:
+                return {
+                    "thread_tool_call_count": thread_counts,
+                    "run_tool_call_count": run_counts,
+                }
+            return None
+    
+        # Get final counts for building messages
+        final_thread_count = thread_counts[count_key]
+        final_run_count = run_counts[count_key]
+    
+        # Handle different exit behaviors
+        if self.exit_behavior == "error":
+            # Use hypothetical thread count to show which limit was exceeded
+            hypothetical_thread_count = final_thread_count + len(blocked_calls)
+>           raise ToolCallLimitExceededError(
+                thread_count=hypothetical_thread_count,
+                run_count=final_run_count,
+                thread_limit=self.thread_limit,
+                run_limit=self.run_limit,
+                tool_name=self.tool_name,
+            )
+E           langchain.agents.middleware.tool_call_limit.ToolCallLimitExceededError: Tool call limit reached: run limit exceeded (13/12 calls).
+E           During task with name 'ToolCallLimitMiddleware.after_model' and id 'c5c20ec4-2f80-db25-9bdb-7b0cc4ca66a8'
+
+.venv/lib/python3.13/site-packages/langchain/agents/middleware/tool_call_limit.py:400: ToolCallLimitExceededError
+=========================== short test summary info ============================
+FAILED tests/test_langgraph_poc.py::test_tool_limit_blocks_excess_calls_without_stranding_session
+1 failed, 19 deselected in 4.43s

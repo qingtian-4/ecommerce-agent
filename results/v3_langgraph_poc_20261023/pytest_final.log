@@ -1,0 +1,48 @@
+........................................................................ [ 10%]
+........................................................................ [ 20%]
+........................................................................ [ 30%]
+........................................................................ [ 40%]
+........................................................................ [ 50%]
+........................................................................ [ 60%]
+........................................................................ [ 70%]
+........................................................................ [ 80%]
+........................................................................ [ 90%]
+...............................................................F.......  [100%]
+=================================== FAILURES ===================================
+_____ test_trickling_stream_stops_with_partial_text_and_no_orphan_messages _____
+
+settings = Settings(llm_provider='deepseek', llm_api_key='test-key', llm_base_url='http://127.0.0.1:35691/v1', llm_model='deepsee...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+provider = ('http://127.0.0.1:35691/v1', [('/v1/chat/completions', {'model': 'deepseek-flash', 'stream': True, 'messages': [{'rol..."entry": null}, "other_configured_channels": []}'}, {'role': 'user', 'content': '测试持续断流'}], 'max_tokens': 1024, ...})])
+
+    def test_trickling_stream_stops_with_partial_text_and_no_orphan_messages(settings, provider):
+        base, requests = provider
+        settings = settings.model_copy(update={
+            "llm_api_key": "test-key", "llm_base_url": base, "turn_timeout_s": 0.8,
+        })
+        updates = list(ChatService(settings).run_turn("测试持续断流", "USER001"))
+        final = updates[-1]
+        assert final.result.stop_reason == "budget_exceeded"
+        assert "尚未完成" in final.result.answer and "本次回答未完成" in final.result.answer
+>       assert final.elapsed_ms < 1800
+E       AssertionError: assert 2055.353866016958 < 1800
+E        +  where 2055.353866016958 = TurnUpdate(session_id='442361d0549c427babf8fa56c04df5ce', history=[{'role': 'user', 'content': '测试持续断流'}, {'role': 'as...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-23T08:43:22.061191+00:00'}, phase='completed', elapsed_ms=2055.353866016958).elapsed_ms
+
+tests/test_turn_budget.py:71: AssertionError
+=============================== warnings summary ===============================
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/miniconda3/lib/python3.13/contextlib.py:141: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    return next(self.gen)
+
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /tmp/ecommerce-v3-langgraph-20261023/.venv/lib/python3.13/site-packages/gradio/queueing.py:178: Pandas4Warning: The copy keyword is deprecated and will be removed in a future version. Copy-on-Write is active in pandas since 3.0 which utilizes a lazy copy mechanism that defers copies until necessary. Use .copy() to make an eager copy if necessary.
+    pd.DataFrame(records).fillna(value=np.nan).infer_objects(copy=False)  # type: ignore
+
+tests/test_return_review.py::test_http_auth_guards_config_callbacks_and_ignores_forged_username
+  /home/qingtian/miniconda3/lib/python3.13/contextlib.py:148: Pandas4Warning: 'future.no_silent_downcasting' is deprecated, please refrain from using it.
+    next(self.gen)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_turn_budget.py::test_trickling_stream_stops_with_partial_text_and_no_orphan_messages
+1 failed, 718 passed, 1 skipped, 4 warnings in 775.72s (0:12:55)

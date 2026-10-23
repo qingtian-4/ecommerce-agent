@@ -1,0 +1,23 @@
+[
+  {
+    "check": "help",
+    "exit_code": 0,
+    "stdout": "usage: langgraph_poc.py [-h] --state-dir STATE_DIR [--env-file ENV_FILE]\n                        [--user-id USER_ID]\n                        {init,ask,resume,inspect} ...\n\nExplicit CLI for the optional V3 experiment. No default application switch.\n\npositional arguments:\n  {init,ask,resume,inspect}\n    init                创建全新合成场景，拒绝覆盖已有目录\n\noptions:\n  -h, --help            show this help message and exit\n  --state-dir STATE_DIR\n  --env-file ENV_FILE\n  --user-id USER_ID     应用注入的模拟身份，不是网络认证\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "check": "init_existing",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/tmp/ecommerce-v3-langgraph-20261023/scripts/langgraph_poc.py\", line 59, in <module>\n    main()\n    ~~~~^^\n  File \"/tmp/ecommerce-v3-langgraph-20261023/scripts/langgraph_poc.py\", line 30, in main\n    build_scenario(root)\n    ~~~~~~~~~~~~~~^^^^^^\n  File \"/tmp/ecommerce-v3-langgraph-20261023/src/acs/scenarios.py\", line 59, in build_scenario\n    raise FileExistsError(\"场景目录已存在，拒绝覆盖数据和会话\")\nFileExistsError: 场景目录已存在，拒绝覆盖数据和会话\n",
+    "expected": 1
+  },
+  {
+    "check": "inspect_foreign",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/tmp/ecommerce-v3-langgraph-20261023/scripts/langgraph_poc.py\", line 59, in <module>\n    main()\n    ~~~~^^\n  File \"/tmp/ecommerce-v3-langgraph-20261023/scripts/langgraph_poc.py\", line 48, in main\n    state = poc.snapshot(args.session_id)\n  File \"/tmp/ecommerce-v3-langgraph-20261023/src/acs/langgraph_poc.py\", line 191, in snapshot\n    return self.graph.get_state(self._config(session_id))\n                                ~~~~~~~~~~~~^^^^^^^^^^^^\n  File \"/tmp/ecommerce-v3-langgraph-20261023/src/acs/langgraph_poc.py\", line 185, in _config\n    raise PermissionError(\"会话不存在或无权访问\")\nPermissionError: 会话不存在或无权访问\n",
+    "expected": 1
+  }
+]

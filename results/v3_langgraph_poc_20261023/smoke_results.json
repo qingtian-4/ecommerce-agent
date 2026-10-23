@@ -1,0 +1,135 @@
+{
+  "results": [
+    {
+      "id": "p1",
+      "session": "products",
+      "text": "帮我找400元以内的耳机，先列一下有哪些候选。",
+      "exit_code": 0,
+      "elapsed_ms": null,
+      "completed": true,
+      "answer": "400元以内的耳机候选（按当前售价）：\n\n| 商品 | 佩戴方式 | 当前售价 | 备注 |\n|---|---|---|---|\n| 演示 A1 入耳耳机 | 入耳式 | 179元 | 关闭降噪单次续航8小时，USB-C充电 |\n| 演示 S1 半入耳耳机 | 半入耳式 | 149元 | 单次续航6小时，不支持主动降噪 |\n| 演示 H2 头戴耳机 | 头戴式 | 239元 | 单次续航45小时，不支持主动降噪；目前两个颜色均无货 |\n| 演示 O1 开放挂耳耳机 | 开放式挂耳 | 279元 | 单次续航9小时，不进入耳道 |\n| 演示 A2 入耳耳机 | 入耳式 | 369元 | 关闭降噪单次续航10小时，支持无线充电；银色无货 |\n| 演示 O2 耳夹耳机 | 开放式耳夹 | 379元 | 单次续航7小时，不进入耳道 |\n\n超出预算的：H1 头戴耳机 499元、B1 骨传导耳机 469元。\n\n需要我按佩戴方式或续航等条件再筛一下吗？",
+      "tools": [
+        "list_products"
+      ],
+      "evidence": "live_p1_resumed.jsonl"
+    },
+    {
+      "id": "p2",
+      "session": "products",
+      "text": "再加一个条件：必须是入耳式，预算改成250元以内。",
+      "exit_code": 0,
+      "elapsed_ms": 18382.187207986135,
+      "completed": true,
+      "answer": "按“入耳式 + 250元以内”筛选，只有 1 款符合：\n\n| 商品 | 佩戴方式 | 当前售价 | 备注 |\n|---|---|---|---|\n| 演示 A1 入耳耳机 | 入耳式 | 179元 | 关闭降噪单次续航8小时，USB-C充电；黑色、白色均有货 |\n\n另一款入耳式的 A2 售价 369元，超出新预算。需要看 A1 的详细参数吗？",
+      "tools": [],
+      "evidence": "live_p2.jsonl"
+    },
+    {
+      "id": "p3",
+      "session": "products",
+      "text": "刚才符合条件的那款，它现在多少钱，有哪些颜色能买？",
+      "exit_code": 0,
+      "elapsed_ms": 11909.752804989694,
+      "completed": true,
+      "answer": "演示 A1 入耳耳机当前售价 179元（价格更新于 2026-10-12）。\n\n可购买的颜色：黑色、白色，均有货。",
+      "tools": [
+        "get_product"
+      ],
+      "evidence": "live_p3.jsonl"
+    },
+    {
+      "id": "o1",
+      "session": "orders",
+      "text": "查一下我S20004订单的状态和物流。",
+      "exit_code": 0,
+      "elapsed_ms": 19552.724778011907,
+      "completed": true,
+      "answer": "订单 S20004 目前状态是**待处理（pending）**，还没有发货，所以暂时没有物流信息。\n\n- 下单时间：2026-10-14\n- 商品：演示 C65 充电器（白色）×1\n- 实付金额：119.00 元\n\n需要我帮你查别的吗？",
+      "tools": [
+        "get_order",
+        "get_logistics"
+      ],
+      "evidence": "live_o1.jsonl"
+    },
+    {
+      "id": "o2",
+      "session": "orders",
+      "text": "这单里那个商品是什么，现在售价多少？",
+      "exit_code": 0,
+      "elapsed_ms": 19506.66380597977,
+      "completed": true,
+      "answer": "这单里的商品是**演示 C65 充电器**（品牌：合成演示，类目：充电配件），你买的是白色款。\n\n- 规格：最高 65W、双 USB-C 口、不附赠充电线\n- 当前售价：**119.00 元**（2026-10-12 调整过价格）\n- 你的购买单价也是 119.00 元，目前没有差价",
+      "tools": [
+        "get_product"
+      ],
+      "evidence": "live_o2.jsonl"
+    },
+    {
+      "id": "i1",
+      "session": "products",
+      "text": "先插问一下，S20010的物流到哪了？",
+      "exit_code": 0,
+      "elapsed_ms": 12872.921624977607,
+      "completed": true,
+      "answer": "订单 S20010 目前没有物流信息，可能尚未发货；该订单状态显示为已取消。\n\n需要我帮你列出你的订单候选，确认一下具体是哪一单吗？另外，刚才 A1 耳机的问题（179元，黑色、白色有货）已经答复，还有其他想了解的吗？",
+      "tools": [
+        "get_logistics"
+      ],
+      "evidence": "live_i1.jsonl"
+    },
+    {
+      "id": "i2",
+      "session": "products",
+      "text": "回到之前选的那款耳机，它支持主动降噪吗？",
+      "exit_code": 0,
+      "elapsed_ms": 8807.165345002431,
+      "completed": true,
+      "answer": "演示 A1 入耳耳机支持主动降噪（SKU 参数中 anc=1），关闭降噪时单次续航 8 小时，USB-C 充电，不支持无线充电。",
+      "tools": [],
+      "evidence": "live_i2.jsonl"
+    },
+    {
+      "id": "a1",
+      "session": "ambiguous",
+      "text": "我之前买的充电器订单现在什么状态？不记得订单号了。",
+      "exit_code": 0,
+      "elapsed_ms": 22618.439712998224,
+      "completed": true,
+      "answer": "您有多个包含充电器的订单，需要确认是哪一个：\n\n1. **S20004** — 演示 C65 充电器（白色），待处理\n2. **S20010** — 演示 C30 充电器（蓝色），已取消\n3. **S20013** — 演示 C65 充电器（白色）+ 演示 B1 骨传导耳机，已发货\n4. **S20005** — 演示 O2 耳夹耳机 + 演示 C30 充电器（白色），已取消\n5. **S20018** — 演示 C65 充电器（黑色），已发货\n6. **S20017** — 演示 H1 头戴耳机 + 演示 C65 充电器（白色），已签收\n\n请问是哪一个订单？告诉我订单号或商品型号/颜色即可。",
+      "tools": [
+        "list_orders"
+      ],
+      "evidence": "live_a1.jsonl"
+    },
+    {
+      "id": "a2",
+      "session": "ambiguous",
+      "text": "我要看S20004。",
+      "exit_code": 0,
+      "elapsed_ms": 13051.182499999413,
+      "completed": true,
+      "answer": "订单 **S20004** 当前状态：**待处理（pending）**，尚未发货。\n\n- 商品：演示 C65 充电器（白色）× 1\n- 下单时间：2026-10-14\n- 实付金额：119.00 元\n- 当前售价：119.00 元，无差价\n\n需要我帮您查物流吗？不过该订单还未发货，可能暂无物流轨迹。",
+      "tools": [
+        "get_order"
+      ],
+      "evidence": "live_a2.jsonl"
+    },
+    {
+      "id": "c1",
+      "session": "products",
+      "text": "更正一下，我现在要看V202，不是刚才那款。它现在多少钱？",
+      "exit_code": 0,
+      "elapsed_ms": 9139.965545997256,
+      "completed": true,
+      "answer": "演示 A2 入耳耳机（V202）当前售价 369元（价格更新于 2026-10-12）。\n\n提醒一下：这超出了你之前设的 250元预算。颜色方面黑色有货、银色无货。",
+      "tools": [
+        "get_product"
+      ],
+      "evidence": "live_c1.jsonl"
+    }
+  ],
+  "business_sha256_before": "f69ced70e9642bd54185e024333142d1e7489023b0802dbe464c7f3a2f7dd4d9",
+  "business_sha256_after": "f69ced70e9642bd54185e024333142d1e7489023b0802dbe464c7f3a2f7dd4d9",
+  "business_unchanged": true,
+  "fresh_process_each_turn": true
+}

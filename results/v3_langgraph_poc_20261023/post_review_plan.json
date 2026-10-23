@@ -1,0 +1,10 @@
+{
+  "purpose": "One real completion on final reviewed source, not a rerun selected for quality",
+  "budget": "Continue original requests.jsonl with its existing reservations; <=5 CNY total, <=40 attempts total",
+  "frozen_before_final_live": true,
+  "cases": [
+    {"id": "final1", "session": "final-reviewed", "text": "查一下V201现在售价，以及我S20004的订单状态。", "expect": "Both read-only tasks answered using real get_product/get_order; V201=179, S20004=pending"},
+    {"id": "final2", "session": "final-reviewed", "text": "那单物流到哪了？", "expect": "Fresh process uses S20004 from graph history, reads logistics, no invented tracking"}
+  ],
+  "stop": "No automatic retry if either case fails; retain source hash, events, usage and failure."
+}

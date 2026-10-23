@@ -1,0 +1,27 @@
+{
+  "frozen_before_live": "2026-10-23",
+  "purpose": "Small real DeepSeek smoke; no benchmark score or scripted tool decisions",
+  "model": "deepseek-flash",
+  "thinking": false,
+  "cap_cny": 5,
+  "max_requests": 40,
+  "planned_requests": "20-30, at most 40 including failed attempts and recovery",
+  "planned_tokens": "roughly 30000 input and 5000 output; actual per-request usage logged",
+  "planned_peak_miss_estimate_cny": 0.108,
+  "accounting": "Before every request persist non-refundable reservation at peak cache-miss rates; sum reservations <= 5; no automatic provider retries",
+  "stop_conditions": ["40 requests", "next reservation exceeds 5 CNY", "missing usage", "token bound violation", "unexpected failure: stop that case and retain all records; do not rerun for a better answer"],
+  "cases": [
+    {"id": "p1", "session": "products", "text": "帮我找400元以内的耳机，先列一下有哪些候选。", "expect": "Use catalog; all recommended candidates <= 400; no charger as headphone"},
+    {"id": "p2", "session": "products", "text": "再加一个条件：必须是入耳式，预算改成250元以内。", "expect": "Preserve headphones; replace budget; V201 qualifies, V202 does not"},
+    {"id": "p3", "session": "products", "text": "刚才符合条件的那款，它现在多少钱，有哪些颜色能买？", "expect": "Bind pronoun to V201 and query current product/SKU facts"},
+    {"id": "o1", "session": "orders", "text": "查一下我S20004订单的状态和物流。", "expect": "Read USER001 order and logistics, use actual results"},
+    {"id": "o2", "session": "orders", "text": "这单里那个商品是什么，现在售价多少？", "expect": "Bind order pronoun to S20004, product V209"},
+    {"id": "i1", "session": "products", "text": "先插问一下，S20010的物流到哪了？", "expect": "Answer S20010 logistics without replacing product selection"},
+    {"id": "i2", "session": "products", "text": "回到之前选的那款耳机，它支持主动降噪吗？", "expect": "Return to V201, use authoritative product attributes"},
+    {"id": "a1", "session": "ambiguous", "text": "我之前买的充电器订单现在什么状态？不记得订单号了。", "expect": "list_orders; multiple charger orders require clarification, no guessed unique binding"},
+    {"id": "a2", "session": "ambiguous", "text": "我要看S20004。", "expect": "Bind explicit selection and get_order"},
+    {"id": "c1", "session": "products", "text": "更正一下，我现在要看V202，不是刚才那款。它现在多少钱？", "expect": "Explicit object correction binds V202; historical 250 budget must not replace explicit lookup"}
+  ],
+  "faults": "Offline native graph tests cover invalid arguments, provider exception, abrupt os._exit and resume. Live controlled failure and resume may add one request; label injected failure separately from natural provider failure.",
+  "evaluation": "Author assistant inspects frozen expectations against answers and real tool receipts; no paid judge or independent blind review. Every CLI ask is a new OS process, preserving the same checkpoint database."
+}
