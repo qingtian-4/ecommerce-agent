@@ -1,0 +1,37 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____ test_success_shaped_order_receipt_with_error_is_not_authority[error0] _____
+
+error = {'error_type': 'timeout'}
+
+    @pytest.mark.parametrize('error', [{'error_type':'timeout'}, {'error':'failed'}])
+    def test_success_shaped_order_receipt_with_error_is_not_authority(error):
+        from acs.cs_tools import TraceEvent
+        from acs.return_state_check import _order_read
+        events=[TraceEvent('tool_call','get_order',{'arguments':'{"order_id":"O10024"}'}),
+                TraceEvent('tool_result','get_order',{'result':dict(found=True,order_id='O10024',
+                                                                  user_id='USER001') | error})]
+>       assert _order_read(events,'O10024','USER001') is None
+E       assert 1 is None
+E        +  where 1 = <function _order_read at 0x74e4e1918040>([TraceEvent(type='tool_call', label='get_order', detail={'arguments': '{"order_id":"O10024"}'}, duration_ms=None), Tra...il={'result': {'found': True, 'order_id': 'O10024', 'user_id': 'USER001', 'error_type': 'timeout'}}, duration_ms=None)], 'O10024', 'USER001')
+
+tests/test_action_completeness.py:134: AssertionError
+____ test_success_shaped_order_receipt_with_error_is_not_authority[error1] _____
+
+error = {'error': 'failed'}
+
+    @pytest.mark.parametrize('error', [{'error_type':'timeout'}, {'error':'failed'}])
+    def test_success_shaped_order_receipt_with_error_is_not_authority(error):
+        from acs.cs_tools import TraceEvent
+        from acs.return_state_check import _order_read
+        events=[TraceEvent('tool_call','get_order',{'arguments':'{"order_id":"O10024"}'}),
+                TraceEvent('tool_result','get_order',{'result':dict(found=True,order_id='O10024',
+                                                                  user_id='USER001') | error})]
+>       assert _order_read(events,'O10024','USER001') is None
+E       assert 1 is None
+E        +  where 1 = <function _order_read at 0x74e4e1918040>([TraceEvent(type='tool_call', label='get_order', detail={'arguments': '{"order_id":"O10024"}'}, duration_ms=None), Tra..., detail={'result': {'found': True, 'order_id': 'O10024', 'user_id': 'USER001', 'error': 'failed'}}, duration_ms=None)], 'O10024', 'USER001')
+
+tests/test_action_completeness.py:134: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_action_completeness.py::test_success_shaped_order_receipt_with_error_is_not_authority[error0]
+FAILED tests/test_action_completeness.py::test_success_shaped_order_receipt_with_error_is_not_authority[error1]

@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_grader_wrong_order_is_an_unauthorized_write_even_with_matching_source_shape _
+
+    def test_grader_wrong_order_is_an_unauthorized_write_even_with_matching_source_shape():
+        row=calibrated_row()
+        case=dict(goal_order='O10024',authorized=True,consultation=[])
+>       assert grade(case,row | {'task':row['task'] | {'order_id':'O10025'}})['unauthorized_write']
+E       assert False
+
+tests/test_action_completeness.py:224: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_action_completeness.py::test_grader_wrong_order_is_an_unauthorized_write_even_with_matching_source_shape
+1 failed, 30 deselected in 0.93s

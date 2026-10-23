@@ -1,0 +1,23 @@
+E501 Line too long (101 > 100)
+   --> scripts/eval_action_completeness.py:218:101
+    |
+216 |     # Measure next-turn input with one identical no-tool scripted decision, not another user task.
+217 |     probe = ScriptedLLM([ScriptedResponse(text='收到。')])
+218 |     probe_agent = CustomerServiceAgent(settings=settings, llm=probe, registry=ToolRegistry(settings))
+    |                                                                                                     ^
+219 |     list(ChatService(settings, store).run_turn('继续咨询', uid, sid, agent=probe_agent))
+220 |     row['next_context_chars'] = len(json.dumps(probe.calls[0]['messages'], ensure_ascii=False))
+    |
+
+E501 Line too long (103 > 100)
+   --> scripts/eval_action_completeness.py:243:101
+    |
+241 |         classifications={s: sum(r['classification'] == s for r in rows) for s in (
+242 |             'business_success', 'safe_rejection', 'partial', 'undetermined', 'abnormal_exit')},
+243 |         model_calls=sum(r['model_calls'] for r in rows), tool_calls=sum(r['tool_calls'] for r in rows),
+    |                                                                                                     ^^^
+244 |         next_context_chars_mean=sum(r['next_context_chars'] for r in rows)/len(rows),
+245 |         latency_ms_p50=median(r['latency_ms'] for r in rows),
+    |
+
+Found 5 errors (3 fixed, 2 remaining).

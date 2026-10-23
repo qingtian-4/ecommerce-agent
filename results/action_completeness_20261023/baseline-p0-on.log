@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/tmp/acs-action-completeness-20261023/scripts/eval_action_completeness.py", line 283, in <module>
+    t.get("tool_calls", sum(e["type"] == "tool_call" for e in t["trace"])) for t in turns
+    
+  File "/tmp/acs-action-completeness-20261023/scripts/eval_action_completeness.py", line 264, in main
+    task = store.get_return_task(sid, uid)["task"]
+                  ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/tmp/acs-action-completeness-20261023/scripts/eval_action_completeness.py", line 180, in replay
+    calls = turn.get("calls")
+                 ^^^^^^
+  File "/tmp/acs-action-completeness-20261023/src/acs/chat_service.py", line 173, in run_turn
+    for result in stream:
+                  ^^^^^^
+  File "/tmp/acs-action-completeness-20261023/src/acs/service_agent.py", line 239, in chat_stream
+    yield from self._run_turn(user_message, stream_text=True, budget=budget)
+  File "/tmp/acs-action-completeness-20261023/src/acs/service_agent.py", line 408, in _run_turn
+    payload, events, error = self.registry.run(
+                             ~~~~~~~~~~~~~~~~~^
+        call.name, call.arguments, current_user_id=self.current_user_id
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/acs-action-completeness-20261023/scripts/eval_action_completeness.py", line 169, in run
+OSError: frozen failed read

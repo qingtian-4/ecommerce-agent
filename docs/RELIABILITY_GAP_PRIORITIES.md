@@ -3,6 +3,9 @@
 日期：2026-10-23。只给方案，不在本轮实现。基点f987474；维护者决定下一轮范围后再冻结测试和修改。
 [架构审计](CODE_ARCHITECTURE_AUDIT.md) · [分组指标](EVALUATION_SCORECARD.md)。
 
+执行状态补充（2026-10-23）：本页保留原审计计划；订单级草稿补存已完成独立专项修复，
+见[ACTION_COMPLETENESS_REPORT](ACTION_COMPLETENESS_REPORT.md)。D05混合取消、D06咨询保留、默认开启和自然模型收益仍未关闭；本轮不继续扩展。
+
 ## 优先级
 
 | 优先级 | 缺口 | 证据/当前状态 | 下一轮最小动作 |

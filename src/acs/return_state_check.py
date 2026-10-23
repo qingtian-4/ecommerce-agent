@@ -10,6 +10,23 @@ from .runtime import BudgetExceeded, RunBudget
 from .sessions import SessionStore
 
 
+def _authorized_order(message: str) -> str | None:
+    """A bounded whole-message protocol, not authorization from mentioned IDs.
+
+    Only an explicit order request followed by positive read-only consultation
+    clauses is supported. Quotes, questions, conditions, negation and other
+    operations fail the full match; none are stripped before checking.
+    """
+    order = r"([A-Za-z0-9][A-Za-z0-9_-]*)"
+    request = rf"(?:(?:我想退|我要退)\s*{order}|记录{order}的退货草稿)"
+    consultation = (r"(?:说明退货(?:政策|期限|运费)|"
+                    r"介绍[A-Za-z][A-Za-z0-9_-]*的参数)")
+    match = re.fullmatch(
+        request + rf"(?:[，,]\s*同时{consultation}){{0,2}}[。.!！]?", message.strip(),
+    )
+    return (match[1] or match[2]) if match else None
+
+
 def _order_read(trace: list[TraceEvent], order_id: str, user_id: str) -> int | None:
     """The loop executes tools serially; pair actual calls with actual results in this turn."""
     pending, found = None, None
@@ -31,6 +48,7 @@ def _order_read(trace: list[TraceEvent], order_id: str, user_id: str) -> int | N
             if event.label == "get_order" and pending == order_id:
                 payload = event.detail.get("result", {})
                 valid = (isinstance(payload, dict) and payload.get("found") is True
+                         and not any(k in payload for k in ("error", "error_type"))
                          and payload.get("order_id") == order_id
                          and payload.get("user_id") == user_id)
                 found = index if valid else None
@@ -41,13 +59,10 @@ def _order_read(trace: list[TraceEvent], order_id: str, user_id: str) -> int | N
 def check_order_draft(store: SessionStore, sid: str, uid: str, tid: str, message: str,
                       trace: list[TraceEvent], stop_reason: str,
                       budget: RunBudget) -> TraceEvent | None:
-    # Full utterance only. Never strip negation, quoted text, conditions or extra clauses.
-    match = re.fullmatch(r"(?:我想退|我要退)\s*([A-Za-z0-9][A-Za-z0-9_-]*)[。.!！]?",
-                         message.strip())
-    if match is None:
+    order_id = _authorized_order(message)
+    if order_id is None:
         return None
-    order_id = match[1]
-    detail = {"version": 1, "order_id": order_id, "turn_id": tid, "user_text": message,
+    detail = {"version": 2, "order_id": order_id, "turn_id": tid, "user_text": message,
               "source_type": "user_claim", "status": "blocked", "reason": "turn_not_answered",
               "before_revision": None, "after_revision": None}
     try:

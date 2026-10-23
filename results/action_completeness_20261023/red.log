@@ -1,0 +1,157 @@
+FFF..........FFF........................................................ [ 92%]
+......                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer[\u8bb0\u5f55S20017\u7684\u9000\u8d27\u8349\u7a3f\uff0c\u540c\u65f6\u4ecb\u7ecdV201\u7684\u53c2\u6570] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...no_progress_limit=3, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x730e7821a350>)
+query = '记录S20017的退货草稿，同时介绍V201的参数'
+
+    @pytest.mark.parametrize('query', [
+        '记录S20017的退货草稿，同时介绍V201的参数',
+        '我想退S20017，同时说明退货期限',
+        '我要退S20017，同时说明退货政策，同时介绍V201的参数',
+    ])
+    def test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer(local, query):
+        settings, store = local
+        before = business_counts(settings)
+        final, agent = run_request(local, query)
+        task = store.get_return_task(final.session_id, 'USER001')['task']
+>       assert task and task['order_id'] == 'S20017'
+E       assert (None)
+
+tests/test_action_completeness.py:22: AssertionError
+_ test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer[\u6211\u60f3\u9000S20017\uff0c\u540c\u65f6\u8bf4\u660e\u9000\u8d27\u671f\u9650] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...no_progress_limit=3, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x730e781d6fd0>)
+query = '我想退S20017，同时说明退货期限'
+
+    @pytest.mark.parametrize('query', [
+        '记录S20017的退货草稿，同时介绍V201的参数',
+        '我想退S20017，同时说明退货期限',
+        '我要退S20017，同时说明退货政策，同时介绍V201的参数',
+    ])
+    def test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer(local, query):
+        settings, store = local
+        before = business_counts(settings)
+        final, agent = run_request(local, query)
+        task = store.get_return_task(final.session_id, 'USER001')['task']
+>       assert task and task['order_id'] == 'S20017'
+E       assert (None)
+
+tests/test_action_completeness.py:22: AssertionError
+_ test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer[\u6211\u8981\u9000S20017\uff0c\u540c\u65f6\u8bf4\u660e\u9000\u8d27\u653f\u7b56\uff0c\u540c\u65f6\u4ecb\u7ecdV201\u7684\u53c2\u6570] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...no_progress_limit=3, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x730e781d7950>)
+query = '我要退S20017，同时说明退货政策，同时介绍V201的参数'
+
+    @pytest.mark.parametrize('query', [
+        '记录S20017的退货草稿，同时介绍V201的参数',
+        '我想退S20017，同时说明退货期限',
+        '我要退S20017，同时说明退货政策，同时介绍V201的参数',
+    ])
+    def test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer(local, query):
+        settings, store = local
+        before = business_counts(settings)
+        final, agent = run_request(local, query)
+        task = store.get_return_task(final.session_id, 'USER001')['task']
+>       assert task and task['order_id'] == 'S20017'
+E       assert (None)
+
+tests/test_action_completeness.py:22: AssertionError
+__ test_mixed_request_never_overwrites_resurrects_or_revises_existing[other] ___
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...no_progress_limit=3, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x730e77c12090>)
+initial = 'other'
+
+    @pytest.mark.parametrize('initial', ['other', 'cancelled', 'same'])
+    def test_mixed_request_never_overwrites_resurrects_or_revises_existing(local, initial):
+        _, store = local
+        sid = save_task(store, {'order_id': 'S20001' if initial == 'other' else 'S20017'})
+        if initial == 'cancelled':
+            tid = store.begin_turn(sid, 'USER001', '中止退货草稿')
+            store.cancel_return_task(sid, 'USER001', tid)
+            store.interrupt_turn(sid, 'USER001', tid)
+        before = store.get_return_task(sid, 'USER001')['task']
+        final, _ = run_request(local, '我想退S20017，同时说明退货期限', sid=sid)
+        assert final.task_view['task'] == before
+>       assert check_event(final).detail['status'] == ('satisfied' if initial == 'same' else 'conflict')
+               ^^^^^^^^^^^^^^^^^^
+
+tests/test_action_completeness.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+update = TurnUpdate(session_id='82ebf857072644b6b4bdef68e2f7cc0e', history=[{'role': 'user', 'content': '{"order_id": "S20001"}...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-23T01:48:42.336396+00:00'}, phase='completed', elapsed_ms=491.6569930210244)
+
+    def check_event(update):
+>       return next(e for e in update.result.trace if e.type == "state_check")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       StopIteration
+
+tests/test_return_state_check.py:77: StopIteration
+_ test_mixed_request_never_overwrites_resurrects_or_revises_existing[cancelled] _
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...no_progress_limit=3, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x730e77c13110>)
+initial = 'cancelled'
+
+    @pytest.mark.parametrize('initial', ['other', 'cancelled', 'same'])
+    def test_mixed_request_never_overwrites_resurrects_or_revises_existing(local, initial):
+        _, store = local
+        sid = save_task(store, {'order_id': 'S20001' if initial == 'other' else 'S20017'})
+        if initial == 'cancelled':
+            tid = store.begin_turn(sid, 'USER001', '中止退货草稿')
+            store.cancel_return_task(sid, 'USER001', tid)
+            store.interrupt_turn(sid, 'USER001', tid)
+        before = store.get_return_task(sid, 'USER001')['task']
+        final, _ = run_request(local, '我想退S20017，同时说明退货期限', sid=sid)
+        assert final.task_view['task'] == before
+>       assert check_event(final).detail['status'] == ('satisfied' if initial == 'same' else 'conflict')
+               ^^^^^^^^^^^^^^^^^^
+
+tests/test_action_completeness.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+update = TurnUpdate(session_id='063d804aa7a34018a7d548ebfd40caf6', history=[{'role': 'user', 'content': '{"order_id": "S20017"}...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-23T01:48:45.404022+00:00'}, phase='completed', elapsed_ms=424.7748450143263)
+
+    def check_event(update):
+>       return next(e for e in update.result.trace if e.type == "state_check")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       StopIteration
+
+tests/test_return_state_check.py:77: StopIteration
+___ test_mixed_request_never_overwrites_resurrects_or_revises_existing[same] ___
+
+local = (Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-fla...no_progress_limit=3, reference_date=datetime.date(2026, 10, 15)), <acs.sessions.SessionStore object at 0x730e780d01b0>)
+initial = 'same'
+
+    @pytest.mark.parametrize('initial', ['other', 'cancelled', 'same'])
+    def test_mixed_request_never_overwrites_resurrects_or_revises_existing(local, initial):
+        _, store = local
+        sid = save_task(store, {'order_id': 'S20001' if initial == 'other' else 'S20017'})
+        if initial == 'cancelled':
+            tid = store.begin_turn(sid, 'USER001', '中止退货草稿')
+            store.cancel_return_task(sid, 'USER001', tid)
+            store.interrupt_turn(sid, 'USER001', tid)
+        before = store.get_return_task(sid, 'USER001')['task']
+        final, _ = run_request(local, '我想退S20017，同时说明退货期限', sid=sid)
+        assert final.task_view['task'] == before
+>       assert check_event(final).detail['status'] == ('satisfied' if initial == 'same' else 'conflict')
+               ^^^^^^^^^^^^^^^^^^
+
+tests/test_action_completeness.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+update = TurnUpdate(session_id='d13691bdbdc44e1bb3494643fe4a47eb', history=[{'role': 'user', 'content': '{"order_id": "S20017"}...面确认提交，尚未创建售后单或退款。', 'queried_at': '2026-10-23T01:48:48.067557+00:00'}, phase='completed', elapsed_ms=347.7018169942312)
+
+    def check_event(update):
+>       return next(e for e in update.result.trace if e.type == "state_check")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       StopIteration
+
+tests/test_return_state_check.py:77: StopIteration
+=========================== short test summary info ============================
+FAILED tests/test_action_completeness.py::test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer[\u8bb0\u5f55S20017\u7684\u9000\u8d27\u8349\u7a3f\uff0c\u540c\u65f6\u4ecb\u7ecdV201\u7684\u53c2\u6570]
+FAILED tests/test_action_completeness.py::test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer[\u6211\u60f3\u9000S20017\uff0c\u540c\u65f6\u8bf4\u660e\u9000\u8d27\u671f\u9650]
+FAILED tests/test_action_completeness.py::test_mixed_explicit_order_request_repairs_only_order_and_preserves_answer[\u6211\u8981\u9000S20017\uff0c\u540c\u65f6\u8bf4\u660e\u9000\u8d27\u653f\u7b56\uff0c\u540c\u65f6\u4ecb\u7ecdV201\u7684\u53c2\u6570]
+FAILED tests/test_action_completeness.py::test_mixed_request_never_overwrites_resurrects_or_revises_existing[other]
+FAILED tests/test_action_completeness.py::test_mixed_request_never_overwrites_resurrects_or_revises_existing[cancelled]
+FAILED tests/test_action_completeness.py::test_mixed_request_never_overwrites_resurrects_or_revises_existing[same]

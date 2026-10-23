@@ -1,0 +1,920 @@
+{
+  "version": "action-completeness-v1",
+  "cases": [
+    {
+      "id": "D01",
+      "turns": [
+        {
+          "query": "记录O10024的退货草稿，同时介绍P001的参数",
+          "calls": [
+            {
+              "name": "get_order",
+              "arguments": {
+                "order_id": "O10024"
+              }
+            },
+            {
+              "name": "get_product",
+              "arguments": {
+                "product_id": "P001"
+              }
+            }
+          ],
+          "answer": "订单 O10024 里有两件商品，退货草稿需要先确定退哪一件：\n\n- SoundCore 声阔 Life P3 无线降噪耳机（P001），1 件\n- Anker 安克 10000mAh 磁吸无线充电宝（P004），1 件\n\n请告诉我退哪一件（或两件分别处理），以及退货原因（无理由/质量问题）和商品是否拆封，我再帮你记录。\n\n另外，P001 的参数如下：\n- 品牌：SoundCore 声阔\n- 类型：入耳式无线降噪耳机\n- 蓝牙 5.2，支持主动降噪\n- 单次续航 10 小时，总续航 50 小时\n- IPX5 防水，USB-C 充电\n- 当前售价 469 元（你购买时是 529 元，差价 60 元）\n\n颜色和库存信息目前没有提供，无法确认。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "consultation": [
+        "SoundCore",
+        "529"
+      ],
+      "source": "results/v21_integration_20261022/paired_live/v21-D01.json"
+    },
+    {
+      "id": "D02",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货期限",
+          "calls": [
+            {
+              "name": "get_order",
+              "arguments": {
+                "order_id": "O10024"
+              }
+            },
+            {
+              "name": "get_knowledge_documents",
+              "arguments": {
+                "document_ids": [
+                  "return_policy"
+                ]
+              }
+            }
+          ],
+          "answer": "O10024 是 2026-10-20 签收的，距今 2 天，订单里有两件商品：\n\n1. SoundCore 声阔 Life P3 无线降噪耳机（529 元）\n2. Anker 安克 10000mAh 磁吸无线充电宝（199 元）\n\n关于退货期限，根据退换货政策：\n- **七天无理由退货**：签收日起 7 天内，也就是到 2026-10-27 之前都可以申请，前提是不影响二次销售，即商品、配件、说明书、包装盒齐全，没有明显使用痕迹，无线耳机的耳塞硅胶套未拆封使用。这种情形运费由买家承担。\n- **质量问题退货**：签收日起 15 天内，也就是到 2026-11-04 之前，如果出现非人为损坏的功能性故障，可以退货、换货或维修，往返运费由店铺承担。\n\n你这单目前两个期限都还在范围内。\n\n请问你想退的是哪一件商品？是只退其中一件，还是两件都退？另外，退货原因是无理由退货，还是商品有质量问题？"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "consultation": [
+        "7",
+        "15"
+      ],
+      "source": "results/v21_integration_20261022/paired_live/v21-D02.json"
+    },
+    {
+      "id": "D05",
+      "turns": [
+        {
+          "query": "我想退O10024",
+          "calls": [
+            {
+              "name": "get_order",
+              "arguments": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "answer": "这笔订单里有两件商品：\n\n1. SoundCore 声阔 Life P3 无线降噪耳机（529 元）\n2. Anker 安克 10000mAh 磁吸无线充电宝（199 元）\n\n请问您要退哪一件？另外方便说一下退货原因吗（比如不想要了，还是商品有质量问题）？"
+        },
+        {
+          "query": "中止退货草稿，同时说明退货政策",
+          "calls": [
+            {
+              "name": "cancel_return_task",
+              "arguments": {}
+            },
+            {
+              "name": "get_knowledge_documents",
+              "arguments": {
+                "document_ids": [
+                  "return_policy"
+                ]
+              }
+            }
+          ],
+          "answer": "尚未核实该操作完成：没有与目标业务状态匹配的成功回执。请查询实际状态；本次不会自动重复写入。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "consultation": [
+        "7",
+        "15"
+      ],
+      "source": "results/v21_integration_20261022/paired_live/v21-D05.json"
+    },
+    {
+      "id": "D06",
+      "turns": [
+        {
+          "query": "我想退O10024",
+          "calls": [
+            {
+              "name": "get_order",
+              "arguments": {
+                "order_id": "O10024"
+              }
+            }
+          ],
+          "answer": "这笔订单里有两件商品，请问您要退哪一件？\n\n- SoundCore 声阔 Life P3 无线降噪耳机（1 件，实付 529 元）\n- Anker 安克 10000mAh 磁吸无线充电宝（1 件，实付 199 元）\n\n另外，方便说一下退货原因吗？是商品有质量问题，还是无理由退货？"
+        },
+        {
+          "query": "不要取消退货草稿，同时说明退货政策",
+          "calls": [
+            {
+              "name": "get_return_task",
+              "arguments": {}
+            },
+            {
+              "name": "get_knowledge_documents",
+              "arguments": {
+                "document_ids": [
+                  "return_policy"
+                ]
+              }
+            }
+          ],
+          "answer": "好的，退货草稿我不会动。目前草稿里还没有内容，因为还没确定要退哪件商品。\n\n**退换货政策要点：**\n\n**七天无理由退货**\n- 从签收日起 7 天内可以申请，前提是不影响二次销售。\n- 不影响二次销售指：商品本身、配件、说明书、包装盒齐全；没有明显使用痕迹、划痕、污渍；无线耳机的耳塞硅胶套未拆封使用。\n- 运费由买家承担。\n\n**质量问题退货**\n- 从签收日起 15 天内，商品出现非人为损坏的功能性故障，可以退货、换货或维修。\n- 往返运费由店铺承担。\n- 申请时需要上传照片或视频作为凭证。\n\n**不予退货的情形**：超过期限、人为损坏、私自拆机、进水、定制类商品、明确标注“特价不退换”的商品。\n\n**退款时效**：仓库签收并验收通过后，1-3 个工作日原路退回。\n\n您这笔 O10024 是 10 月 20 日签收的，距今 2 天，两个期限都还在范围内。不过要办理的话，还需要您确认：**退哪件商品**（Life P3 耳机还是磁吸充电宝），以及**退货原因**（质量问题还是无理由）。确认后我帮您记录到草稿里，之后在客服对话的退货申请区域预览并点击确认提交，才会进入审核。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "consultation": [
+        "7",
+        "15"
+      ],
+      "source": "results/v21_integration_20261022/paired_live/v21-D06.json"
+    },
+    {
+      "id": "orders-02",
+      "turns": [
+        {
+          "query": "我想退S20017。",
+          "reads": [
+            "S20017"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "S20017",
+      "authorized": true,
+      "dataset": "scenario",
+      "consultation": []
+    },
+    {
+      "id": "single",
+      "turns": [
+        {
+          "query": "我要退 O10024！",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "consultation": []
+    },
+    {
+      "id": "mixed-policy",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "mixed-product",
+      "turns": [
+        {
+          "query": "我要退O10024，同时介绍P001的参数",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。 SoundCore 声阔 Life P3 无线降噪耳机售价529元。",
+          "product": "P001"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "consultation": [
+        "SoundCore",
+        "529"
+      ]
+    },
+    {
+      "id": "mixed-both",
+      "turns": [
+        {
+          "query": "记录O10024的退货草稿，同时说明退货期限，同时介绍P001的参数",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。 SoundCore 声阔 Life P3 无线降噪耳机售价529元。",
+          "policy": true,
+          "product": "P001"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "consultation": [
+        "7",
+        "15",
+        "SoundCore",
+        "529"
+      ]
+    },
+    {
+      "id": "negative-01",
+      "turns": [
+        {
+          "query": "我不想退O10024，同时说明退货期限",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-02",
+      "turns": [
+        {
+          "query": "不是要退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-03",
+      "turns": [
+        {
+          "query": "先不要退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-04",
+      "turns": [
+        {
+          "query": "别人说“我想退O10024”，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-05",
+      "turns": [
+        {
+          "query": "“我想退O10024，同时说明退货政策”",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-06",
+      "turns": [
+        {
+          "query": "如果我要退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-07",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策可以吗？",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-08",
+      "turns": [
+        {
+          "query": "我想退O10024，但先别保存",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-09",
+      "turns": [
+        {
+          "query": "我想退O10024，同时查询O10003",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-10",
+      "turns": [
+        {
+          "query": "我想退O10024还是O10003",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-11",
+      "turns": [
+        {
+          "query": "记录O10024的退货草稿，同时不要说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-12",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策，然后取消",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-13",
+      "turns": [
+        {
+          "query": "我想退O10024\n先别保存",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-14",
+      "turns": [
+        {
+          "query": "只查询O10024，不办理退货。",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-15",
+      "turns": [
+        {
+          "query": "说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-16",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明“退货政策”",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "negative-17",
+      "turns": [
+        {
+          "query": "我想退O10024，同时介绍P001参数并取消草稿",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "请选择需要退货的商品明细。"
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": null,
+      "authorized": false,
+      "consultation": []
+    },
+    {
+      "id": "foreign",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER002",
+      "goal_order": "O10024",
+      "authorized": true,
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "wrong-read",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10003"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "reads": [
+        "O10003"
+      ],
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "missing-read",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "reads": [],
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "malformed-receipt",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "tamper": {
+        "found": "true"
+      },
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "conflicting-receipt",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "tamper": {
+        "user_id": "USER002"
+      },
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "business-error",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "tamper": {
+        "found": false
+      },
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "read-error",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "read_error": true,
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "budget-expired",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "expire": true,
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "write-lost",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "write_failure": "after",
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "write-failed",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "write_failure": "before",
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "readback-failed",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "readback_failure": true,
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "old-order",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "initial": "other",
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "cancelled",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "initial": "cancelled",
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "submitted",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "initial": "submitted",
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "same-order",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "initial": "same",
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "model-saved",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "model_saved": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "repeat-restored",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "repeat": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    },
+    {
+      "id": "interrupted",
+      "turns": [
+        {
+          "query": "我想退O10024，同时说明退货政策",
+          "reads": [
+            "O10024"
+          ],
+          "answer": "无理由退货期限7天，需不影响二次销售；质量问题15天，须为非人为损坏。请选择商品明细，尚未提交申请。",
+          "policy": true
+        }
+      ],
+      "uid": "USER001",
+      "goal_order": "O10024",
+      "authorized": true,
+      "interrupt": true,
+      "blocked": true,
+      "consultation": [
+        "7",
+        "15"
+      ]
+    }
+  ]
+}

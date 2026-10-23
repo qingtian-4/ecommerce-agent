@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/tmp/acs-action-baseline-20261023/scripts/eval_action_completeness.py", line 480, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/acs-action-baseline-20261023/scripts/eval_action_completeness.py", line 447, in main
+    row = replay(case, args.enabled, Path(tmp) / case["id"])
+  File "/tmp/acs-action-baseline-20261023/scripts/eval_action_completeness.py", line 171, in replay
+    store.update_return_task(
+    ~~~~~~~~~~~~~~~~~~~~~~~~^
+        sid, uid, tid, {"order_id": "O10003" if case["initial"] == "other" else "O10024"}
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/acs-action-baseline-20261023/src/acs/sessions.py", line 450, in update_return_task
+    raise TaskValidationError("订单不存在或不属于当前用户")
+acs.sessions.TaskValidationError: 订单不存在或不属于当前用户

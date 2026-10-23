@@ -386,3 +386,7 @@ Token/耗时差异混有采样和用户模拟器变化，Router又未收窄工�
 提供原始链接/来源哈希/费用与延迟边界。SQLite持久化不等于长期记忆，Gradio/SDK的SSE不属于自研协议。
 [架构审计](CODE_ARCHITECTURE_AUDIT.md)核实PR #4仍旧V2、集成f987474 CI912通过但未合并。
 所有新修复仅为[待维护者决定的优先级](RELIABILITY_GAP_PRIORITIES.md)，不把计划或单次改善写成已实现能力。
+
+
+本轮执行完整性专项补充见[ACTION_COMPLETENESS_RESUME_EVIDENCE](ACTION_COMPLETENESS_RESUME_EVIDENCE.md)。
+44例固定决策、必要动作6/13→13/13是离线Runtime证据，不能拼接到历史真实模型或官方Benchmark成功率。
