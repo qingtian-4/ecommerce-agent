@@ -57,4 +57,10 @@ ToolCall 参数值、消息正文和官方回执不因记账或取证被重写�
 
 ## 已知限制
 
-验收限定 Linux/WSL，`fcntl` 不支持 Windows 原生；SQLite 锁和 Graph 连接按既有生命周期测试，不宣称跨进程业务原子性。冻结请求为 n=1；非流式当前取第一个 choice，流式拒绝非零 choice index，意外多 choice 的统一规则尚未扩展。预算限制已禁止本轮主动请求 n>1。
+验收限定 Linux/WSL，`fcntl` 不支持 Windows 原生；SQLite 锁和 Graph 连接按既有生命周期测试，不宣称跨进程业务原子性。Graph Adapter 协议版本升为 `tau-langgraph-halfduplex-2`，旧版本 checkpoint 的签名不兼容，不直接续跑历史失败实验；本轮测试支持同版本、同配置恢复。冻结请求为 n=1；非流式当前取第一个 choice，流式拒绝非零 choice index，意外多 choice 的统一规则尚未扩展。预算限制已禁止本轮主动请求 n>1。
+
+## 本轮真实验证结果
+
+修复源码 `3c4ab1c` 的完整 CI 为 839 passed、0 skipped，Ruff/密钥扫描成功。新运行 `tau_response_contract_pilot_20261023_r1` 的两臂真实 Smoke 通过，Task 33 旧 Loop 与 V3 官方 Task/DB Reward 均为 1，最终 DB 哈希完全相同，且两臂各有一个 mixed 响应被接受。Task 34 旧 Loop 为 1；累计达到 48 次 HTTP 上限后，Task 34 V3 未启动，不得记为成功或 Reward=0。总费用按时段/usage 估算 0.038934880 元，保守预留 4.228444 元，无未知回执。
+
+这关闭了本轮可复现的共享响应合同和取证阻塞，但不能还原历史第四次响应的精确拒绝谓词。详情及真实私有证据索引见 [新 Pilot 报告](../../results/tau_response_contract_pilot_20261023_r1/REPORT.md)。

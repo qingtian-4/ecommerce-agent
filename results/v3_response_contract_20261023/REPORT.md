@@ -32,3 +32,9 @@ export LITELLM_LOCAL_MODEL_COST_MAP=True
 最终源码单独提交后，使用 `scripts/eval_tau_development_pilot.py --freeze` 冻结新的源码 SHA、上游指纹、任务顺序与预算，复制本轮已核验的价格摘要及对应源码的成功门禁证据。`--run` 要求显式的本地 `.env` 路径，不复制密钥。先两臂只读真实 Smoke，再按 33/旧、33/V3、34/旧、34/V3 执行一次，所有角色与 Smoke 共用累计 5 元、48 次 HTTP 上限。失败、预算耗尽或未知写立即停止，不自动重试。
 
 新实验位于单独目录，历史 `results/tau_development_pilot_20261023/` 不覆盖。原始 SDK/HTTP、Trace、checkpoint 和完整账本只保存到新目录的 `.private-evidence/`，权限 0700/0600；公开 Git 只提交结构化脱敏结果。拒绝分类、取证边界与历史不可追溯项见 `docs/v3/RESPONSE_PROTOCOL_ROOT_CAUSE.md`。
+
+## 最终门禁
+
+单行 Bridge 兼容性修复后，推送源码 `3c4ab1c` 并运行完整 [CI 39967136857](https://github.com/qingtian-4/ecommerce-agent/actions/runs/39967136857)：839 passed，0 failed/error/skipped，Ruff 和全量密钥扫描成功。原始 JUnit 已下载并验证 Artifact SHA256，汇总见 `gates-summary.json`；初次本地 838/1 的失败记录仍保留，没有被后续绿灯覆盖。
+
+通过完整门禁后真实执行新 Pilot：两臂 Smoke 与 Task 33 配对通过，Task 34 旧 Loop 通过，Task 34 V3 因累计 48 次上限未启动。实际新记录见 [新实验](../tau_response_contract_pilot_20261023_r1/REPORT.md)，不是旧真实成绩的复制。

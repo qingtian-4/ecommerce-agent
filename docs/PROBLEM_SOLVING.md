@@ -1198,3 +1198,5 @@ asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送�
 将完整响应判断共享到两个官方 Adapter，混合文本保留模型上下文、仅投影工具意图给官方执行器；坏 JSON、异常完成标记及 ID 仍整批拒绝。HTTP 响应在 SDK/Guard 之前进入本地受限证据目录，公开结果仅投影结构。恢复后首次工具派发也复用外层预算检查，避免 checkpoint 已提交时绕过工具额度。
 
 本轮历史证据不覆盖，真实验证采用新运行 ID、源码 SHA 和共用的 5 元/48 次账本。实际红绿、完整测试和新 Pilot 结果在本轮结果报告；设计边界见 [响应合同根因](v3/RESPONSE_PROTOCOL_ROOT_CAUSE.md)、[Worktree 审计](v3/WORKTREE_AUDIT.md) 和 [下一里程碑](v3/V3_NEXT_MILESTONE.md)。
+
+本轮实际验收：源码 `3c4ab1c` 完整 CI 839 passed、0 skipped；首次本地完整回归暴露 Bridge 工具对象只有 Schema 的兼容性回归，已从实际 Schema 读取名称修复，原用例不变。新真实两臂 Smoke 通过；Task 33 两臂 Task/DB Reward=1 且 DB 终态相同。Task 34 旧 Loop 为 1，V3 在累计 48 次上限后未启动。按 usage/时段估算 0.038934880 元，保守预留 4.228444 元，无未知费用/写回执。有限 Go 仅覆盖下一轮隔离退货草稿/预览实验；完整提交与生产替换仍 No-Go。
