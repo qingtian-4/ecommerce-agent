@@ -1208,3 +1208,5 @@ asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送�
 原 preview 每次生成新 ID，且 Graph checkpoint 与业务 DB 分别提交，单靠恢复 Graph 可能重复草稿修改或预览。实验工具网关将业务修改和带规范参数的回执放在同一 BEGIN IMMEDIATE 事务中；恢复核对应用权限、Turn/Thread、call ID、revision、结果与镜像边界。提交后丢回执读取既有业务回执，过期预览不自动再生成。正式四表额外由隔离 fixture 的 SQL 触发器拒绝写入。
 
 开发中实际定位了 custom stream/单线程执行器饥饿、ToolRuntime 隐藏注入与严格参数校验的冲突，并用 updates streaming 和网关严格参数校验保留原生执行。取消保留整句授权边界，咨询不会被整个答案替换。专项、完整 CI 与真实 DeepSeek 证据见 [本地退货 PoC](v3/LOCAL_RETURN_POC_REPORT.md)；固定模型故障合同与真实模型质量分别报告，不把预览描述为正式申请。
+
+本轮实际证据：完整源码CI871 passed、0 skipped；本地32项专项通过。真实15次DeepSeek请求，前7阶段完成；第8阶段已保存草稿与新预览，但最终回答的下一次HTTP被3元保守费用门禁阻止。按usage/空闲时段估算0.030671040元，累计保守预留2.774388元，未重跑；最后Graph待model、SQL Turn运行中且十条唯一回执匹配、正式四表0。当前事实快照重复入历史导致上下文/预留增长，作为真实失败保留。隔离Interrupt实验有限Go，完整提交与生产替换No-Go。

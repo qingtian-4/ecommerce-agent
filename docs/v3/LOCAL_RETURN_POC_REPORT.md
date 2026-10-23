@@ -37,3 +37,15 @@ uv run python scripts/local_return_poc.py --state-dir /tmp/local-return-real \
 真实冒烟将在离线验收通过后执行，冻结脚本输入、源SHA、政策hash、模型参数和费用上限，逐轮新CLI进程；失败保留且停止后续付费，不自动重跑。最终测试数量、实际费用、失败与 Go/No-Go 在证据产生后补充。
 
 限制：沿用整句取消授权；单 fixture 单 worker，Linux/WSL；不提供生产认证、上下文压缩、SSE服务或跨库事务。预览永远不是正式申请。
+
+## 本轮实际验收结果
+
+实际源码 `1e7f86a`；[完整源码CI](https://github.com/qingtian-4/ecommerce-agent/actions/runs/39988606570) 为 **871 passed、0 skipped**，Ruff/全仓密钥扫描通过；本地32项专项248.59秒。未新增或升级依赖，锁定 LangChain1.4.7、LangGraph1.2.16、SQLite checkpointer3.1.2、OpenAI3.26.0。
+
+真实 DeepSeek 已执行，详见 [本次完整实验](../../results/local_return_poc_20261024_run1/REPORT.md)。15次付费请求、输入179348/输出1529/缓存157952 Token；按已核实时段价估算 **0.030671040元**，非供应商精确账单；保守累计预留2.774388元。前7阶段完成；第8阶段业务revision5与最新预览已生成，最终回答前第16个HTTP请求被3元保守上限拒绝，原Scorecard明确保留completed_all=false。没有重跑或改规则。
+
+真实覆盖草稿→跨进程补信息→商品插问→商品更正→预览→政策咨询→进程重启读取→明确取消。否定、假设、引用取消及故障恢复主要由离线反例覆盖。十条唯一工具回执、两个不同revision预览，正式申请/确认/审核/audit四表均0。只读核对Graph和SQLite已执行结果匹配，最后Graph待model、业务Turn仍running；这是明确未完成，不是跨库原子提交保证。
+
+相对旧Loop，已验证的改进是原生Graph持久消息/执行恢复、相同call幂等回执、批次顺序及分离业务状态与咨询答复。没有本地新旧真实配对成功率证据，不宣称质量提升或无限恢复。新增代价包括独立Graph库、单worker文件锁、显式对账及消息上下文增长；事实快照重复入历史导致本次保守预算提前耗尽，是后续阻塞。
+
+结论：隔离草稿/预览和下一轮Interrupt确认实验有限Go；完整8阶段验收、正式提交及生产替换No-Go。下一轮须先控制事实快照增长并重验冻结流程，确认令牌、提交幂等与未知结果恢复另行实施，不自动开启。

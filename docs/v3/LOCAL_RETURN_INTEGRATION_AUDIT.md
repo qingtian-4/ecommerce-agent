@@ -49,3 +49,11 @@ Linux/WSL 专用 fcntl 文件锁，每 fixture 单 worker；同一实例 run_loc
 业务操作及回执同事务，SAVEPOINT 回滚业务拒绝；Graph 与业务 DB 没有跨库原子事务。恢复必须核对 Thread/Turn、offset、call ID、工具名、规范参数及原始结果。合法提交后丢回执通过相同 call ID 读回，不重新变更；revision、过期、政策改变后旧预览不自动重生。镜像缺失、错配或未知回执停机待人工恢复。必须成套备份业务/Graph/fixture/docs，而不是任意恢复一份 DB。
 
 每轮模型调用前补充当前业务事实；历史原生消息保留且随轮数增长，本轮没有实现压缩或无限会话预算保证。费用账本与业务回执职责独立；32 请求/3元上限跨 CLI 进程保留，失败和 usage 缺失不免费。
+
+## 验收证据与保留缺口
+
+实际代码1e7f86a，完整CI871项0skip；未升级Python或依赖。原生业务专项见tests/test_local_return_poc.py、tests/test_local_return_recovery.py；原ReturnService的订单/原因/数量更改与旧预览失效由tests/test_return_submission.py继续回归。没有把旧Runtime规则整体复制进Graph。
+
+本轮只有一组真实开发期本地流程，没有本地新旧配对质量实验，也没有通用多诉求agenda的硬完成保证。真实混合“保存订单草稿+运费”成功，离线拒绝取消后咨询仍保留，不能据此泛化所有多诉求。原生状态能力不解决模型意图识别、业务授权定义或证据真实性，必须继续由SQL/工具/验收负责。
+
+真实第8阶段因保守3元上限拒绝最后模型请求，未全流程完成；当前事实System快照重复保存的上下文效率缺口保留。SOURCE/uv.lock指纹在results/local_return_poc_20261024_run1/manifest.json，费用与未完成状态在Scorecard。主目录三个原有文件及历史Pilot四个原文件SHA已逐项核对未变；没有新增或移除Worktree，main和PR#4未改动。
