@@ -1200,3 +1200,11 @@ asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送�
 本轮历史证据不覆盖，真实验证采用新运行 ID、源码 SHA 和共用的 5 元/48 次账本。实际红绿、完整测试和新 Pilot 结果在本轮结果报告；设计边界见 [响应合同根因](v3/RESPONSE_PROTOCOL_ROOT_CAUSE.md)、[Worktree 审计](v3/WORKTREE_AUDIT.md) 和 [下一里程碑](v3/V3_NEXT_MILESTONE.md)。
 
 本轮实际验收：源码 `3c4ab1c` 完整 CI 839 passed、0 skipped；首次本地完整回归暴露 Bridge 工具对象只有 Schema 的兼容性回归，已从实际 Schema 读取名称修复，原用例不变。新真实两臂 Smoke 通过；Task 33 两臂 Task/DB Reward=1 且 DB 终态相同。Task 34 旧 Loop 为 1，V3 在累计 48 次上限后未启动。按 usage/时段估算 0.038934880 元，保守预留 4.228444 元，无未知费用/写回执。有限 Go 仅覆盖下一轮隔离退货草稿/预览实验；完整提交与生产替换仍 No-Go。
+
+## V3：本地草稿/预览与 Graph 恢复边界
+
+历史本地 D01/D02/D05/D06 反映业务动作遗漏与咨询输出覆盖，不能靠复制 Router 词组分支解决。本轮在独立实验入口接入 native create_agent，保留 SessionStore 的身份、running Turn、revision 与字段依赖规则，ReturnService 保留资格和政策核验。默认客服与官方 Adapter 均未替换。
+
+原 preview 每次生成新 ID，且 Graph checkpoint 与业务 DB 分别提交，单靠恢复 Graph 可能重复草稿修改或预览。实验工具网关将业务修改和带规范参数的回执放在同一 BEGIN IMMEDIATE 事务中；恢复核对应用权限、Turn/Thread、call ID、revision、结果与镜像边界。提交后丢回执读取既有业务回执，过期预览不自动再生成。正式四表额外由隔离 fixture 的 SQL 触发器拒绝写入。
+
+开发中实际定位了 custom stream/单线程执行器饥饿、ToolRuntime 隐藏注入与严格参数校验的冲突，并用 updates streaming 和网关严格参数校验保留原生执行。取消保留整句授权边界，咨询不会被整个答案替换。专项、完整 CI 与真实 DeepSeek 证据见 [本地退货 PoC](v3/LOCAL_RETURN_POC_REPORT.md)；固定模型故障合同与真实模型质量分别报告，不把预览描述为正式申请。

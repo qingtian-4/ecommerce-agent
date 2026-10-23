@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -59,6 +59,13 @@ class SessionStore:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
+
+    @contextmanager
+    def transaction(self):
+        """Business transaction; experimental adapters may lend an already-owned transaction."""
+        with closing(self._connect()) as conn, conn:
+            conn.execute("BEGIN IMMEDIATE")
+            yield conn
 
     def migrate(self) -> None:
         with closing(self._connect()) as conn, conn:
@@ -189,8 +196,7 @@ class SessionStore:
 
     def begin_turn(self, sid: str, user_id: str, text: str) -> str:
         tid = uuid4().hex
-        with closing(self._connect()) as conn, conn:
-            conn.execute("BEGIN IMMEDIATE")
+        with self.transaction() as conn:
             row = self._require_owner(conn, sid, user_id)
             if conn.execute("SELECT 1 FROM conversation_turns "
                             "WHERE session_id=? AND status='running'",
@@ -306,8 +312,7 @@ class SessionStore:
         if only_if_absent and (cancel or set(patch) != {"order_id"}
                                or not isinstance(patch["order_id"], str)):
             raise TaskValidationError("受限补存只允许订单字段，不能取消或补充其他字段")
-        with closing(self._connect()) as conn, conn:
-            conn.execute("BEGIN IMMEDIATE")
+        with self.transaction() as conn:
             if budget is not None:
                 budget.remaining()
             self._require_owner(conn, sid, user_id)

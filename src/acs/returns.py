@@ -113,8 +113,7 @@ class ReturnService:
         return content, reasons
 
     def preview(self, sid: str, uid: str, tid: str | None = None) -> dict:
-        with closing(self.store._connect()) as conn, conn:
-            conn.execute("BEGIN IMMEDIATE")
+        with self.store.transaction() as conn:
             self.store._require_owner(conn, sid, uid)
             self._check_active(conn, sid, tid)
             policy = return_policy(self.settings)
