@@ -111,7 +111,7 @@ fake usage不是供应商Token，不能据此发布成本下降。
 | --- | --- |
 | P0/专项定向 | 89 passed；补充错订单校准和正确短答fixture各1 passed，见targeted-final.log及两个green日志 |
 | 串行完整pytest | **943 passed、4 skipped、4 warnings，924.29秒**；full-pytest-serial.log |
-| Ruff / diff | ruff-final.log通过；git diff --check通过 |
+| Ruff / diff | ruff-final.log通过；允许CSV的CRLF行尾后diff检查通过，见diff-check.log |
 | 全追踪密钥扫描 | secrets.log通过，20条既有测试fixture豁免；未新增豁免，不等于穷尽隐私审计 |
 | 页面 | browser-accepted/summary.json通过；161个50ms DOM采样无预置错误完成句，另有on_send逐yield测试 |
 | 后台 | ui_backend_receipts.json：S20002一条approved申请，真实页面确认与审核，未退款 |
@@ -126,6 +126,8 @@ fake usage不是供应商Token，不能据此发布成本下降。
   正式四臂均44例完整执行，新驱动正确记录注入异常，不把它算业务成功。
 - 浏览器初次完整通过；重复使用已提交数据库导致预览拒绝，及错误假设管理员选项含“待审核”导致等待超时，
   均为验收驱动/环境问题，失败截图和日志保留。最终用全新库、实际选项协议复验，不修改生产页面。
+- CSV按csv模块默认生成CRLF，普通git diff --check将其报为空白；本地首次功能提交已产生，未改写。
+  以git -c core.whitespace=cr-at-eol diff --check校验通过，单独补充本测量说明；CSV和原始轨迹均未改。
 
 ## 复现与回退
 
