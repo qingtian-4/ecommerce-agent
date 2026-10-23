@@ -79,7 +79,7 @@ class ACSAgent(HalfDuplexAgent[ACSState]):
         self.settings, self.llm_factory, self.receipt_guard = settings, llm_factory, receipt_guard
 
     def get_init_state(self, message_history=None):
-        settings = (self.settings or get_settings()).model_copy(update={"context_max_chars": 64000})
+        settings = self.settings or get_settings().model_copy(update={"context_max_chars": 64000})
         agent = CustomerServiceAgent(
             settings=settings,
             registry=OfficialRegistry(self.tools, receipt_guard=self.receipt_guard),

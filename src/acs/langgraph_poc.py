@@ -89,7 +89,8 @@ def validate_model_protocol(request, handler):
     return response
 
 
-def deepseek_model(settings: Settings, *, callbacks=None) -> ChatOpenAI:
+def deepseek_model(settings: Settings, *, callbacks=None, http_client=None,
+                   http_async_client=None) -> ChatOpenAI:
     if not settings.has_llm_key:
         raise ValueError("未配置 DeepSeek API key")
     if settings.llm_thinking:
@@ -101,6 +102,7 @@ def deepseek_model(settings: Settings, *, callbacks=None) -> ChatOpenAI:
         max_retries=0, use_responses_api=False,
         extra_body={"thinking": {"type": "disabled"}},
         stream_usage=True, callbacks=callbacks,
+        http_client=http_client, http_async_client=http_async_client,
     )
 
 

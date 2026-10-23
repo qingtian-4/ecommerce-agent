@@ -1,0 +1,440 @@
+{
+  "scope": "Development Pilot, exposed tasks; no generalization or pass^k claim",
+  "episodes": [
+    {
+      "episode": "33-acs_loop_receipt_guard",
+      "task": "33",
+      "arm": "acs_loop_receipt_guard",
+      "reward": 1.0,
+      "db_reward": 1.0,
+      "status": "evaluated",
+      "reward_info": {
+        "reward": 1.0,
+        "db_check": {
+          "db_match": true,
+          "db_reward": 1.0
+        },
+        "env_assertions": [],
+        "action_checks": [
+          {
+            "action": {
+              "action_id": "33_0",
+              "requestor": "assistant",
+              "name": "find_user_id_by_name_zip",
+              "arguments": {
+                "first_name": "Noah",
+                "last_name": "Patel",
+                "zip": "10108"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": true,
+            "action_reward": 1.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_1",
+              "requestor": "assistant",
+              "name": "get_user_details",
+              "arguments": {
+                "user_id": "noah_patel_6952"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": true,
+            "action_reward": 1.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_2",
+              "requestor": "assistant",
+              "name": "get_order_details",
+              "arguments": {
+                "order_id": "#W6111398"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": true,
+            "action_reward": 1.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_3",
+              "requestor": "assistant",
+              "name": "get_order_details",
+              "arguments": {
+                "order_id": "#W7043598"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": true,
+            "action_reward": 1.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_4",
+              "requestor": "assistant",
+              "name": "get_order_details",
+              "arguments": {
+                "order_id": "#W1845024"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": true,
+            "action_reward": 1.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_5",
+              "requestor": "assistant",
+              "name": "modify_user_address",
+              "arguments": {
+                "user_id": "noah_patel_6952",
+                "address1": "517 Lakeview Drive",
+                "address2": "Suite 183",
+                "city": "Seattle",
+                "country": "USA",
+                "state": "WA",
+                "zip": "98195"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": true,
+            "action_reward": 1.0,
+            "tool_type": "write"
+          }
+        ],
+        "nl_assertions": null,
+        "communicate_checks": null,
+        "reward_basis": [
+          "DB"
+        ],
+        "reward_breakdown": {
+          "DB": 1.0
+        },
+        "info": {
+          "env": null,
+          "nl": null,
+          "communicate": {
+            "note": "No communicate_info to evaluate"
+          },
+          "action": null
+        }
+      },
+      "termination": "user_stop",
+      "duration_s": 19.23266510499525,
+      "initial_db": "b25c9cb211f5efcaee5dd646054a73c4a9f43f4f5acc32c10713cd9f9ac20e9c",
+      "final_db": "5fe996d49aefd73c215343df13c30e1d43a1b28fbba0d813e61aa9495f40e7bc",
+      "accounting": {
+        "requests": 11,
+        "reserved_cny": "0.919772",
+        "known_peak_estimated_cny": "0.01732960",
+        "known_timeband_estimated_cny": "0.008664800",
+        "cost_complete": true,
+        "unknown_requests": 0,
+        "roles": {
+          "agent": {
+            "requests": 7,
+            "reserved_cny": "0.787328",
+            "known_peak_estimated_cny": "0.01320032",
+            "unknown_requests": 0,
+            "cost_complete": true,
+            "known_timeband_estimated_cny": "0.006600160",
+            "cached_tokens": 39808,
+            "prompt_tokens": 42492,
+            "completion_tokens": 780,
+            "latency_ms": 8662.567223975202
+          },
+          "user": {
+            "requests": 4,
+            "reserved_cny": "0.132444",
+            "known_peak_estimated_cny": "0.00412928",
+            "unknown_requests": 0,
+            "cost_complete": true,
+            "known_timeband_estimated_cny": "0.002064640",
+            "cached_tokens": 2432,
+            "prompt_tokens": 3332,
+            "completion_tokens": 279,
+            "latency_ms": 4588.9958680199925
+          },
+          "judge": {
+            "requests": 0,
+            "reserved_cny": "0",
+            "known_peak_estimated_cny": "0",
+            "unknown_requests": 0,
+            "cost_complete": true,
+            "known_timeband_estimated_cny": "0",
+            "cached_tokens": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "latency_ms": 0
+          }
+        },
+        "stop_reasons": []
+      },
+      "tool_executions": 6
+    },
+    {
+      "episode": "33-langgraph",
+      "task": "33",
+      "arm": "langgraph",
+      "reward": 0.0,
+      "db_reward": 0.0,
+      "status": "stopped_adapter_protocol_error",
+      "reward_info": {
+        "reward": 0.0,
+        "db_check": {
+          "db_match": false,
+          "db_reward": 0.0
+        },
+        "env_assertions": [],
+        "action_checks": [
+          {
+            "action": {
+              "action_id": "33_0",
+              "requestor": "assistant",
+              "name": "find_user_id_by_name_zip",
+              "arguments": {
+                "first_name": "Noah",
+                "last_name": "Patel",
+                "zip": "10108"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": true,
+            "action_reward": 1.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_1",
+              "requestor": "assistant",
+              "name": "get_user_details",
+              "arguments": {
+                "user_id": "noah_patel_6952"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": true,
+            "action_reward": 1.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_2",
+              "requestor": "assistant",
+              "name": "get_order_details",
+              "arguments": {
+                "order_id": "#W6111398"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": false,
+            "action_reward": 0.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_3",
+              "requestor": "assistant",
+              "name": "get_order_details",
+              "arguments": {
+                "order_id": "#W7043598"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": false,
+            "action_reward": 0.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_4",
+              "requestor": "assistant",
+              "name": "get_order_details",
+              "arguments": {
+                "order_id": "#W1845024"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": false,
+            "action_reward": 0.0,
+            "tool_type": "read"
+          },
+          {
+            "action": {
+              "action_id": "33_5",
+              "requestor": "assistant",
+              "name": "modify_user_address",
+              "arguments": {
+                "user_id": "noah_patel_6952",
+                "address1": "517 Lakeview Drive",
+                "address2": "Suite 183",
+                "city": "Seattle",
+                "country": "USA",
+                "state": "WA",
+                "zip": "98195"
+              },
+              "info": null,
+              "compare_args": null
+            },
+            "action_match": false,
+            "action_reward": 0.0,
+            "tool_type": "write"
+          }
+        ],
+        "nl_assertions": null,
+        "communicate_checks": null,
+        "reward_basis": [
+          "DB"
+        ],
+        "reward_breakdown": {
+          "DB": 0.0
+        },
+        "info": {
+          "env": null,
+          "nl": null,
+          "communicate": {
+            "note": "No communicate_info to evaluate"
+          },
+          "action": null
+        }
+      },
+      "termination": "agent_stop",
+      "duration_s": 14.000203121977393,
+      "initial_db": "b25c9cb211f5efcaee5dd646054a73c4a9f43f4f5acc32c10713cd9f9ac20e9c",
+      "final_db": "b25c9cb211f5efcaee5dd646054a73c4a9f43f4f5acc32c10713cd9f9ac20e9c",
+      "accounting": {
+        "requests": 6,
+        "reserved_cny": "0.453132",
+        "known_peak_estimated_cny": "0.00746720",
+        "known_timeband_estimated_cny": "0.003733600",
+        "cost_complete": true,
+        "unknown_requests": 0,
+        "roles": {
+          "agent": {
+            "requests": 4,
+            "reserved_cny": "0.394508",
+            "known_peak_estimated_cny": "0.00509136",
+            "unknown_requests": 0,
+            "cost_complete": true,
+            "known_timeband_estimated_cny": "0.002545680",
+            "cached_tokens": 19584,
+            "prompt_tokens": 20518,
+            "completion_tokens": 305,
+            "latency_ms": 3954.887798987329
+          },
+          "user": {
+            "requests": 2,
+            "reserved_cny": "0.058624",
+            "known_peak_estimated_cny": "0.00237584",
+            "unknown_requests": 0,
+            "cost_complete": true,
+            "known_timeband_estimated_cny": "0.001187920",
+            "cached_tokens": 896,
+            "prompt_tokens": 1242,
+            "completion_tokens": 206,
+            "latency_ms": 2696.125566988485
+          },
+          "judge": {
+            "requests": 0,
+            "reserved_cny": "0",
+            "known_peak_estimated_cny": "0",
+            "unknown_requests": 0,
+            "cost_complete": true,
+            "known_timeband_estimated_cny": "0",
+            "cached_tokens": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "latency_ms": 0
+          }
+        },
+        "stop_reasons": [
+          "adapter_protocol_error"
+        ]
+      },
+      "tool_executions": 2
+    },
+    {
+      "episode": "34-acs_loop_receipt_guard",
+      "task": "34",
+      "arm": "acs_loop_receipt_guard",
+      "reward": null,
+      "db_reward": null,
+      "status": "not_started_after_failure_or_budget_stop"
+    },
+    {
+      "episode": "34-langgraph",
+      "task": "34",
+      "arm": "langgraph",
+      "reward": null,
+      "db_reward": null,
+      "status": "not_started_after_failure_or_budget_stop"
+    }
+  ],
+  "accounting": {
+    "requests": 17,
+    "reserved_cny": "1.372904",
+    "known_peak_estimated_cny": "0.02479680",
+    "known_timeband_estimated_cny": "0.012398400",
+    "cost_complete": true,
+    "unknown_requests": 0,
+    "roles": {
+      "agent": {
+        "requests": 11,
+        "reserved_cny": "1.181836",
+        "known_peak_estimated_cny": "0.01829168",
+        "unknown_requests": 0,
+        "cost_complete": true,
+        "known_timeband_estimated_cny": "0.009145840",
+        "cached_tokens": 59392,
+        "prompt_tokens": 63010,
+        "completion_tokens": 1085,
+        "latency_ms": 12617.455022962531
+      },
+      "user": {
+        "requests": 6,
+        "reserved_cny": "0.191068",
+        "known_peak_estimated_cny": "0.00650512",
+        "unknown_requests": 0,
+        "cost_complete": true,
+        "known_timeband_estimated_cny": "0.003252560",
+        "cached_tokens": 3328,
+        "prompt_tokens": 4574,
+        "completion_tokens": 485,
+        "latency_ms": 7285.121435008477
+      },
+      "judge": {
+        "requests": 0,
+        "reserved_cny": "0",
+        "known_peak_estimated_cny": "0",
+        "unknown_requests": 0,
+        "cost_complete": true,
+        "known_timeband_estimated_cny": "0",
+        "cached_tokens": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "latency_ms": 0
+      }
+    },
+    "stop_reasons": [
+      "adapter_protocol_error"
+    ]
+  }
+}

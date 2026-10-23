@@ -93,6 +93,7 @@ class LLMClient:
     settings: Settings = field(default_factory=get_settings)
     usages: list[Usage] = field(default_factory=list)
     budget: RunBudget | None = None
+    async_client_factory: Any = None
 
     def __post_init__(self) -> None:
         if not self.settings.has_llm_key:
@@ -258,7 +259,7 @@ class LLMClient:
         from .async_transport import iterate_request
 
         async def request(publish):
-            async with AsyncOpenAI(
+            async with (self.async_client_factory or AsyncOpenAI)(
                 api_key=self.settings.llm_api_key, base_url=self.settings.llm_base_url,
                 timeout=min(self.settings.llm_timeout_s, remaining), max_retries=0,
             ) as client:

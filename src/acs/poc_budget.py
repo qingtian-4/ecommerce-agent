@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from time import perf_counter
 
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import messages_to_dict
+
+from acs.runtime import BudgetJournal
 
 
 class PocBudget(BaseCallbackHandler):
@@ -17,6 +18,7 @@ class PocBudget(BaseCallbackHandler):
 
     def __init__(self, path: Path, *, max_output_tokens: int):
         self.path, self.max_output_tokens = path, max_output_tokens
+        self.journal = BudgetJournal(path)
         self.started = {}
         if not path.exists():
             self._append({
@@ -29,14 +31,11 @@ class PocBudget(BaseCallbackHandler):
             })
 
     def _append(self, row):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as out:
-            out.write(json.dumps(row, ensure_ascii=False) + "\n")
-            out.flush()
-            os.fsync(out.fileno())
+        with self.journal.transaction() as (_, append):
+            append(row)
 
     def rows(self):
-        return [json.loads(line) for line in self.path.read_text().splitlines()]
+        return self.journal.rows()
 
     def on_chat_model_start(self, serialized, messages, *, run_id, **kwargs):
         params = kwargs.get("invocation_params", {})
