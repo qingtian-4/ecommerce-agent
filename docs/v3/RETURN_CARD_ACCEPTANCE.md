@@ -21,10 +21,10 @@
 
 ## 证据
 
-- [固定模型浏览器 Scorecard](../../results/web_demo_return_card_20261024_run3/scorecard.json)
-- [SQL 终态](../../results/web_demo_return_card_20261024_run3/sql_final.json)
-- [提交结果截图](../../results/web_demo_return_card_20261024_run3/submitted-desktop.png)
-- [移动截图](../../results/web_demo_return_card_20261024_run3/submitted-mobile.png)
+- [固定模型浏览器 Scorecard](../../results/web_demo_return_card_20261024_run4/scorecard.json)
+- [SQL 终态](../../results/web_demo_return_card_20261024_run4/sql_final.json)
+- [提交结果截图](../../results/web_demo_return_card_20261024_run4/submitted-desktop.png)
+- [移动截图](../../results/web_demo_return_card_20261024_run4/submitted-mobile.png)
 - 本轮真实模型结果仍只引用上一轮 `results/web_demo_deepseek_20261024_run1`；没有为卡片改动重新付费。
 
 ## 边界
