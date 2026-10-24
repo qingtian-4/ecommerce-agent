@@ -134,6 +134,18 @@ def main():
         sub.add_argument("session_id")
         if name == "ask":
             sub.add_argument("text")
+    for name in [
+        "confirmation-open",
+        "confirmation-pending",
+        "confirmation-resume",
+        "confirmation-decide",
+    ]:
+        sub = commands.add_parser(name, help="应用端隔离确认，无模型请求或正式提交")
+        sub.add_argument("session_id")
+        if name not in {"confirmation-open", "confirmation-pending"}:
+            sub.add_argument("wait_id")
+        if name == "confirmation-decide":
+            sub.add_argument("decision", choices=["accept", "reject", "cancel"])
     args = parser.parse_args()
     root = args.state_dir
     if args.command == "init":
@@ -160,6 +172,16 @@ def main():
                 ensure_ascii=False,
             )
         )
+        return
+    if args.command.startswith("confirmation-"):
+        with LocalReturnPoc(root, args.user_id, model=DemoModel(responses=[])) as poc:
+            result = poc.confirmation(
+                args.session_id,
+                args.command.removeprefix("confirmation-"),
+                wait_id=getattr(args, "wait_id", None),
+                decision=getattr(args, "decision", None),
+            )
+            print(json.dumps(result, ensure_ascii=False))
         return
     with ExitStack() as stack:
         if args.command == "demo":

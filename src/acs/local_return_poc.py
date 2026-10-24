@@ -181,6 +181,26 @@ class LocalReturnPoc:
     def __exit__(self, *exc):
         self.stack.close()
 
+    def confirmation(self, sid, action, *, wait_id=None, decision=None, fault=None):
+        """Trusted application API only; deliberately absent from model ToolRegistry."""
+        if not self.run_lock.acquire(blocking=False):
+            raise ConversationBusy("Local worker is executing another application operation")
+        try:
+            from .local_confirmation import LocalConfirmation
+
+            gate = LocalConfirmation(self.gateway, SqliteSaver(self.conn), fault=fault)
+            if action == "open":
+                return gate.open(sid, self.user_id)
+            if action == "pending":
+                return gate.pending(sid, self.user_id)
+            if action == "decide":
+                return gate.decide(sid, self.user_id, wait_id, decision)
+            if action == "resume":
+                return gate.resume(sid, self.user_id, wait_id)
+            raise ValueError("Unknown application confirmation action")
+        finally:
+            self.run_lock.release()
+
     def _tool(self, name, description, schema):
         if name == "preview_return":
             description = "核查当前草稿、政策与数量并生成隔离预览；没有提交、审核或退款入口。"

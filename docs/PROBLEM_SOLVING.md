@@ -1216,3 +1216,5 @@ asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送�
 旧before_model每次返回新的SystemMessage，AgentState.add_messages按新ID追加，15次请求留下1→15份业务事实；私有原始请求SHA核验后，历史快照冗余占累计wire29.89%。事实、完整订单/政策回执与current_task重复共同放大输入。实际供应商usage与各部分字节估算分开，不把代理分词估计当真实Token。
 
 最小修复将业务事实放入wrap_model_call的临时ModelRequest.override；每次从权威SQLite读取，Checkpoint不再新增事实，用户授权/更正和原生工具消息不删。红绿实测确认旧代码失败、新代码通过；相同8阶段固定决定的业务状态与10次工具回执合同一致。费用账本仍保留峰值缓存未命中、发送前持久预留与未知请求收费保护，未释放历史预留。新真实8阶段及后续Interrupt的门禁与证据见docs/v3/CONTEXT_ENGINEERING_REPORT.md。
+
+本轮实际：Context代码3090695完整CI878项通过；相同冻结8阶段真实全完成，16请求、139232输入/1911输出，预留2.264664元，usage估0.035610720元，unknown0。共同完成前7阶段输入减少27.92%但费用增加4.75%，不宣称费用收益。通过真实门禁后实施隔离原生Interrupt，应用唯一事件同事务消费；28项专项及跨进程CLI验证暂停/恢复、重复拒绝、旧确认失效，正式四表0。开发中定位并修复错误resume缓存卡住、open回执丢失和初始Graph缺失+过期恢复边界。下一轮隔离正式提交开发有限Go，生产与默认替换No-Go。

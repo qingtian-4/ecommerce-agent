@@ -27,3 +27,13 @@ results/context_engineering_20261024/baseline_context_audit.json按原HTTP SHA�
 ## 离线对照实际结果
 
 74ba808原实现通过git show载入临时模块，候选使用当前源码，在两个全新fixture执行相同8阶段输入和15个固定模型决定。两侧10次工具名称、规范参数、revision前后值、逐阶段业务状态、最终答复完全一致，正式四表均0；事实消息旧1→15，新每次1。原生Tool Call/ToolMessage配对完整。证据results/context_engineering_20261024/offline_parity.json；这只是协议/语义合同，不是模型质量评测。
+
+## 真实门禁结果
+
+Context代码3090695完整CI878项通过、0skip；新真实run `local_return_context_20261024_run1` 冻结8阶段全通过，第8阶段最终答复已核对与最新耳机1件预览一致，未声称正式提交。16HTTP、预留2.264664元、usage时段估算0.035610720元，unknown=0；没有重跑或提高额度。
+
+共同完成阶段1–7输入降低27.92%，费用增加4.75%；完整新流程总Token141143，平均每阶段17642.875，旧不完整记录180877。精确口径见CONTEXT_COST_COMPARISON.md，不宣称费用降低或泛化质量提升。
+
+Graph完成、最后Turn completed、写回执核对通过；持久化业务System事实0，所有用户消息和工具调用/回执配对保留。已有32项业务专项及新增legacy恢复/固定8阶段对照通过。没有发现本轮已验收范围内业务理解/恢复回归；长会话原生合法历史仍会增长，工具回执重复current_task仍未压缩，不保证无限上下文。
+
+只有上述真实门禁通过后，才实现src/acs/local_confirmation.py。它是同一宿主中的确定性StateGraph（无模型），使用独立thread_id前缀，未新增Agent框架或checkpoint_ns。应用CLI确认路径不进入付费模型；模型ToolRegistry保持原清单。
