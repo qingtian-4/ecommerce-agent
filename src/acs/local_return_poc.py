@@ -61,6 +61,7 @@ class LocalState(AgentState):
 class LocalReturnPoc:
     fixture_kind = "local-return-draft-only-1"
     prompt = PROMPT
+    preview_description = "核查当前草稿、政策与数量并生成隔离预览；没有提交、审核或退款入口。"
 
     def __init__(self, root, user_id, *, model, registry=None, fault=None):
         self.settings = fixture_settings(root, kind=self.fixture_kind)
@@ -206,7 +207,7 @@ class LocalReturnPoc:
 
     def _tool(self, name, description, schema):
         if name == "preview_return":
-            description = "核查当前草稿、政策与数量并生成隔离预览；没有提交、审核或退款入口。"
+            description = self.preview_description
 
         def execute(runtime: ToolRuntime, **arguments):
             context = runtime.context  # Supplied anew by the application on EVERY invocation.

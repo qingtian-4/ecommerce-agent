@@ -26,7 +26,7 @@ python scripts/eval_web_demo.py --out /tmp/v3-web-browser-evidence --port 8768
 
 离线固定脚本、真实模型与UI视觉检查分开记录。新运行目录保存Scorecard、源码SHA/文件指纹、逐阶段SQL、截图、完整私有Trace和浏览器状态；浏览器Cookie/CSRF和原始请求响应仅留在受限、Git忽略的.private-evidence目录。
 
-本轮发现与失败均保留：严格CSP不允许浏览器测试使用字符串eval，修正测试函数而不放宽CSP；测试函数拼接错误另存失败运行；业务库缺失时默认sqlite连接曾建空库，回归先红后改为只读打开；确认issued/waiting恢复与事件终态竞争均补合同测试。最终运行记录和Go/No-Go在本文件及results报告结尾收敛后补齐。
+本轮发现与失败均保留：严格CSP不允许浏览器测试使用字符串eval，修正测试函数而不放宽CSP；测试函数拼接错误另存失败运行；业务库缺失时默认sqlite连接曾建空库，回归先红后改为只读打开；确认issued/waiting恢复与事件终态竞争均补合同测试。失败原始目录保留，最终结果见下文。
 
 ## 已完成的离线验收
 
@@ -37,3 +37,14 @@ HTTP/Graph/SQL专项17项通过；真实服务进程在COMMIT前后退出2项通
 服务退出补充：默认Uvicorn会等待长SSE连接；启动器设置5秒连接退出宽限，后台executor在lifespan关闭时仍等待实际任务收尾，连接取消不重新执行任务。
 
 独立对抗审查另发现并修复两处问题：固定脚本重复输入的Tool Call ID与恢复游标，采用原生HumanMessage.id前缀和持久AI历史计数；多标签页可能收到旧预览与新等待的混合快照，服务端标refresh_required，页面额外核对两preview_id一致才允许接受。两项先运行红测，再连同HTTP工具回执丢失恢复共3项通过；最终源码的浏览器重验与CI另行归档。run4是修复前已通过的完整业务证据，不能把其指纹冒充后续源码。
+
+
+## 真实验收及最终范围
+
+基础运行源码 `15498f2` 的完整CI为 **968 passed、0 skipped**，Ruff与密钥扫描通过：[CI 40068447544](https://github.com/qingtian-4/ecommerce-agent/actions/runs/40068447544)。[浏览器离线run5](../../results/web_demo_offline_20261024_run5/REPORT.md)是在该提交上的10阶段重验，0 pageerror，SQL申请/确认/审计/回执各1。
+
+[真实DeepSeek浏览器run1](../../results/web_demo_deepseek_20261024_run1/REPORT.md)：14次付费HTTP，6阶段结构化业务检查通过，再由浏览器显式确认创建1份模拟pending_review申请。输入116657、输出1942 Token，保守预留1.907844元，按usage及时段价格估算0.035864360元；实际供应商账单未获取。Graph/SQL matched，重复点击没有重复申请，User/Judge未调用。
+
+人工核验发现两项回答问题：虚构一次历史预览失效，以及沿用草稿模式的提交能力说明；另有时间文案不标时区。保留原始结果，不报告完整语义成功。能力说明在后续最小修复中调整，仅限Formal工具描述/新回执/动态事实；历史回执不改写，默认草稿模式仍不开放提交。此修复只有离线验证，未新增付费请求。虚构历史预览仍为下一轮语义验证对象。
+
+**Go：本机合成数据的交互展示与下一轮独立本地评测。No-Go：生产认证、真实平台售后、正式质量Benchmark结论。** 默认Runtime、main与PR #4未替换；本轮不自动继续评测或部署。

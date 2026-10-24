@@ -264,6 +264,9 @@ class LocalKnowledge:
 
 
 class LocalReturnGateway:
+    preview_notice = "隔离预览，尚未创建申请；本实验不提供提交、审核或退款。"
+    application_confirmation_enabled = False
+
     def __init__(self, settings, *, registry=None, fault=None):
         self.settings, self.store = settings, SessionStore(settings.db_path)
         self.registry = registry or ToolRegistry(settings, kb=LocalKnowledge(settings))
@@ -323,9 +326,7 @@ class LocalReturnGateway:
                 conn.execute("SAVEPOINT local_business")
                 result, _, error = registry.run(name, encoded, current_user_id=context.user_id)
                 if name == "preview_return" and result.get("ready"):
-                    result = result | {
-                        "notice": "隔离预览，尚未创建申请；本实验不提供提交、审核或退款。"
-                    }
+                    result = result | {"notice": self.preview_notice}
                 if error:
                     conn.execute("ROLLBACK TO local_business")
                 conn.execute("RELEASE local_business")
@@ -349,7 +350,6 @@ class LocalReturnGateway:
             latest = self.service.latest_preview(context.session_id, context.user_id)
             if not latest or latest["preview_id"] != result["preview_id"]:
                 raise ReconciliationError("Recorded preview is now stale; no automatic re-preview")
-            result = result | {"notice": "隔离预览，尚未创建申请；本实验不提供提交、审核或退款。"}
         return model_view(
             {
                 "result": result,
@@ -367,5 +367,10 @@ class LocalReturnGateway:
                 "task": self.store.get_return_task(sid, uid),
                 "preview": self.service.latest_preview(sid, uid),
                 "submission_enabled": False,
+                **(
+                    {"application_confirmation_enabled": True}
+                    if self.application_confirmation_enabled
+                    else {}
+                ),
             }
         )

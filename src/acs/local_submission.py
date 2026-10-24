@@ -205,6 +205,19 @@ class FormalConfirmation(LocalConfirmation):
 
 class FormalReturnPoc(LocalReturnPoc):
     fixture_kind = KIND
+    preview_description = (
+        "核查当前草稿、政策与数量并生成隔离预览；模型不能提交，"
+        "只有应用确认可创建模拟待审核申请，不审核或退款。"
+    )
+
+    def __init__(self, root, user_id, *, model, registry=None, fault=None):
+        super().__init__(root, user_id, model=model, registry=registry, fault=fault)
+        self.gateway.application_confirmation_enabled = True
+        self.gateway.preview_notice = (
+            "隔离预览，尚未创建申请；模型不能提交，只有应用确认可创建模拟待审核申请；"
+            "不执行审核、退款或真实平台办理。"
+        )
+
     prompt = PROMPT.replace(
         "本实验没有确认提交、审核、退款、换货、真实人工转接入口，不能声称已申请或已退款。",
         "模型没有提交、审核或退款工具。仅应用显式确认可创建隔离模拟待审核申请；以业务回执为准。",

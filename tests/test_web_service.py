@@ -521,3 +521,53 @@ def test_fixed_demo_http_resume_continues_after_committed_tool_receipt_without_r
             receipts = conn.execute("SELECT call_id,name FROM local_receipts").fetchall()
         assert len(receipts) == 3 and len({r["call_id"] for r in receipts}) == 3
         assert counts(root) == (0, 0, 0)
+
+
+def test_formal_model_capability_projection_matches_application_confirmation(setup):
+    from langchain_core.messages import SystemMessage, ToolMessage
+
+    root, factory, models = setup
+    with TestClient(create_app(root, factory), base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        post(client, sid, headers, "messages", text="预览")
+        done(client, sid)
+        seen = models[-1].seen[-1]
+        facts = [
+            json.loads(m.text.removeprefix("当前应用核验事实："))
+            for m in seen
+            if isinstance(m, SystemMessage) and m.text.startswith("当前应用核验事实：")
+        ][-1]
+        assert facts["submission_enabled"] is False
+        assert facts["application_confirmation_enabled"] is True
+        receipts = [json.loads(m.content) for m in seen if isinstance(m, ToolMessage)]
+        notice = next(r["result"]["notice"] for r in receipts if r["result"].get("ready"))
+        assert "应用确认" in notice and "不提供提交" not in notice
+        assert counts(root) == (0, 0, 0)
+
+
+def test_preview_replay_preserves_its_authoritative_historical_receipt(setup):
+    from acs.local_return_tools import TurnContext
+    from acs.local_submission import FormalReturnPoc
+    from acs.web_service import WebEngine
+
+    root, _, _ = setup
+    with FormalReturnPoc(root, "USER001", model=WebEngine.offline_model()) as poc:
+        sid = poc.store.create("USER001")
+        tid = poc.store.begin_turn(sid, "USER001", "准备退货草稿")
+        with poc.store.transaction() as conn:
+            conn.execute("INSERT INTO local_threads VALUES(?,?,?,0)", (sid, uuid4().hex, tid))
+        context = TurnContext(sid, "USER001", tid)
+        poc.gateway.execute("update_return_task", draft(), "draft", context, expected_revision=0)
+        poc.gateway.execute("preview_return", {}, "preview", context, expected_revision=1)
+        with poc.store.transaction() as conn:
+            row = conn.execute(
+                "SELECT result FROM local_receipts WHERE session_id=? AND call_id='preview'", (sid,)
+            ).fetchone()
+            previous = json.loads(row[0])
+            previous["notice"] = "历史运行的能力说明，不改写原始回执"
+            conn.execute(
+                "UPDATE local_receipts SET result=? WHERE session_id=? AND call_id='preview'",
+                (json.dumps(previous), sid),
+            )
+        replay = poc.gateway.execute("preview_return", {}, "preview", context, expected_revision=1)
+        assert replay["replayed"] and replay["result"] == previous
