@@ -17,7 +17,7 @@
 
 共 **14次HTTP**，Agent 14 / User Simulator 0 / Judge 0；输入116657、输出1942、缓存命中90368 Token，模型请求延迟合计25122ms。保守累计预留 **1.907844元**，按已核实usage及实际时段价格估算 **0.035864360元**（峰值口径0.07172872元）。供应商实际账单未获取，不能称已扣款金额。全部usage已知，未知请求0，未触及3元/24次限制，无自动重试。
 
-逐请求见 [requests.csv](requests.csv)、[公共账本](ledger.public.jsonl)、[费用汇总](cost_summary.json)、[分阶段口径](stage_costs.json)。分阶段归属采用同机预留时间与阶段SQL快照时间，完整账本是费用权威记录。模型为deepseek-flash、temperature=0、non-thinking、max output=1024、SDK重试0，复用原Episode预算和SDK取证。价格核验在第一次HTTP前完成，官方价格页快照/原始账本仅保存在私有目录。
+实际9次工具完成、44条事件的脱敏执行索引见 [events.public.jsonl](events.public.jsonl)；索引保留事件/调用ID及状态，回答仅留长度，原文仍在私有证据。逐请求见 [requests.csv](requests.csv)、[公共账本](ledger.public.jsonl)、[费用汇总](cost_summary.json)、[分阶段口径](stage_costs.json)。分阶段归属采用同机预留时间与阶段SQL快照时间，完整账本是费用权威记录。模型为deepseek-flash、temperature=0、non-thinking、max output=1024、SDK重试0，复用原Episode预算和SDK取证。价格核验在第一次HTTP前完成，官方价格页快照/原始账本仅保存在私有目录。
 
 ## 回答质量限制
 

@@ -58,3 +58,10 @@ JSON契约Pydantic strict、extra=forbid；user_id、db_path、thread_id、业�
 展示授权绑定：GET多次业务读取可能跨越另一标签页的更新；等待的preview_id与响应中显示的预览不同或无有效预览时，等待呈refresh_required，页面还独立比较ID后才启用接受。用户可显式核对恢复等待，不能把屏幕上另一份预览当授权。
 
 离线固定模型的游标从最后原生HumanMessage之后的AI历史计算，不存在进程内游标权威；Tool Call ID以原生持久HumanMessage.id作前缀，重复同文本新Turn和原Turn恢复不会冲突。此逻辑只属于固定脚本演示，不改变真实模型接口或默认Runtime。
+
+
+## 基线与依赖核验
+
+远端M6分支仍为2d20dbf，main仍为f34981f；V3仅复用原Worktree，不新增或删除目录。主目录三个用户原文件hash与开始审计一致，保留其原未提交状态。环境为Python3.13.12、FastAPI0.142.2、Uvicorn0.54.0、LangChain1.4.7、LangGraph1.2.16、SQLite Checkpointer3.1.2、Pydantic2.13.5；本轮仅显式声明现有Web依赖并更新锁元数据，没有整体升级。源码、保护文件hash见results/web_demo_deepseek_20261024_run1/repository_audit.json。
+
+Formal模型能力投影在真实冒烟后作最小修复：预览工具描述、新预览回执、请求级当前事实明确模型无提交工具，应用确认可创建隔离模拟pending_review。旧草稿Fixture的提示、权限与正式写入禁止规则保持。历史预览幂等回执必须从SQL原样恢复，不能被当前版本的新文案覆盖；最新预览有效性核验仍保留。没有复制ReturnService的业务规则。
