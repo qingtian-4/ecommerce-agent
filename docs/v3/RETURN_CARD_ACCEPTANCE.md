@@ -35,3 +35,12 @@
 - 本轮没有付费DeepSeek请求，费用0；不复制上一轮真实模型成绩。模型虚构旧预览等历史语义风险仍未由本轮固定模型测试解决。
 
 **Go：本机合成数据Demo和继续本地评测。No-Go：生产身份、真实平台申请、审核或退款。** 不自动合并main、替换默认Runtime或启动Benchmark。
+
+
+## 最终固定提交验收
+
+[最终报告](../../results/return_card_faults_20261024_run3/REPORT.md)：源码34a4ba6，指纹不变，10组真实Chromium/HTTP/SQLite场景通过，0页面异常、0付费请求。五状态及320/375布局截图均已查看。独立M6 SQL回执在两个Graph已损坏的成功场景仍通过；其它场景正式四表为0。
+
+完整源码CI：[40082438023](https://github.com/qingtian-4/ecommerce-agent/actions/runs/40082438023)，**980 passed、0 skipped、0 failed/error**；含Web26、新卡片8、M6原子提交39。Ruff与全追踪密钥扫描通过，JUnit已下载并校验哈希，参见最终报告的ci_acceptance.json。
+
+本机固定模型服务地址http://127.0.0.1:8767，复用/tmp/v3-web-demo-m7-20261024合成目录。新建及重启命令见合同；重启既有目录不能加--init。未核实HTTP请求若没有可证明的终态，卡片保持UNKNOWN，只查询、不擅自恢复写入。
