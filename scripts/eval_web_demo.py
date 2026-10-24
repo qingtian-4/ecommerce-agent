@@ -151,6 +151,7 @@ def run(out, port, *, deepseek=False, env_file=None, price_review=None):
                 inputs = ["查询P003充电器接口", "查询我的订单", *inputs]
             previous = None
             old_preview = None
+            first_query_answer = None
             for index, text in enumerate(inputs, 1):
                 start_time = time.perf_counter()
                 if text is None:
@@ -168,6 +169,23 @@ def run(out, port, *, deepseek=False, env_file=None, price_review=None):
                 else:
                     s = send(text)
                 checks = {"no_formal_requests": not s["requests"]}
+                if not deepseek and index in (1, 2):
+                    answer = page.locator("#chat .bubble.assistant").last.inner_text()
+                    checks["fixed_mode_disclosed"] = "固定脚本" in page.locator(
+                        "#runtime-mode"
+                    ).inner_text()
+                    checks["answer_stream_limit_disclosed"] = "不是逐字流式" in page.locator(
+                        "#runtime-notice"
+                    ).inner_text()
+                    if index == 1:
+                        checks["product_facts_visible"] = "P003" in answer
+                        first_query_answer = answer
+                    else:
+                        checks["owned_order_facts_visible"] = bool(s["orders"]) and all(
+                            o["order_id"] in answer for o in s["orders"]
+                        )
+                        checks["query_answers_distinct"] = answer != first_query_answer
+                        page.screenshot(path=out / "query-results-desktop.png", full_page=True)
                 if text in stages:
                     number = stages.index(text) + 1
                     task, preview = s["draft"], s["preview"]

@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from contextlib import contextmanager
 from pathlib import Path
 
 import uvicorn
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from pydantic import Field
 
@@ -35,6 +36,32 @@ class FixedDemoModel(BaseChatModel):
     def bind_tools(self, *args, **kwargs):
         return self
 
+    @staticmethod
+    def query_answer(messages, tool):
+        """Presentation only: render the current tool receipt, never invent facts."""
+        receipt = next(m for m in reversed(messages) if isinstance(m, ToolMessage))
+        payload = json.loads(receipt.content)
+        if receipt.status == "error" or payload.get("error"):
+            return "固定脚本查询未成功，不能生成查询结论；请查看执行记录。"
+        result = payload["result"]
+        if tool == "get_product":
+            if not result.get("found"):
+                return "工具未找到该商品，请核对商品编号。"
+            return (
+                f"商品：{result['name']}（{result['product_id']}）\n"
+                + "规格（工具原文）：\n"
+                + "\n".join("· " + a for a in result["attributes"])
+            )
+        lines = [f"当前合成账号有 {len(result['orders'])} 个订单："]
+        for order in result["orders"]:
+            lines.append(f"· {order['order_id']}，状态：{order['status']}")
+            lines.extend(
+                f"  {item['product_name']} × {item['quantity']}"
+                for item in order["items"]
+            )
+        lines.append("多个候选不代表已选定订单；退货时仍需明确商品与数量。")
+        return "\n".join(lines)
+
     def _generate(self, messages, **kwargs):
         self.seen.append(messages)
         position = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage))
@@ -58,7 +85,7 @@ class FixedDemoModel(BaseChatModel):
                         }
                     ],
                 ),
-                AIMessage(content="已完成隔离查询，详情以工具和业务状态为准。"),
+                AIMessage(content="等待查询回执"),
             ]
         else:
             replies = [
@@ -67,6 +94,8 @@ class FixedDemoModel(BaseChatModel):
                 )
             ]
         reply = replies[offset]
+        if text in {"查询P003充电器接口", "查询我的订单"} and offset == 1:
+            reply = AIMessage(content=self.query_answer(messages[position + 1 :], name))
         if reply.tool_calls:
             reply = reply.model_copy(
                 update={
@@ -104,7 +133,9 @@ def main():
                 yield model
 
     app = create_app(
-        args.state_dir, factory, origin=f"http://127.0.0.1:{args.port}", secret_values=secret_values
+        args.state_dir, factory, origin=f"http://127.0.0.1:{args.port}",
+        secret_values=secret_values,
+        runtime_mode="deepseek" if args.deepseek else "fixed_script",
     )
     print(
         f"V3 synthetic Demo: http://127.0.0.1:{args.port} "

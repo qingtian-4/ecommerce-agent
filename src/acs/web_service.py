@@ -583,8 +583,32 @@ class WebEngine:
 
 
 def create_app(
-    root, model_factory, *, origin="http://127.0.0.1:8767", fault=None, secret_values=()
+    root, model_factory, *, origin="http://127.0.0.1:8767", fault=None, secret_values=(),
+    runtime_mode="custom",
 ):
+    modes = {
+        "fixed_script": {
+            "label": "固定脚本 · 免费离线测试",
+            "notice": "当前不是 DeepSeek 自由对话，仅响应演示用例。查询展示真实工具结果；"
+            "SSE只显示工具执行进度，正文完成后整段显示，不是逐字流式。",
+        },
+        "deepseek": {
+            "label": "DeepSeek · 受限真实模型",
+            "notice": "当前使用真实模型，会产生费用并接受预算保护。"
+            "SSE只显示工具执行进度，正文完成后整段显示，不是逐字流式。",
+        },
+        "custom": {
+            "label": "测试模型 · 非生产客服",
+            "notice": "当前使用服务端配置的测试模型。"
+            "SSE只显示工具执行进度，正文不是逐字流式。",
+        },
+    }
+    if runtime_mode not in modes:
+        raise ValueError("Unknown server runtime mode")
+    runtime_info = dict(
+        mode=runtime_mode, answer_streaming=False, progress_streaming=True,
+        **modes[runtime_mode],
+    )
     parsed = urlsplit(origin)
     if parsed.scheme != "http" or parsed.hostname != "127.0.0.1" or parsed.path:
         raise ValueError("Demo requires a loopback HTTP origin")
@@ -678,7 +702,9 @@ def create_app(
     @app.get("/api/bootstrap")
     def bootstrap(request: Request):
         browser = auth(request)
-        return {"csrf": browser["csrf"], "session_id": browser["session_id"]}
+        return {
+            "csrf": browser["csrf"], "session_id": browser["session_id"], "runtime": runtime_info
+        }
 
     @app.post("/api/sessions")
     def session(request: Request, body: StrictBody):
