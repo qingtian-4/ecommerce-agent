@@ -128,8 +128,6 @@ class LocalConfirmation:
         return self.resume(sid, uid, row["wait_id"]) if row else {"status": "none"}
 
     def open(self, sid, uid):
-        previous_wait_id = None
-        wait_id = None
         with self.store.transaction() as conn:
             self.store._require_owner(conn, sid, uid)
             self._idle(conn, sid)
@@ -147,37 +145,21 @@ class LocalConfirmation:
             row = conn.execute(
                 "SELECT * FROM return_previews WHERE preview_id=?", (preview["preview_id"],)
             ).fetchone()
-            previous = conn.execute(
-                "SELECT * FROM local_confirmation_waits WHERE session_id=? AND preview_id=? "
-                "ORDER BY rowid DESC LIMIT 1",
-                (sid, row["preview_id"]),
-            ).fetchone()
-            if previous:
-                if previous["status"] == "accepted":
-                    previous_wait_id = previous["wait_id"]
-                else:
-                    raise ReconciliationError(
-                        "This preview already has a terminal confirmation; generate a new preview"
-                    )
-            if not previous_wait_id:
-                wait_id = uuid4().hex
-                conn.execute(
-                    "INSERT INTO local_confirmation_waits "
-                    "(wait_id,session_id,user_id,preview_id,revision,policy_hash,expires_at,"
-                    "status) "
-                    "VALUES(?,?,?,?,?,?,?,'waiting')",
-                    (
-                        wait_id,
-                        sid,
-                        uid,
-                        row["preview_id"],
-                        row["revision"],
-                        row["policy_hash"],
-                        row["expires_at"],
-                    ),
-                )
-        if previous_wait_id:
-            return self.resume(sid, uid, previous_wait_id)
+            wait_id = uuid4().hex
+            conn.execute(
+                "INSERT INTO local_confirmation_waits "
+                "(wait_id,session_id,user_id,preview_id,revision,policy_hash,expires_at,status) "
+                "VALUES(?,?,?,?,?,?,?,'waiting')",
+                (
+                    wait_id,
+                    sid,
+                    uid,
+                    row["preview_id"],
+                    row["revision"],
+                    row["policy_hash"],
+                    row["expires_at"],
+                ),
+            )
         self.fault("after_open_commit")
         return self.resume(sid, uid, wait_id)
 
