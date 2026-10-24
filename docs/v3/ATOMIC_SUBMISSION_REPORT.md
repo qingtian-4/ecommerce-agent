@@ -85,4 +85,6 @@ uv run python scripts/check_secrets.py --all-tracked
 
 ## 结论及边界
 
-在完整合同及最终 CI 通过条件下，**Go：下一轮接入隔离 FastAPI/SSE 与业务确认 UI**。生产使用仍 **No-Go**：当前只有固定合成身份的本地 CLI，没有生产身份认证、CSRF/重放入口治理、平台回执协议、多 Worker 协调、备份/审计保留和监控验收。文件系统所有者仍能篡改 SQLite，连接 capability 不是对抗主机管理员的安全边界。真实平台提交、审核、退款、默认 Runtime 切换均未实施。
+源码提交 `93c3b30` 的完整CI已通过（945 passed、0 skipped，JUnit已下载核验），39项新增事务/恢复用例全部成功。**Go：下一轮接入隔离 FastAPI/SSE 与业务确认 UI**。生产使用仍 **No-Go**：当前只有固定合成身份的本地 CLI，没有生产身份认证、CSRF/重放入口治理、平台回执协议、多 Worker 协调、备份/审计保留和监控验收。文件系统所有者仍能篡改 SQLite，连接 capability 不是对抗主机管理员的安全边界。真实平台提交、审核、退款、默认 Runtime 切换均未实施。
+
+验收CI：[40054427592](https://github.com/qingtian-4/ecommerce-agent/actions/runs/40054427592)。证据汇总与逐项故障结果：`results/atomic_submission_20261024_run3/ci_acceptance.json`。实跑44个源码/依赖文件指纹与93c3b30一致；最终交付还包含CI证据文档提交，其CI在最终回复给出。
