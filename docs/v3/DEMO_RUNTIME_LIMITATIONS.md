@@ -34,3 +34,7 @@
 
 
 最终固定源码浏览器验收：ddbef61完成原10阶段、0页面错误；前两条查询新增实际DOM事实与不同答案断言，[页面证据](../../results/demo_query_visibility_20261024_run2/query-results-desktop.png)。当前服务仍为免费固定模式，刷新后重新发送消息才会显示新结果；原历史占位回复不会被改写。
+
+## 后续实现：显式真实模式正文流
+
+本报告上文记录566de1c时点的事实，不改写原验收。后续 `feat/v3-deepseek-answer-stream` 为显式 `--deepseek` 接入真实 SDK 片段、持久化正文事件、临时文字撤回与刷新恢复；默认免费固定模式仍不是自由对话。实现、脱敏窗口限制、离线测试与新的真实验收请见 [ANSWER_STREAMING_REPORT.md](ANSWER_STREAMING_REPORT.md)。

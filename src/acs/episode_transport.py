@@ -1,12 +1,13 @@
 """Budget the actual SDK HTTP boundary, including failed and streaming attempts.
 
-HalfDuplex only: buffer a response to obtain its final usage before exposing it.
-This doesn't change JSON/SSE contents. UI streaming is not routed through here.
+HalfDuplex remains the default. Web opt-in forwards SSE frames before completion,
+but withholds [DONE] until the full response contract and usage are durable.
 """
 from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from contextlib import closing, suppress
 from uuid import uuid4
@@ -38,16 +39,42 @@ class EpisodeAsyncTransport(httpx.AsyncBaseTransport):
         self.inner = inner or httpx.AsyncHTTPTransport(retries=0)
 
     async def handle_async_request(self, request):
+        return await self._handle(request)
+
+    async def _handle(self, request, publish=None):
         body = await request.aread()
         reservation = self.ledger.reserve(self.episode, self.role, body)
         started = time.perf_counter()
         partial = bytearray()
+        pending = bytearray()
+        terminal = False
+
+        def relay(chunk):
+            nonlocal terminal
+            pending.extend(chunk)
+            while not terminal:
+                boundary = re.search(rb"\r?\n\r?\n", pending)
+                if boundary is None:
+                    break
+                frame = bytes(pending[:boundary.end()])
+                # Match the SDK's termination rule, including split network chunks.
+                terminal = any(
+                    line.startswith(b"data:") and line[5:].lstrip().startswith(b"[DONE]")
+                    for line in frame.splitlines()
+                )
+                if not terminal:
+                    del pending[:boundary.end()]
+                    publish(("value", ("chunk", frame)))
 
         async def receive():
             response = await self.inner.handle_async_request(request)
             try:
+                if publish:
+                    publish(("value", ("headers", response.status_code, response.headers)))
                 async for chunk in response.aiter_bytes():
                     partial.extend(chunk)
+                    if publish:
+                        relay(chunk)
                 return response, bytes(partial)
             finally:
                 await response.aclose()
@@ -81,6 +108,10 @@ class EpisodeAsyncTransport(httpx.AsyncBaseTransport):
             self.ledger.stop(self.episode, "adapter_protocol_error")
             raise ModelResponseError(report["predicate"],
                                      layer=report.get("layer", "model_output"))
+        if publish:
+            if pending:
+                publish(("value", ("chunk", bytes(pending))))
+            return None
         headers = [(k, v) for k, v in response.headers.multi_items()
                    if k.lower() not in {"content-encoding", "content-length", "transfer-encoding"}]
         return httpx.Response(response.status_code, headers=headers, content=content,
@@ -110,25 +141,58 @@ class EpisodeAsyncTransport(httpx.AsyncBaseTransport):
 class EpisodeSyncTransport(httpx.BaseTransport):
     """Official LiteLLM/OpenAI sync SDK; fresh async I/O lifecycle per request."""
 
-    def __init__(self, ledger, episode, role, inner_factory=None):
+    def __init__(self, ledger, episode, role, inner_factory=None, *, streaming=False):
         self.ledger, self.episode, self.role = ledger, episode, role
         self.inner_factory = inner_factory
+        self.streaming = streaming
 
     def handle_request(self, request):
         request.read()
+        live = self.streaming and bool(json.loads(request.content).get("stream"))
 
         async def receive(publish):
             inner = self.inner_factory() if self.inner_factory else None
             transport = EpisodeAsyncTransport(self.ledger, self.episode, self.role, inner)
             try:
-                response = await transport.handle_async_request(request)
-                publish(("value", response))
+                if live:
+                    await transport._handle(request, publish)
+                else:
+                    response = await transport.handle_async_request(request)
+                    publish(("value", response))
             finally:
                 await transport.aclose()
 
         # Actual transport enforces exact deadline; bridge allowance only permits cleanup.
-        with closing(iterate_request(receive, self.ledger.remaining(self.episode) + 2)) as events:
-            return next(events)
+        events = iterate_request(receive, self.ledger.remaining(self.episode) + 2)
+        if not live:
+            with closing(events):
+                return next(events)
+        try:
+            kind, status, headers = next(events)
+            if kind != "headers":
+                raise RuntimeError("Streaming transport did not receive headers")
+            headers = [(k, v) for k, v in headers.multi_items()
+                       if k.lower() not in {
+                           "content-encoding", "content-length", "transfer-encoding"}]
+            return httpx.Response(status, headers=headers, request=request,
+                                  stream=_EpisodeBytes(events))
+        except BaseException:
+            events.close()
+            raise
+
+
+class _EpisodeBytes(httpx.SyncByteStream):
+    def __init__(self, events):
+        self.events = events
+
+    def __iter__(self):
+        for kind, chunk in self.events:
+            if kind != "chunk":
+                raise RuntimeError("Invalid streaming transport event")
+            yield chunk
+
+    def close(self):
+        self.events.close()
 
 
 class EpisodeCallback(BaseCallbackHandler):
@@ -139,6 +203,12 @@ class EpisodeCallback(BaseCallbackHandler):
 
     def __init__(self, ledger, episode):
         self.ledger, self.episode = ledger, episode
+        self.streamed = set()
+
+    def on_llm_new_token(self, token, *, run_id, **kwargs):
+        if token and run_id not in self.streamed:
+            self.streamed.add(run_id)
+            self.ledger.event(self.episode, "sdk_first_token", run_id=str(run_id))
 
     def on_chat_model_start(self, serialized, messages, *, run_id, **kwargs):
         self.ledger.remaining(self.episode)

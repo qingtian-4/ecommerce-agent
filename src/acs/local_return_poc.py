@@ -63,7 +63,7 @@ class LocalReturnPoc:
     prompt = PROMPT
     preview_description = "核查当前草稿、政策与数量并生成隔离预览；没有提交、审核或退款入口。"
 
-    def __init__(self, root, user_id, *, model, registry=None, fault=None):
+    def __init__(self, root, user_id, *, model, registry=None, fault=None, stream_callback=None):
         self.settings = fixture_settings(root, kind=self.fixture_kind)
         self.root = root.resolve()
         self.user_id, self.model = user_id, model
@@ -71,6 +71,7 @@ class LocalReturnPoc:
         self.store = self.gateway.store
         self.path = self.root / "graph.sqlite"
         self.run_lock = Lock()
+        self.stream_callback = stream_callback
 
     def __enter__(self):
         self.stack = ExitStack()
@@ -321,6 +322,8 @@ class LocalReturnPoc:
     def _stream(self, sid, text):
         binding = self._binding(sid)
         config = self._config(binding)
+        if self.stream_callback is not None:
+            config["callbacks"] = [self.stream_callback]
         state = self.graph.get_state(config)
         if binding["turn_id"]:
             with self.store.transaction() as conn:

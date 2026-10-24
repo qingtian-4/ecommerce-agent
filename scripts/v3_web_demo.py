@@ -129,13 +129,15 @@ def main():
 
         @contextmanager
         def factory():
-            with paid_model(args.state_dir, settings, max_requests=24) as (model, ledger):
+            with paid_model(args.state_dir, settings, max_requests=24,
+                            answer_streaming=True) as (model, ledger):
                 yield model
 
     app = create_app(
         args.state_dir, factory, origin=f"http://127.0.0.1:{args.port}",
         secret_values=secret_values,
         runtime_mode="deepseek" if args.deepseek else "fixed_script",
+        answer_streaming=args.deepseek,
     )
     print(
         f"V3 synthetic Demo: http://127.0.0.1:{args.port} "

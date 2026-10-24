@@ -83,7 +83,7 @@ def verify_price(root, settings):
 
 
 @contextmanager
-def paid_model(root, settings, *, max_requests=32):
+def paid_model(root, settings, *, max_requests=32, answer_streaming=False):
     verify_price(root, settings)
     ledger = EpisodeLedger(root / "fees.jsonl", cap_cny=3, max_requests=max_requests)
     ledger.begin(
@@ -99,7 +99,9 @@ def paid_model(root, settings, *, max_requests=32):
 
     with ExitStack() as stack:
         sync = stack.enter_context(
-            httpx.Client(transport=EpisodeSyncTransport(ledger, EPISODE, "agent", factory))
+            httpx.Client(transport=EpisodeSyncTransport(
+                ledger, EPISODE, "agent", factory, streaming=answer_streaming,
+            ))
         )
         async_client = httpx.AsyncClient(
             transport=EpisodeAsyncTransport(ledger, EPISODE, "agent", factory())
@@ -113,15 +115,15 @@ def paid_model(root, settings, *, max_requests=32):
                 "llm_timeout_s": 60,
             }
         )
-        yield (
-            deepseek_model(
+        model = deepseek_model(
                 settings,
                 callbacks=[EpisodeCallback(ledger, EPISODE)],
                 http_client=sync,
                 http_async_client=async_client,
-            ),
-            ledger,
-        )
+            )
+        if answer_streaming:
+            model = model.model_copy(update={"streaming": True})
+        yield model, ledger
 
 
 def main():

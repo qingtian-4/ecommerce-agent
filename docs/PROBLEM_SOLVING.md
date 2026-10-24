@@ -1249,3 +1249,5 @@ Demo实际体验反馈：用户的商品与订单查询均得到同一占位回�
 
 
 上述浏览器重验发现相对--state-dir路径无法转换成只读URI，导致卡片加载阻塞。前期测试全用绝对路径遗漏了CLI入口；补真实HTTP红测后仅将web.sqlite改为self.root的绝对路径。四项展示/模式/路径回归通过，失败浏览器记录保留，不把单元测试绿色当作页面已可用。
+
+正文流优化：单改页面不能解决 HalfDuplex 传输全量缓冲；原生 Graph messages 模式与既有 max_concurrency=1 又存在执行槽饥饿。使用 LangChain callback 观察正文、同步传输显式转发帧，并在合同/usage持久化前扣留DONE，保持原生工具和业务权限。临时答复可撤回、敏感字段跨片段脱敏；最终答案和申请SQL权威分离。18项新SDK/HTTP/Graph合同通过，浏览器真实刷新竞争先红后绿；详细证据见v3/ANSWER_STREAMING_REPORT.md。正式模型验收独立记账，不用脚本结果替代真实效果。

@@ -12,6 +12,7 @@ import secrets
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, closing, contextmanager, nullcontext
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -19,7 +20,8 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -74,6 +76,8 @@ class EventData(StrictBody):
     wait_id: str | None = None
     revision: int | None = None
     request_id: str | None = None
+    message_id: str | None = None
+    emitted_at: str | None = None
 
 
 EVENTS = {
@@ -86,6 +90,9 @@ EVENTS = {
     "submission_verified",
     "turn_completed",
     "turn_failed",
+    "answer_delta",
+    "answer_discarded",
+    "answer_completed",
 }
 
 
@@ -128,10 +135,91 @@ def public_content(content):
     return result
 
 
+class PublicAnswer:
+    """Temporary text projection, never a business or completed-message receipt.
+
+    Withhold a sensitive-value window AND unfinished words. This allows redaction
+    across SDK chunks (keys, phones and emails) before any public text is emitted.
+    """
+
+    def __init__(self, message_id, secret_values):
+        self.message_id, self.secret_values = message_id, secret_values
+        self.raw, self.visible, self.blocked = "", "", False
+        self.hold = max([64, *(len(v) for v in secret_values if v)])
+
+    def add(self, text):
+        if self.blocked or not isinstance(text, str):
+            return None
+        self.raw += text
+        safe = scrub(self.raw, self.secret_values)
+        boundaries = list(re.finditer(r"[\s，。！？；、]", safe[:max(0, len(safe)-self.hold)]))
+        value = safe[:boundaries[-1].end()] if boundaries else ""
+        if value and value != self.visible:
+            self.visible = value
+            return value
+        return None
+
+
+class AnswerStreamCallback(BaseCallbackHandler):
+    """Observe native model callbacks without changing Graph/tool scheduling."""
+
+    raise_error = True
+    run_inline = True
+
+    def __init__(self, engine, sid, jid):
+        self.engine, self.sid, self.jid = engine, sid, jid
+        self.answers = {}
+
+    def on_chat_model_start(self, serialized, messages, *, run_id, **kwargs):
+        self.answers[run_id] = PublicAnswer(f"answer-{len(self.answers)+1}",
+                                            self.engine.secret_values)
+
+    def discard(self, reason):
+        for answer in self.answers.values():
+            self._discard(answer, reason)
+
+    def _discard(self, answer, reason):
+        if answer.visible and not answer.blocked:
+            self.engine.emit(self.sid, self.jid, "answer_discarded",
+                             message_id=answer.message_id, reason=reason, status="discarded")
+        answer.blocked = True
+
+    def on_llm_new_token(self, token, *, run_id, chunk=None, **kwargs):
+        answer = self.answers.get(run_id)
+        message = getattr(chunk, "message", None)
+        if answer is None or not isinstance(message, AIMessageChunk):
+            return
+        if message.tool_call_chunks or message.invalid_tool_calls:
+            self._discard(answer, "tool_phase")
+        elif value := answer.add(message.content):
+            self.engine.emit(self.sid, self.jid, "answer_delta", text=value,
+                             message_id=answer.message_id, status="provisional")
+
+    def on_llm_end(self, response, *, run_id, **kwargs):
+        for batch in response.generations:
+            for generation in batch:
+                message = getattr(generation, "message", None)
+                if message and (message.tool_calls or message.invalid_tool_calls):
+                    self._discard(self.answers[run_id], "tool_phase")
+
+    def on_llm_error(self, error, *, run_id, **kwargs):
+        if run_id in self.answers:
+            self._discard(self.answers[run_id], "execution_incomplete")
+
+    def complete(self, text):
+        answer = next(reversed(self.answers.values()), None)
+        self.engine.emit(self.sid, self.jid, "answer_completed",
+                         message_id=answer.message_id if answer else "answer-final",
+                         text=text, status="completed")
+
+
 class WebEngine:
-    def __init__(self, root, model_factory, *, fault=None, secret_values=()):
+    def __init__(
+        self, root, model_factory, *, fault=None, secret_values=(), answer_streaming=False
+    ):
         self.root, self.model_factory = root.resolve(), model_factory
         self.fault, self.secret_values = fault, secret_values
+        self.answer_streaming = answer_streaming
         self.settings = fixture_settings(root, kind=KIND)
         self.gateway = LocalReturnGateway(self.settings)
         self.store = self.gateway.store
@@ -230,6 +318,7 @@ class WebEngine:
     def _emit(self, conn, sid, job, kind, **data):
         if kind not in EVENTS:
             raise ValueError("Unknown public event")
+        data["emitted_at"] = datetime.now(UTC).isoformat()
         payload = EventData(**data).model_dump(exclude_none=True)
         for key, value in payload.items():
             if isinstance(value, str):
@@ -276,6 +365,8 @@ class WebEngine:
 
     def execute(self, jid, sid, kind, payload):
         final = {}
+        stream = AnswerStreamCallback(self, sid, jid) if self.answer_streaming else None
+
         try:
             with self.tx() as conn:
                 conn.execute("UPDATE jobs SET status='running' WHERE id=?", (jid,))
@@ -286,7 +377,8 @@ class WebEngine:
             )
             with (
                 factory() as model,
-                FormalReturnPoc(self.root, UID, model=model, fault=self.fault) as poc,
+                FormalReturnPoc(self.root, UID, model=model, fault=self.fault,
+                                stream_callback=stream) as poc,
             ):
                 if kind in {"message", "resume"}:
                     self.emit(sid, jid, "turn_started", status="running")
@@ -315,6 +407,8 @@ class WebEngine:
                                             status=message.status,
                                         )
                         if event.type == "completed":
+                            if stream:
+                                stream.complete(event.detail["answer"])
                             self.emit(sid, jid, "business_state_updated", status="read_current")
                             final = {"status": "completed", "text": event.detail["answer"]}
                 else:
@@ -352,6 +446,8 @@ class WebEngine:
                 conn.execute("UPDATE jobs SET status='completed' WHERE id=?", (jid,))
                 self._emit(conn, sid, jid, "turn_completed", **final)
         except Exception as exc:
+            if stream:
+                stream.discard("execution_incomplete")
             # Exceptions/raw SDK/Graph messages stay private; HTTP failure is not proof
             # of business failure. Client must query authoritative SQL before retrying.
             private = self.root / ".private-evidence"
@@ -585,6 +681,7 @@ class WebEngine:
 def create_app(
     root, model_factory, *, origin="http://127.0.0.1:8767", fault=None, secret_values=(),
     runtime_mode="custom",
+    answer_streaming=False,
 ):
     modes = {
         "fixed_script": {
@@ -606,13 +703,20 @@ def create_app(
     if runtime_mode not in modes:
         raise ValueError("Unknown server runtime mode")
     runtime_info = dict(
-        mode=runtime_mode, answer_streaming=False, progress_streaming=True,
+        mode=runtime_mode, answer_streaming=answer_streaming, progress_streaming=True,
         **modes[runtime_mode],
     )
+    if answer_streaming:
+        runtime_info["notice"] = (
+            ("真实DeepSeek，受3元/24次请求预算保护。" if runtime_mode == "deepseek"
+             else "流式测试模型。")
+            + "正文来自模型实时片段；生成中的文字仅为草稿，可能撤回。业务提交只看权威SQL回执。"
+        )
     parsed = urlsplit(origin)
     if parsed.scheme != "http" or parsed.hostname != "127.0.0.1" or parsed.path:
         raise ValueError("Demo requires a loopback HTTP origin")
-    engine = WebEngine(Path(root), model_factory, fault=fault, secret_values=secret_values)
+    engine = WebEngine(Path(root), model_factory, fault=fault, secret_values=secret_values,
+                       answer_streaming=answer_streaming)
 
     @asynccontextmanager
     async def lifespan(app):

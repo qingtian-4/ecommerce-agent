@@ -210,8 +210,9 @@ class FormalReturnPoc(LocalReturnPoc):
         "只有应用确认可创建模拟待审核申请，不审核或退款。"
     )
 
-    def __init__(self, root, user_id, *, model, registry=None, fault=None):
-        super().__init__(root, user_id, model=model, registry=registry, fault=fault)
+    def __init__(self, root, user_id, *, model, registry=None, fault=None, stream_callback=None):
+        super().__init__(root, user_id, model=model, registry=registry, fault=fault,
+                         stream_callback=stream_callback)
         self.gateway.application_confirmation_enabled = True
         self.gateway.preview_notice = (
             "隔离预览，尚未创建申请；模型不能提交，只有应用确认可创建模拟待审核申请；"

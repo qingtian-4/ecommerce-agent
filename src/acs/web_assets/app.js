@@ -2,14 +2,32 @@
 let csrf='',sid='',wait=null,card=null,source=null,last=0,busy=true,seenEvents=new Set();
 const $=id=>document.getElementById(id);
 let refreshVersion=0,expiryTimer=null;
-const labels={turn_started:'对话开始',tool_requested:'工具请求',tool_completed:'工具回执',business_state_updated:'业务状态已更新',confirmation_required:'等待页面确认',submission_pending:'正在核实提交',submission_verified:'数据库已核实：模拟待审核',turn_completed:'执行完成',turn_failed:'执行未完成，请查询业务状态'};
+const drafts=new Map();
+const labels={turn_started:'对话开始',tool_requested:'工具请求',tool_completed:'工具回执',business_state_updated:'业务状态已更新',confirmation_required:'等待页面确认',submission_pending:'正在核实提交',submission_verified:'数据库已核实：模拟待审核',turn_completed:'执行完成',turn_failed:'执行未完成，请查询业务状态',answer_delta:'正文生成中',answer_discarded:'生成草稿已撤回',answer_completed:'正文已核验完成'};
 const cardLabels={READY:'待确认',REJECTED:'已拒绝',EXPIRED:'已过期',UNKNOWN:'结果未知',PENDING_REVIEW:'待审核'};
 const cardReasons={preview_available:'已有有效预览，可打开确认。',awaiting_application_decision:'等待应用端选择接受、拒绝或取消。',confirmation_rejected:'本次确认已拒绝或取消，未创建申请。',preview_expired_or_stale:'预览已过期或被更正失效，请重新生成。',no_valid_preview:'当前没有有效预览。',submission_result_unknown:'结果尚未得到权威数据库确认，只能刷新查询。',submission_verified:'已由业务数据库核实为模拟待审核申请。',session_not_created:'尚未建立演示会话。',operation_in_progress:'正在核对应用操作，请等待或刷新查询，不要重复提交。',database_unavailable:'业务数据库暂不可核实，仅可刷新查询。',http_response_unknown:'确认响应未收到，仅可读取结果；请勿重复提交。'};
 const prompts=[['商品咨询','查询P003充电器接口'],['订单查询','查询我的订单'],['1 保存订单','我要退O10024，先保存这个订单的退货草稿；顺便说明七天无理由退货的运费规则。'],['2 补充信息','退这单的Life P3耳机1件，无理由，未拆封且满足政策列出的全部二次销售条件。请保存草稿，先不要预览。'],['3 商品插问','先插问P003充电器有几个接口？之前退货草稿保留，不用修改。'],['4 更正并预览','回到退货，把同订单商品更正为磁吸充电宝；数量1件，无理由，未拆封且满足全部二次销售条件。请生成预览，不能正式申请。'],['5 政策插问','刚才无理由退货的期限和运费是什么？不要取消或修改草稿。'],['7 取消草稿','取消退货草稿'],['8 最新预览','重新退O10024的Life P3耳机1件，无理由，未拆封且满足政策列出的全部二次销售条件，请生成最新预览，不能正式申请。']];
 function notice(text){$('notice').textContent=text;$('notice').hidden=!text;}
 async function api(path,body){const response=await fetch(path,{method:body===undefined?'GET':'POST',credentials:'same-origin',headers:body===undefined?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:body===undefined?undefined:JSON.stringify(body)});let value;try{value=await response.json();}catch{throw new Error('服务响应不可读，请查询状态，勿重复确认');}if(!response.ok){const error=new Error(typeof value.detail==='string'?value.detail:'请求未通过校验');error.status=response.status;error.value=value;throw error;}return value;}
 function fields(target,pairs){target.replaceChildren();const list=document.createElement('dl');for(const [name,value]of pairs){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=name;dd.textContent=value??'待补充';list.append(dt,dd);}target.append(list);}
-function chat(history){$('chat').replaceChildren();for(const row of history){const div=document.createElement('div'),label=document.createElement('span');div.className='bubble '+row.role;label.className='speaker';label.textContent=row.role==='user'?'你':'客服';div.append(label,document.createTextNode(row.content||'此轮未完成，请查询状态'));$('chat').append(div);}$('chat').scrollTop=$('chat').scrollHeight;}
+function chat(history){$('chat').replaceChildren();for(const row of history){const div=document.createElement('div'),label=document.createElement('span');div.className='bubble '+row.role;label.className='speaker';label.textContent=row.role==='user'?'你':'客服';div.append(label,document.createTextNode(row.content||'此轮未完成，请查询状态'));$('chat').append(div);}paintDrafts();}
+function paintDrafts(){
+  for(const node of $('chat').querySelectorAll('.draft'))node.remove();
+  for(const value of drafts.values()){
+    const div=document.createElement('div'),label=document.createElement('span');
+    div.className='bubble assistant draft';label.className='speaker';
+    label.textContent='客服 · 正在生成，业务结果请以右侧核验为准';
+    div.append(label,document.createTextNode(value.text));$('chat').append(div);
+  }
+  $('chat').scrollTop=$('chat').scrollHeight;
+}
+function answerEvent(row){
+  const key=row.execution_id+':'+row.data.message_id;
+  if(row.type==='answer_delta')drafts.set(key,{job:row.execution_id,text:row.data.text});
+  if(row.type==='answer_discarded')drafts.delete(key);
+  if(['answer_completed','turn_completed','turn_failed'].includes(row.type))
+    for(const [id,value]of drafts)if(value.job===row.execution_id)drafts.delete(id);
+}
 // This marker describes an unacknowledged HTTP attempt, never business success.
 function pendingAttempt(value){
   const key='v3-confirm-attempt-'+sid;
@@ -90,10 +108,12 @@ async function refresh(){
 function renderEvent(row){
   if(seenEvents.has(row.id))return;
   seenEvents.add(row.id);last=Math.max(last,row.id);
+  answerEvent(row);
+  if(row.type==='answer_delta')return; // Text belongs in chat; keep the tool trace readable.
   const li=document.createElement('li');li.textContent='#'+row.id+' '+labels[row.type]+(row.data.name?' · '+row.data.name:'')+(row.data.status?' · '+row.data.status:'')+(row.data.reason?' · '+row.data.reason:'');$('trace').append(li);
 }
 async function connect(){
-  if(source)source.close();last=0;seenEvents=new Set();$('trace').replaceChildren();
+  if(source)source.close();last=0;seenEvents=new Set();drafts.clear();$('trace').replaceChildren();
   try{
     let rows;
     do{
@@ -102,12 +122,14 @@ async function connect(){
       rows=(await response.text()).split('\n').filter(l=>l.startsWith('data: ')).map(l=>JSON.parse(l.slice(6)));
       rows.forEach(renderEvent);
     }while(rows.length===100);
+    paintDrafts(); // Replay all terminal events before showing any unfinished draft.
+    await refresh(); // Execution may have completed after the initial page snapshot.
   }catch(e){notice('进度记录暂不可读，业务操作不会重发。');}
   source=new EventSource('/api/sessions/'+sid+'/events?after='+last);
   source.onopen=()=>{$('connection').textContent='进度已连接';};
   source.onerror=()=>{$('connection').textContent='进度重连中，任务不会重复执行';};
   for(const kind of Object.keys(labels))source.addEventListener(kind,e=>{
-    const row=JSON.parse(e.data);if(seenEvents.has(row.id))return;renderEvent(row);
+    const row=JSON.parse(e.data);if(seenEvents.has(row.id))return;renderEvent(row);paintDrafts();
     if(['turn_completed','turn_failed'].includes(kind)){busy=false;refresh().catch(e=>notice(e.message));}
     if(kind==='turn_failed')notice('执行未完成，请先查询权威状态，不要重复确认。');
   });
