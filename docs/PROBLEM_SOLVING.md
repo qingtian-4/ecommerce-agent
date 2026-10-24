@@ -1241,3 +1241,6 @@ asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送�
 M7真实浏览器验收补充：14次DeepSeek HTTP完成6阶段业务主线并经应用确认创建唯一pending_review模拟申请；Graph/SQL matched。保守预留1.907844元，usage及时段估算0.035864360元，非账单金额。人工核验发现虚构旧预览及草稿能力说明遗留，不能称完整语义成功。后者来自Formal继承的preview工具描述/回执，最小修复限定为Formal能力投影，默认草稿模式保持；新增专项先红后绿，同时验证代码升级不能改写已存权威回执。原真实结果不覆盖、不重跑，修复后仅报告离线验证。证据见results/web_demo_deepseek_20261024_run1/REPORT.md。
 
 M7退货确认卡片补充：审查确认原有REST、SSE、M6原子提交和权威回执已完成；缺口是状态投影与前端按钮语义。新增只读`return-card` DTO，将有效等待、拒绝/取消、过期/更正、未知回执、已核实pending_review分成五状态；服务端`allowed_actions`控制按钮。重复打开同一预览在HTTP层返回409，既有等待或终态不会增加确认记录。浏览器刷新先补读持久化事件再按Last-Event-ID续订，避免刷新空白或重复执行。新增测试先验证旧行为缺失，再通过FastAPI/SQLite和固定Chromium验收；未发送新的付费模型请求。详见docs/v3/RETURN_CARD_CONTRACT.md、docs/v3/RETURN_CARD_ACCEPTANCE.md。
+
+
+卡片断线补验：旧前端action()在网络异常后直接解除busy，缺少未核实HTTP尝试标识，可能再次启用接受。新增6项合同首轮5失败/1通过，修复后6通过；旧UI真实浏览器在请求未到达时不能维持UNKNOWN，先复现再修。浏览器仅保存wait_id/request_key，UNKNOWN下只读原回执及卡片，绝不自动换key重发；权威业务仍是M6 SQL。进一步补运行中/中断事件、缺失业务库、历史拒绝后新预览、原key回放、递归脱敏和Graph损坏。故障测试器的Playwright第二参数曾覆盖场景名，未转发提交，保留失败并修正绑定；随后10场景实际HTTP/SQLite通过。Web/M6相关71项通过；最终源码及完整CI另随验收报告记录。

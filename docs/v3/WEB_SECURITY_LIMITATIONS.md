@@ -11,3 +11,5 @@
 生产仍No-Go：没有真实登录/权限管理、会话撤销与服务端TTL、TLS、可信反向代理、多Worker协调、限流、部署监控、平台回执、备份及隐私治理。HttpOnly/SameSite不能对抗恶意本机程序或被攻陷的同源页面；SQLite文件所有者可改库。本轮不开放外网，不支持Windows原生fcntl，不建议绕开启动器监听0.0.0.0。CSP/Origin校验不能代替生产认证。
 
 静态服务只允许index.html/app.js/style.css，不提供任意路径或私有证据下载。SSE连接断开、HTTP超时、Graph镜像损坏都不是业务失败证明；恢复必须以M6只读权威回执为先，未知结果不得盲目重写。
+
+五状态卡片的UNKNOWN是保守只读门禁。sessionStorage只保存未收到结果的wait_id/request_key，不能发放身份、消费确认或证明提交；清空或修改它也不能绕过M6的SQL事务、业务绑定和权限校验。卡片在数据库不可核实时隐藏接受操作，不能据HTTP断线推断失败或自动换key重试。原M6操作员显式恢复与UI自动行为应区分，见RETURN_CARD_CONTRACT.md。

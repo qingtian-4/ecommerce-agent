@@ -243,7 +243,7 @@ class WebEngine:
         with self.tx() as conn:
             self._emit(conn, sid, job, kind, **data)
 
-    def submit(self, sid, key, kind, payload):
+    def submit(self, sid, key, kind, payload, *, guard=None):
         encoded = json.dumps(payload, sort_keys=True)
         with self.tx() as conn:
             old = conn.execute(
@@ -255,6 +255,8 @@ class WebEngine:
                 return {"execution_id": old["id"], "status": old["status"], "replayed": True}
             if conn.execute("SELECT 1 FROM jobs WHERE status IN ('queued','running')").fetchone():
                 raise HTTPException(409, "演示服务正在执行任务，请等待回执")
+            if guard is not None:
+                guard()
             jid = uuid4().hex
             conn.execute(
                 "INSERT INTO jobs VALUES(?,?,?,?,?,'queued')", (jid, sid, key, kind, encoded)
@@ -467,128 +469,115 @@ class WebEngine:
                 )
             ]
 
-        # All nested strings, including user chat echoes, cross the same redaction boundary.
-        def clean(value):
-            if isinstance(value, str):
-                return scrub(value, self.secret_values)
-            if isinstance(value, list):
-                return [clean(v) for v in value]
-            if isinstance(value, dict):
-                return {k: clean(v) for k, v in value.items()}
-            return value
+        return self.clean(result)
 
-        return clean(result)
+    def clean(self, value):
+        """Shared recursive public boundary for both snapshots and return cards."""
+        if isinstance(value, str):
+            return scrub(value, self.secret_values)
+        if isinstance(value, list):
+            return [self.clean(v) for v in value]
+        if isinstance(value, dict):
+            return {k: self.clean(v) for k, v in value.items()}
+        return value
 
     def return_card(self, sid):
-        """Project current SQL/receipt facts into the five-state UI contract.
-
-        This method only reads the business database and the durable job/event
-        ledgers. It never opens Graph, creates a wait, or schedules work.
-        """
-        state = self.gateway.state(sid, UID)
-        preview = state["preview"]
-        public_preview = (
-            {
-                "preview_id": preview["preview_id"],
-                "expires_at": preview["expires_at"],
-                "content": public_content(preview["content"]),
-            }
-            if preview
-            else None
-        )
-        with closing(self.store._connect()) as conn:
+        """Read-only projection; no Graph, migrations, event consumption or new jobs."""
+        with closing(
+            sqlite3.connect(self.settings.db_path.as_uri() + "?mode=ro", uri=True)
+        ) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute("BEGIN")
+            self.store._require_owner(conn, sid, UID)
+            task = self.store._task(conn, sid) or {}
             tables = {
-                row[0]
-                for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
             }
-            waits = (
+            row = (
                 conn.execute(
                     "SELECT * FROM local_confirmation_waits WHERE session_id=? "
-                    "ORDER BY rowid DESC",
-                    (sid,),
-                ).fetchall()
-                if "local_confirmation_waits" in tables
-                else []
+                    "AND user_id=? ORDER BY rowid DESC LIMIT 1", (sid, UID)
+                ).fetchone()
+                if "local_confirmation_waits" in tables else None
             )
-        wait = dict(waits[0]) if waits else None
+            wait = dict(row) if row else None
         public_wait = (
-            pick(
-                wait,
-                (
-                    "wait_id",
-                    "status",
-                    "preview_id",
-                    "revision",
-                    "expires_at",
-                    "decision",
-                ),
-            )
-            if wait
-            else None
+            pick(wait, ("wait_id", "status", "preview_id", "revision", "expires_at", "decision"))
+            if wait else None
         )
+        public_preview = None
 
         def card(state_name, reason, actions, *, request=None, authoritative=False):
-            result = ReturnCard(
-                state=state_name,
-                status=state_name,
-                allowed_actions=actions,
-                reason=reason,
-                preview=public_preview,
-                confirmation=public_wait,
-                request=request,
+            return self.clean(ReturnCard(
+                state=state_name, status=state_name, allowed_actions=actions, reason=reason,
+                preview=public_preview, confirmation=public_wait, request=request,
                 authoritative=authoritative,
-            )
-            return result.model_dump()
+            ).model_dump())
 
-        # A committed formal request is the only source of PENDING_REVIEW.
+        # Verify the complete receipt before consulting live preview/policy or Graph.
         if wait and wait["status"] == "accepted":
             try:
                 receipt = read_submission_receipt(self.root, sid, UID, wait["wait_id"])
-            except ReconciliationError:
+            except (ReconciliationError, ValueError, KeyError, TypeError):
                 return card("UNKNOWN", "submission_result_unknown", ["refresh"])
-            if receipt:
+            if receipt is None:
+                return card("UNKNOWN", "submission_result_unknown", ["refresh"])
+            if task.get("request_id") == receipt["request"]["request_id"]:
                 return card(
-                    "PENDING_REVIEW",
-                    "submission_verified",
-                    ["refresh"],
-                    request=pick(
-                        receipt["request"],
-                        ("request_id", "status", "order_id", "item_id", "quantity", "created_at"),
-                    ),
-                    authoritative=True,
+                    "PENDING_REVIEW", "submission_verified", ["refresh"],
+                    request=pick(receipt["request"], (
+                        "request_id", "status", "order_id", "item_id", "quantity", "created_at"
+                    )), authoritative=True,
                 )
-            return card("UNKNOWN", "submission_result_unknown", ["refresh"])
 
-        # An issued decision has an application event but no verified SQL receipt.
-        # It is deliberately read-only until the user refreshes/reconciles it.
+        with closing(sqlite3.connect(self.db.as_uri() + "?mode=ro", uri=True)) as conn:
+            conn.row_factory = sqlite3.Row
+            jobs = conn.execute(
+                "SELECT kind,payload,status FROM jobs WHERE session_id=? ORDER BY rowid DESC",
+                (sid,),
+            ).fetchall()
+        for job in jobs:
+            payload = json.loads(job["payload"])
+            relevant = (
+                job["kind"] in {"decide", "recover"}
+                and wait and payload.get("wait_id") == wait["wait_id"]
+            ) or (job["kind"] == "open" and (not wait or wait["status"] == "waiting"))
+            if relevant:
+                if job["status"] != "completed":
+                    reason = (
+                        "operation_in_progress" if job["status"] in {"queued", "running"}
+                        else "submission_result_unknown"
+                    )
+                    return card("UNKNOWN", reason, ["refresh"])
+                break
         if wait and wait["status"] == "issued":
             return card("UNKNOWN", "submission_result_unknown", ["refresh"])
 
-        if wait and wait["status"] in {"rejected", "cancelled"}:
-            return card("REJECTED", "confirmation_rejected", ["refresh"])
-        if wait and wait["status"] == "invalidated":
-            return card("EXPIRED", "preview_expired_or_stale", ["refresh"])
-
-        if wait and wait["status"] == "waiting":
-            if preview and wait["preview_id"] == preview["preview_id"]:
-                return card(
-                    "READY",
-                    "awaiting_application_decision",
-                    ["accept", "reject", "cancel", "refresh"],
-                )
-            return card("EXPIRED", "preview_expired_or_stale", ["refresh"])
-
-        # A failed decision/recovery is uncertain even when the latest preview
-        # remains readable. The UI must not manufacture another POST.
-        with self.tx() as conn:
-            uncertain = conn.execute(
-                "SELECT 1 FROM jobs WHERE session_id=? AND kind IN ('decide','recover') "
-                "AND status='failed' ORDER BY rowid DESC LIMIT 1",
-                (sid,),
-            ).fetchone()
-        if uncertain:
-            return card("UNKNOWN", "submission_result_unknown", ["refresh"])
+        preview = self.gateway.service.latest_preview(sid, UID)
         if preview:
+            public_preview = {
+                "preview_id": preview["preview_id"], "expires_at": preview["expires_at"],
+                "content": public_content(preview["content"]),
+            }
+        same_preview = bool(preview and wait and preview["preview_id"] == wait["preview_id"])
+        if wait and wait["status"] == "waiting":
+            if same_preview:
+                return card("READY", "awaiting_application_decision", [
+                    "accept", "reject", "cancel", "refresh"
+                ])
+            # Explicitly closing a stale wait uses the existing M6 cancel endpoint.
+            # It cannot accept, create a request, or consume a different preview.
+            return card("EXPIRED", "preview_expired_or_stale", ["cancel", "refresh"])
+        if wait and (same_preview or not preview):
+            if wait["status"] in {"rejected", "cancelled"}:
+                return card("REJECTED", "confirmation_rejected", ["refresh"])
+            if wait["status"] == "invalidated":
+                return card("EXPIRED", "preview_expired_or_stale", ["refresh"])
+        if preview:
+            # Keep the SQL terminal decision available to reconcile a lost HTTP
+            # reply, but do not bind its actions to this different new preview.
+            if public_wait:
+                public_wait = public_wait | {"is_current": False}
             return card("READY", "preview_available", ["open", "refresh"])
         return card("EXPIRED", "no_valid_preview", ["refresh"])
 
@@ -638,11 +627,20 @@ def create_app(
 
     @app.exception_handler(sqlite3.Error)
     async def db_unavailable(request, exc):
+        if request.url.path.endswith("/return-card"):
+            return JSONResponse(ReturnCard(
+                state="UNKNOWN", status="UNKNOWN", allowed_actions=["refresh"],
+                reason="database_unavailable", authoritative=False,
+            ).model_dump(), 503)
         return JSONResponse({"detail": "业务状态暂不可核实，请保留现场并查询；不要重复提交"}, 503)
 
     @app.exception_handler(PermissionError)
     async def permission(request, exc):
         return JSONResponse({"detail": "无权访问"}, 403)
+
+    @app.exception_handler(ReconciliationError)
+    async def uncertain_result(request, exc):
+        return JSONResponse({"detail": "业务回执暂不可核实，请只读查询，不要重复提交"}, 503)
 
     def auth(request, sid=None, mutate=False):
         browser = engine.browser(request.cookies.get(COOKIE))
@@ -724,10 +722,11 @@ def create_app(
     @app.post("/api/sessions/{sid}/confirmation", status_code=202)
     def open_wait(request: Request, sid: str, body: ActionBody):
         auth(request, sid, True)
-        card = engine.return_card(sid)
-        if "open" not in card["allowed_actions"]:
-            raise HTTPException(409, "当前预览没有可打开的确认等待，请刷新业务状态")
-        return engine.submit(sid, body.request_key, "open", {})
+        def can_open():
+            if "open" not in engine.return_card(sid)["allowed_actions"]:
+                raise HTTPException(409, "当前预览没有可打开的确认等待，请刷新业务状态")
+
+        return engine.submit(sid, body.request_key, "open", {}, guard=can_open)
 
     @app.post("/api/sessions/{sid}/decision", status_code=202)
     def decide(request: Request, sid: str, body: DecisionBody):
@@ -740,8 +739,14 @@ def create_app(
             ).fetchone()
             if row is None:
                 raise HTTPException(403, "确认等待不属于当前会话")
+
+        def known_result():
+            if engine.return_card(sid)["state"] == "UNKNOWN":
+                raise HTTPException(409, "原确认结果未核实，请只读查询，不要再次确认")
+
         return engine.submit(
-            sid, body.request_key, "decide", {"wait_id": body.wait_id, "decision": body.decision}
+            sid, body.request_key, "decide", {"wait_id": body.wait_id, "decision": body.decision},
+            guard=known_result,
         )
 
     @app.post("/api/sessions/{sid}/confirmation/{wait_id}/resume", status_code=202)
