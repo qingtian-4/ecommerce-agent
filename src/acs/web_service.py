@@ -23,7 +23,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
-from .local_return_tools import LocalReturnGateway, fixture_settings
+from .local_return_tools import LocalReturnGateway, ReconciliationError, fixture_settings
 from .local_submission import KIND, FormalReturnPoc, read_submission_receipt
 
 COOKIE = "v3_demo"
@@ -47,6 +47,19 @@ class ActionBody(StrictBody):
 class DecisionBody(ActionBody):
     wait_id: str = Field(pattern=r"^[a-f0-9]{32}$")
     decision: str = Field(pattern=r"^(accept|reject|cancel)$")
+
+
+class ReturnCard(StrictBody):
+    """The only UI state contract; SQL is authoritative for terminal success."""
+
+    state: str = Field(pattern=r"^(READY|REJECTED|EXPIRED|UNKNOWN|PENDING_REVIEW)$")
+    status: str = Field(pattern=r"^(READY|REJECTED|EXPIRED|UNKNOWN|PENDING_REVIEW)$")
+    allowed_actions: list[str]
+    reason: str
+    preview: dict | None = None
+    confirmation: dict | None = None
+    request: dict | None = None
+    authoritative: bool
 
 
 class EventData(StrictBody):
@@ -466,6 +479,119 @@ class WebEngine:
 
         return clean(result)
 
+    def return_card(self, sid):
+        """Project current SQL/receipt facts into the five-state UI contract.
+
+        This method only reads the business database and the durable job/event
+        ledgers. It never opens Graph, creates a wait, or schedules work.
+        """
+        state = self.gateway.state(sid, UID)
+        preview = state["preview"]
+        public_preview = (
+            {
+                "preview_id": preview["preview_id"],
+                "expires_at": preview["expires_at"],
+                "content": public_content(preview["content"]),
+            }
+            if preview
+            else None
+        )
+        with closing(self.store._connect()) as conn:
+            tables = {
+                row[0]
+                for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            }
+            waits = (
+                conn.execute(
+                    "SELECT * FROM local_confirmation_waits WHERE session_id=? "
+                    "ORDER BY rowid DESC",
+                    (sid,),
+                ).fetchall()
+                if "local_confirmation_waits" in tables
+                else []
+            )
+        wait = dict(waits[0]) if waits else None
+        public_wait = (
+            pick(
+                wait,
+                (
+                    "wait_id",
+                    "status",
+                    "preview_id",
+                    "revision",
+                    "expires_at",
+                    "decision",
+                ),
+            )
+            if wait
+            else None
+        )
+
+        def card(state_name, reason, actions, *, request=None, authoritative=False):
+            result = ReturnCard(
+                state=state_name,
+                status=state_name,
+                allowed_actions=actions,
+                reason=reason,
+                preview=public_preview,
+                confirmation=public_wait,
+                request=request,
+                authoritative=authoritative,
+            )
+            return result.model_dump()
+
+        # A committed formal request is the only source of PENDING_REVIEW.
+        if wait and wait["status"] == "accepted":
+            try:
+                receipt = read_submission_receipt(self.root, sid, UID, wait["wait_id"])
+            except ReconciliationError:
+                return card("UNKNOWN", "submission_result_unknown", ["refresh"])
+            if receipt:
+                return card(
+                    "PENDING_REVIEW",
+                    "submission_verified",
+                    ["refresh"],
+                    request=pick(
+                        receipt["request"],
+                        ("request_id", "status", "order_id", "item_id", "quantity", "created_at"),
+                    ),
+                    authoritative=True,
+                )
+            return card("UNKNOWN", "submission_result_unknown", ["refresh"])
+
+        # An issued decision has an application event but no verified SQL receipt.
+        # It is deliberately read-only until the user refreshes/reconciles it.
+        if wait and wait["status"] == "issued":
+            return card("UNKNOWN", "submission_result_unknown", ["refresh"])
+
+        if wait and wait["status"] in {"rejected", "cancelled"}:
+            return card("REJECTED", "confirmation_rejected", ["refresh"])
+        if wait and wait["status"] == "invalidated":
+            return card("EXPIRED", "preview_expired_or_stale", ["refresh"])
+
+        if wait and wait["status"] == "waiting":
+            if preview and wait["preview_id"] == preview["preview_id"]:
+                return card(
+                    "READY",
+                    "awaiting_application_decision",
+                    ["accept", "reject", "cancel", "refresh"],
+                )
+            return card("EXPIRED", "preview_expired_or_stale", ["refresh"])
+
+        # A failed decision/recovery is uncertain even when the latest preview
+        # remains readable. The UI must not manufacture another POST.
+        with self.tx() as conn:
+            uncertain = conn.execute(
+                "SELECT 1 FROM jobs WHERE session_id=? AND kind IN ('decide','recover') "
+                "AND status='failed' ORDER BY rowid DESC LIMIT 1",
+                (sid,),
+            ).fetchone()
+        if uncertain:
+            return card("UNKNOWN", "submission_result_unknown", ["refresh"])
+        if preview:
+            return card("READY", "preview_available", ["open", "refresh"])
+        return card("EXPIRED", "no_valid_preview", ["refresh"])
+
 
 def create_app(
     root, model_factory, *, origin="http://127.0.0.1:8767", fault=None, secret_values=()
@@ -565,6 +691,24 @@ def create_app(
         auth(request, sid)
         return engine.snapshot(sid)
 
+    @app.get("/return-card")
+    def return_card(request: Request):
+        browser = auth(request)
+        if browser["session_id"] is None:
+            return ReturnCard(
+                state="EXPIRED",
+                status="EXPIRED",
+                allowed_actions=[],
+                reason="session_not_created",
+                authoritative=False,
+            )
+        return engine.return_card(browser["session_id"])
+
+    @app.get("/api/sessions/{sid}/return-card")
+    def session_return_card(request: Request, sid: str):
+        auth(request, sid)
+        return engine.return_card(sid)
+
     @app.post("/api/sessions/{sid}/messages", status_code=202)
     def message(request: Request, sid: str, body: MessageBody):
         auth(request, sid, True)
@@ -580,6 +724,9 @@ def create_app(
     @app.post("/api/sessions/{sid}/confirmation", status_code=202)
     def open_wait(request: Request, sid: str, body: ActionBody):
         auth(request, sid, True)
+        card = engine.return_card(sid)
+        if "open" not in card["allowed_actions"]:
+            raise HTTPException(409, "当前预览没有可打开的确认等待，请刷新业务状态")
         return engine.submit(sid, body.request_key, "open", {})
 
     @app.post("/api/sessions/{sid}/decision", status_code=202)

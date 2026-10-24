@@ -147,6 +147,68 @@ def test_http_sse_preview_confirm_sql_receipt_duplicate_and_refresh(setup):
         )
 
 
+def test_return_card_states_and_duplicate_open_is_read_only_conflict(setup):
+    root, factory, _ = setup
+    with TestClient(create_app(root, factory), base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        initial = client.get("/return-card").json()
+        assert initial["state"] == "EXPIRED" and initial["allowed_actions"] == ["refresh"]
+        post(client, sid, headers, "messages", text="预览")
+        done(client, sid)
+        ready = client.get(f"/api/sessions/{sid}/return-card").json()
+        assert ready["state"] == "READY" and ready["allowed_actions"] == ["open", "refresh"]
+        opened = post(client, sid, headers, "confirmation")
+        assert opened.status_code == 202
+        waiting = done(client, sid)["confirmation"]
+        card = client.get(f"/api/sessions/{sid}/return-card").json()
+        assert card["state"] == "READY"
+        assert set(("accept", "reject", "cancel")).issubset(card["allowed_actions"])
+        duplicate = post(client, sid, headers, "confirmation")
+        assert duplicate.status_code == 409
+        assert counts(root) == (0, 0, 0)
+        post(client, sid, headers, "decision", wait_id=waiting["wait_id"], decision="reject")
+        done(client, sid)
+        rejected = client.get(f"/api/sessions/{sid}/return-card").json()
+        assert rejected["state"] == "REJECTED"
+        assert rejected["allowed_actions"] == ["refresh"]
+        assert post(client, sid, headers, "confirmation").status_code == 409
+
+
+def test_return_card_expired_and_unknown_are_read_only(setup):
+    root, factory, _ = setup
+    with TestClient(create_app(root, factory), base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        post(client, sid, headers, "messages", text="预览")
+        done(client, sid)
+        with sqlite3.connect(root / "business.sqlite") as conn:
+            conn.execute(
+                "UPDATE return_previews SET expires_at='2000-01-01T00:00:00+00:00'"
+            )
+            conn.commit()
+        expired = client.get(f"/api/sessions/{sid}/return-card").json()
+        assert expired["state"] == "EXPIRED"
+        assert expired["allowed_actions"] == ["refresh"]
+        assert post(client, sid, headers, "confirmation").status_code == 409
+
+    def fault(point):
+        if point == "before_consume_commit":
+            raise ConnectionError("simulated lost response")
+
+    root, factory, _ = setup
+    with TestClient(create_app(root, factory, fault=fault), base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        post(client, sid, headers, "messages", text="预览")
+        done(client, sid)
+        post(client, sid, headers, "confirmation")
+        wait = done(client, sid)["confirmation"]
+        post(client, sid, headers, "decision", wait_id=wait["wait_id"], decision="accept")
+        done(client, sid)
+        unknown = client.get(f"/api/sessions/{sid}/return-card").json()
+        assert unknown["state"] == "UNKNOWN"
+        assert unknown["allowed_actions"] == ["refresh"]
+        assert counts(root) == (0, 0, 0)
+
+
 @pytest.mark.parametrize("decision", ["reject", "cancel"])
 def test_refuse_cancel_never_submit(setup, decision):
     root, factory, _ = setup
