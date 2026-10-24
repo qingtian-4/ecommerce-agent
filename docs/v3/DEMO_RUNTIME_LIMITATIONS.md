@@ -31,3 +31,6 @@
 
 
 浏览器验收另发现相对状态目录问题：self.root已resolve，但web.sqlite仍从原relative root构造，GET卡片转换只读URI时报错。新增第四项HTTP回归先红后绿，统一使用self.root；此前仅绝对路径用例不构成该CLI路径证明。最终浏览器重验另存新目录，失败记录保留。
+
+
+最终固定源码浏览器验收：ddbef61完成原10阶段、0页面错误；前两条查询新增实际DOM事实与不同答案断言，[页面证据](../../results/demo_query_visibility_20261024_run2/query-results-desktop.png)。当前服务仍为免费固定模式，刷新后重新发送消息才会显示新结果；原历史占位回复不会被改写。
