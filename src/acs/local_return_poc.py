@@ -59,8 +59,11 @@ class LocalState(AgentState):
 
 
 class LocalReturnPoc:
+    fixture_kind = "local-return-draft-only-1"
+    prompt = PROMPT
+
     def __init__(self, root, user_id, *, model, registry=None, fault=None):
-        self.settings = fixture_settings(root)
+        self.settings = fixture_settings(root, kind=self.fixture_kind)
         self.root = root.resolve()
         self.user_id, self.model = user_id, model
         self.gateway = LocalReturnGateway(self.settings, registry=registry, fault=fault)
@@ -162,7 +165,7 @@ class LocalReturnPoc:
                 tools=[
                     self._tool(n, specs[n]["description"], schema) for n, schema in TOOLS.items()
                 ],
-                system_prompt=PROMPT,
+                system_prompt=self.prompt,
                 checkpointer=SqliteSaver(self.conn),
                 state_schema=LocalState,
                 context_schema=TurnContext,

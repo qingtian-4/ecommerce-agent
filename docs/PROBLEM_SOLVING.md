@@ -1218,3 +1218,11 @@ asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送�
 最小修复将业务事实放入wrap_model_call的临时ModelRequest.override；每次从权威SQLite读取，Checkpoint不再新增事实，用户授权/更正和原生工具消息不删。红绿实测确认旧代码失败、新代码通过；相同8阶段固定决定的业务状态与10次工具回执合同一致。费用账本仍保留峰值缓存未命中、发送前持久预留与未知请求收费保护，未释放历史预留。新真实8阶段及后续Interrupt的门禁与证据见docs/v3/CONTEXT_ENGINEERING_REPORT.md。
 
 本轮实际：Context代码3090695完整CI878项通过；相同冻结8阶段真实全完成，16请求、139232输入/1911输出，预留2.264664元，usage估0.035610720元，unknown0。共同完成前7阶段输入减少27.92%但费用增加4.75%，不宣称费用收益。通过真实门禁后实施隔离原生Interrupt，应用唯一事件同事务消费；28项专项及跨进程CLI验证暂停/恢复、重复拒绝、旧确认失效，正式四表0。开发中定位并修复错误resume缓存卡住、open回执丢失和初始Graph缺失+过期恢复边界。下一轮隔离正式提交开发有限Go，生产与默认替换No-Go。
+
+## M6：应用确认与模拟申请之间的原子性
+
+问题：M5 的 accepted 仅表示隔离确认事件已消费，不能作为正式申请成功凭证，也不能跨事务拿旧 accepted 补写申请。
+
+解决：新建正式提交专用合成 Fixture，复用原 ReturnService 校验与创建事务体；新事件消费、申请、确认、审计、草稿状态和唯一提交回执共用一个 BEGIN IMMEDIATE。只读业务回执先于 Graph 镜像恢复；不确定结果不自动重放。旧草稿 Fixture 的正式写入禁止 Trigger 保留。
+
+验证：新增原生 Graph、真实 SQLite、os._exit 退出、并发与损坏回执专项；多进程固定模型跑冻结8阶段及接受/拒绝/取消/过期四路径，以真实SQL终态判定。详见 docs/v3/ATOMIC_SUBMISSION_REPORT.md 和 results/atomic_submission_20261024_run3/REPORT.md。没有新增真实模型请求或费用，不能据此宣称模型质量提升。生产仍No-Go；下一步仅隔离REST/SSE与确认UI。

@@ -21,6 +21,8 @@ from .langgraph_poc import EmptyArgs, OrderArgs, ProductArgs
 from .returns import ReturnService
 from .sessions import SessionStore
 
+FORMAL_FIXTURE_KIND = "local-return-formal-synthetic-1"
+
 WRITES = {"update_return_task", "cancel_return_task", "preview_return"}
 
 
@@ -87,14 +89,16 @@ class BoundStore(SessionStore):
         yield self.connection
 
 
-def fixture_settings(root: Path, base: Settings | None = None) -> Settings:
+def fixture_settings(
+    root: Path, base: Settings | None = None, *, kind="local-return-draft-only-1"
+) -> Settings:
     if root.is_symlink():
         raise ValueError("Fixture root must not be a symlink")
     root = root.resolve()
     if any((root / p).is_symlink() for p in ("business.sqlite", "graph.sqlite", "docs")):
         raise ValueError("Fixture paths must not be symlinks")
     marker = json.loads((root / "fixture.json").read_text())
-    if marker["kind"] != "local-return-draft-only-1":
+    if marker["kind"] != kind:
         raise ValueError("Not an isolated draft fixture")
     db = root / "business.sqlite"
     with sqlite3.connect(db) as conn:
@@ -108,6 +112,15 @@ def fixture_settings(root: Path, base: Settings | None = None) -> Settings:
             for t in ("return_requests", "return_confirmations", "return_reviews", "return_audit")
             for a in ("INSERT", "UPDATE", "DELETE")
         }
+        if kind == FORMAL_FIXTURE_KIND:
+            if conn.execute("SELECT kind FROM local_fixture").fetchone()[0] != kind:
+                raise ValueError("Not a newly initialized formal fixture")
+            required = set(formal_barriers())
+            actual = dict(conn.execute("SELECT name,sql FROM sqlite_master WHERE type='trigger'"))
+            if any(actual.get(name) != sql for name, sql in formal_barriers().items()):
+                raise ValueError("Formal fixture submission barriers changed")
+        elif kind != "local-return-draft-only-1":
+            raise ValueError("Unknown fixture kind")
         if not required.issubset(triggers):
             raise ValueError("Fixture submission barriers are incomplete")
     return (base or Settings(_env_file=None)).model_copy(
@@ -123,7 +136,64 @@ def fixture_settings(root: Path, base: Settings | None = None) -> Settings:
     )
 
 
+def formal_barriers():
+    barriers = {}
+    for table in (
+        "return_requests",
+        "return_confirmations",
+        "return_audit",
+        "return_reviews",
+        "orders",
+        "order_items",
+        "logistics",
+    ):
+        for action in ("INSERT", "UPDATE", "DELETE"):
+            name = f"formal_guard_{table}_{action}"
+            allowed = action == "INSERT" and table in {
+                "return_requests",
+                "return_confirmations",
+                "return_audit",
+            }
+            condition = (
+                "EXISTS(SELECT 1 FROM local_confirmation_waits w "
+                "WHERE w.event_id=formal_submission_event() AND w.status='accepted' "
+                "AND w.decision='accept' AND w.consumptions=1)"
+                if allowed
+                else "0"
+            )
+            if table == "return_requests" and allowed:
+                condition += (
+                    " AND NEW.status='pending_review' AND EXISTS(SELECT 1 "
+                    "FROM local_confirmation_waits w WHERE w.event_id=formal_submission_event() "
+                    "AND w.preview_id=NEW.preview_id AND w.session_id=NEW.session_id "
+                    "AND w.user_id=NEW.user_id)"
+                )
+            if table == "return_confirmations" and allowed:
+                condition += (
+                    " AND EXISTS(SELECT 1 FROM local_confirmation_waits w "
+                    "WHERE w.event_id=formal_submission_event() "
+                    "AND w.preview_id=NEW.preview_id AND w.user_id=NEW.user_id)"
+                )
+            if table == "return_audit" and allowed:
+                condition += (
+                    " AND NEW.action='created' AND EXISTS(SELECT 1 FROM return_requests r "
+                    "JOIN local_confirmation_waits w ON r.preview_id=w.preview_id "
+                    "WHERE w.event_id=formal_submission_event() AND r.request_id=NEW.request_id "
+                    "AND NEW.actor=w.user_id)"
+                )
+            barriers[name] = (
+                f"CREATE TRIGGER {name} BEFORE {action} ON {table} "
+                f"BEGIN SELECT CASE WHEN NOT ({condition}) "
+                "THEN RAISE(ABORT,'formal fixture requires trusted submission') END; END"
+            )
+    return barriers
+
+
 def init_fixture(root: Path):
+    return _init_fixture(root, "local-return-draft-only-1")
+
+
+def _init_fixture(root: Path, kind, barriers=None):
     root = root.resolve()
     root.mkdir(parents=True, exist_ok=False, mode=0o700)
     settings = Settings(_env_file=None, db_path=root / "business.sqlite")
@@ -131,14 +201,14 @@ def init_fixture(root: Path):
     settings.db_path.chmod(0o600)
     store = SessionStore(settings.db_path)
     marker = {
-        "kind": "local-return-draft-only-1",
+        "kind": kind,
         "id": uuid4().hex,
         "reference_date": date.today().isoformat(),
     }
     shutil.copytree(PROJECT_ROOT / "data/docs", root / "docs")
     with store.transaction() as conn:
-        conn.execute("CREATE TABLE local_fixture(id TEXT PRIMARY KEY)")
-        conn.execute("INSERT INTO local_fixture VALUES(?)", (marker["id"],))
+        conn.execute("CREATE TABLE local_fixture(id TEXT PRIMARY KEY,kind TEXT NOT NULL)")
+        conn.execute("INSERT INTO local_fixture VALUES(?,?)", (marker["id"], kind))
         conn.execute(
             "CREATE TABLE local_threads(session_id TEXT PRIMARY KEY, "
             "thread_id TEXT UNIQUE NOT NULL, turn_id TEXT, offset INTEGER NOT NULL)"
@@ -149,12 +219,19 @@ def init_fixture(root: Path):
             "revision_before INTEGER, revision_after INTEGER, "
             "PRIMARY KEY(session_id,turn_id,call_id))"
         )
-        for table in ("return_requests", "return_confirmations", "return_reviews", "return_audit"):
-            for action in ("INSERT", "UPDATE", "DELETE"):
-                conn.execute(
-                    f"CREATE TRIGGER local_deny_{table}_{action} BEFORE {action} "
-                    f'ON {table} BEGIN SELECT RAISE(ABORT,"draft fixture forbids submission"); END'
-                )
+        if barriers is not None:
+            for sql in barriers.values():
+                conn.execute(sql)
+        else:
+            for table in (
+                "return_requests", "return_confirmations", "return_reviews", "return_audit"
+            ):
+                for action in ("INSERT", "UPDATE", "DELETE"):
+                    conn.execute(
+                        f"CREATE TRIGGER local_deny_{table}_{action} BEFORE {action} "
+                        f'ON {table} BEGIN SELECT RAISE(ABORT,"draft fixture forbids submission"); '
+                        "END"
+                    )
     (root / "fixture.json").write_text(json.dumps(marker, indent=2) + "\n")
     return marker
 

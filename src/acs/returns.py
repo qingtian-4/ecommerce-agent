@@ -134,7 +134,7 @@ class ReturnService:
         with closing(self.store._connect()) as conn:
             self.store._require_owner(conn, sid, uid)
             row = conn.execute("SELECT * FROM return_previews WHERE session_id=? "
-                               "ORDER BY created_at DESC LIMIT 1", (sid,)).fetchone()
+                               "ORDER BY created_at DESC,rowid DESC LIMIT 1", (sid,)).fetchone()
             task = self.store._task(conn, sid)
             if (row is None or not task or task["status"] != "draft"
                     or task["revision"] != row["revision"]):
@@ -248,54 +248,59 @@ class ReturnService:
 
     def confirm_and_submit(self, sid: str, uid: str, pid: str, tid: str | None = None) -> dict:
         """Only called by the explicit UI button, never exposed as a model tool."""
-        with closing(self.store._connect()) as conn, conn:
-            conn.execute("BEGIN IMMEDIATE")
-            self.store._require_owner(conn, sid, uid)
-            self._check_active(conn, sid, tid)
-            row = conn.execute(REQUEST_QUERY + " WHERE r.preview_id=? "
-                               "AND r.session_id=? AND r.user_id=?", (pid, sid, uid)).fetchone()
-            if row:
-                return self._request(row)
-            preview = conn.execute("SELECT * FROM return_previews WHERE preview_id=? "
-                                   "AND session_id=?", (pid, sid)).fetchone()
-            if preview is None:
-                raise TaskValidationError("申请预览不存在，请重新生成预览")
-            task = self.store._task(conn, sid)
-            if not task or task["status"] != "draft" or task["revision"] != preview["revision"]:
-                raise TaskValidationError("草稿已经更改或中止，必须重新生成预览并确认")
-            if datetime.fromisoformat(preview["expires_at"]) <= datetime.now(UTC):
-                raise TaskValidationError("预览已过期，请重新核查并生成预览")
-            policy = return_policy(self.settings)
-            if policy["hash"] != preview["policy_hash"]:
-                raise TaskValidationError("政策已变化，请重新生成预览并确认")
-            content, reasons = self._content(conn, sid, uid, policy)
-            if reasons:
-                raise TaskValidationError("；".join(reasons))
-            original = json.loads(preview["content_json"])
-            if any(content.get(k) != original.get(k) for k in (
-                "order_id", "item_id", "product_id", "product_name", "delivered_at",
-                "sku",
-                "quantity", "reason", "condition", "problem_description",
-                "secondary_sale_ok", "quality_non_user_damage", "evidence",
-            )):
-                raise TaskValidationError("申请内容已经更改，请重新预览")
-            request_id, now = "R" + uuid4().hex, _now()
-            conn.execute("INSERT INTO return_confirmations VALUES(?,?,?,?)", (pid, uid, now, now))
-            conn.execute("INSERT INTO return_requests VALUES(?,?,?,?,?,?,?,?,?,?)",
-                         (request_id, pid, sid, uid, task["order_id"], task["item_id"],
-                          task["quantity"], "pending_review",
-                          json.dumps(content, ensure_ascii=False), now))
-            conn.execute("INSERT INTO return_audit VALUES(?,?,?,?,?,?)",
-                         (uuid4().hex, request_id, "created", uid,
-                          json.dumps({"preview_id": pid, "revision": task["revision"],
-                                      "policy_hash": policy["hash"],
-                                      "entry": "explicit_ui_button"}),
-                          now))
-            task.update(status="submitted", request_id=request_id)
-            conn.execute("UPDATE return_tasks SET data_json=?,updated_at=? WHERE session_id=?",
-                         (json.dumps(task, ensure_ascii=False), now, sid))
-            return self._request(conn.execute(REQUEST_QUERY + " WHERE r.request_id=?",
-                                              (request_id,)).fetchone())
+        with self.store.transaction() as conn:
+            return self._confirm_and_submit(conn, sid, uid, pid, tid)
+
+    def _confirm_and_submit(self, conn, sid, uid, pid, tid=None, *, entry="explicit_ui_button"):
+        """Borrow an application-owned transaction; never commit or open a connection."""
+        if not conn.in_transaction:
+            raise RuntimeError("Submission requires an active business transaction")
+        self.store._require_owner(conn, sid, uid)
+        self._check_active(conn, sid, tid)
+        row = conn.execute(REQUEST_QUERY + " WHERE r.preview_id=? "
+                           "AND r.session_id=? AND r.user_id=?", (pid, sid, uid)).fetchone()
+        if row:
+            return self._request(row)
+        preview = conn.execute("SELECT * FROM return_previews WHERE preview_id=? "
+                               "AND session_id=?", (pid, sid)).fetchone()
+        if preview is None:
+            raise TaskValidationError("申请预览不存在，请重新生成预览")
+        task = self.store._task(conn, sid)
+        if not task or task["status"] != "draft" or task["revision"] != preview["revision"]:
+            raise TaskValidationError("草稿已经更改或中止，必须重新生成预览并确认")
+        if datetime.fromisoformat(preview["expires_at"]) <= datetime.now(UTC):
+            raise TaskValidationError("预览已过期，请重新核查并生成预览")
+        policy = return_policy(self.settings)
+        if policy["hash"] != preview["policy_hash"]:
+            raise TaskValidationError("政策已变化，请重新生成预览并确认")
+        content, reasons = self._content(conn, sid, uid, policy)
+        if reasons:
+            raise TaskValidationError("；".join(reasons))
+        original = json.loads(preview["content_json"])
+        if any(content.get(k) != original.get(k) for k in (
+            "order_id", "item_id", "product_id", "product_name", "delivered_at",
+            "sku",
+            "quantity", "reason", "condition", "problem_description",
+            "secondary_sale_ok", "quality_non_user_damage", "evidence",
+        )):
+            raise TaskValidationError("申请内容已经更改，请重新预览")
+        request_id, now = "R" + uuid4().hex, _now()
+        conn.execute("INSERT INTO return_confirmations VALUES(?,?,?,?)", (pid, uid, now, now))
+        conn.execute("INSERT INTO return_requests VALUES(?,?,?,?,?,?,?,?,?,?)",
+                     (request_id, pid, sid, uid, task["order_id"], task["item_id"],
+                      task["quantity"], "pending_review",
+                      json.dumps(content, ensure_ascii=False), now))
+        conn.execute("INSERT INTO return_audit VALUES(?,?,?,?,?,?)",
+                     (uuid4().hex, request_id, "created", uid,
+                      json.dumps({"preview_id": pid, "revision": task["revision"],
+                                  "policy_hash": policy["hash"],
+                                  "entry": entry}),
+                      now))
+        task.update(status="submitted", request_id=request_id)
+        conn.execute("UPDATE return_tasks SET data_json=?,updated_at=? WHERE session_id=?",
+                     (json.dumps(task, ensure_ascii=False), now, sid))
+        return self._request(conn.execute(REQUEST_QUERY + " WHERE r.request_id=?",
+                                          (request_id,)).fetchone())
 
     def attach_evidence(self, sid: str, uid: str, tid: str, data: bytes) -> dict:
         if not isinstance(data, bytes) or not 0 < len(data) <= 10 * 1024 * 1024:

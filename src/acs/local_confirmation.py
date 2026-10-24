@@ -28,6 +28,8 @@ class ConfirmationState(TypedDict, total=False):
 
 
 class LocalConfirmation:
+    notice = "等待应用端显式确认；即使接受也不创建正式申请。"
+
     def __init__(self, gateway, checkpointer, *, fault=None):
         self.gateway, self.store = gateway, gateway.store
         self.fault = fault or (lambda point: None)
@@ -65,7 +67,8 @@ class LocalConfirmation:
     def _valid(self, conn, row):
         task = self.store._task(conn, row["session_id"])
         preview = conn.execute(
-            "SELECT * FROM return_previews WHERE session_id=? ORDER BY created_at DESC LIMIT 1",
+            "SELECT * FROM return_previews WHERE session_id=? "
+            "ORDER BY created_at DESC,rowid DESC LIMIT 1",
             (row["session_id"],),
         ).fetchone()
         policy = return_policy(self.gateway.settings)
@@ -195,7 +198,7 @@ class LocalConfirmation:
                 k: row[k]
                 for k in ("wait_id", "preview_id", "revision", "policy_hash", "expires_at")
             }
-            payload["notice"] = "等待应用端显式确认；即使接受也不创建正式申请。"
+            payload["notice"] = self.notice
         event_id = interrupt(payload)  # MUST NOT catch GraphInterrupt or consume before pause.
         with self.store.transaction() as conn:
             row = self._row(conn, sid, uid, state["wait_id"])
@@ -214,7 +217,7 @@ class LocalConfirmation:
                 status = {"accept": "accepted", "reject": "rejected", "cancel": "cancelled"}[
                     row["decision"]
                 ]
-                result = self._result(row, status)
+                result = self._consume(conn, row, self._result(row, status))
                 conn.execute(
                     "UPDATE local_confirmation_waits SET status=?,result_json=?,"
                     "consumptions=1 WHERE wait_id=?",
@@ -223,6 +226,9 @@ class LocalConfirmation:
             self.fault("before_consume_commit")
         self.fault("after_consume_commit")
         return {"result": result, "retry": False}
+
+    def _consume(self, conn, row, result):
+        return result
 
     def resume(self, sid, uid, wait_id):
         with self.store.transaction() as conn:
