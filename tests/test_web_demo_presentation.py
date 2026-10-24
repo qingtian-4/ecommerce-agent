@@ -1,6 +1,7 @@
 """The fixed Demo must present actual tool facts and disclose its limits."""
 
 import sqlite3
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 from scripts.v3_web_demo import offline_factory
@@ -57,4 +58,16 @@ def test_unsupported_free_question_does_not_masquerade_as_a_model_answer(tmp_pat
         post(client, sid, headers, "messages", text="请推荐适合我的所有商品")
         answer = done(client, sid)["history"][-1]["content"]
         assert "固定脚本" in answer and "自由对话" in answer
+        assert counts(root) == (0, 0, 0)
+
+
+def test_relative_state_directory_can_serve_the_browser_card(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    root = Path("relative-demo")
+    init_formal_fixture(root)
+    with TestClient(create_app(root, offline_factory), base_url=ORIGIN) as client:
+        browser(client)
+        response = client.get("/return-card")
+        assert response.status_code == 200
+        assert response.json()["state"] == "EXPIRED"
         assert counts(root) == (0, 0, 0)

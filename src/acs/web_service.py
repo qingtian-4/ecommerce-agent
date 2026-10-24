@@ -138,7 +138,7 @@ class WebEngine:
         with closing(self.store._connect()) as conn:
             identity = [str(v) for row in conn.execute("SELECT name,phone FROM users") for v in row]
         self.secret_values = (*secret_values, *identity)
-        self.db = root / "web.sqlite"
+        self.db = self.root / "web.sqlite"
         self.lock_file = None
 
     @contextmanager
