@@ -1,0 +1,7 @@
+# 隔离 Interrupt 确认 PoC
+
+本阶段受前置门禁约束：只有新冻结8阶段真实链路全部完成且最终回答核验通过后才实施。本Context提交尚未启用确认，模型工具清单不增加confirm_and_submit。
+
+后续限定业务对象：绑定preview_id、session、user、revision、policy hash、expires_at的隔离确认事件；应用端生成唯一事件ID，不能从聊天文字或模型工具产生。原生interrupt必须真实持久暂停，Command恢复仍须重新校验SQL业务事实。
+
+正式return_requests/return_confirmations/return_reviews/return_audit继续由12个SQL Trigger禁止写入。本轮不创建任何正式申请。验收与实际实现待前置门禁通过后追加，未执行不标完成。

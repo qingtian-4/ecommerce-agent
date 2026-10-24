@@ -161,9 +161,22 @@ def run(out, env_file, price_review):
             }
             checks["no_formal_writes"] = all(v == 0 for v in formal.values())
             receipts = [dict(r) for r in conn.execute("SELECT * FROM local_receipts")]
+            preview_row = (
+                conn.execute(
+                    "SELECT revision FROM return_previews WHERE preview_id=?",
+                    (preview["preview_id"],),
+                ).fetchone()
+                if preview
+                else None
+            )
         summary = EpisodeLedger(runtime / "fees.jsonl", cap_cny=3, max_requests=32).summary()
         record = {
             "stage": index,
+            "final_answer_present": bool(done["detail"].get("answer"))
+            if process.returncode == 0
+            else False,
+            "preview_revision": preview_row[0] if preview_row else None,
+            "preview_valid_at_stage_end": bool(preview and preview["ready"]),
             "returncode": process.returncode,
             "latency_ms": latency,
             "checks": checks,

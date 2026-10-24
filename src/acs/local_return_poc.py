@@ -113,19 +113,29 @@ class LocalReturnPoc:
                 with self.store.transaction() as conn:
                     self.gateway.active(conn, context)
                     revision = (self.store._task(conn, context.session_id) or {}).get("revision", 0)
-                facts = self.gateway.state(context.session_id, context.user_id)
-                return {
-                    "expected_revision": revision,
-                    "messages": [
-                        SystemMessage(
-                            content="当前应用核验事实：" + json.dumps(facts, ensure_ascii=False)
-                        )
-                    ],
-                }
+                return {"expected_revision": revision}
 
             @wrap_model_call
             def boundary(request, handler):
-                response = handler(request)
+                context = request.runtime.context
+                with self.store.transaction() as conn:
+                    self.gateway.active(conn, context)
+                facts = self.gateway.state(context.session_id, context.user_id)
+                # Request projection only: preserve native history and tool-call/result pairs.
+                # Exclude only legacy server-generated snapshots from old checkpoints.
+                messages = [
+                    m
+                    for m in request.messages
+                    if not (
+                        isinstance(m, SystemMessage) and m.text.startswith("当前应用核验事实：")
+                    )
+                ]
+                messages.append(
+                    SystemMessage(
+                        content="当前应用核验事实：" + json.dumps(facts, ensure_ascii=False)
+                    )
+                )
+                response = handler(request.override(messages=messages))
                 used = {
                     c["id"]
                     for m in request.state["messages"]

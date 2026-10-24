@@ -1210,3 +1210,9 @@ asyncio.Runner，并在 stop 时关闭模型客户端与 Runner；没有发送�
 开发中实际定位了 custom stream/单线程执行器饥饿、ToolRuntime 隐藏注入与严格参数校验的冲突，并用 updates streaming 和网关严格参数校验保留原生执行。取消保留整句授权边界，咨询不会被整个答案替换。专项、完整 CI 与真实 DeepSeek 证据见 [本地退货 PoC](v3/LOCAL_RETURN_POC_REPORT.md)；固定模型故障合同与真实模型质量分别报告，不把预览描述为正式申请。
 
 本轮实际证据：完整源码CI871 passed、0 skipped；本地32项专项通过。真实15次DeepSeek请求，前7阶段完成；第8阶段已保存草稿与新预览，但最终回答的下一次HTTP被3元保守费用门禁阻止。按usage/空闲时段估算0.030671040元，累计保守预留2.774388元，未重跑；最后Graph待model、SQL Turn运行中且十条唯一回执匹配、正式四表0。当前事实快照重复入历史导致上下文/预留增长，作为真实失败保留。隔离Interrupt实验有限Go，完整提交与生产替换No-Go。
+
+## V3：持久业务事实导致上下文和预留增长
+
+旧before_model每次返回新的SystemMessage，AgentState.add_messages按新ID追加，15次请求留下1→15份业务事实；私有原始请求SHA核验后，历史快照冗余占累计wire29.89%。事实、完整订单/政策回执与current_task重复共同放大输入。实际供应商usage与各部分字节估算分开，不把代理分词估计当真实Token。
+
+最小修复将业务事实放入wrap_model_call的临时ModelRequest.override；每次从权威SQLite读取，Checkpoint不再新增事实，用户授权/更正和原生工具消息不删。红绿实测确认旧代码失败、新代码通过；相同8阶段固定决定的业务状态与10次工具回执合同一致。费用账本仍保留峰值缓存未命中、发送前持久预留与未知请求收费保护，未释放历史预留。新真实8阶段及后续Interrupt的门禁与证据见docs/v3/CONTEXT_ENGINEERING_REPORT.md。
