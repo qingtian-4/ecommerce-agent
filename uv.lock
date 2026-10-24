@@ -43,15 +43,18 @@ tau = [
     { name = "tau2", marker = "python_full_version >= '3.12' and python_full_version < '3.14'" },
 ]
 v3 = [
+    { name = "fastapi" },
     { name = "langchain" },
     { name = "langchain-openai" },
     { name = "langgraph" },
     { name = "langgraph-checkpoint-sqlite" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "faiss-cpu", specifier = ">=1.8.0" },
+    { name = "fastapi", marker = "extra == 'v3'", specifier = ">=0.142.2" },
     { name = "gradio", specifier = ">=5.0.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jieba", specifier = ">=0.42.1" },
@@ -71,6 +74,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7.0" },
     { name = "tau2", marker = "python_full_version >= '3.12' and python_full_version < '3.14' and extra == 'tau'", git = "https://github.com/sierra-research/tau2-bench?rev=dd8757d4c8791dad7b3cdaf02a105a3d5f9d86bd" },
     { name = "typer", specifier = ">=0.12.5" },
+    { name = "uvicorn", marker = "extra == 'v3'", specifier = ">=0.54.0" },
 ]
 provides-extras = ["dev", "v3", "tau"]
 

@@ -83,10 +83,15 @@ def verify_price(root, settings):
 
 
 @contextmanager
-def paid_model(root, settings):
+def paid_model(root, settings, *, max_requests=32):
     verify_price(root, settings)
-    ledger = EpisodeLedger(root / "fees.jsonl", cap_cny=3, max_requests=32)
-    ledger.begin(EPISODE, LIMITS)
+    ledger = EpisodeLedger(root / "fees.jsonl", cap_cny=3, max_requests=max_requests)
+    ledger.begin(
+        EPISODE,
+        LIMITS
+        if max_requests == 32
+        else EpisodeLimits(requests=max_requests, tools=128, steps=256, episode_timeout_s=3600),
+    )
     ledger.evidence = ResponseEvidence(root / ".private-evidence", secrets=(settings.llm_api_key,))
 
     def factory():

@@ -101,7 +101,7 @@ def fixture_settings(
     if marker["kind"] != kind:
         raise ValueError("Not an isolated draft fixture")
     db = root / "business.sqlite"
-    with sqlite3.connect(db) as conn:
+    with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as conn:
         if conn.execute("SELECT id FROM local_fixture").fetchone()[0] != marker["id"]:
             raise ValueError("Fixture identity mismatch")
         triggers = {

@@ -431,7 +431,8 @@ def test_cli_offline_demo_is_executable(tmp_path):
     assert not (root / "fees.jsonl").exists()
 
 
-def test_local_cli_sdk_budget_and_private_input_capture(tmp_path, monkeypatch):
+@pytest.mark.parametrize("max_requests", [32, 24])
+def test_local_cli_sdk_budget_and_private_input_capture(tmp_path, monkeypatch, max_requests):
     import importlib.util
     from pathlib import Path
 
@@ -474,21 +475,21 @@ def test_local_cli_sdk_budget_and_private_input_capture(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cli.httpx, "AsyncHTTPTransport", lambda **kw: httpx.MockTransport(respond))
     settings = Settings(_env_file=None, llm_api_key="offline-secret", llm_model="deepseek-flash")
-    with cli.paid_model(tmp_path, settings) as (model, ledger):
-        for _ in range(32):
+    with cli.paid_model(tmp_path, settings, max_requests=max_requests) as (model, ledger):
+        for _ in range(max_requests):
             assert model.invoke("isolated synthetic input").text == "草稿实验"
         with pytest.raises((BudgetExceeded, APIConnectionError)):
             model.invoke("must never reach HTTP")
-        assert ledger.summary()["requests"] == 32
+        assert ledger.summary()["requests"] == max_requests
     with (
-        cli.paid_model(tmp_path, settings) as (model, ledger),
+        cli.paid_model(tmp_path, settings, max_requests=max_requests) as (model, ledger),
         pytest.raises((BudgetExceeded, APIConnectionError)),
     ):
         model.invoke("must still be blocked after process-style reopen")
-    assert len(sends) == 32
+    assert len(sends) == max_requests
     saved = [json.loads(p.read_text()) for p in (tmp_path / ".private-evidence").glob("*.json")]
     requests = [r for r in saved if r.get("kind") == "authorized_private_model_request"]
-    assert len(requests) == 32
+    assert len(requests) == max_requests
     assert all("isolated synthetic input" in json.dumps(r) for r in requests)
     assert "offline-secret" not in json.dumps(saved)
     from tau_pilot_artifacts import export_ledger
