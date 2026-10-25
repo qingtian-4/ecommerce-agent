@@ -99,7 +99,7 @@ def serve(root, port):
                 host='127.0.0.1', port=port, access_log=False, timeout_graceful_shutdown=5)
 
 
-def run(out, port, deepseek, env_file, price_review):
+def run(out, port, deepseek, env_file, price_review, shared_budget_dir=None):
     from playwright.sync_api import sync_playwright
 
     os.umask(0o077)
@@ -108,11 +108,24 @@ def run(out, port, deepseek, env_file, price_review):
     private.mkdir(mode=0o700)
     runtime = private / 'runtime'
     origin = f'http://127.0.0.1:{port}'
+    baseline_ids=set()
+    shared_rows=[]
+    if shared_budget_dir:
+        shared_rows=[json.loads(line) for line in
+                     (shared_budget_dir/'fees.jsonl').read_text().splitlines()]
+        baseline_ids={r['request_id'] for r in shared_rows if r['type']=='reserved'}
     result = {'kind': 'real_deepseek_development_smoke' if deepseek else 'offline_sdk_browser',
               'source_sha': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT,
                                                    text=True).strip(),
-              'limits': {'cny': 3, 'http_attempts': 24}, 'inputs': INPUTS if deepseek else
+              'limits': {'cny': 2 if shared_budget_dir else 3,
+                         'http_attempts': 18 if shared_budget_dir else 24},
+              'inputs': INPUTS if deepseek else
               ['普通咨询', '工具查询', '协议拒绝'], 'stages': [], 'completed': False}
+    if shared_budget_dir:
+        result['shared_budget_before']={'requests':len(baseline_ids),
+            'reserved_cny':str(sum((Decimal(r['reserved_cny']) for r in shared_rows
+                                    if r['type']=='reserved'),Decimal(0))),
+            'deadline':next(r['deadline'] for r in shared_rows if r['type']=='episode')}
     result['fingerprints'] = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in [*sorted((ROOT/'src/acs').glob('*.py')),
                   *sorted((ROOT/'src/acs/web_assets').glob('*')), Path(__file__),
@@ -128,6 +141,8 @@ def run(out, port, deepseek, env_file, price_review):
             command = [str(ROOT/'.venv/bin/python'), 'scripts/v3_web_demo.py',
                        '--state-dir', str(runtime), '--port', str(port), '--deepseek',
                        '--env-file', str(env_file)]
+            if shared_budget_dir:
+                command += ['--shared-budget-dir',str(shared_budget_dir)]
             if not runtime.exists():
                 subprocess.run([str(ROOT/'.venv/bin/python'), '-c',
                     'from pathlib import Path;from acs.local_submission import init_formal_fixture;'
@@ -180,8 +195,9 @@ def run(out, port, deepseek, env_file, price_review):
                     const b=await(await fetch('/api/bootstrap')).json();
                     return await(await fetch('/api/sessions/'+b.session_id)).json()}""")
             def request_count():
+                path=(shared_budget_dir or runtime)/'fees.jsonl'
                 return sum(json.loads(line)['type']=='reserved' for line in
-                           (runtime/'fees.jsonl').read_text().splitlines())
+                           path.read_text().splitlines())-len(baseline_ids)
             def idle():
                 page.wait_for_function("()=>!document.querySelector('#send').disabled",timeout=180000)
                 return state()
@@ -280,11 +296,13 @@ def run(out, port, deepseek, env_file, price_review):
             server.wait(timeout=90)
         result['browser_errors'] = errors
         result['sql_counts'] = sql() if runtime.exists() else None
-        fee_path = runtime/'fees.jsonl'
+        fee_path = (shared_budget_dir or runtime)/'fees.jsonl'
         if fee_path.exists():
             rows = [json.loads(line) for line in fee_path.read_text().splitlines()]
-            attempts = [r for r in rows if r['type']=='reserved']
-            receipts = [r for r in rows if r['type']=='request_end']
+            attempts = [r for r in rows if r['type']=='reserved'
+                        and r['request_id'] not in baseline_ids]
+            receipts = [r for r in rows if r['type']=='request_end'
+                        and r['request_id'] not in baseline_ids]
             result['fees'] = {
                 'http_attempts':len(attempts),
                 'paid_http_attempts':len(attempts) if deepseek else 0,
@@ -300,6 +318,11 @@ def run(out, port, deepseek, env_file, price_review):
                                     for r in receipts),
                 'stop_reasons':[r['reason'] for r in rows if r['type']=='stop'],
             }
+            if shared_budget_dir:
+                result['shared_budget_after']={
+                    'requests':sum(r['type']=='reserved' for r in rows),
+                    'reserved_cny':str(sum((Decimal(r['reserved_cny']) for r in rows
+                        if r['type']=='reserved'),Decimal(0)))}
             (out/'request_ledger.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2))
         if (runtime/'web.sqlite').exists():
             with sqlite3.connect(runtime/'web.sqlite') as conn:
@@ -328,8 +351,9 @@ if __name__ == '__main__':
     parser.add_argument('--deepseek',action='store_true')
     parser.add_argument('--env-file',type=Path)
     parser.add_argument('--price-review',type=Path)
+    parser.add_argument('--shared-budget-dir',type=Path)
     args=parser.parse_args()
     if args.serve:
         serve(args.serve,args.port)
     else:
-        run(args.out,args.port,args.deepseek,args.env_file,args.price_review)
+        run(args.out,args.port,args.deepseek,args.env_file,args.price_review,args.shared_budget_dir)

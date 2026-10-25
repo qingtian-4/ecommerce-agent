@@ -25,8 +25,12 @@ from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
+from .answer_grounding import collect_evidence, review_answer
 from .local_return_tools import LocalReturnGateway, ReconciliationError, fixture_settings
 from .local_submission import KIND, FormalReturnPoc, read_submission_receipt
+from .model_response_contract import ModelResponseError
+from .response_evidence import ResponseEvidence
+from .runtime import BudgetExceeded
 
 COOKIE = "v3_demo"
 ASSETS = Path(__file__).with_name("web_assets")
@@ -40,6 +44,7 @@ class StrictBody(BaseModel):
 class MessageBody(StrictBody):
     text: str = Field(min_length=1, max_length=4000)
     request_key: str = Field(pattern=r"^[a-zA-Z0-9-]{8,64}$")
+    read_only: bool = False
 
 
 class ActionBody(StrictBody):
@@ -93,6 +98,7 @@ EVENTS = {
     "answer_delta",
     "answer_discarded",
     "answer_completed",
+    "answer_checked",
 }
 
 
@@ -254,6 +260,11 @@ class WebEngine:
                     "CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,"
                     "session_id TEXT,job_id TEXT,kind TEXT,data TEXT)"
                 )
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS answer_presentations("
+                    "session_id TEXT,turn_id TEXT,raw_sha256 TEXT,text TEXT,"
+                    "PRIMARY KEY(session_id,turn_id))"
+                )
                 for row in conn.execute("SELECT * FROM jobs WHERE status IN ('queued','running')"):
                     self._emit(
                         conn,
@@ -375,14 +386,23 @@ class WebEngine:
                 if kind in {"message", "resume"}
                 else (lambda: nullcontext(self.offline_model()))
             )
+            read_only = bool(payload.get("read_only")) or (
+                kind in {"message", "resume"} and self.return_card(sid)["state"] == "UNKNOWN"
+            )
             with (
                 factory() as model,
                 FormalReturnPoc(self.root, UID, model=model, fault=self.fault,
-                                stream_callback=stream) as poc,
+                                stream_callback=stream, read_only=read_only) as poc,
             ):
                 if kind in {"message", "resume"}:
                     self.emit(sid, jid, "turn_started", status="running")
+                    if kind == "resume":
+                        binding = poc._binding(sid)
+                        if binding["turn_id"]:
+                            self.expect_answer_review(sid, binding["turn_id"])
                     for event in poc.stream(sid, payload.get("text")):
+                        if event.type == "started":
+                            self.expect_answer_review(sid, event.run_id)
                         if event.type == "updates":
                             for update in event.detail.values():
                                 if not isinstance(update, dict):
@@ -407,10 +427,14 @@ class WebEngine:
                                             status=message.status,
                                         )
                         if event.type == "completed":
+                            if self.fault:
+                                self.fault("before_answer_review")
+                            text = self.present_answer(sid, event.run_id, jid,
+                                                       event.detail["answer"])
                             if stream:
-                                stream.complete(event.detail["answer"])
+                                stream.complete(text)
                             self.emit(sid, jid, "business_state_updated", status="read_current")
-                            final = {"status": "completed", "text": event.detail["answer"]}
+                            final = {"status": "completed", "text": text}
                 else:
                     if kind == "decide":
                         self.emit(sid, jid, "submission_pending", status="checking")
@@ -463,6 +487,22 @@ class WebEngine:
                 )
             )
             evidence.chmod(0o600)
+            reason, status = "query_authoritative_state", "unknown"
+            if kind in {"message", "resume"}:
+                reason, status = "conversation_incomplete", "failed"
+                if isinstance(exc, ModelResponseError):
+                    reason = "model_response_rejected"
+                budget = next((error for error in (
+                    exc, exc.__cause__, getattr(exc.__cause__, "__cause__", None))
+                    if isinstance(error, BudgetExceeded)), None)
+                if budget:
+                    code, status = str(budget), "stopped"
+                    reason = ("budget_exhausted" if code.endswith("_limit") or code in {
+                        "episode_deadline", "model_timeout"} else "model_response_rejected"
+                        if code == "adapter_protocol_error" else "model_receipt_unverified"
+                        if code in {"usage_missing", "invalid_usage", "state_uncertain",
+                                    "model_request_failed", "model_interrupted"}
+                        else "execution_stopped")
             with self.tx() as conn:
                 conn.execute("UPDATE jobs SET status='failed' WHERE id=?", (jid,))
                 self._emit(
@@ -470,8 +510,8 @@ class WebEngine:
                     sid,
                     jid,
                     "turn_failed",
-                    status="unknown",
-                    reason="query_authoritative_state",
+                    status=status,
+                    reason=reason,
                 )
 
     def events(self, sid, after):
@@ -489,7 +529,80 @@ class WebEngine:
                 )
             ]
 
+    def expect_answer_review(self, sid, tid):
+        # Recorded before native model execution: a crash after native finish must
+        # never misclassify this new raw answer as an unchecked legacy answer.
+        with self.tx() as conn:
+            conn.execute("INSERT OR IGNORE INTO answer_presentations VALUES(?,?,NULL,NULL)",
+                         (sid, tid))
+
+    def present_answer(self, sid, tid, jid, raw):
+        fingerprint = hashlib.sha256(raw.encode()).hexdigest()
+        with self.tx() as conn:
+            row = conn.execute("SELECT * FROM answer_presentations WHERE session_id=? "
+                               "AND turn_id=?", (sid, tid)).fetchone()
+        if row:
+            if row["raw_sha256"] is not None and row["raw_sha256"] != fingerprint:
+                raise ReconciliationError("Answer presentation no longer matches raw message")
+            if row["text"] is not None:
+                return row["text"]
+        with self.tx() as conn:
+            conn.execute("INSERT OR IGNORE INTO answer_presentations VALUES(?,?,NULL,NULL)",
+                         (sid, tid))
+            conn.execute("UPDATE answer_presentations SET raw_sha256=? WHERE session_id=? "
+                         "AND turn_id=?", (fingerprint, sid, tid))
+        evidence = collect_evidence(self.gateway, self.root, sid, UID, tid)
+        review = review_answer(raw, evidence)
+        # Preserve the original privately BEFORE publishing a corrected presentation.
+        digest = ResponseEvidence(self.root / ".private-evidence",
+                                  secrets=self.secret_values).save(uuid4().hex, {
+            "kind": "answer_grounding", "session_id": sid, "turn_id": tid,
+            "raw_answer": raw, "raw_sha256": fingerprint,
+            "evidence": evidence.model_dump(), "review": review.model_dump(),
+        })
+        predicates = sorted({f.predicate for f in review.findings})
+        with self.tx() as conn:
+            conn.execute("UPDATE answer_presentations SET text=? WHERE session_id=? "
+                         "AND turn_id=? AND raw_sha256=?", (review.text, sid, tid, fingerprint))
+            self._emit(conn, sid, jid, "answer_checked",
+                       status="corrected" if any(f.action == "corrected" for f in review.findings)
+                       else "unverified" if predicates else "scoped_check",
+                       reason=",".join(predicates) if predicates else "scoped_rules_only",
+                       call_id=digest)
+        return review.text
+
+    def display_history(self, sid):
+        with closing(self.store._connect()) as conn:
+            self.store._require_owner(conn, sid, UID)
+            turns = conn.execute("SELECT turn_id,user_text,status,answer FROM "
+                                 "conversation_turns WHERE session_id=? ORDER BY sequence",
+                                 (sid,)).fetchall()
+        with self.tx() as conn:
+            displays = {r["turn_id"]: r for r in conn.execute(
+                "SELECT * FROM answer_presentations WHERE session_id=?", (sid,))}
+        history = []
+        for turn in turns:
+            history.append({"role": "user", "content": turn["user_text"]})
+            if turn["status"] != "running":
+                display = displays.get(turn["turn_id"])
+                if (display and display["raw_sha256"] is not None
+                        and display["raw_sha256"] != hashlib.sha256(
+                            turn["answer"].encode()).hexdigest()):
+                    raise ReconciliationError("Answer presentation hash mismatch")
+                history.append({"role": "assistant", "content": (
+                    display["text"] if display["text"] is not None else
+                    "此回答的业务表述尚未完成核验，请先只读查询业务状态。"
+                ) if display else turn["answer"],
+                    "review_status": "reviewed" if display and display["text"] is not None
+                    else "pending" if display else "legacy_unchecked"})
+        return history
+
     def snapshot(self, sid):
+        # A completed job implies the following SQL/display reads are already durable.
+        # Reading jobs last could pair a new terminal status with an earlier history.
+        with self.tx() as conn:
+            jobs = [dict(r) for r in conn.execute(
+                "SELECT id,kind,status FROM jobs WHERE session_id=? ORDER BY rowid", (sid,))]
         state = self.gateway.state(sid, UID)
         task = state["task"].get("task") or {}
         preview = state["preview"]
@@ -516,13 +629,18 @@ class WebEngine:
                 if preview
                 else None
             ),
-            "history": [pick(m, ("role", "content")) for m in self.store.load(sid, UID)["history"]],
+            "history": self.display_history(sid),
             "confirmation": None,
             "requests": [],
             "orders": [
-                pick(o, ("order_id", "status", "total_amount"))
+                pick(o, ("order_id", "status", "total_amount")) | {
+                    "items": [pick(i, ("id", "product_id", "product_name", "quantity"))
+                              for i in self.gateway.registry.db.get_order(
+                                  o["order_id"], UID).get("items", [])]}
                 for o in self.gateway.registry.db.list_orders(UID)
             ],
+            "products": [],
+            "jobs": jobs,
         }
         with closing(self.store._connect()) as conn:
             tables = {
@@ -538,14 +656,14 @@ class WebEngine:
             )
         for row in waits:
             if row["status"] == "accepted":
-                receipt = read_submission_receipt(self.root, sid, UID, row["wait_id"])
-                request = receipt["request"]
-                result["requests"].append(
-                    pick(
-                        request,
-                        ("request_id", "status", "order_id", "item_id", "quantity", "created_at"),
-                    )
-                )
+                try:
+                    receipt = read_submission_receipt(self.root, sid, UID, row["wait_id"])
+                    if receipt:
+                        result["requests"].append(pick(receipt["request"], (
+                            "request_id", "status", "order_id", "item_id", "quantity", "created_at"
+                        )))
+                except ReconciliationError:
+                    result["submission_query_status"] = "unknown"
             if result["confirmation"] is None:
                 result["confirmation"] = pick(dict(row), ("wait_id", "status", "preview_id"))
         # A concurrent tab can refresh between business reads. Never pair a wait
@@ -557,13 +675,16 @@ class WebEngine:
             and (not preview or wait["preview_id"] != preview["preview_id"])
         ):
             wait["status"] = "refresh_required"
-        with self.tx() as conn:
-            result["jobs"] = [
-                dict(r)
-                for r in conn.execute(
-                    "SELECT id,kind,status FROM jobs WHERE session_id=? ORDER BY rowid", (sid,)
-                )
-            ]
+        with closing(self.store._connect()) as conn:
+            seen = set()
+            for row in conn.execute("SELECT result FROM local_receipts WHERE session_id=? "
+                                    "AND name='get_product' AND error IS NULL ORDER BY rowid DESC",
+                                    (sid,)):
+                product = json.loads(row["result"])
+                if product.get("found") and product["product_id"] not in seen:
+                    seen.add(product["product_id"])
+                    result["products"].append(pick(product, (
+                        "product_id", "name", "current_price", "currency", "attributes")))
 
         return self.clean(result)
 
@@ -682,6 +803,7 @@ def create_app(
     root, model_factory, *, origin="http://127.0.0.1:8767", fault=None, secret_values=(),
     runtime_mode="custom",
     answer_streaming=False,
+    budget_notice=None,
 ):
     modes = {
         "fixed_script": {
@@ -712,6 +834,8 @@ def create_app(
              else "流式测试模型。")
             + "正文来自模型实时片段；生成中的文字仅为草稿，可能撤回。业务提交只看权威SQL回执。"
         )
+    if budget_notice:
+        runtime_info["notice"] += budget_notice
     parsed = urlsplit(origin)
     if parsed.scheme != "http" or parsed.hostname != "127.0.0.1" or parsed.path:
         raise ValueError("Demo requires a loopback HTTP origin")
@@ -842,7 +966,8 @@ def create_app(
         auth(request, sid, True)
         if not body.text.strip():
             raise HTTPException(422, "消息不能为空")
-        return engine.submit(sid, body.request_key, "message", {"text": body.text})
+        return engine.submit(sid, body.request_key, "message",
+                             {"text": body.text, "read_only": body.read_only})
 
     @app.post("/api/sessions/{sid}/resume", status_code=202)
     def resume(request: Request, sid: str, body: ActionBody):

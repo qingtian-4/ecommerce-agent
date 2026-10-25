@@ -117,20 +117,36 @@ def main():
     parser.add_argument("--init", action="store_true", help="创建不存在的新合成 Fixture")
     parser.add_argument("--deepseek", action="store_true", help="显式付费模式，¥3/24 HTTP硬上限")
     parser.add_argument("--env-file", type=Path)
+    parser.add_argument("--shared-budget-dir", type=Path,
+                        help="M7.1 only: existing 3 CNY/24 ledger; add stricter 2 CNY/18 window")
     args = parser.parse_args()
     if not 1024 <= args.port <= 65535:
         parser.error("port must be between 1024 and 65535")
     if args.init:
         init_formal_fixture(args.state_dir)
+    if args.shared_budget_dir and not args.deepseek:
+        parser.error("--shared-budget-dir requires explicit --deepseek")
     factory, secret_values = offline_factory, ()
     if args.deepseek:
         settings = Settings(_env_file=args.env_file)
         secret_values = (settings.llm_api_key,)
+        shared = None
+        if args.shared_budget_dir:
+            from local_return_poc import EPISODE
+
+            from acs.episode_budget import EpisodeLedger
+
+            path = args.shared_budget_dir / "fees.jsonl"
+            if not path.is_file():
+                parser.error("Shared ledger must already exist; no replacement is allowed")
+            shared = EpisodeLedger(path, cap_cny=3, max_requests=24)
+            shared.remaining(EPISODE)  # Existing deadline/stops must still permit execution.
+            shared.restrict_window("m71-20261025", added_cny=2, added_requests=18)
 
         @contextmanager
         def factory():
             with paid_model(args.state_dir, settings, max_requests=24,
-                            answer_streaming=True) as (model, ledger):
+                            answer_streaming=True, ledger=shared) as (model, ledger):
                 yield model
 
     app = create_app(
@@ -138,6 +154,8 @@ def main():
         secret_values=secret_values,
         runtime_mode="deepseek" if args.deepseek else "fixed_script",
         answer_streaming=args.deepseek,
+        budget_notice="本阶段另受新增2元/18次限制，且共享原账本及截止时间。"
+        if args.shared_budget_dir else None,
     )
     print(
         f"V3 synthetic Demo: http://127.0.0.1:{args.port} "

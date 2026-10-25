@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import sqlite3
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -362,11 +362,17 @@ class LocalReturnGateway:
         )
 
     def state(self, sid, uid):
+        with closing(self.store._connect()) as conn:
+            self.store._require_owner(conn, sid, uid)
+            preview_count = conn.execute(
+                "SELECT COUNT(*) FROM return_previews WHERE session_id=?", (sid,)
+            ).fetchone()[0]
         return model_view(
             {
                 "task": self.store.get_return_task(sid, uid),
                 "preview": self.service.latest_preview(sid, uid),
                 "submission_enabled": False,
+                "preview_record_count": preview_count,
                 **(
                     {"application_confirmation_enabled": True}
                     if self.application_confirmation_enabled

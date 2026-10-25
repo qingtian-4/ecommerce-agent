@@ -63,7 +63,8 @@ class LocalReturnPoc:
     prompt = PROMPT
     preview_description = "核查当前草稿、政策与数量并生成隔离预览；没有提交、审核或退款入口。"
 
-    def __init__(self, root, user_id, *, model, registry=None, fault=None, stream_callback=None):
+    def __init__(self, root, user_id, *, model, registry=None, fault=None, stream_callback=None,
+                 read_only=False):
         self.settings = fixture_settings(root, kind=self.fixture_kind)
         self.root = root.resolve()
         self.user_id, self.model = user_id, model
@@ -72,6 +73,7 @@ class LocalReturnPoc:
         self.path = self.root / "graph.sqlite"
         self.run_lock = Lock()
         self.stream_callback = stream_callback
+        self.read_only = read_only  # Fresh application restriction, never checkpoint authority.
 
     def __enter__(self):
         self.stack = ExitStack()
@@ -156,7 +158,7 @@ class LocalReturnPoc:
                                 for c in message.tool_calls
                             ],
                             message.response_metadata.get("finish_reason"),
-                            known_tools=TOOLS,
+                            known_tools={n for n in TOOLS if not self.read_only or n not in WRITES},
                             used_ids=used,
                             invalid_calls=message.invalid_tool_calls,
                         )
@@ -166,8 +168,11 @@ class LocalReturnPoc:
                 self.model,
                 tools=[
                     self._tool(n, specs[n]["description"], schema) for n, schema in TOOLS.items()
+                    if not self.read_only or n not in WRITES
                 ],
-                system_prompt=self.prompt,
+                system_prompt=self.prompt + (
+                    "\n本轮应用仅授权只读咨询；不能修改草稿、取消任务或生成新预览。"
+                    if self.read_only else ""),
                 checkpointer=SqliteSaver(self.conn),
                 state_schema=LocalState,
                 context_schema=TurnContext,
@@ -211,6 +216,8 @@ class LocalReturnPoc:
             description = self.preview_description
 
         def execute(runtime: ToolRuntime, **arguments):
+            if self.read_only and name in WRITES:
+                raise PermissionError("Application restricted this Turn to read-only tools")
             context = runtime.context  # Supplied anew by the application on EVERY invocation.
             if runtime.state["turn_id"] != context.turn_id:
                 raise ReconciliationError("Graph Turn does not match current authority")
@@ -325,6 +332,14 @@ class LocalReturnPoc:
         if self.stream_callback is not None:
             config["callbacks"] = [self.stream_callback]
         state = self.graph.get_state(config)
+        if self.read_only and state.next:
+            delivered = {m.tool_call_id for m in state.values.get("messages", [])
+                         if isinstance(m, ToolMessage)}
+            if any(c["name"] in WRITES and c["id"] not in delivered
+                   for m in state.values.get("messages", []) if isinstance(m, AIMessage)
+                   for c in m.tool_calls):
+                raise PermissionError(
+                    "Read-only recovery cannot replay a pending write; reconcile first")
         if binding["turn_id"]:
             with self.store.transaction() as conn:
                 previous = conn.execute(

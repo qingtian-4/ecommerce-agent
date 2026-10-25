@@ -1,0 +1,23 @@
+..........................F                                              [100%]
+=================================== FAILURES ===================================
+______ test_business_field_scope_ends_before_another_valid_order_section _______
+
+    def test_business_field_scope_ends_before_another_valid_order_section():
+        e=evidence()
+        e.known_orders.append('O10027')
+        raw='当前退货草稿\n订单号：O10024\n数量：1\n\n其他订单信息\n订单号：O10027\n数量：1'
+>       assert review_answer(raw,e).text==raw
+E       AssertionError: assert '当前退货草稿\n订单号：...：O10024\n数量：1' == '当前退货草稿\n订单号：...：O10027\n数量：1'
+E         
+E           当前退货草稿
+E           订单号：O10024
+E           数量：1
+E           
+E           其他订单信息
+E         - 订单号：O10027...
+E         
+E         ...Full output truncated (4 lines hidden), use '-vv' to show
+
+tests/test_answer_grounding.py:138: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_answer_grounding.py::test_business_field_scope_ends_before_another_valid_order_section

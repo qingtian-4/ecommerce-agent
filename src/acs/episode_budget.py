@@ -78,6 +78,30 @@ class EpisodeLedger:
     def _state(self, rows, episode):
         return next(r for r in rows if r["type"] == "episode" and r["episode"] == episode)
 
+    def restrict_window(self, name, *, added_cny, added_requests):
+        """A stricter persisted allowance in THIS journal; never a fresh ledger/deadline."""
+        amount = Decimal(str(added_cny))
+        if (not name or not amount.is_finite() or amount <= 0
+                or type(added_requests) is not int or added_requests <= 0):
+            raise ValueError("Positive incremental limits and a stable name are required")
+        with self.journal.transaction() as (rows, append):
+            previous = next((r for r in rows if r["type"] == "restriction"
+                             and r["name"] == name), None)
+            if previous:
+                if (previous["added_cny"], previous["added_requests"]) != (
+                        str(amount), added_requests):
+                    raise ValueError("Cannot reset an existing allowance")
+                return previous
+            attempts = [r for r in rows if r["type"] == "reserved"]
+            total = sum((Decimal(r["reserved_cny"]) for r in attempts), Decimal(0))
+            row = {"type": "restriction", "name": name, "added_cny": str(amount),
+                   "added_requests": added_requests, "baseline_requests": len(attempts),
+                   "baseline_reserved_cny": str(total),
+                   "request_ceiling": min(self.max_requests, len(attempts) + added_requests),
+                   "reserved_ceiling_cny": str(min(self.cap_cny, total + amount))}
+            append(row)
+            return row
+
     def _check(self, rows, append, episode):
         stopped = [r for r in rows if r["type"] == "stop" and r["episode"] == episode]
         if stopped:
@@ -121,6 +145,11 @@ class EpisodeLedger:
             total = sum((Decimal(r["reserved_cny"]) for r in attempts), Decimal(0))
             if total + cost > self.cap_cny:
                 self._stop(append, episode, "global_cost_limit")
+            for restriction in (r for r in rows if r["type"] == "restriction"):
+                if len(attempts) >= restriction["request_ceiling"]:
+                    self._stop(append, episode, "phase_request_limit")
+                if total + cost > Decimal(restriction["reserved_ceiling_cny"]):
+                    self._stop(append, episode, "phase_cost_limit")
             row = {"type": "reserved", "episode": episode, "role": role,
                    "request_id": uuid4().hex, "model": payload["model"], "time": self.clock(),
                    "input_token_bound": bound, "output_token_bound": output,

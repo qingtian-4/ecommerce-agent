@@ -83,9 +83,9 @@ def verify_price(root, settings):
 
 
 @contextmanager
-def paid_model(root, settings, *, max_requests=32, answer_streaming=False):
+def paid_model(root, settings, *, max_requests=32, answer_streaming=False, ledger=None):
     verify_price(root, settings)
-    ledger = EpisodeLedger(root / "fees.jsonl", cap_cny=3, max_requests=max_requests)
+    ledger = ledger or EpisodeLedger(root / "fees.jsonl", cap_cny=3, max_requests=max_requests)
     ledger.begin(
         EPISODE,
         LIMITS
