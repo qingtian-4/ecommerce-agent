@@ -13,13 +13,17 @@ uv run python scripts/prepare_m81_review.py \
 原材料在本地私有证据中，公开仓库不含完整 Prompt、回答或映射。输出目录禁止覆盖。
 公开 `review_package_summary.json` 包含来源与样本哈希；审查包正文仅在 0700 私有目录中。
 
+正式待审包为 `results/m8_1_human_review_20261025_run2`。首个候选包保留，但因 A/B
+曾受公开 Seed 控制，不应交付独立审查；新包采用系统熵并重新分配匿名 ID。
+
 ## 组织与盲法
 
 1. 操作员保管 operator-key 与 operator-pair-key，不担任独立评价者。
 2. 第一阶段只给审查员 reviewer-items.json。隐藏任务 ID、臂名、raw/display、自动评分、
    抽样层标签；使用全新随机 ID。原对话和独立 SQL/商品/政策证据保留。
 3. 单项审查结束并锁定后，再给 reviewer-pairs.json。A/B 顺序随机，不告知哪个是原文。
-   同一人的原文/展示审查不是两次独立运行，不能当成独立样本扩大分母。
+   A/B 使用 SystemRandom，独立于公开抽样 Seed。相同人的原文/展示不是两次独立运行，
+   不能当成独立样本扩大分母。
 4. 由操作员在标签锁定后解盲，结合 A/B 方向推导改善、误纠正；不向审查员展示 Runner
    或 Grounding 的判定。评价者应独立于 Runner/规则作者，记录人员与日期。
 5. 第二名审查员复核错误、分歧和无法判断项；没有第二人时明确记录“单人审查”，不声称

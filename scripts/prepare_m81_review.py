@@ -81,9 +81,10 @@ def prepare(source, out, *, count=48, seed=8101):
         queue.append(item)
         operator.append(dict(key, new_review_id=item["review_id"], stratum=stratum))
     pairs, pair_keys = [], []
+    orientation_rng = random.SystemRandom()
     for pair in changed_pairs.values():
         orientation = ["raw", "display"]
-        rng.shuffle(orientation)
+        orientation_rng.shuffle(orientation)
         item = by_id[pair["raw"]["review_id"]]
         pid = uuid4().hex
         pairs.append(
@@ -129,6 +130,7 @@ def prepare(source, out, *, count=48, seed=8101):
         independent_reviewer_available=False,
         labels_hidden=["arm", "task_id", "kind", "automatic_score", "stratum"],
         randomized_pair_orientation=True,
+        orientation_source="system_entropy_independent_of_public_sampling_seed",
         real_http_requests=0,
         source_hashes={
             name: hashlib.sha256((source / name).read_bytes()).hexdigest()

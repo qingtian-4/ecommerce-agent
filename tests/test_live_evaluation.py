@@ -564,8 +564,19 @@ def test_actual_process_exit_cannot_replay_or_reset_experiment(tmp_path):
     assert hashlib.sha256(path.read_bytes()).hexdigest() == before
 
 
-def test_blind_package_uses_existing_material_and_keeps_keys_separate(tmp_path):
+def test_blind_package_uses_existing_material_and_keeps_keys_separate(tmp_path, monkeypatch):
+    import random
+
     from prepare_m81_review import prepare
+
+    original_shuffle = random.Random.shuffle
+
+    def guard(rng, values):
+        if values == ["raw", "display"]:
+            assert isinstance(rng, random.SystemRandom), "Public sampling seed reveals A/B identity"
+        return original_shuffle(rng, values)
+
+    monkeypatch.setattr(random.Random, "shuffle", guard)
 
     source = tmp_path / "source"
     source.mkdir()
@@ -589,6 +600,9 @@ def test_blind_package_uses_existing_material_and_keeps_keys_separate(tmp_path):
                 dict(review_id=identity, conversation=[], answer="正确。", evidence={"requests": 0})
             )
             keys.append(dict(review_id=identity, task_id="D02", arm="old", step=index, kind=kind))
+    steps[0]["raw"] = "错误。"
+    steps[0]["raw_grade"]["status"] = "unfaithful"
+    materials[0]["answer"] = "错误。"
     for name, data in (
         ("blind-goal-review-v2.json", materials),
         ("blind-goal-review-key-v2.json", keys),
