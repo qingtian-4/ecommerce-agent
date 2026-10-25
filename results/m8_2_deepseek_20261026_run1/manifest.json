@@ -1,0 +1,109 @@
+{
+  "source_sha": "b5356662fdc63c9649d4cdf1c57c6a0e3254ece9",
+  "source_worktree_dirty": false,
+  "contract": {
+    "contract": "m8.1-open-answer-v3",
+    "status": "seen_development_data_new_scoring_contract",
+    "predecessor": "m8-v2",
+    "task_source": "data/eval/v3_multiturn_m8_v2",
+    "inherited_files": {
+      "tasks.json": "c7f764eee28bd2bea43477bae86785523df348e63f8a9a52e18b60e85f17e458",
+      "contracts.json": "88640194674622dfc8602468c11d7fb0f5124c62c4c118c94a132d626a5e0be6"
+    },
+    "novelty": "All tasks and 228 review items were already seen. No unseen-task or model-quality claim.",
+    "outcomes": [
+      "pass",
+      "fail",
+      "pending_review",
+      "execution_error"
+    ],
+    "new_rules": [
+      "Novel language needs independent review; non-match is not task failure",
+      "SQL/tool authority remains deterministic",
+      "Raw and display independent, no grounding self-grading",
+      "Ordinary failures allow partner; unknown writes/unsafe effects/unverified protocol or fees/global caps stop experiment",
+      "8 HTTP per episode, 40 globally, 5 CNY; 32768 byte request bound"
+    ],
+    "implementation": {
+      "src/acs/live_evaluation.py": "0ca7bc948f047b5e11763c30e6d61d434c9e2ba83e245a5defdd7d70df600c30",
+      "scripts/eval_live_readiness.py": "0c40ffc0136bc06ee87f8ac85477b90216795cb2d8e12c48ed56e5237958e88d",
+      "scripts/prepare_m81_review.py": "76d5d974611a9713685aa9eb175406f75f9cc099c3fa5c25a65bd9e5b12b7530",
+      "tests/test_live_evaluation.py": "3b1f447f770747360d9ef2901b59ea1db9d53b3ca69eec69ef64a505bc01d873",
+      "data/eval/v3_multiturn_m8_1_v3/sdk_open_answers.json": "7c7111e7c1fdf8f7f038d9f6ffe0e990446dba2e3a837fd06b7bcbadce1d5515"
+    }
+  },
+  "mode": "live",
+  "plan": {
+    "contract": "m8.1-open-answer-v3",
+    "task_ids": [
+      "D02",
+      "D04"
+    ],
+    "seen_development_data": true,
+    "order": [
+      "D02:old",
+      "D02:v3",
+      "D04:old",
+      "D04:v3"
+    ],
+    "episodes": 4,
+    "episode_requests": 8,
+    "global_requests": 40,
+    "planned_agent_request_max": 32,
+    "cap_cny": 5,
+    "body_bytes": 32768,
+    "output_tokens": 1024,
+    "input_token_bound": 69632,
+    "reservation_per_request_cny": "0.147456",
+    "planned_32_request_reservation_cny": "4.718592",
+    "global_40_request_reservation_cny": "5.898240",
+    "first_limit_wins": true,
+    "limits": {
+      "requests": 8,
+      "tools": 24,
+      "steps": 64,
+      "model_timeout_s": 60,
+      "episode_timeout_s": 600
+    },
+    "price_assumption": {
+      "model": "deepseek-flash",
+      "checked": "2026-10-23",
+      "source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+      "peak_input_cny_per_million": 2,
+      "peak_cache_cny_per_million": 0.04,
+      "peak_output_cny_per_million": 8,
+      "offpeak_input_cny_per_million": 1,
+      "offpeak_cache_cny_per_million": 0.02,
+      "offpeak_output_cny_per_million": 4,
+      "usd_source": "https://api-docs.deepseek.com/quick_start/pricing/",
+      "peak_input_usd_per_million": 0.3,
+      "peak_cache_usd_per_million": 0.006,
+      "peak_output_usd_per_million": 1.2
+    },
+    "fresh_price_verification_required": true,
+    "paid_authorization": false,
+    "automatic_retries": 0
+  },
+  "authorization": {
+    "authorized": true,
+    "permit_file_private": true,
+    "run_id": "m82-deepseek-20261026-run1-a9943d95",
+    "source_sha": "b5356662fdc63c9649d4cdf1c57c6a0e3254ece9",
+    "task_ids": [
+      "D02",
+      "D04"
+    ],
+    "arms": [
+      "old",
+      "v3"
+    ],
+    "cap_cny": 5,
+    "max_requests": 40,
+    "prepared_started_at": "2026-10-25T16:10:57+00:00",
+    "expires_at": "2026-10-26T16:10:57+00:00",
+    "raw_instruction_and_private_paths_omitted": true
+  },
+  "status": "finished",
+  "logical_business_clock": "2026-10-25T04:00:00+00:00",
+  "public_redaction": "Only authorization display was minimized after execution; original manifest is retained privately. Runtime, task and score contracts unchanged."
+}
