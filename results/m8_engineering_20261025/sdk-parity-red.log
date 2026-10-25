@@ -1,0 +1,87 @@
+...FFFF.......                                                           [100%]
+=================================== FAILURES ===================================
+______ test_development_actual_runtimes_share_execution_and_not_gold[D01] ______
+
+tmp_path = PosixPath('/dev/shm/m8-parity4/test_development_actual_runtim0')
+tid = 'D01'
+
+    @pytest.mark.parametrize("tid", ["D01", "D03", "D07", "D10"])
+    def test_development_actual_runtimes_share_execution_and_not_gold(tmp_path, tid):
+        tasks, contracts, _ = load_suite(SUITE)
+        task = next(t for t in tasks if t.task_id == tid)
+        old = run_task(task, contracts[tid], tmp_path / "old", "old")
+        new = run_task(task, contracts[tid], tmp_path / "v3", "v3")
+        assert old["error"] is None and new["error"] is None
+        assert old["sql_correct"] and new["sql_correct"]
+        assert old["tool_valid"] and new["tool_valid"]
+        pair = summarise([old, new])["pairs"][0]
+        assert pair["same_initial_db"] and pair["same_tool_calls"]
+>       assert pair["same_normalized_model_inputs"]
+E       assert False
+
+tests/test_v3_multiturn_evaluation.py:87: AssertionError
+______ test_development_actual_runtimes_share_execution_and_not_gold[D03] ______
+
+tmp_path = PosixPath('/dev/shm/m8-parity4/test_development_actual_runtim1')
+tid = 'D03'
+
+    @pytest.mark.parametrize("tid", ["D01", "D03", "D07", "D10"])
+    def test_development_actual_runtimes_share_execution_and_not_gold(tmp_path, tid):
+        tasks, contracts, _ = load_suite(SUITE)
+        task = next(t for t in tasks if t.task_id == tid)
+        old = run_task(task, contracts[tid], tmp_path / "old", "old")
+        new = run_task(task, contracts[tid], tmp_path / "v3", "v3")
+        assert old["error"] is None and new["error"] is None
+        assert old["sql_correct"] and new["sql_correct"]
+        assert old["tool_valid"] and new["tool_valid"]
+        pair = summarise([old, new])["pairs"][0]
+        assert pair["same_initial_db"] and pair["same_tool_calls"]
+>       assert pair["same_normalized_model_inputs"]
+E       assert False
+
+tests/test_v3_multiturn_evaluation.py:87: AssertionError
+______ test_development_actual_runtimes_share_execution_and_not_gold[D07] ______
+
+tmp_path = PosixPath('/dev/shm/m8-parity4/test_development_actual_runtim2')
+tid = 'D07'
+
+    @pytest.mark.parametrize("tid", ["D01", "D03", "D07", "D10"])
+    def test_development_actual_runtimes_share_execution_and_not_gold(tmp_path, tid):
+        tasks, contracts, _ = load_suite(SUITE)
+        task = next(t for t in tasks if t.task_id == tid)
+        old = run_task(task, contracts[tid], tmp_path / "old", "old")
+        new = run_task(task, contracts[tid], tmp_path / "v3", "v3")
+        assert old["error"] is None and new["error"] is None
+        assert old["sql_correct"] and new["sql_correct"]
+        assert old["tool_valid"] and new["tool_valid"]
+        pair = summarise([old, new])["pairs"][0]
+        assert pair["same_initial_db"] and pair["same_tool_calls"]
+>       assert pair["same_normalized_model_inputs"]
+E       assert False
+
+tests/test_v3_multiturn_evaluation.py:87: AssertionError
+______ test_development_actual_runtimes_share_execution_and_not_gold[D10] ______
+
+tmp_path = PosixPath('/dev/shm/m8-parity4/test_development_actual_runtim3')
+tid = 'D10'
+
+    @pytest.mark.parametrize("tid", ["D01", "D03", "D07", "D10"])
+    def test_development_actual_runtimes_share_execution_and_not_gold(tmp_path, tid):
+        tasks, contracts, _ = load_suite(SUITE)
+        task = next(t for t in tasks if t.task_id == tid)
+        old = run_task(task, contracts[tid], tmp_path / "old", "old")
+        new = run_task(task, contracts[tid], tmp_path / "v3", "v3")
+        assert old["error"] is None and new["error"] is None
+        assert old["sql_correct"] and new["sql_correct"]
+        assert old["tool_valid"] and new["tool_valid"]
+        pair = summarise([old, new])["pairs"][0]
+        assert pair["same_initial_db"] and pair["same_tool_calls"]
+>       assert pair["same_normalized_model_inputs"]
+E       assert False
+
+tests/test_v3_multiturn_evaluation.py:87: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v3_multiturn_evaluation.py::test_development_actual_runtimes_share_execution_and_not_gold[D01]
+FAILED tests/test_v3_multiturn_evaluation.py::test_development_actual_runtimes_share_execution_and_not_gold[D03]
+FAILED tests/test_v3_multiturn_evaluation.py::test_development_actual_runtimes_share_execution_and_not_gold[D07]
+FAILED tests/test_v3_multiturn_evaluation.py::test_development_actual_runtimes_share_execution_and_not_gold[D10]
