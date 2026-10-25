@@ -338,6 +338,8 @@ def execute(args):
                 "raw_sha256": hashlib.sha256(step["raw"].encode()).hexdigest(),
                 "display_sha256": hashlib.sha256(step["display"].encode()).hexdigest(),
                 "raw_grade": step["raw_grade"],
+                "raw_goal_covered": step["raw_goal_covered"],
+                "display_goal_covered": step["display_goal_covered"],
                 "display_grade": step["display_grade"],
                 "findings": step["findings"],
             }
@@ -407,7 +409,7 @@ def execute(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--suite", type=Path, default=ROOT / "data/eval/v3_multiturn_m8_v1")
+    parser.add_argument("--suite", type=Path, default=ROOT / "data/eval/v3_multiturn_m8_v2")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--ids", nargs="+")
     parser.add_argument("--mode", choices=["offline", "pilot-plan", "live"], default="offline")

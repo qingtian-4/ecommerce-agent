@@ -65,6 +65,7 @@ class Step(BaseModel):
     required_tools: list[str] = Field(default_factory=list)
     allowed_errors: list[str] = Field(default_factory=list)
     answers: list[AnswerReference] = Field(default_factory=list)
+    answer_requires: list[str] = Field(default_factory=list)
 
 
 class Task(BaseModel):
@@ -105,7 +106,7 @@ def business_clock():
             return NOW.date()
 
     with ExitStack() as stack:
-        for module in ("sessions", "returns", "local_confirmation"):
+        for module in ("sessions", "returns", "local_confirmation", "answer_grounding"):
             stack.enter_context(patch("acs." + module + ".datetime", FrozenDatetime))
         for module in ("db_seed", "local_return_tools"):
             stack.enter_context(patch("acs." + module + ".date", FrozenDate))
@@ -127,8 +128,8 @@ def build_fixture(root, task):
                         oid,
                         owner,
                         "delivered",
-                        600,
-                        600,
+                        6 * (200 + i),
+                        6 * (200 + i),
                         "2026-10-20T00:00:00",
                         "2026-10-21T00:00:00",
                         "2026-10-23T00:00:00",
@@ -656,6 +657,16 @@ def run_task(task, contracts, root, arm, *, model=None, ledger=None, limits=LIMI
                         "sql_correct": bool(sql_ok),
                         "tool_valid": tool_ok,
                         "raw": raw,
+                        "raw_goal_covered": raw is None
+                        or all(
+                            any(part in raw for part in atom.split("|"))
+                            for atom in step.answer_requires
+                        ),
+                        "display_goal_covered": display is None
+                        or all(
+                            any(part in display for part in atom.split("|"))
+                            for atom in step.answer_requires
+                        ),
                         "display": display,
                         "findings": finding,
                         "raw_grade": assess_answer(raw, step.answers, state)
@@ -686,7 +697,9 @@ def run_task(task, contracts, root, arm, *, model=None, ledger=None, limits=LIMI
         sql_ok = len(records) == len(task.steps) and all(r["sql_correct"] for r in records)
         tools_ok = len(records) == len(task.steps) and all(r["tool_valid"] for r in records)
         answers = [r for r in records if r["raw"] is not None]
-        faithful = bool(answers) and all(r["raw_grade"]["status"] == "faithful" for r in answers)
+        faithful = bool(answers) and all(
+            r["raw_grade"]["status"] == "faithful" and r["raw_goal_covered"] for r in answers
+        )
         result = {
             "task_id": task.task_id,
             "split": task.split,
@@ -749,6 +762,10 @@ def summarise(rows, include_splits=True):
                 "raw_faithful": sum(s["raw_grade"]["status"] == "faithful" for s in turns),
                 "display_faithful": sum(s["display_grade"]["status"] == "faithful" for s in turns),
                 "raw_errors": len(raw_bad),
+                "raw_goal_covered_turns": sum(s.get("raw_goal_covered", False) for s in turns),
+                "display_goal_covered_turns": sum(
+                    s.get("display_goal_covered", False) for s in turns
+                ),
                 "corrected_errors": len(corrected),
                 "missed_errors": len(missed),
                 "changed_correct_answers": len(good_changed),

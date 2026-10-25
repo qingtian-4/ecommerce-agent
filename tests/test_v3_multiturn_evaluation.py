@@ -23,7 +23,7 @@ from acs.multiturn_evaluation import (
     summarise,
 )
 
-SUITE = Path(__file__).resolve().parents[1] / "data/eval/v3_multiturn_m8_v1"
+SUITE = Path(__file__).resolve().parents[1] / "data/eval/v3_multiturn_m8_v2"
 
 
 @pytest.fixture(autouse=True)
@@ -449,3 +449,28 @@ def test_pilot_plan_never_creates_ledger_or_reads_credentials(tmp_path):
     assert plan["episodes"] == 12 and plan["total_request_ceiling"] == 48
     assert plan["paid_authorization_present"] is False
     assert not args.out.exists()
+
+
+def test_fixture_order_totals_equal_actual_line_items_and_clock_is_shared(tmp_path):
+    from acs.answer_grounding import Evidence
+    from acs.multiturn_evaluation import NOW
+
+    task = load_suite(SUITE)[0][0]
+    with business_clock():
+        build_fixture(tmp_path / "fixture", task)
+        assert Evidence().checked_at == NOW.isoformat()
+    with sqlite3.connect(tmp_path / "fixture/business.sqlite") as c:
+        mismatches = c.execute(
+            "SELECT o.order_id FROM orders o JOIN order_items i USING(order_id) "
+            "GROUP BY o.order_id HAVING ABS(o.total_amount-SUM(i.quantity*i.purchase_price))>.01"
+        ).fetchall()
+        assert mismatches == []
+
+
+def test_faithful_but_incomplete_answer_does_not_complete_the_goal(tmp_path):
+    tasks, contracts, _ = load_suite(SUITE)
+    task = next(t for t in tasks if t.task_id == "D02")
+    result = run_task(task, contracts["D02"], tmp_path / "fixture", "v3")
+    assert result["sql_correct"] and result["tool_valid"]
+    assert all(s["raw_grade"]["status"] == "faithful" for s in result["steps"])
+    assert result["task_success"] is False

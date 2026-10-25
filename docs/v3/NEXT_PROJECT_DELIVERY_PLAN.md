@@ -27,3 +27,8 @@ uv run python scripts/eval_v3_multiturn.py --mode live \
 可交付：本机合成Demo、源代码、事务/恢复合同、真实模型历史冒烟及其缺陷、可复现评测脚本。README/简历应明确“自定义Loop与LangGraph对照”“模拟待审核申请”“有限展示核验”；不要写“V3显著提高成功率”“消除幻觉”“生产退货办理”。
 
 下一步先完成独立语义审查及新授权Pilot，量化误纠正与总链路成本，再决定是否值得扩大Evaluation。暂不增加新Memory、Router、前端重写或业务功能。
+
+
+v1已见数据发现的Fixture与目标覆盖问题在v2单独修正；保留两版，不用新结果覆盖旧分数。后续Pilot只能称开发期对照，不能称独立未见测试。当前必要答复词项检查仍保守，真实新语言一律保持待审。
+
+2026-10-25只读核对[官方CNY价目](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)，deepseek-flash对应DeepSeek-V4.1-Flash-1017，峰值每百万输入2元/输出8元，与本地预算保守价一致。执行时仍需重新保存并核对CNY/USD页面指纹；本次浏览公开文档不包含任何付费模型请求。

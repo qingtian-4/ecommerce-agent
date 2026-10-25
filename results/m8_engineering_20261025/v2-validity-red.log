@@ -1,0 +1,36 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____ test_fixture_order_totals_equal_actual_line_items_and_clock_is_shared _____
+
+tmp_path = PosixPath('/dev/shm/m8-v2-red2/test_fixture_order_totals_equa0')
+
+    def test_fixture_order_totals_equal_actual_line_items_and_clock_is_shared(tmp_path):
+        from acs.answer_grounding import Evidence
+        from acs.multiturn_evaluation import NOW
+        task=load_suite(SUITE)[0][0]
+        with business_clock():
+            build_fixture(tmp_path/'fixture',task)
+>           assert Evidence().checked_at == NOW.isoformat()
+E           AssertionError: assert '2026-10-25T0....121317+00:00' == '2026-10-25T04:00:00+00:00'
+E             
+E             - 2026-10-25T04:00:00+00:00
+E             + 2026-10-25T08:46:18.121317+00:00
+
+tests/test_v3_multiturn_evaluation.py:461: AssertionError
+________ test_faithful_but_incomplete_answer_does_not_complete_the_goal ________
+
+tmp_path = PosixPath('/dev/shm/m8-v2-red2/test_faithful_but_incomplete_a0')
+
+    def test_faithful_but_incomplete_answer_does_not_complete_the_goal(tmp_path):
+        tasks,contracts,_=load_suite(SUITE)
+        task=next(t for t in tasks if t.task_id=='D02')
+        result=run_task(task,contracts['D02'],tmp_path/'fixture','v3')
+        assert result['sql_correct'] and result['tool_valid']
+        assert all(s['raw_grade']['status']=='faithful' for s in result['steps'])
+>       assert result['task_success'] is False
+E       assert True is False
+
+tests/test_v3_multiturn_evaluation.py:474: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v3_multiturn_evaluation.py::test_fixture_order_totals_equal_actual_line_items_and_clock_is_shared
+FAILED tests/test_v3_multiturn_evaluation.py::test_faithful_but_incomplete_answer_does_not_complete_the_goal
