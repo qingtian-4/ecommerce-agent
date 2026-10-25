@@ -157,3 +157,48 @@ def test_existing_valid_preview_cannot_be_described_as_invalid():
     assert "旧预览已失效" not in result.text and "仍有效" in result.text
     assert "65W" in result.text
     assert any(f.predicate == "historical_preview_still_valid" for f in result.findings)
+
+
+@pytest.mark.parametrize("raw,predicate", [
+    ("已提交退货申请，您还有其他问题吗？", "submission_not_verified"),
+    ("退款已完成，您还需要帮助吗？", "unsupported_capability"),
+    ("用户说需要核对，已提交退货申请，您还有问题吗？", "submission_not_verified"),
+    ("“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？", "submission_not_verified"),
+    ("没有生成预览，但已提交退货申请，您还有问题吗？", "submission_not_verified"),
+])
+def test_assertion_is_not_qualified_by_an_unrelated_clause(raw, predicate):
+    result = review_answer(raw, evidence())
+    assert result.text != raw
+    assert any(f.predicate == predicate for f in result.findings)
+    assert "您" in result.text
+
+
+@pytest.mark.parametrize("raw", [
+    "尚未提交退货申请，您还有其他问题吗？",
+    "如果已提交退货申请，请勿重复提交。",
+    "假设退款已完成，您会怎样查询？",
+    "已提交退货申请吗，请先核对？",
+    "退款已完成是否真实，仍需核实。",
+    "用户说已提交退货申请，您能核对吗？",
+    "“已提交退货申请，您还有其他问题吗？”只是引用。",
+    "用户说“退款已完成”，这不构成真实退款凭证。",
+    "没有旧预览。\n如果旧预览已失效，请刷新；我没有提交退货申请。",
+])
+def test_qualifiers_remain_local_and_quotes_stay_protected(raw):
+    assert review_answer(raw, evidence()).text == raw
+
+
+def test_quoted_paragraph_does_not_shield_the_next_assertion():
+    raw = "用户说“已提交退货申请”。\n退款已完成，您还需要帮助吗？"
+    result = review_answer(raw, evidence())
+    assert "用户说“已提交退货申请”" in result.text
+    assert any(f.predicate == "unsupported_capability" for f in result.findings)
+
+
+
+def test_multiline_quotation_preserves_both_claims_but_not_later_assertion():
+    quote = "“已提交退货申请，\n退款已完成”只是引用。"
+    raw = quote + "\n已提交退货申请，您还有其他问题吗？"
+    result = review_answer(raw, evidence())
+    assert quote in result.text
+    assert [f.predicate for f in result.findings] == ["submission_not_verified"]

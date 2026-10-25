@@ -1,0 +1,110 @@
+..............................FFFFF.........F                            [100%]
+=================================== FAILURES ===================================
+_ test_assertion_is_not_qualified_by_an_unrelated_clause[\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\uff0c\u60a8\u8fd8\u6709\u5176\u4ed6\u95ee\u9898\u5417\uff1f-submission_not_verified] _
+
+raw = '已提交退货申请，您还有其他问题吗？', predicate = 'submission_not_verified'
+
+    @pytest.mark.parametrize("raw,predicate", [
+        ("已提交退货申请，您还有其他问题吗？", "submission_not_verified"),
+        ("退款已完成，您还需要帮助吗？", "unsupported_capability"),
+        ("用户说需要核对，已提交退货申请，您还有问题吗？", "submission_not_verified"),
+        ("“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？", "submission_not_verified"),
+        ("没有生成预览，但已提交退货申请，您还有问题吗？", "submission_not_verified"),
+    ])
+    def test_assertion_is_not_qualified_by_an_unrelated_clause(raw, predicate):
+        result = review_answer(raw, evidence())
+>       assert result.text != raw
+E       AssertionError: assert '已提交退货申请，您还有其他问题吗？' != '已提交退货申请，您还有其他问题吗？'
+E        +  where '已提交退货申请，您还有其他问题吗？' = Review(text='已提交退货申请，您还有其他问题吗？', findings=[], coverage='scoped_rules_only').text
+
+tests/test_answer_grounding.py:171: AssertionError
+_ test_assertion_is_not_qualified_by_an_unrelated_clause[\u9000\u6b3e\u5df2\u5b8c\u6210\uff0c\u60a8\u8fd8\u9700\u8981\u5e2e\u52a9\u5417\uff1f-unsupported_capability] _
+
+raw = '退款已完成，您还需要帮助吗？', predicate = 'unsupported_capability'
+
+    @pytest.mark.parametrize("raw,predicate", [
+        ("已提交退货申请，您还有其他问题吗？", "submission_not_verified"),
+        ("退款已完成，您还需要帮助吗？", "unsupported_capability"),
+        ("用户说需要核对，已提交退货申请，您还有问题吗？", "submission_not_verified"),
+        ("“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？", "submission_not_verified"),
+        ("没有生成预览，但已提交退货申请，您还有问题吗？", "submission_not_verified"),
+    ])
+    def test_assertion_is_not_qualified_by_an_unrelated_clause(raw, predicate):
+        result = review_answer(raw, evidence())
+>       assert result.text != raw
+E       AssertionError: assert '退款已完成，您还需要帮助吗？' != '退款已完成，您还需要帮助吗？'
+E        +  where '退款已完成，您还需要帮助吗？' = Review(text='退款已完成，您还需要帮助吗？', findings=[], coverage='scoped_rules_only').text
+
+tests/test_answer_grounding.py:171: AssertionError
+_ test_assertion_is_not_qualified_by_an_unrelated_clause[\u7528\u6237\u8bf4\u9700\u8981\u6838\u5bf9\uff0c\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\uff0c\u60a8\u8fd8\u6709\u95ee\u9898\u5417\uff1f-submission_not_verified] _
+
+raw = '用户说需要核对，已提交退货申请，您还有问题吗？', predicate = 'submission_not_verified'
+
+    @pytest.mark.parametrize("raw,predicate", [
+        ("已提交退货申请，您还有其他问题吗？", "submission_not_verified"),
+        ("退款已完成，您还需要帮助吗？", "unsupported_capability"),
+        ("用户说需要核对，已提交退货申请，您还有问题吗？", "submission_not_verified"),
+        ("“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？", "submission_not_verified"),
+        ("没有生成预览，但已提交退货申请，您还有问题吗？", "submission_not_verified"),
+    ])
+    def test_assertion_is_not_qualified_by_an_unrelated_clause(raw, predicate):
+        result = review_answer(raw, evidence())
+>       assert result.text != raw
+E       AssertionError: assert '用户说需要核对，已提交退货申请，您还有问题吗？' != '用户说需要核对，已提交退货申请，您还有问题吗？'
+E        +  where '用户说需要核对，已提交退货申请，您还有问题吗？' = Review(text='用户说需要核对，已提交退货申请，您还有问题吗？', findings=[], coverage='scoped_rules_only').text
+
+tests/test_answer_grounding.py:171: AssertionError
+_ test_assertion_is_not_qualified_by_an_unrelated_clause[\u201c\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\u201d\u53ea\u662f\u5f15\u7528\uff0c\u4f46\u662f\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\uff0c\u60a8\u8fd8\u9700\u8981\u5e2e\u52a9\u5417\uff1f-submission_not_verified] _
+
+raw = '“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？', predicate = 'submission_not_verified'
+
+    @pytest.mark.parametrize("raw,predicate", [
+        ("已提交退货申请，您还有其他问题吗？", "submission_not_verified"),
+        ("退款已完成，您还需要帮助吗？", "unsupported_capability"),
+        ("用户说需要核对，已提交退货申请，您还有问题吗？", "submission_not_verified"),
+        ("“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？", "submission_not_verified"),
+        ("没有生成预览，但已提交退货申请，您还有问题吗？", "submission_not_verified"),
+    ])
+    def test_assertion_is_not_qualified_by_an_unrelated_clause(raw, predicate):
+        result = review_answer(raw, evidence())
+>       assert result.text != raw
+E       AssertionError: assert '“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？' != '“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？'
+E        +  where '“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？' = Review(text='“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？', findings=[], coverage='scoped_rules_only').text
+
+tests/test_answer_grounding.py:171: AssertionError
+_ test_assertion_is_not_qualified_by_an_unrelated_clause[\u6ca1\u6709\u751f\u6210\u9884\u89c8\uff0c\u4f46\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\uff0c\u60a8\u8fd8\u6709\u95ee\u9898\u5417\uff1f-submission_not_verified] _
+
+raw = '没有生成预览，但已提交退货申请，您还有问题吗？', predicate = 'submission_not_verified'
+
+    @pytest.mark.parametrize("raw,predicate", [
+        ("已提交退货申请，您还有其他问题吗？", "submission_not_verified"),
+        ("退款已完成，您还需要帮助吗？", "unsupported_capability"),
+        ("用户说需要核对，已提交退货申请，您还有问题吗？", "submission_not_verified"),
+        ("“已提交退货申请”只是引用，但是已提交退货申请，您还需要帮助吗？", "submission_not_verified"),
+        ("没有生成预览，但已提交退货申请，您还有问题吗？", "submission_not_verified"),
+    ])
+    def test_assertion_is_not_qualified_by_an_unrelated_clause(raw, predicate):
+        result = review_answer(raw, evidence())
+>       assert result.text != raw
+E       AssertionError: assert '没有生成预览，但已提交退货申请，您还有问题吗？' != '没有生成预览，但已提交退货申请，您还有问题吗？'
+E        +  where '没有生成预览，但已提交退货申请，您还有问题吗？' = Review(text='没有生成预览，但已提交退货申请，您还有问题吗？', findings=[], coverage='scoped_rules_only').text
+
+tests/test_answer_grounding.py:171: AssertionError
+___________ test_quoted_paragraph_does_not_shield_the_next_assertion ___________
+
+    def test_quoted_paragraph_does_not_shield_the_next_assertion():
+        raw = "用户说“已提交退货申请”。\n退款已完成，您还需要帮助吗？"
+        result = review_answer(raw, evidence())
+        assert "用户说“已提交退货申请”" in result.text
+>       assert any(f.predicate == "unsupported_capability" for f in result.findings)
+E       assert False
+E        +  where False = any(<generator object test_quoted_paragraph_does_not_shield_the_next_assertion.<locals>.<genexpr> at 0x77690102ac20>)
+
+tests/test_answer_grounding.py:195: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_answer_grounding.py::test_assertion_is_not_qualified_by_an_unrelated_clause[\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\uff0c\u60a8\u8fd8\u6709\u5176\u4ed6\u95ee\u9898\u5417\uff1f-submission_not_verified]
+FAILED tests/test_answer_grounding.py::test_assertion_is_not_qualified_by_an_unrelated_clause[\u9000\u6b3e\u5df2\u5b8c\u6210\uff0c\u60a8\u8fd8\u9700\u8981\u5e2e\u52a9\u5417\uff1f-unsupported_capability]
+FAILED tests/test_answer_grounding.py::test_assertion_is_not_qualified_by_an_unrelated_clause[\u7528\u6237\u8bf4\u9700\u8981\u6838\u5bf9\uff0c\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\uff0c\u60a8\u8fd8\u6709\u95ee\u9898\u5417\uff1f-submission_not_verified]
+FAILED tests/test_answer_grounding.py::test_assertion_is_not_qualified_by_an_unrelated_clause[\u201c\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\u201d\u53ea\u662f\u5f15\u7528\uff0c\u4f46\u662f\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\uff0c\u60a8\u8fd8\u9700\u8981\u5e2e\u52a9\u5417\uff1f-submission_not_verified]
+FAILED tests/test_answer_grounding.py::test_assertion_is_not_qualified_by_an_unrelated_clause[\u6ca1\u6709\u751f\u6210\u9884\u89c8\uff0c\u4f46\u5df2\u63d0\u4ea4\u9000\u8d27\u7533\u8bf7\uff0c\u60a8\u8fd8\u6709\u95ee\u9898\u5417\uff1f-submission_not_verified]
+FAILED tests/test_answer_grounding.py::test_quoted_paragraph_does_not_shield_the_next_assertion

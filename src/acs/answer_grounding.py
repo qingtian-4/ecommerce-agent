@@ -105,9 +105,10 @@ def collect_evidence(gateway, root, sid, uid, tid):
 def _qualified(text, start, end):
     """Negation, hypotheticals and reported speech do not assert an operation."""
     prefix = re.split(r"[，,]|但是|然而|不过", text[:start])[-1]
-    if re.search(r"用户(?:说|提到|问)|历史回答(?:说|声称)", text[:end]):
+    suffix = re.split(r"[，,]|但是|然而|不过", text[end:])[0]
+    if re.search(r"用户(?:说|提到|问)|历史回答(?:说|声称)", prefix + text[start:end]):
         return True
-    if re.search(r"[？?]|是否真实|是不是", text[end:]):
+    if re.search(r"[？?]|是否真实|是不是|吗\s*$", suffix):
         return True
     if re.search(
         r"如果|假设|若|是否|并非|并未|没有|尚未|不能|不要|未曾|不是|"
@@ -116,10 +117,27 @@ def _qualified(text, start, end):
     ):
         return True
     for left, right in [("“", "”"), ("「", "」"), ('"', '"'), ("`", "`")]:
-        for span in re.finditer(re.escape(left) + ".*?" + re.escape(right), text):
+        for span in re.finditer(re.escape(left) + ".*?" + re.escape(right), text, re.S):
             if span.start() <= start and end <= span.end():
                 return True
     return False
+
+
+def _units(answer):
+    """Sentence boundaries inside a quotation do not end its protection scope."""
+    pairs = {"“": "”", "「": "」", '"': '"', "`": "`"}
+    end_quote, start = None, 0
+    for index, char in enumerate(answer):
+        if end_quote:
+            if char == end_quote:
+                end_quote = None
+        elif char in pairs:
+            end_quote = pairs[char]
+        elif char in "。！？；\n":
+            yield answer[start:index + 1]
+            start = index + 1
+    if start < len(answer):
+        yield answer[start:]
 
 
 def review_answer(answer, evidence):
@@ -136,7 +154,7 @@ def review_answer(answer, evidence):
 
     output = []
     # Keep clauses, consultations, Markdown and tool/native messages intact.
-    for unit in re.findall(r"[^。！？；\n]+[。！？；\n]?|[。！？；\n]", answer):
+    for unit in _units(answer):
         older = [p for p in evidence.previews if p["preview_id"] != evidence.created_preview_id]
         if not older:
             unit = change(
