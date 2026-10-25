@@ -56,3 +56,24 @@ v1（源码634cc43）首次封存后完成55 Episode；随后独立审计发现�
 v2仅修正合成金额、共享Evidence时钟，增加明确候选ID/订单状态/数量等必要答复要素检查。其用户输入、模型固定决定及原SQL预期不变；Task Success额外要求目标要素，不再把“忠实但未回答问题”算成功。这是测量与Fixture修正，不是模型提升；必要词项只是保守覆盖检查，不是通用语义判断。
 
 新目录v3_multiturn_m8_v2保留10/20来源分组，但所有30题均已在v1见过，明确作为已见数据复验，不宣称新的独立留出。v1必须在634cc43复现，当前实现会拒绝v1旧源码指纹；当前默认Runner为v2。未来泛化评估仍需要独立新任务和人工语义审查。
+
+## 共同能力与增量矩阵
+
+| 能力 | 旧Loop对照臂 | V3 | 权威边界 |
+|---|---|---|---|
+| 商品/订单/物流/政策 | CustomerServiceAgent + 实验Gateway | 原生create_agent + 同一Gateway | ToolRegistry、同一BM25与业务DB |
+| 草稿补充、更正、取消 | 同一Turn/回执约束 | 同一Turn/回执约束 | SessionStore授权与revision |
+| 预览与失效 | 同一ReturnService | 同一ReturnService | SQLite、政策hash、有效期 |
+| 完成Turn历史 | SessionStore保存原生消息 | Checkpointer + SessionStore | 原始tool_call_id对应关系 |
+| 原生Interrupt应用确认 | 对照臂未接入，不计胜负 | 单列增量验收 | FormalConfirmation |
+| 模拟提交与幂等 | 不在共同能力胜负统计 | 单列5例 | 同一ReturnService事务与M6回执 |
+| COMMIT回执丢失恢复 | 本轮不比较 | 单列SQL恢复 | Graph仅诊断，镜像可能待对账 |
+
+原Loop内部context_max_chars调至1000000防止比候选更早截断；两侧同一事实投影，不以历史压缩制造优势。真实Pilot还有共同的实际HTTP正文20000字节上限。预算上下文一致不等于云端随机输出或随机ID的字节完全相同，原始请求留在私有证据。
+
+匿名审查补充导出：`uv run python scripts/export_m8_review.py --run results/m8_offline_v2_20261025_run1`（输出文件须不存在，防覆盖）。该只读后处理不改预测、评分器或原始实验。228项已导出，但未实施独立人工语义评审。
+
+
+工具有效性在此指执行/拒绝合同，不是模型工具选择正确率。D07/D09/T10/T11故意请求无授权取消，由同一业务层拒绝；不能因状态安全就说模型理解了取消意图。实际工具成功/拒绝数另存tool_summary.json。实验step按模型边界计数，不将Graph内部节点数与旧Loop的一步混成统一CPU工作量。
+
+最终审查输入为私有blind-goal-review-v2.json，使用随机UUID而非可推算的任务标签哈希；旧导出保留但不作最终审查包。原始数据与最终包已逐文件核验并持久归档到~/.local/state/ecommerce-agent/m8-20261025-5d7bbf9（0700），不依赖/tmp长期保留。
