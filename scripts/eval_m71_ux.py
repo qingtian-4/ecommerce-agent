@@ -169,18 +169,21 @@ def run(out, port, baseline):
                         return await(await fetch('/api/sessions/'+b.session_id)).json()}""")
 
                 def send(text, page=page, snapshot=snapshot):
-                    previous = len(snapshot()["jobs"])
+                    before = snapshot()
+                    previous = len(before["jobs"])
+                    count = sum(r["role"] == "user" for r in before["history"]) + 1
                     page.locator("#message").fill(text)
                     page.locator("#send").click()
                     page.wait_for_function(
-                        """async previous=>{const b=await(await fetch('/api/bootstrap')).json();
+                        """async expected=>{const b=await(await fetch('/api/bootstrap')).json();
                         const s=await(await fetch('/api/sessions/'+b.session_id)).json();
-                        return s.jobs.length>previous&&
-                        !s.jobs.some(j=>['queued','running'].includes(j.status))}""",
-                        arg=previous,
+                        return s.jobs.length>expected.jobs&&
+                        !s.jobs.some(j=>['queued','running'].includes(j.status))&&
+                        s.history.filter(r=>r.role==='user').length===expected.turns&&
+                        s.history.filter(r=>r.role==='assistant').length===expected.turns}""",
+                        arg={"jobs": previous, "turns": count},
                         timeout=90000,
                     )
-                    count = sum(r["role"] == "user" for r in snapshot()["history"])
                     page.wait_for_function(
                         "n=>document.querySelectorAll('#chat .bubble.user').length===n && "
                         "document.querySelectorAll('#chat .bubble.assistant').length===n",
@@ -400,6 +403,15 @@ def run(out, port, baseline):
                 except Exception as exc:
                     checks["completed"] = False
                     (private / (name + "-error.txt")).write_text(str(exc))
+                    (private / (name + "-failure-dom.json")).write_text(json.dumps(
+                        page.evaluate("""()=>({chat:document.querySelector('#chat').textContent,
+                        notice:document.querySelector('#notice').textContent,
+                        users:document.querySelectorAll('#chat .bubble.user').length,
+                        assistants:document.querySelectorAll('#chat .bubble.assistant').length,
+                        sendDisabled:document.querySelector('#send').disabled,
+                        lastUserCount,outgoing,executionActive,requestPending,refreshVersion,last})"""),
+                        ensure_ascii=False,
+                    ))
                 result["cases"].append(
                     {"name": name, "checks": checks, "sql": sql(), "posts": posts}
                 )

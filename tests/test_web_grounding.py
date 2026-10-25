@@ -299,3 +299,30 @@ def test_nonlimit_budget_stop_is_not_mislabeled_as_exhausted(tmp_path, code, rea
         done(client, sid)
         assert events(client, sid)[-1]["data"]["reason"] == reason
         assert counts(root) == (0, 0, 0)
+
+
+def test_real_pilot_expiry_grammar_is_checked_at_http_presentation_boundary(tmp_path):
+    raw = "已生成最新预览。核验日期：2026-10-25；预览有效期至 2026-10-25 03:12。运费由买家承担。"
+    root, factory = fixture(
+        tmp_path,
+        [
+            call("update_return_task", draft(), "d"),
+            call("preview_return", {}, "p"),
+            AIMessage(content=raw),
+        ],
+    )
+    with TestClient(create_app(root, factory), base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        post(
+            client,
+            sid,
+            headers,
+            "messages",
+            text="退O10024耳机1件，无理由，未拆封且满足全部二次销售条件，请预览",
+        )
+        s = done(client, sid)
+        assert "UTC+08:00" in s["history"][-1]["content"]
+        assert "运费由买家承担" in s["history"][-1]["content"]
+        with sqlite3.connect(root / "business.sqlite") as conn:
+            assert conn.execute("SELECT answer FROM conversation_turns").fetchone()[0] == raw
+        assert counts(root) == (0, 0, 0)

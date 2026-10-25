@@ -132,7 +132,28 @@ def test_preview_expiry_reason_must_be_time_supported():
 
 
 def test_business_field_scope_ends_before_another_valid_order_section():
-    e=evidence()
-    e.known_orders.append('O10027')
-    raw='当前退货草稿\n订单号：O10024\n数量：1\n\n其他订单信息\n订单号：O10027\n数量：1'
-    assert review_answer(raw,e).text==raw
+    e = evidence()
+    e.known_orders.append("O10027")
+    raw = "当前退货草稿\n订单号：O10024\n数量：1\n\n其他订单信息\n订单号：O10027\n数量：1"
+    assert review_answer(raw, e).text == raw
+
+
+def test_real_pilot_expiry_without_colon_is_projected_without_harming_consultation():
+    raw = "核验日期：2026-10-25；预览有效期至 2026-10-25 03:12。运费由买家承担。"
+    result = review_answer(raw, evidence())
+    assert "UTC+08:00" in result.text and "2026-10-25 12:00:00" in result.text
+    assert "核验日期：2026-10-25" in result.text and "运费由买家承担" in result.text
+
+
+def test_expiry_question_is_not_an_asserted_deadline():
+    raw = "预览有效期为多久？商品是否支持65W？"
+    assert review_answer(raw, evidence()).text == raw
+
+
+def test_existing_valid_preview_cannot_be_described_as_invalid():
+    e = evidence()
+    e.created_preview_id = None
+    result = review_answer("旧预览已失效。商品功率65W。", e)
+    assert "旧预览已失效" not in result.text and "仍有效" in result.text
+    assert "65W" in result.text
+    assert any(f.predicate == "historical_preview_still_valid" for f in result.findings)

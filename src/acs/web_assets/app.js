@@ -3,6 +3,8 @@ let csrf='',sid='',wait=null,card=null,source=null,last=0,seenEvents=new Set();
 let sessionReady=false,requestPending=false,executionActive=true,snapshotReadable=false;
 let connectionState='connecting',refreshVersion=0,expiryTimer=null;
 const $=id=>document.getElementById(id),drafts=new Map();
+let outgoing=null,lastUserCount=0;
+const historyRefreshed=new Set();
 const labels={turn_started:'对话开始',tool_requested:'工具请求',tool_completed:'工具回执',business_state_updated:'业务状态已更新',confirmation_required:'等待页面确认',submission_pending:'正在核实提交',submission_verified:'数据库已核实：模拟待审核',turn_completed:'执行完成',turn_failed:'执行未完成',answer_delta:'正文生成中',answer_discarded:'生成草稿已撤回',answer_completed:'回复已完成',answer_checked:'业务声明检查'};
 const toolLabels={get_product:'查询商品规格',search_products:'寻找符合条件的商品',list_orders:'查询您的订单',get_order:'核对订单明细',get_logistics:'查询物流进度',search_knowledge:'查询退货政策',get_return_task:'读取退货草稿',update_return_task:'保存退货信息',cancel_return_task:'取消退货草稿',preview_return:'核对并生成退货预览',get_return_requests:'核实模拟申请状态'};
 const cardLabels={READY:'待确认',REJECTED:'已拒绝',EXPIRED:'已过期',UNKNOWN:'结果未知',PENDING_REVIEW:'待审核'};
@@ -49,9 +51,9 @@ function markdown(target,text){
   }
 }
 function scrollChat(change){const node=$('chat'),stick=node.scrollHeight-node.scrollTop-node.clientHeight<90,top=node.scrollTop;change();node.scrollTop=stick?node.scrollHeight:top;}
-function draftNodes(){for(const value of drafts.values()){const div=document.createElement('div'),label=document.createElement('span');div.className='bubble assistant draft';label.className='speaker';label.textContent='正在生成 · 业务表述尚未完成核验';div.append(label,document.createTextNode(value.text));$('chat').append(div);}}
-function chat(history){scrollChat(()=>{$('chat').replaceChildren();for(const row of history){const div=document.createElement('div'),label=document.createElement('span'),body=document.createElement('div');div.className='bubble '+row.role;label.className='speaker';label.textContent=row.role==='user'?'你':row.review_status==='legacy_unchecked'?'客服 · 历史回复未经过本轮核验':'客服';body.className='message-body';if(row.role==='assistant')markdown(body,row.content||'此轮未完成，请查询状态');else body.textContent=row.content;div.append(label,body);$('chat').append(div);}draftNodes();});}
-function paintDrafts(){scrollChat(()=>{for(const node of $('chat').querySelectorAll('.draft'))node.remove();draftNodes();});}
+function draftNodes(){if(outgoing){const div=document.createElement('div'),label=document.createElement('span');div.className='bubble user outgoing';label.className='speaker';label.textContent='你 · '+outgoing.status;div.append(label,document.createTextNode(outgoing.text));$('chat').append(div);}for(const value of drafts.values()){const div=document.createElement('div'),label=document.createElement('span');div.className='bubble assistant draft';label.className='speaker';label.textContent='正在生成 · 业务表述尚未完成核验';div.append(label,document.createTextNode(value.text));$('chat').append(div);}}
+function chat(history){lastUserCount=history.filter(row=>row.role==='user').length;if(outgoing&&lastUserCount>outgoing.before&&history.filter(row=>row.role==='user').at(-1)?.content===outgoing.text)outgoing=null;scrollChat(()=>{$('chat').replaceChildren();for(const row of history){const div=document.createElement('div'),label=document.createElement('span'),body=document.createElement('div');div.className='bubble '+row.role;label.className='speaker';label.textContent=row.role==='user'?'你':row.review_status==='legacy_unchecked'?'客服 · 历史回复未经过本轮核验':'客服';body.className='message-body';if(row.role==='assistant')markdown(body,row.content||'此轮未完成，请查询状态');else body.textContent=row.content;div.append(label,body);$('chat').append(div);}draftNodes();});}
+function paintDrafts(){scrollChat(()=>{for(const node of $('chat').querySelectorAll('.draft,.outgoing'))node.remove();draftNodes();});}
 function answerEvent(row){const key=row.execution_id+':'+row.data.message_id;if(row.type==='answer_delta')drafts.set(key,{job:row.execution_id,text:row.data.text});if(row.type==='answer_discarded')drafts.delete(key);if(['answer_completed','turn_completed','turn_failed'].includes(row.type))for(const [id,value]of drafts)if(value.job===row.execution_id)drafts.delete(id);}
 function pendingAttempt(value){const key='v3-confirm-attempt-'+sid;if(value===undefined){try{return JSON.parse(sessionStorage.getItem(key)||'null');}catch{return null;}}if(value)sessionStorage.setItem(key,JSON.stringify(value));else sessionStorage.removeItem(key);}
 function unknownCard(reason){return {state:'UNKNOWN',status:'UNKNOWN',reason,allowed_actions:['refresh'],authoritative:false};}
@@ -131,7 +133,7 @@ async function connect(){
   source=new EventSource('/api/sessions/'+sid+'/events?after='+last);
   source.onopen=()=>{connectionState='connected';$('connection').textContent='进度已连接';};
   source.onerror=()=>{connectionState='reconnecting';$('connection').textContent='进度重连中，任务不会重复执行';};
-  for(const kind of Object.keys(labels))source.addEventListener(kind,e=>{const row=JSON.parse(e.data);if(seenEvents.has(row.id))return;renderEvent(row);paintDrafts();progressEvent(row);if(['turn_completed','turn_failed'].includes(kind))refresh().catch(e=>notice(e.message));if(kind==='turn_failed')notice('执行未完成，请查询权威状态，不要重复确认。');});
+  for(const kind of Object.keys(labels))source.addEventListener(kind,e=>{const row=JSON.parse(e.data);if(seenEvents.has(row.id))return;renderEvent(row);paintDrafts();progressEvent(row);if(kind==='answer_delta'&&!historyRefreshed.has(row.execution_id)){historyRefreshed.add(row.execution_id);refresh().catch(e=>notice(e.message));}if(['turn_completed','turn_failed'].includes(kind))refresh().catch(e=>notice(e.message));if(kind==='turn_failed')notice('执行未完成，请查询权威状态，不要重复确认。');});
 }
 async function action(path,body={}){
   if(requestPending||executionActive||!sessionReady)return false;
@@ -140,10 +142,10 @@ async function action(path,body={}){
   if(confirming&&!card.allowed_actions.includes(body.decision))return false;
   const request_key=crypto.randomUUID();
   if(confirming){pendingAttempt({wait_id:body.wait_id,request_key});renderCard(unknownCard('operation_in_progress'));}
-  notice('');requestPending=true;activity('正在发送请求…');controls();
+  notice('');requestPending=true;if(path==='messages'){outgoing={text:body.text,before:lastUserCount,status:'发送中'};paintDrafts();}activity('正在发送请求…');controls();
   let accepted=false;
-  try{const result=await api('/api/sessions/'+sid+'/'+path,{...body,request_key});accepted=true;executionActive=['queued','running'].includes(result.status);}
-  catch(error){const rejected=error.status>=400&&error.status<500;if(confirming&&rejected)pendingAttempt(null);if(confirming&&!rejected)renderCard(unknownCard('http_response_unknown'));notice(rejected?'请求被拒绝（'+error.status+'）：'+error.message:error.message);activity(rejected?'本次请求未受理，请按提示处理。':'未收到明确回执，正在只读核对状态。');}
+  try{const result=await api('/api/sessions/'+sid+'/'+path,{...body,request_key});accepted=true;if(path==='messages'&&outgoing)outgoing.status='已发送，等待处理';executionActive=['queued','running'].includes(result.status);}
+  catch(error){const rejected=error.status>=400&&error.status<500;if(path==='messages'){if(rejected)outgoing=null;else if(outgoing)outgoing.status='发送回执未收到，请刷新查看';paintDrafts();}if(confirming&&rejected)pendingAttempt(null);if(confirming&&!rejected)renderCard(unknownCard('http_response_unknown'));notice(rejected?'请求被拒绝（'+error.status+'）：'+error.message:error.message);activity(rejected?'本次请求未受理，请按提示处理。':'未收到明确回执，正在只读核对状态。');}
   finally{requestPending=false;await refresh();controls();}
   return accepted;
 }

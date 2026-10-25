@@ -146,6 +146,18 @@ def review_answer(answer, evidence):
                 "historical_preview_missing",
                 "此前没有可核实的历史预览",
             )
+        elif (
+            len(older) == 1
+            and evidence.valid_preview
+            and older[0]["preview_id"] == evidence.valid_preview["preview_id"]
+        ):
+            unit = change(
+                unit,
+                r"(?:此前|之前|旧|原来|历史)[^。！？；\n（）]*?预览"
+                r"[^。！？；\n（）]*?(?:已经|已)(?:失效|过期|作废)",
+                "historical_preview_still_valid",
+                "此前的预览目前仍有效，请以当前卡片为准",
+            )
         elif all(
             datetime.fromisoformat(p["expires_at"]) > datetime.fromisoformat(evidence.checked_at)
             for p in older
@@ -200,7 +212,9 @@ def review_answer(answer, evidence):
             expires = expires.astimezone(ZoneInfo("Asia/Shanghai"))
             unit = change(
                 unit,
-                r"(?:预览有效期|预览有效至|预览过期时间)[：:][^。\n]*",
+                r"(?:预览有效期|预览有效至|预览过期时间)(?:[：:]\s*(?:至)?\s*|(?:至|为)\s*)"
+                r"(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}[ T])?\d{1,2}:\d{2}(?::\d{2})?"
+                r"(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?(?:左右)?(?:（[^）]*）)?",
                 "expiry_timezone_projection",
                 f"预览有效至：{expires:%Y-%m-%d %H:%M:%S}（北京时间 UTC+08:00）",
             )
