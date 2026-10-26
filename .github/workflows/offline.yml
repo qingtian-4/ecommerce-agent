@@ -27,6 +27,23 @@ jobs:
       - run: uv run pytest --junitxml=.ci-artifacts/pytest.xml
       - run: uv run ruff check .
       - run: uv run python scripts/check_secrets.py --all-tracked
+      - name: Verify product UI in Chromium (offline SDK, synthetic SQLite)
+        run: |
+          uv venv /tmp/shop-browser
+          uv pip install --python /tmp/shop-browser/bin/python playwright==1.64.1
+          /tmp/shop-browser/bin/python -m playwright install --with-deps chromium
+          /tmp/shop-browser/bin/python scripts/eval_shop_frontend.py --out /tmp/shop-browser-result --port 8781
+      - name: Collect public UI evidence
+        if: always()
+        run: |
+          mkdir -p .ci-artifacts/shop-ui
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          for path in Path('/tmp/shop-browser-result').glob('*'):
+              if path.is_file() and path.suffix in {'.json', '.png'}:
+                  shutil.copy2(path, Path('.ci-artifacts/shop-ui') / path.name)
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
