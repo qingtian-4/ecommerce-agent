@@ -130,6 +130,9 @@ def run(out, port):
                 ready(page)
 
             context, page = page_new()
+            checks["jump_latest_hidden_without_history"] = page.locator(
+                "#jump-latest"
+            ).is_hidden()
             page.locator("#message").fill("第一行")
             page.locator("#message").press("Shift+Enter")
             checks["shift_enter_newline_no_post"] = (
@@ -214,13 +217,36 @@ def run(out, port):
             page.locator("#chat").evaluate("n=>n.scrollTop=0")
             page.screenshot(path=str(out / "orders-desktop.png"), full_page=True)
             geometry = {}
+            jump_positions = []
+            before_jump = requests()
             for width in [320, 390, 900, 901, 1380]:
                 page.set_viewport_size({"width": width, "height": 844 if width <= 900 else 940})
+                page.locator("#chat").evaluate("n=>n.scrollTop=0")
+                page.locator("#jump-latest").wait_for(state="visible")
+                jump = page.locator("#jump-latest").bounding_box()
+                composer = page.locator(".composer").bounding_box()
+                jump_positions.append(jump["y"] + jump["height"] <= composer["y"])
+                if width in [390, 1380]:
+                    name = "mobile" if width == 390 else "desktop"
+                    page.screenshot(path=str(out / ("jump-latest-" + name + ".png")))
+                if width == 390:
+                    page.locator("#jump-latest").focus()
+                    page.keyboard.press("Enter")
+                else:
+                    page.locator("#jump-latest").click()
+                page.wait_for_function(
+                    "()=>{const n=document.querySelector('#chat');"
+                    "return n.scrollHeight-n.clientHeight-n.scrollTop<2}"
+                )
+                page.locator("#jump-latest").wait_for(state="hidden")
                 geometry[str(width)] = {
                     "overflow": page.evaluate("document.documentElement.scrollWidth>innerWidth+1"),
                     "composer_bottom": page.locator(".composer").bounding_box()["y"]
                     + page.locator(".composer").bounding_box()["height"],
                 }
+            checks["jump_latest_mouse_and_keyboard"] = True
+            checks["jump_latest_above_composer"] = all(jump_positions)
+            checks["jump_latest_no_model_replay"] = requests() == before_jump
             checks["responsive"] = all(not v["overflow"] for v in geometry.values())
             checks["fixed_input"] = all(
                 v["composer_bottom"] <= (844 if int(k) <= 900 else 940) for k, v in geometry.items()

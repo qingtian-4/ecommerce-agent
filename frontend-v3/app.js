@@ -403,8 +403,19 @@ function attachCards(body, cards) {
 }
 
 
+function atLatest() {
+  const chat = $('chat');
+  return chat.scrollHeight - chat.scrollTop - chat.clientHeight < 90;
+}
+
+
+function updateJumpLatest() {
+  $('jump-latest').hidden = atLatest();
+}
+
+
 function render() {
-  const chat = $('chat'), stick = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 90, top = chat.scrollTop;
+  const chat = $('chat'), stick = atLatest(), top = chat.scrollTop;
   chat.replaceChildren();
   if (!messages.length && !outgoing) {
     const w = el('div', 'welcome');
@@ -477,6 +488,7 @@ function render() {
     target.append(returnNode);
   }
   chat.scrollTop = stick ? chat.scrollHeight : top;
+  updateJumpLatest();
   renderContext();
   controls();
 }
@@ -682,6 +694,13 @@ async function send(text) {
 document.querySelector('.logo').replaceChildren(icon('chat'));
 document.querySelector('.avatar').replaceChildren(icon('headset'));
 $('send').replaceChildren(icon('send'));
+$('chat').addEventListener('scroll', updateJumpLatest, { passive: true });
+$('chat').addEventListener('toggle', updateJumpLatest, true);
+new ResizeObserver(updateJumpLatest).observe($('chat'));
+$('jump-latest').onclick = () => {
+  $('chat').scrollTop = $('chat').scrollHeight;
+  updateJumpLatest();
+};
 
 
 $('compose').onsubmit = async e => {
