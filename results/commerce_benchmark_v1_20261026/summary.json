@@ -1,0 +1,193 @@
+{
+  "contract": "local-commerce-v1/m8.1-open-answer-v3",
+  "dataset": {
+    "version": "local-commerce-v1",
+    "seed": 20261026,
+    "clock": "2026-11-06T04:00:00+00:00",
+    "agent_tasks": 14,
+    "rag_cases": 36,
+    "files": {
+      "README.md": "29781b71a21a787ddb2fd1a598af6c6276e8378413a0b00fb0e0eb13f56a4af5",
+      "agent_tasks.json": "a49b508e82222c0b7899f87e45d4cd5776a3235cabf4a94cea3f287c6e6783bf",
+      "business.json": "0d872ac6cf62ab778568be487484f1bff8d7286355586582feaaa5820581833b",
+      "docs/B101.md": "44999946c474b5198ed111282112b530fac99045d0142f29362464c732b0ce1c",
+      "docs/B102.md": "41f2d5cb7cdc444d5ce0f31f151759104faa908e8333857c9f0dfe00feeaa504",
+      "docs/B103.md": "7361f8c4695955bfb44ee1298fa75473acf33124b77ed6e804a807080923f28c",
+      "docs/B104.md": "8bb5cd775451af1e11f8d9002617b4234940ba45f5c8ea89f160a6d1f0fa796d",
+      "docs/B105.md": "b35e64aaddd43ab886e607ba2cfc8c4b42160a8ebf7d7451ff598cb8f9b5acb4",
+      "docs/B106.md": "1867f687766a5c0a7b015bdd65e908219d0c2c649a88cd1a8c8a49bc39afb157",
+      "docs/B107.md": "09bf10c89aa26c1fc786029f6f102b88da39a5c7010947fc562bef7f1a82ad79",
+      "docs/B108.md": "74942ec0ce9b7f26f4dec02195645e8a59096f3b0debad4092e82b3899530a39",
+      "docs/capabilities.md": "6abaa9da70b09484d1ee6f9c146590a4c39ae8baa556fccece16b729d5267f74",
+      "docs/price_protection.md": "27561c707ce92f0040b00d195645366144667cc03164314c657aad6cb6038fbe",
+      "docs/return_policy.md": "ac2accea093f9a63849654ca840ea0cb5789f5d41ccc2cd6300671dbab35afc9",
+      "docs/shipping_policy.md": "f96f3fc179d45a1bd1ff2ffe65e048d120cd9c7053c3b8dbe889fee88aad2ef5",
+      "docs/warranty_policy.md": "36a38c71cbfc48d87a275e9018a226c397ff964f7e659bd6e2a313af06114df9",
+      "rag_cases.json": "697f19b4206a5aa05c8096c52545ccc9f1a15229a3f9d7dee322a6db79585cf2",
+      "replay_contracts.json": "5ff7132e7f17e15030dfda9b25c0f12a226d5ad89aefddc35a045688f0030e96"
+    }
+  },
+  "kind": "offline_contract_baseline",
+  "selected_task_ids": [
+    "CB01",
+    "CB02",
+    "CB03",
+    "CB04",
+    "CB05",
+    "CB06",
+    "CB07",
+    "CB08",
+    "CB09",
+    "CB10",
+    "CB11",
+    "CB12",
+    "CB13",
+    "CB14"
+  ],
+  "agents": {
+    "episodes": 14,
+    "outcomes": {
+      "pass": 14
+    },
+    "sql_correct": 14,
+    "tool_valid": 14
+  },
+  "rag": {
+    "questions": 36,
+    "supported": 32,
+    "unsupported": 4,
+    "supported_all_evidence": 29,
+    "mean_supported_recall": 0.9375,
+    "candidate_all_evidence": 31,
+    "unsupported_context_exposed": 4,
+    "errors": 0,
+    "mode": "actual_V3_LocalKnowledge_BM25",
+    "generated_answers": "not_run",
+    "dense": "not_run_no_offline_semantic_embedding",
+    "hybrid": "not_run",
+    "chunk_size": 700,
+    "chunk_overlap": 80
+  },
+  "scorer_controls": [
+    {
+      "kind": "rag",
+      "mutation": "complete_evidence",
+      "expected": "pass",
+      "observed": "pass",
+      "detected": true
+    },
+    {
+      "kind": "rag",
+      "mutation": "missing_required_section",
+      "expected": "fail",
+      "observed": "fail",
+      "detected": true
+    },
+    {
+      "kind": "rag",
+      "mutation": "unrelated_product",
+      "expected": "fail",
+      "observed": "fail",
+      "detected": true
+    },
+    {
+      "kind": "rag",
+      "mutation": "invalid_chunk",
+      "expected": "execution_error",
+      "observed": "execution_error",
+      "detected": true
+    },
+    {
+      "kind": "rag",
+      "mutation": "unanswerable_empty",
+      "expected": "pass",
+      "observed": "pass",
+      "detected": true
+    },
+    {
+      "kind": "rag",
+      "mutation": "unanswerable_context",
+      "expected": "fail",
+      "observed": "fail",
+      "detected": true
+    },
+    {
+      "kind": "rag",
+      "mutation": "tool_error_empty",
+      "expected": "execution_error",
+      "observed": "execution_error",
+      "detected": true
+    },
+    {
+      "kind": "agent",
+      "mutation": "omit_write",
+      "expected": "fail",
+      "observed": "fail",
+      "detected": true,
+      "sql": false,
+      "tools": true
+    },
+    {
+      "kind": "agent",
+      "mutation": "wrong_order",
+      "expected": "fail",
+      "observed": "fail",
+      "detected": true,
+      "sql": false,
+      "tools": true
+    },
+    {
+      "kind": "agent",
+      "mutation": "wrong_quantity",
+      "expected": "fail",
+      "observed": "fail",
+      "detected": true,
+      "sql": false,
+      "tools": true
+    },
+    {
+      "kind": "agent",
+      "mutation": "unsafe_cancel",
+      "expected": "fail",
+      "observed": "fail",
+      "detected": true,
+      "sql": true,
+      "tools": false
+    },
+    {
+      "kind": "agent",
+      "mutation": "false_completion",
+      "expected": "fail",
+      "observed": "fail",
+      "detected": true,
+      "sql": true,
+      "tools": true
+    },
+    {
+      "kind": "agent",
+      "mutation": "paraphrase",
+      "expected": "pending_review",
+      "observed": "pending_review",
+      "detected": true,
+      "sql": true,
+      "tools": true
+    }
+  ],
+  "paid_requests": 0,
+  "cost_cny": 0,
+  "model_quality": "not_measured",
+  "source": {
+    "src/acs/commerce_benchmark.py": "86fb0646dc31127fac2644eaa7bb36c5b90d13c881205515c48b9e43e0f7353c",
+    "src/acs/commerce_benchmark_data.py": "48d5b3f169e4d0a16cc90073a021ce8965ea92d2998cc331a77dbc082da21320",
+    "src/acs/multiturn_evaluation.py": "bd2b4fc94d32933ef7149b0a9b7afc6220e91ab977b2eab894fb6350f5b726d7",
+    "src/acs/live_evaluation.py": "0ca7bc948f047b5e11763c30e6d61d434c9e2ba83e245a5defdd7d70df600c30",
+    "src/acs/local_return_poc.py": "87054c4420a671d634a223d4152724761bcd7cb345c5e315e510372531658f75",
+    "src/acs/local_submission.py": "1d83aa90f08862d6284d469c7d1f0a4c789fc475470234edac2a8b1d53ffb436",
+    "src/acs/local_confirmation.py": "7fb8bb56629fd1a5d0099cc46177ed1343773cceef080bd72d8abb3f8b7e48ec",
+    "src/acs/sessions.py": "a1a5ba75454d1a69b64e4f2974f3e1d3c59af4d42705801dd753dcc91a9c6903",
+    "src/acs/returns.py": "f519f933e3a659feee05892065346195e58564acf2bfc0355e09f88ef97576c5",
+    "src/acs/cs_tools.py": "f9f81c062b80142d24232827a03315e11851e1b21d78eecfbcc7c48e316382d8",
+    "src/acs/rag.py": "d8e3e729d0d941988a77f9d84073e43f53f2cae9595879f5205f5b550ca70a05",
+    "src/acs/retrieval.py": "0e593bc591c48f18a2848c94acecf951d5260e1581882662c06b5bf7ab38ef0e"
+  }
+}
