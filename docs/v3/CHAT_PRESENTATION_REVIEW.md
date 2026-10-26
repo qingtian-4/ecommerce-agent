@@ -73,3 +73,12 @@ get_product有唯一成功回执；草稿/预览/申请/确认/业务审计均0�
 [实际服务就绪](../../results/chat_presentation_20261026/live-page-live-ready.png)。
 
 实际服务继续使用`http://127.0.0.1:8767`，Ctrl+F5重新加载三个静态资产即可，无须重置数据库或会话。
+
+## CI首次失败及界限
+
+源码ef30213的[CI首次运行](https://github.com/qingtian-4/ecommerce-agent/actions/runs/40266582634/attempts/1)
+出现1失败/1129通过：原有确认恢复测试before_consume_commit预期issued，实际waiting。
+本轮后端.py和原测试均未改。临时诊断记录每次POST状态及失败时私有异常，独立本地复现15次
+全部通过；不能因此确认是CI抖动，也不宣称业务缺陷已修复。原始失败摘要保留在结果目录。
+后续CI保持原断言、原业务规则复验；最终运行状态见GitHub，不覆盖首次失败。
+这是待定位的后端恢复风险，用户界面5处/27项验收不等于全项目没有遗留问题。
