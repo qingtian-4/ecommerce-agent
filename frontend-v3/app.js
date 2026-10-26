@@ -422,26 +422,24 @@ function render() {
     w.append(el('h2', '', '你好，有什么可以帮你？'), el('p', 'muted', '查订单、了解物流，或者准备退货草稿。我们会根据实际订单提供下一步操作。'));
     chat.append(w);
   }
-  const assistantGroups = [], attached = new Set(), turnGroups = new Map(), users = messages.filter(m => m.role === 'user'), jobs = snapshot?.jobs || [];
-  const started = jobs.filter(j => j.kind === 'message' && progress.get(j.id)?.started);
-  if (started.length === users.length) {
-    let i = -1;
-    for (const job of jobs) {
-      if (job.kind === 'message' && progress.get(job.id)?.started)
-        i++;
-      if (i >= 0 && ['message', 'resume'].includes(job.kind) && progress.has(job.id)) {
-        const key = users[i]?.turn_id;
-        if (!turnGroups.has(key))
-          turnGroups.set(key, []);
-        turnGroups.get(key).push(job.id);
-      }
+  const attached = new Set(), turnGroups = new Map(), turnAnchors = new Map(), users = messages.filter(m => m.role === 'user'), jobs = snapshot?.jobs || [];
+  for (const [id, record] of progress) {
+    const matches = users.filter(u => u.tool_call_ids?.some(callId => record.tools.has(callId)));
+    if (matches.length === 1) {
+      const key = matches[0].turn_id;
+      if (!turnGroups.has(key))
+        turnGroups.set(key, []);
+      turnGroups.get(key).push(id);
     }
   }
   for (const message of messages) {
     if (message.role === 'user') {
-      chat.append(el('div', 'user-message', message.content));
+      const user = el('div', 'user-message', message.content);
+      chat.append(user);
+      turnAnchors.set(message.turn_id, { node: user, inside: false });
       for (const id of turnGroups.get(message.turn_id) || []) {
         chat.append(progress.get(id).node);
+        turnAnchors.set(message.turn_id, { node: progress.get(id).node, inside: false });
         attached.add(id);
       }
       continue;
@@ -457,15 +455,19 @@ function render() {
       body.append(feedback(message));
     row.append(botIcon(), body);
     chat.append(row);
-    assistantGroups.push(body);
+    turnAnchors.set(message.turn_id, { node: body, inside: true });
   }
 
 
   if (outgoing)
     chat.append(el('div', 'user-message outgoing', outgoing));
-  for (const [id, record] of progress)
-    if (!attached.has(id))
+  for (const [id, record] of progress) {
+    const job = jobs.find(j => j.id === id), status = record.node.dataset.status;
+    const running = status === 'running' && (!job || ['queued', 'running'].includes(job.status));
+    const latestFailure = status === 'failed' && (!job || id === jobs.at(-1)?.id);
+    if (!attached.has(id) && (running || latestFailure))
       chat.append(record.node);
+  }
   for (const draft of drafts.values()) {
     const row = el('article', 'assistant-message draft');
     row.setAttribute('aria-busy', 'true');
@@ -484,8 +486,15 @@ function render() {
   }
   renderReturn();
   if (!returnNode.hidden) {
-    const target = assistantGroups.at(-1) || chat;
-    target.append(returnNode);
+    const activity = [...messages].reverse().find(m => m.return_activity);
+    const anchor = turnAnchors.get(activity?.turn_id);
+    returnNode.dataset.turnId = activity?.turn_id || '';
+    if (anchor?.inside)
+      anchor.node.append(returnNode);
+    else if (anchor)
+      anchor.node.after(returnNode);
+    else
+      chat.prepend(returnNode);
   }
   chat.scrollTop = stick ? chat.scrollHeight : top;
   updateJumpLatest();
@@ -502,11 +511,10 @@ function progressEvent(event) {
       node.open = true;
       summary.append(label, dots());
       node.append(summary, list);
-      row = { node, label, list, tools: new Map(), started: false };
+      row = { node, label, list, tools: new Map() };
       progress.set(event.execution_id, row);
     }
     if (event.type === 'turn_started') {
-      row.started = true;
       row.node.dataset.status = 'running';
       row.label.textContent = '正在处理您的问题';
     }
@@ -546,7 +554,7 @@ function progressEvent(event) {
 }
 
 
-function acceptEvent(event) {
+function acceptEvent(event, replay = false) {
   if (seen.has(event.id))
     return;
   seen.add(event.id);
@@ -554,6 +562,8 @@ function acceptEvent(event) {
   progressEvent(event);
   if (event.type !== 'answer_delta')
     $('trace').append(el('li', '', `#${event.id} ${event.type} ${event.data.name || event.data.status || ''}`));
+  if (replay)
+    return;
   render();
   if (['turn_completed', 'turn_failed', 'tool_completed', 'submission_verified', 'confirmation_required'].includes(event.type))
     refresh().catch(e => error(e.message));
@@ -575,9 +585,10 @@ async function connect() {
       throw new Error('进度记录暂不可读');
     rows = (await response.text()).split('\n').filter(l => l.startsWith('data: ')).map(l => JSON.parse(l.slice(6)));
     for (const event of rows)
-      acceptEvent(event);
+      acceptEvent(event, true);
   }
   while (rows.length === 100);
+  render();
   source = new EventSource(endpoint('/events?after=' + last));
   source.onopen = () => {
     document.body.dataset.stream = 'connected';

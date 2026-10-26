@@ -16,7 +16,8 @@ from acs.shop_frontend import create_shop_app
 from acs.web_service import COOKIE
 
 from .test_langgraph_poc import ScriptedModel, call
-from .test_web_service import ORIGIN, browser, counts, done, post
+from .test_local_return_poc import draft
+from .test_web_service import ORIGIN, browser, counts, done, events, post
 
 
 @pytest.fixture
@@ -100,9 +101,66 @@ def test_message_cards_have_native_turn_binding_and_original_text(app_data):
         assert len(message["cards"]["orders"]) == 10
         assert message["message_id"] == message["turn_id"] + ":assistant"
         assert message["review_status"] == "reviewed"
+        with sqlite3.connect(root / "business.sqlite") as conn:
+            call_ids = [r[0] for r in conn.execute(
+                "SELECT call_id FROM local_receipts WHERE turn_id=? ORDER BY rowid",
+                (message["turn_id"],),
+            )]
+        public = client.get(f"/api/sessions/{sid}/messages").json()["messages"]
+        assert call_ids and public[0]["tool_call_ids"] == call_ids
+        assert public[0]["return_activity"] is False
+        assert message["return_activity"] is False
         human = client.get(f"/api/sessions/{sid}/messages").json()["human_service"]
         assert human["available"] is False and "尚未接入" in human["message"]
         assert counts(root) == (0, 0, 0)
+
+
+def test_return_activity_stays_on_business_turn_after_product_consultation(app_data):
+    root, _ = app_data
+    outputs = iter([
+        [call("update_return_task", draft(), uuid4().hex),
+         AIMessage(content="已保存退货草稿，尚未提交申请。")],
+        [call("get_return_task", {}, uuid4().hex),
+         call("list_products", {}, uuid4().hex), AIMessage(content="商品查询已返回。")],
+    ])
+
+    @contextmanager
+    def factory():
+        yield ScriptedModel(responses=next(outputs))
+
+    with TestClient(create_shop_app(root, factory), base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        for text in [
+            "我要退货，订单O10024，明细4，数量1，无理由，未拆封，满足全部二次销售条件。",
+            "介绍商品，保留退货草稿。",
+        ]:
+            assert post(client, sid, headers, "messages", text=text).status_code == 202
+            assert done(client, sid)["jobs"][-1]["status"] == "completed"
+        public = client.get(f"/api/sessions/{sid}/messages").json()["messages"]
+        assert [m["return_activity"] for m in public] == [True, True, False, False]
+        assert public[0]["turn_id"] == public[1]["turn_id"]
+        assert public[0]["turn_id"] != public[2]["turn_id"]
+        assert counts(root) == (0, 0, 0)
+
+
+def test_public_receipt_ids_use_same_redaction_as_sse(app_data):
+    root, _ = app_data
+
+    @contextmanager
+    def factory():
+        yield ScriptedModel(responses=[
+            call("list_orders", {}, "call-13800000000"),  # Synthetic phone-shaped identifier.
+            AIMessage(content="本人订单查询完成。"),
+        ])
+
+    with TestClient(create_shop_app(root, factory), base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        message = completed(client, sid, headers)
+        assert message["tool_call_ids"] == ["call-[已隐藏]"]
+        public_call_ids = [
+            e["data"]["call_id"] for e in events(client, sid) if e["type"] == "tool_requested"
+        ]
+        assert message["tool_call_ids"] == public_call_ids
 
 
 @pytest.mark.parametrize(

@@ -159,11 +159,23 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
         result, index = [], 0
         with closing(engine.store._connect()) as conn:
             for row in rows:
+                receipts = list(conn.execute(
+                    "SELECT call_id,name,result,error FROM local_receipts "
+                    "WHERE session_id=? AND turn_id=? ORDER BY rowid",
+                    (sid, row["turn_id"]),
+                ))
+                activity = engine.clean({
+                    "tool_call_ids": [r["call_id"] for r in receipts],
+                    "return_activity": any(r["name"] in {
+                        "update_return_task", "cancel_return_task", "preview_return",
+                    } for r in receipts),
+                })
                 user = history[index]
                 if user["role"] != "user" or user["content"] != row["user_text"]:
                     raise HTTPException(409, "消息关联正在更新，请只读刷新")
                 result.append(
-                    user | {"turn_id": row["turn_id"], "message_id": row["turn_id"] + ":user"}
+                    user | activity
+                    | {"turn_id": row["turn_id"], "message_id": row["turn_id"] + ":user"}
                 )
                 index += 1
                 if row["status"] == "running":
@@ -171,11 +183,7 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
                 answer = history[index]
                 index += 1
                 cards = {"orders": [], "products": [], "logistics": []}
-                for receipt in conn.execute(
-                    "SELECT name,result,error FROM local_receipts "
-                    "WHERE session_id=? AND turn_id=? ORDER BY rowid",
-                    (sid, row["turn_id"]),
-                ):
+                for receipt in receipts:
                     if receipt["error"]:
                         continue
                     value, name = json.loads(receipt["result"]), receipt["name"]
@@ -219,7 +227,7 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
                     row["status"] == "completed" and answer.get("review_status") == "reviewed"
                 )
                 result.append(
-                    answer
+                    answer | activity
                     | {
                         "turn_id": row["turn_id"],
                         "message_id": row["turn_id"] + ":assistant",

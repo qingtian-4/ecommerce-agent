@@ -213,6 +213,38 @@ def run(out, port):
             checks["feedback_each_completed_answer"] = page.locator(
                 "#chat .assistant-message"
             ).evaluate_all("nodes=>nodes.every(n=>n.querySelector('.feedback'))")
+            history = page.evaluate(
+                "async()=>{const b=await(await fetch('/api/bootstrap')).json();"
+                "return(await fetch('/api/sessions/'+b.session_id+'/messages')).json()}"
+            )
+            page.route(
+                "**/messages",
+                lambda r: r.fulfill(json=history) if r.request.method == "GET" else r.continue_(),
+            )
+            page.evaluate("""()=>{
+                for(const n of document.querySelectorAll('#chat .progress-record'))
+                  n.dataset.history='1';
+                window.historyMoved=false;
+                window.layoutObserver=new MutationObserver(()=>{
+                  const last=[...document.querySelectorAll('#chat .user-message')].at(-1);
+                  if(last?.classList.contains('outgoing'))
+                    for(const n of document.querySelectorAll('#chat [data-history="1"]'))
+                      if(last.compareDocumentPosition(n)&Node.DOCUMENT_POSITION_FOLLOWING)
+                        window.historyMoved=true;
+                });
+                window.layoutObserver.observe(document.querySelector('#chat'),{childList:true});
+            }""")
+            old_progress = page.locator('#chat .progress-record').count()
+            send(page, "查询订单测试等待状态")
+            checks["history_not_moved_below_outgoing"] = not page.evaluate("historyMoved")
+            checks["historical_progress_retained"] = (
+                page.locator('#chat [data-history="1"]').count() == old_progress
+                and old_progress > 0
+            )
+            page.evaluate("layoutObserver.disconnect()")
+            page.unroute("**/messages")
+            page.reload()
+            ready(page)
             page.screenshot(path=str(out / "products-desktop.png"), full_page=True)
             page.locator("#chat").evaluate("n=>n.scrollTop=0")
             page.screenshot(path=str(out / "orders-desktop.png"), full_page=True)
@@ -269,6 +301,26 @@ def run(out, port):
             page.set_viewport_size({"width": 1380, "height": 940})
             prepare(page, 4)
             card(page, "READY")
+            anchor = page.locator('#return-card').evaluate(
+                "n=>n.closest('.assistant-message')?.dataset.messageId"
+            )
+            send(page, "我插问一下退货政策，保留草稿。")
+            checks["return_card_stays_at_business_turn"] = (
+                page.locator('#return-card').evaluate(
+                    "n=>n.closest('.assistant-message')?.dataset.messageId"
+                ) == anchor
+                and anchor is not None
+            )
+            checks["single_return_card_after_consultation"] = (
+                page.locator('#return-card').count() == 1
+            )
+            page.reload()
+            ready(page)
+            checks["return_anchor_restored_after_refresh"] = (
+                page.locator('#return-card').evaluate(
+                    "n=>n.closest('.assistant-message')?.dataset.messageId"
+                ) == anchor
+            )
             preview = sql("SELECT preview_id FROM return_previews ORDER BY rowid DESC LIMIT 1")[0][
                 0
             ]
