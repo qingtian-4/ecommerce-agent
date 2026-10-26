@@ -1362,3 +1362,11 @@ BM25 1.0、Dense .80625、Hybrid .95、Rerank 1.0；精确型号问题多且简�
 固定回答却称取消。10应用增量控制通过，模型质量尚未测；优先保持失败，未加关键词业务补丁。
 动态用户只读公开回答的实际工具控制与SDK MockTransport各自单列。详见
 BENCHMARK_COMPARISON.md及results/commerce_comparison_20261027；真实Pilot另记结果。
+
+同轮真实小Pilot绑定581e6f2，9HTTP后按冻结门禁停止。EC02两臂各4HTTP，SQL/工具通过，
+语义待独立审查；EC03旧臂选get_order和40商品list_products，下一请求40104字节超过32768，
+HTTP前拒绝，未执行草稿写入、V3未启动。不把不完整配对算胜负，不调大限制或重跑。
+usage按空闲价估0.015373840元、峰值0.03074768元、预留0.707480元，非账单扣费证明。
+先前启动漏env-file在构造模型前拒绝，0HTTP/0DB；补启动前key核验及已见长回执无网络回归，
+仍不改变原付费结果。下一步优先冻结工具回执过滤/分页或字段投影的完整性合同，再考虑扩大评测。
+见results/commerce_comparison_20261027/deepseek_pilot。

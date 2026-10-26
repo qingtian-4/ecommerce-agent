@@ -18,6 +18,7 @@ from acs.commerce_benchmark_data import dump  # noqa: E402
 from acs.commerce_benchmark_v2 import load, run_case  # noqa: E402
 from acs.commerce_benchmark_v2_data import ROOT as SUITE  # noqa: E402
 from acs.commerce_benchmark_v2_data import VERSION  # noqa: E402
+from acs.config import Settings  # noqa: E402
 from acs.episode_budget import EpisodeLedger  # noqa: E402
 from acs.live_evaluation import LIMITS, paired_run  # noqa: E402
 
@@ -56,6 +57,9 @@ def run(args):
         if args.authorization is None or args.price_review is None:
             raise ValueError("Fresh permission and price required")
         auth = permit(args.authorization, args.out, sha)
+        args.env_file = args.env_file or ROOT / ".env"
+        if not Settings(_env_file=args.env_file).llm_api_key:
+            raise ValueError("DeepSeek key missing in preflight; no episode or HTTP started")
     args.out.mkdir(parents=True, exist_ok=False)
     private = args.out / ".private-evidence"
     private.mkdir(mode=0o700)

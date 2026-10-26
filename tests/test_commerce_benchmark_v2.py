@@ -135,9 +135,75 @@ def test_old_files_not_modified_by_loading_and_gold_not_in_user_prompts(suite):
 
 def test_user_item_ids_refer_to_actual_order_lines(suite):
     import re
-    valid={str(i['id']) for o in suite['business']['orders'] for i in o['items']}
-    seen=[]
-    for t in suite['tasks']:
+
+    valid = {str(i["id"]) for o in suite["business"]["orders"] for i in o["items"]}
+    seen = []
+    for t in suite["tasks"]:
         for s in t.steps:
-            seen.extend(re.findall(r'明细\s*(\d+)',s.text))
-    assert seen and set(seen)<=valid
+            seen.extend(re.findall(r"明细\s*(\d+)", s.text))
+    assert seen and set(seen) <= valid
+
+
+def test_live_catalog_expansion_badcase_stops_before_second_http(tmp_path, suite, monkeypatch):
+    """Replay the observed alternative tool choice, not a second paid attempt."""
+    from acs.config import PROJECT_ROOT
+    from acs.episode_budget import EpisodeLedger
+    from acs.live_evaluation import LIMITS
+
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "scripts"))
+    from eval_live_readiness import model_for
+
+    root = tmp_path / "sdk"
+    root.mkdir()
+    (root / ".private-evidence").mkdir()
+    ledger = EpisodeLedger(root / "fees.jsonl", cap_cny=5, max_requests=40)
+    episode = "EC03-1:old"
+    ledger.begin(episode, LIMITS)
+    queue = [
+        dict(
+            calls=[
+                dict(id="observed-order", name="get_order", args=dict(order_id="O72001")),
+                dict(id="observed-catalog", name="list_products", args={}),
+            ]
+        ),
+        dict(text="This SDK response must never be requested."),
+    ]
+    entry = next(e for e in suite["entries"] if e["task"]["task_id"] == "EC03-1")
+    with model_for(root, ledger, episode, queue=queue) as model:
+        r = run_case(
+            suite, entry, root / "fixture", "old", model=model, ledger=ledger, limits=LIMITS
+        )
+    assert r["global_stop"] and r["failure_class"] == "protocol_failure"
+    assert ledger.summary()["requests"] == 1 and len(queue) == 1
+    refused = [x for x in ledger.rows() if x["type"] == "preflight_rejected"]
+    assert (
+        len(refused) == 1
+        and refused[0]["reason"] == "body_limit"
+        and refused[0]["body_bytes"] > 32768
+    )
+    assert r["final"]["draft"] is None and r["final"]["requests"] == 0
+    assert {c["name"] for c in r["final"]["receipts"]} == {"get_order", "list_products"}
+
+
+def test_live_key_preflight_has_no_episode_or_ledger_side_effect(tmp_path, monkeypatch):
+    from argparse import Namespace
+
+    from acs.config import PROJECT_ROOT
+
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "scripts"))
+    import eval_commerce_pilot as pilot
+
+    env = tmp_path / "empty.env"
+    env.write_text("ACS_LLM_API_KEY=\n")
+    monkeypatch.setenv("ACS_LLM_API_KEY", "")
+    monkeypatch.setattr(pilot, "permit", lambda *args: dict(cap_cny=5, max_requests=40))
+    args = Namespace(
+        mode="live",
+        authorization=tmp_path / "auth.json",
+        price_review=tmp_path / "price.json",
+        env_file=env,
+        out=tmp_path / "must-not-start",
+    )
+    with pytest.raises(ValueError, match="missing in preflight"):
+        pilot.run(args)
+    assert not args.out.exists()
