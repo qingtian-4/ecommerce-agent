@@ -18,6 +18,7 @@ from collections import Counter
 from contextlib import ExitStack, closing, contextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from . import multiturn_evaluation as m8
@@ -435,22 +436,24 @@ def score_retrieval(case, ids, valid_ids, error=None):
 
 
 def run_rag(suite):
-    settings = Settings(
-        _env_file=None,
-        docs_dir=suite["root"] / "docs",
-        retrieval_mode="bm25",
-        relevance_calibration_path=None,
-        top_k=3,
-        reranker_enabled=False,
-        chunk_size=700,
-        chunk_overlap=80,
-    )
-    chunks = KnowledgeBase(settings).load_documents()
-    valid = {c.chunk_id for c in chunks}
-    lexical = LexicalIndex(chunks)
-    registry = ToolRegistry(settings, kb=LocalKnowledge(settings))
-    rows = []
-    with no_network():
+    with TemporaryDirectory(prefix="commerce-rag-") as temporary, no_network():
+        seed_database(Path(temporary) / "business.sqlite", suite["business"])
+        settings = Settings(
+            _env_file=None,
+            db_path=Path(temporary) / "business.sqlite",
+            docs_dir=suite["root"] / "docs",
+            retrieval_mode="bm25",
+            relevance_calibration_path=None,
+            top_k=3,
+            reranker_enabled=False,
+            chunk_size=700,
+            chunk_overlap=80,
+        )
+        chunks = KnowledgeBase(settings).load_documents()
+        valid = {c.chunk_id for c in chunks}
+        lexical = LexicalIndex(chunks)
+        registry = ToolRegistry(settings, kb=LocalKnowledge(settings))
+        rows = []
         for case in suite["rag"]["cases"]:
             started = time.perf_counter()
             result, events, error = registry.run(
@@ -476,28 +479,30 @@ def run_rag(suite):
                     grade=score_retrieval(case, ids, valid, error),
                 )
             )
-    supported = [r for r in rows if r["evidence_groups"]]
-    unsupported = [r for r in rows if not r["evidence_groups"]]
-    summary = dict(
-        questions=len(rows),
-        supported=len(supported),
-        unsupported=len(unsupported),
-        supported_all_evidence=sum(r["grade"]["outcome"] == "pass" for r in supported),
-        mean_supported_recall=sum(
-            (r["grade"]["evidence"] or {}).get("recall", 0) for r in supported
+        supported = [r for r in rows if r["evidence_groups"]]
+        unsupported = [r for r in rows if not r["evidence_groups"]]
+        summary = dict(
+            questions=len(rows),
+            supported=len(supported),
+            unsupported=len(unsupported),
+            supported_all_evidence=sum(r["grade"]["outcome"] == "pass" for r in supported),
+            mean_supported_recall=sum(
+                (r["grade"]["evidence"] or {}).get("recall", 0) for r in supported
+            )
+            / len(supported),
+            candidate_all_evidence=sum(
+                bool(r["candidate_metrics"]["all_evidence"]) for r in supported
+            ),
+            unsupported_context_exposed=sum(bool(r["context"]) for r in unsupported),
+            errors=sum(r["grade"]["outcome"] == "execution_error" for r in rows),
+            mode="actual_V3_LocalKnowledge_BM25",
+            generated_answers="not_run",
+            dense="not_run_no_offline_semantic_embedding",
+            hybrid="not_run",
+            chunk_size=700,
+            chunk_overlap=80,
         )
-        / len(supported),
-        candidate_all_evidence=sum(bool(r["candidate_metrics"]["all_evidence"]) for r in supported),
-        unsupported_context_exposed=sum(bool(r["context"]) for r in unsupported),
-        errors=sum(r["grade"]["outcome"] == "execution_error" for r in rows),
-        mode="actual_V3_LocalKnowledge_BM25",
-        generated_answers="not_run",
-        dense="not_run_no_offline_semantic_embedding",
-        hybrid="not_run",
-        chunk_size=700,
-        chunk_overlap=80,
-    )
-    return dict(summary=summary, rows=rows)
+        return dict(summary=summary, rows=rows)
 
 
 def public_agent(result):

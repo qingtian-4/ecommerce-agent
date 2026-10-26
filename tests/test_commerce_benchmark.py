@@ -169,8 +169,11 @@ def test_actual_tool_mutations_and_answer_controls(tmp_path, suite, task_id, mut
         assert r["sql_correct"] and not r["tool_valid"]
 
 
-def test_real_rag_pipeline_and_frozen_source_gold(suite):
+def test_real_rag_pipeline_and_frozen_source_gold(suite, tmp_path, monkeypatch):
+    absent = tmp_path / "never-use-demo.sqlite"
+    monkeypatch.setenv("ACS_DB_PATH", str(absent))
     r = run_rag(suite)
+    assert not absent.exists()
     assert r["summary"]["questions"] == 36 and r["summary"]["errors"] == 0
     assert r["summary"]["supported"] == 32 and r["summary"]["unsupported"] == 4
     assert r["summary"]["generated_answers"] == "not_run"

@@ -86,6 +86,7 @@ Gold从冻结原文的字面证据映射到切块；同一事实允许多个证�
 ## 评分合同
 
 `src/acs/commerce_benchmark.py`适配已有执行器，不增加Agent Loop或业务事务。
+Runner单进程顺序执行，临时时钟及执行器投影是进程内适配，不应挂入Demo服务或并发线程。
 以下指标独立保留，不压成额外综合分数：
 
 1. SQL正确：逐步草稿字段、revision/预览有效性、申请及确认/审计计数、源表不可变，最后再读权威SQLite。
@@ -131,6 +132,8 @@ uv run pytest tests/test_commerce_benchmark.py
 `--ids CB03 CB14`仅选择Agent子集，仍执行完整RAG；`--without-controls`可省略对抗控制。
 Runner没有live模式。执行范围内禁止socket连接，发现被内部吞掉的联网异常也会令验收失败，
 模型与Embedding密钥在此进程置空，不影响并行运行的Demo。
+RAG的ToolRegistry也显式绑定新建的临时合成业务SQLite，结束后只清理该临时目录；
+不要求存在默认`data/db/business.db`，不会为通过CI初始化Demo库。
 
 输出public JSON包含逐题Scorecard、SQL对账、raw/display已知合成回答、RAG证据和Badcase。
 新目录`.private-evidence/CBxx`保留业务SQLite、Graph、工具回执、费用文件、完整模型输入/输出。
@@ -144,3 +147,17 @@ Dense/RRF需要真正离线语义Embedding和新语料的相关性标定，不�
 新语料在BM25上的证据遗漏及无答案暴露保留为Badcase，不在本轮更改默认检索链路。
 证据组尚不能穷尽全部同义段落，未知回答需要独立审查。下一阶段若要比较模型质量，
 需另行冻结输入/模型/权限/预算、获得付费授权，并保留原始与展示答案的独立语义审查。
+
+## 干净环境CI发现与修复
+
+首次提交`2023e57`的[CI](https://github.com/qingtian-4/ecommerce-agent/actions/runs/40332238935)
+为1176通过、1失败：`run_rag`构造ToolRegistry时未提供db_path，BusinessDB初始化隐式要求
+默认库存在，本机已有文件掩盖了该依赖。初始化尚未查询业务记录，但干净安装无法执行。
+冻结输入和评分无关，不通过改CI去初始化默认库修补。
+
+回归将ACS_DB_PATH指向不存在路径，原实现确定失败；修复为临时合成库后同一测试通过，
+并校验不存在的默认路径没有被创建。相关2处构造已核查：新RAG入口修复，复用M8的
+`ToolRegistry(gateway.settings)`已有显式Fixture路径，无需修改。
+run1原结果继续保留；新源码另执行run2，报告位于
+`results/commerce_benchmark_v1_1_20261026_run2`。数据/用户输入/评分合同不变，
+这次是执行环境隔离修复，不是任务质量或RAG指标提升。

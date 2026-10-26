@@ -1344,3 +1344,10 @@ results/shop_ui_20261026。全部使用SDK MockTransport与全新合成数据库
 漏召回。4个无直接答案问题仍返回上下文，仅证明暴露而非模型幻觉。COMMIT回执丢失后
 SQL恢复核验成功，Graph诊断仍需对账，不冒称镜像完全恢复。见COMMERCE_BENCHMARK.md
 及results/commerce_benchmark_v1_1_20261026。原Demo、历史实验和受保护业务源码不变。
+
+该新增Benchmark首次干净CI为1176通过/1失败，暴露了RAG入口ToolRegistry默认依赖本机
+已有业务库的缺陷；不是τ²数据缺失或Gold错误。将默认库环境设为不存在路径确定复现后，
+改为显式新建临时合成SQLite，原测试转绿，默认路径未被创建。复用M8的Registry已使用
+gateway Fixture路径，同类入口无需改动；不改CI初始化Demo库，也不修改用户默认数据库。
+保留初次CI及run1结果，新代码另行run2复验，输入和评分合同不变，见
+results/commerce_benchmark_v1_1_20261026_run2。
