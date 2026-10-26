@@ -52,13 +52,17 @@ function markdown(target,text){
   }
 }
 function scrollChat(change){const node=$('chat'),stick=node.scrollHeight-node.scrollTop-node.clientHeight<90,top=node.scrollTop;change();node.scrollTop=stick?node.scrollHeight:top;}
+function waitingDots(){
+  const dots=document.createElement('span');dots.className='waiting-dots';dots.setAttribute('aria-hidden','true');
+  for(let i=0;i<3;i++)dots.append(document.createElement('span'));return dots;
+}
 function executionEvent(row){
   if(!['turn_started','tool_requested','tool_completed','turn_failed','turn_completed'].includes(row.type))return;
   let panel=executionPanels.get(row.execution_id);
   if(!panel){
     const node=document.createElement('details'),summary=document.createElement('summary'),list=document.createElement('ol');
     node.className='bubble assistant execution-progress';node.dataset.executionId=row.execution_id;node.open=true;
-    list.className='execution-tools';node.append(summary,list);panel={node,summary,list,tools:new Map(),started:false};executionPanels.set(row.execution_id,panel);
+    list.className='execution-tools';const label=document.createElement('span');summary.append(label,waitingDots());node.append(summary,list);panel={node,summary:label,list,tools:new Map(),started:false};executionPanels.set(row.execution_id,panel);
   }
   if(row.type==='turn_started'){panel.started=true;panel.summary.textContent='正在处理您的问题';panel.node.dataset.status='running';}
   if(['tool_requested','tool_completed'].includes(row.type)){
@@ -70,19 +74,23 @@ function executionEvent(row){
     item.textContent=name+' · '+(failed?'工具未成功，正在处理回执':completed?'已返回结果':'已请求，等待回执');
     panel.summary.textContent=completed?'已收到工具回执，正在整理答复':'正在'+name;
   }
-  if(row.type==='turn_completed'){panel.summary.textContent='本轮回复完成 · '+panel.tools.size+' 项工具调用';panel.node.dataset.status='completed';panel.node.open=false;}
+  if(row.type==='turn_completed'){panel.summary.textContent=(panel.tools.size?'查看处理摘要 · '+panel.tools.size+' 项工具调用':'回复已完成');panel.node.dataset.status='completed';panel.node.open=false;panel.node.hidden=panel.tools.size===0;}
   if(row.type==='turn_failed'){
-    panel.summary.textContent='本轮未完成，请先核对业务状态';panel.node.dataset.status='error';panel.node.open=true;
+    panel.node.hidden=false;panel.summary.textContent='本轮未完成，请先核对业务状态';panel.node.dataset.status='error';panel.node.open=true;
     const line=document.createElement('li');line.dataset.status='error';
     const reasons={budget_exhausted:'本轮请求或授权时限已到',model_response_rejected:'模型响应未通过完整性检查',model_receipt_unverified:'模型请求回执或费用未核实',conversation_incomplete:'对话执行中断'};
     line.textContent=(reasons[row.data.reason]||'执行未完成')+'，不会自动重新提交业务操作。';panel.list.append(line);
   }
 }
 function draftNodes(){
-  if(outgoing){const div=document.createElement('div'),label=document.createElement('span');div.className='bubble user outgoing';label.className='speaker';label.textContent='你 · '+outgoing.status;div.append(label,document.createTextNode(outgoing.text));$('chat').append(div);}
+  if(outgoing){const div=document.createElement('div');div.className='bubble user outgoing';div.setAttribute('aria-label','用户消息，'+outgoing.status);div.textContent=outgoing.text;$('chat').append(div);}
   for(const [id,panel]of executionPanels)if(!attachedExecutions.has(id))$('chat').append(panel.node);
+  const queued=historyJobs.some(j=>['queued','running'].includes(j.status)&&!executionPanels.has(j.id));
+  if((outgoing&&(requestPending||executionActive)||queued)&&![...executionPanels.values()].some(p=>p.node.dataset.status==='running')){
+    const pending=document.createElement('div');pending.className='pending-reply';pending.setAttribute('role','status');pending.append(document.createTextNode(requestPending?'正在接收消息':'等待处理'),waitingDots());$('chat').append(pending);
+  }
   if(requestError){const div=document.createElement('div');div.className='bubble assistant request-error';div.setAttribute('role','alert');div.textContent=requestError;$('chat').append(div);}
-  for(const value of drafts.values()){const div=document.createElement('div'),label=document.createElement('span'),body=document.createElement('div');div.className='bubble assistant draft';div.setAttribute('aria-busy','true');label.className='speaker';label.textContent='客服 · 正在回复，内容待核验';body.className='message-body';markdown(body,value.text);div.append(label,body);$('chat').append(div);}
+  for(const value of drafts.values()){const div=document.createElement('div'),label=document.createElement('span'),body=document.createElement('div');div.className='bubble assistant draft';div.setAttribute('aria-busy','true');label.className='message-note';label.textContent='生成中 · 业务状态待核验';body.className='message-body';markdown(body,value.text);div.append(label,body);$('chat').append(div);}
 }
 function chat(history,jobs=[]){
   historyJobs=jobs;lastUserCount=history.filter(row=>row.role==='user').length;
@@ -94,21 +102,22 @@ function chat(history,jobs=[]){
   if(started.length===lastUserCount)for(const job of historyJobs){if(job.kind==='message'&&executionPanels.get(job.id)?.started)index++;if(index>=0&&['message','resume'].includes(job.kind)&&executionPanels.has(job.id))(groups[index]??=[]).push(job.id);}
   scrollChat(()=>{
     $('chat').replaceChildren();attachedExecutions=new Set();let user=-1;
+    if(!history.length&&!outgoing&&!jobs.length){const greeting=document.createElement('p');greeting.className='welcome';greeting.textContent='你好，有什么可以帮你？';$('chat').append(greeting);}
     for(const row of history){
-      const div=document.createElement('div'),label=document.createElement('span'),body=document.createElement('div');div.className='bubble '+row.role;label.className='speaker';label.textContent=row.role==='user'?'你':row.review_status==='legacy_unchecked'?'客服 · 历史回复未经过本轮核验':'客服';body.className='message-body';if(row.role==='assistant')markdown(body,row.content||'此轮未完成，请查询状态');else body.textContent=row.content;div.append(label,body);$('chat').append(div);
+      const div=document.createElement('div'),label=document.createElement('span'),body=document.createElement('div');div.className='bubble '+row.role;div.setAttribute('aria-label',row.role==='user'?'用户消息':'客服回复');if(row.review_status==='legacy_unchecked'){label.className='message-note';label.textContent='历史回复未经过本轮核验';div.append(label);}body.className='message-body';if(row.role==='assistant')markdown(body,row.content||'此轮未完成，请查询状态');else body.textContent=row.content;div.append(body);$('chat').append(div);
       if(row.role==='user'){user++;for(const id of groups[user]||[]){$('chat').append(executionPanels.get(id).node);attachedExecutions.add(id);}}
     }
     draftNodes();
   });
 }
-function paintDrafts(){scrollChat(()=>{for(const node of $('chat').querySelectorAll('.draft,.outgoing,.request-error'))node.remove();draftNodes();});}
+function paintDrafts(){scrollChat(()=>{for(const node of $('chat').querySelectorAll('.draft,.outgoing,.request-error,.pending-reply'))node.remove();draftNodes();});}
 function answerEvent(row){const key=row.execution_id+':'+row.data.message_id;if(row.type==='answer_delta')drafts.set(key,{job:row.execution_id,text:row.data.text});if(row.type==='answer_discarded')drafts.delete(key);if(['answer_completed','turn_completed','turn_failed'].includes(row.type))for(const [id,value]of drafts)if(value.job===row.execution_id)drafts.delete(id);}
 function pendingAttempt(value){const key='v3-confirm-attempt-'+sid;if(value===undefined){try{return JSON.parse(sessionStorage.getItem(key)||'null');}catch{return null;}}if(value)sessionStorage.setItem(key,JSON.stringify(value));else sessionStorage.removeItem(key);}
 function unknownCard(reason){return {state:'UNKNOWN',status:'UNKNOWN',reason,allowed_actions:['refresh'],authoritative:false};}
 function controls(){
   const executing=requestPending||executionActive||!sessionReady;
   $('send').disabled=executing||!snapshotReadable;
-  $('send').textContent=requestPending?'正在发送…':executionActive?'正在处理…':'发送消息 ↗';
+  $('send').textContent=requestPending?'发送中':executionActive?'回复中':'发送';
   $('resume').disabled=executing||!snapshotReadable||card?.state==='UNKNOWN';
   for(const id of ['open','accept','reject','cancel','recover'])$(id).disabled=executing||$(id).dataset.unavailable==='true'||!card||card.state==='UNKNOWN';
   $('refresh').disabled=!sessionReady;
@@ -179,8 +188,8 @@ async function connect(){
   try{let rows;do{const response=await fetch('/api/sessions/'+sid+'/events?once=true&after='+last,{credentials:'same-origin'});if(!response.ok)throw new Error('进度记录暂不可读');rows=(await response.text()).split('\n').filter(l=>l.startsWith('data: ')).map(l=>JSON.parse(l.slice(6)));rows.forEach(renderEvent);}while(rows.length===100);paintDrafts();await refresh();}
   catch{notice('进度记录暂不可读，业务操作不会重发。');}
   source=new EventSource('/api/sessions/'+sid+'/events?after='+last);
-  source.onopen=()=>{connectionState='connected';$('connection').textContent='进度已连接';};
-  source.onerror=()=>{connectionState='reconnecting';$('connection').textContent='进度重连中，任务不会重复执行';};
+  source.onopen=()=>{connectionState='connected';document.body.dataset.stream='connected';$('connection').textContent='进度已连接';};
+  source.onerror=()=>{connectionState='reconnecting';document.body.dataset.stream='reconnecting';$('connection').textContent='进度重连中，任务不会重复执行';};
   for(const kind of Object.keys(labels))source.addEventListener(kind,e=>{const row=JSON.parse(e.data);if(seenEvents.has(row.id))return;renderEvent(row);paintDrafts();progressEvent(row);if(kind==='answer_delta'&&!historyRefreshed.has(row.execution_id)){historyRefreshed.add(row.execution_id);refresh().catch(e=>notice(e.message));}if(['turn_completed','turn_failed'].includes(kind))refresh().catch(e=>notice(e.message));if(kind==='turn_failed')notice('执行未完成，请查询权威状态，不要重复确认。');});
 }
 async function action(path,body={}){
@@ -210,4 +219,4 @@ $('message').addEventListener('keydown',event=>{
 $('open').onclick=()=>action('confirmation');for(const [id,decision]of [['accept','accept'],['reject','reject'],['cancel','cancel']])$(id).onclick=()=>wait&&action('decision',{wait_id:wait.wait_id,decision});
 $('resume').onclick=()=>action('resume');$('recover').onclick=()=>refresh().catch(e=>notice(e.message));$('refresh').onclick=()=>refresh().catch(e=>notice(e.message));
 for(const [name,text]of prompts){const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=name;b.onclick=()=>{$('message').value=text;$('message').focus();};$('prompts').append(b);}
-(async()=>{try{const b=await api('/api/bootstrap');csrf=b.csrf;sid=b.session_id;$('runtime-mode').textContent=b.runtime?b.runtime.label:'运行模式未知';$('runtime-notice').textContent=b.runtime?b.runtime.notice:'无法核实模型模式，请刷新。';$('examples').hidden=b.runtime?.mode==='deepseek';if(!sid)sid=(await api('/api/sessions',{})).session_id;sessionReady=true;await refresh();await connect();if(!executionActive)activity('可以查询商品、订单，或准备退货信息。');}catch(error){renderCard(unknownCard('database_unavailable'));notice(error.message);}})();
+(async()=>{try{const b=await api('/api/bootstrap');csrf=b.csrf;sid=b.session_id;$('runtime-mode').textContent=b.runtime?b.runtime.label:'运行模式未知';$('runtime-notice').textContent=b.runtime?b.runtime.notice:'无法核实模型模式，请刷新。';if(!sid)sid=(await api('/api/sessions',{})).session_id;sessionReady=true;await refresh();await connect();if(!executionActive)activity('可以查询商品、订单，或准备退货信息。');}catch(error){renderCard(unknownCard('database_unavailable'));notice(error.message);}})();

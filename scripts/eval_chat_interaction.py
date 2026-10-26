@@ -1,7 +1,7 @@
 """Real Chromium keyboard/inline-SSE checks using offline SDK transport only.
 
 Run with isolated Playwright tooling, not the application's paid credentials.
---baseline routes only app.js to the accepted old asset for a genuine red run.
+--baseline pins old assets for a genuine red run (full assets in presentation mode).
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(out, port, baseline):
+def run(out, port, baseline, presentation=False):
     os.umask(0o077)
     with socket.socket() as probe:
         if probe.connect_ex(("127.0.0.1", port)) == 0:
@@ -43,9 +43,17 @@ def run(out, port, baseline):
             str(ROOT / ".venv/bin/python"),
             "-c",
             "import sys;from pathlib import Path;from eval_answer_stream import serve;"
-            "serve(Path(sys.argv[1]),int(sys.argv[2]))",
+            "serve(Path(sys.argv[1]),int(sys.argv[2]),answer_text=sys.argv[3] or None)",
             str(runtime),
             str(port),
+            (
+                "已查询商品资料。\n\n**Anker 安克 65W GaN 充电器**\n\n"
+                "| 项目 | 规格 |\n|---|---|\n| 总功率 | 65W |\n"
+                "| 接口 | 2 个 USB-C、1 个 USB-A |\n\n"
+                "支持 PD3.0 / QC4+，采用折叠插脚。需要的话，还可以继续查订单或物流。"
+                if presentation
+                else ""
+            ),
         ],
         cwd=ROOT,
         env=env,
@@ -77,14 +85,35 @@ def run(out, port, baseline):
               for(const type of ['answer_delta','turn_completed','turn_failed','tool_requested',
                'tool_completed'])source.addEventListener(type,e=>window.streamLog.push({
                  type,id:e.lastEventId,time:performance.now()}));return source;};""")
+            if presentation:
+
+                def metadata(route):
+                    response = route.fetch()
+                    value = response.json()
+                    value["runtime"].update(
+                        mode="deepseek",
+                        label="离线 SDK 流式验收",
+                        notice="合成数据与 MockTransport，无付费模型请求。",
+                    )
+                    route.fulfill(response=response, json=value)
+
+                page.route("**/api/bootstrap", metadata)
             if baseline:
-                old = subprocess.check_output(
-                    ["git", "show", "d5d2198:src/acs/web_assets/app.js"], cwd=ROOT
-                )
-                page.route(
-                    "**/assets/app.js",
-                    lambda r: r.fulfill(body=old, content_type="application/javascript"),
-                )
+                reference = "de86dd0" if presentation else "d5d2198"
+
+                def pinned_asset(content):
+                    def handle(route):
+                        response = route.fetch()
+                        route.fulfill(response=response, body=content)
+
+                    return handle
+
+                for name in ["index.html", "app.js", "style.css"] if presentation else ["app.js"]:
+                    old = subprocess.check_output(
+                        ["git", "show", f"{reference}:src/acs/web_assets/{name}"], cwd=ROOT
+                    )
+                    url = origin + ("/" if name == "index.html" else "/assets/" + name)
+                    page.route(url, pinned_asset(old))
             page.on(
                 "request",
                 lambda r: (
@@ -95,6 +124,19 @@ def run(out, port, baseline):
             )
             page.goto(origin)
             page.wait_for_selector("#send:not([disabled])")
+            if presentation:
+                checks["examples_visible_in_model_mode"] = page.locator("#examples").is_visible()
+                count_before = len(observed)
+                for name in ["商品咨询", "订单查询"]:
+                    if page.get_by_role("button", name=name, exact=True).is_visible():
+                        page.get_by_role("button", name=name, exact=True).click()
+                checks["examples_only_fill_input"] = (
+                    bool(page.locator("#message").input_value()) and len(observed) == count_before
+                )
+                checks["compact_composer"] = (
+                    page.locator("#compose").bounding_box()["height"] <= 100
+                )
+                page.screenshot(path=str(out / "empty.png"), full_page=True)
             field = page.locator("#message")
             field.fill("第一行")
             field.press("Shift+Enter")
@@ -141,8 +183,42 @@ def run(out, port, baseline):
             checks["draft_before_completion"] = not page.evaluate(
                 "streamLog.some(e=>e.type==='turn_completed')"
             )
+            if presentation:
+                checks["single_focus_ring"] = page.locator("#compose").evaluate(
+                    "n=>getComputedStyle(n).outlineStyle==='solid'"
+                ) and field.evaluate("n=>getComputedStyle(n).outlineStyle==='none'")
+                checks["three_waiting_dots"] = (
+                    page.locator(
+                        '#chat .execution-progress[data-status="running"] .waiting-dots span'
+                    ).count()
+                    == 3
+                )
+                checks["waiting_animation_active"] = page.locator(
+                    "#chat .waiting-dots span"
+                ).evaluate_all("ns=>ns.some(n=>getComputedStyle(n).animationName!=='none')")
+                page.emulate_media(reduced_motion="reduce")
+                checks["reduced_motion_is_static"] = page.locator(
+                    "#chat .waiting-dots span"
+                ).evaluate_all(
+                    "ns=>ns.length>0&&ns.every(n=>getComputedStyle(n).animationName==='none')"
+                )
+                page.emulate_media(reduced_motion="no-preference")
+                page.screenshot(path=str(out / "loading.png"), full_page=True)
+                before_reconnect = ledger_count()
+                page.evaluate("source.close();source.onerror(new Event('error'))")
+                checks["disconnect_stops_animation"] = page.locator(
+                    "#chat .waiting-dots span"
+                ).evaluate_all(
+                    "ns=>ns.length>0&&ns.every(n=>getComputedStyle(n).animationName==='none')"
+                )
+                page.evaluate("connect()")
+                page.wait_for_function(
+                    "()=>document.getElementById('connection').textContent==='进度已连接'"
+                )
+                checks["reconnect_no_requests"] = ledger_count() == before_reconnect
             page.wait_for_function(
-                "() => streamLog.filter(e=>e.type==='turn_completed').length===1"
+                "() => Array.from(document.querySelectorAll('#trace li'))"
+                ".filter(n=>n.textContent.includes('执行完成')).length===1"
             )
             page.wait_for_selector("#send:not([disabled])")
             send("工具查询")
@@ -155,6 +231,16 @@ def run(out, port, baseline):
                 "() => streamLog.filter(e=>e.type==='turn_completed').length===2"
             )
             page.wait_for_selector("#send:not([disabled])")
+            if presentation:
+                checks["no_visible_role_labels"] = page.locator("#chat .speaker").count() == 0
+                checks["user_message_has_accessible_identity"] = (
+                    page.locator('#chat .user[aria-label="用户消息"]').count() == 2
+                )
+                checks["completed_animation_stopped"] = page.locator(
+                    "#chat .waiting-dots span"
+                ).evaluate_all(
+                    "ns=>ns.length>0&&ns.every(n=>getComputedStyle(n).animationName==='none')"
+                )
             before = ledger_count()
             page.reload()
             page.wait_for_selector("#send:not([disabled])")
@@ -175,6 +261,21 @@ def run(out, port, baseline):
                 "document.documentElement.scrollWidth<=innerWidth+1"
             )
             page.screenshot(path=str(out / "mobile.png"), full_page=True)
+            if presentation:
+                geometry = {}
+                for width in [320, 390, 850, 851, 1280]:
+                    page.set_viewport_size({"width": width, "height": 900})
+                    geometry[str(width)] = {
+                        "overflow": page.evaluate(
+                            "document.documentElement.scrollWidth>innerWidth+1"
+                        ),
+                        "composer_height": page.locator("#compose").bounding_box()["height"],
+                    }
+                checks["responsive_matrix_no_overflow"] = all(
+                    not row["overflow"] for row in geometry.values()
+                )
+                (out / "geometry.json").write_text(json.dumps(geometry, indent=2) + "\n")
+                page.set_viewport_size({"width": 390, "height": 844})
             send("协议拒绝")
             page.wait_for_function("() => streamLog.some(e=>e.type==='turn_failed')")
             checks["error_inside_chat"] = (
@@ -182,6 +283,13 @@ def run(out, port, baseline):
             )
             checks["failed_draft_withdrawn"] = page.locator("#chat .draft").count() == 0
             page.screenshot(path=str(out / "error.png"), full_page=True)
+            if presentation:
+                checks["failed_animation_stopped"] = page.locator(
+                    "#chat .waiting-dots span"
+                ).evaluate_all(
+                    "ns=>ns.length>0&&ns.every(n=>getComputedStyle(n).animationName==='none')"
+                )
+                checks["no_browser_script_errors"] = not page_errors
             checks["three_messages_only"] = len(observed) == 3
             browser.close()
         with sqlite3.connect((runtime / "business.sqlite").as_uri() + "?mode=ro", uri=True) as conn:
@@ -195,6 +303,8 @@ def run(out, port, baseline):
     result = dict(
         kind="offline_real_sdk_and_chromium",
         baseline=baseline,
+        presentation=presentation,
+        assets_reference=("de86dd0" if presentation else "d5d2198") if baseline else "working_tree",
         paid_model_requests=0,
         checks=checks,
         passed=all(checks.values()),
@@ -209,6 +319,7 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--port", type=int, default=8772)
     parser.add_argument("--baseline", action="store_true")
+    parser.add_argument("--presentation", action="store_true")
     args = parser.parse_args()
-    result = run(args.out.resolve(), args.port, args.baseline)
+    result = run(args.out.resolve(), args.port, args.baseline, args.presentation)
     raise SystemExit(0 if result["passed"] else 1)

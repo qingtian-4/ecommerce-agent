@@ -25,7 +25,7 @@ INPUTS = [
 ]
 
 
-def serve(root, port):
+def serve(root, port, *, answer_text=None):
     """Only the offline verification process uses these synthetic SDK bytes."""
     import asyncio
     from contextlib import contextmanager
@@ -71,7 +71,7 @@ def serve(root, port):
                     'type': 'function', 'function': {'name': 'get_product',
                     'arguments': '{"product_id":"P003"}'}}]}, 'tool_calls')
             else:
-                content = ('P003商品咨询：以下是生成中的正文片段，'
+                content = answer_text or ('P003商品咨询：以下是生成中的正文片段，'
                            '提交情况请以右侧权威数据库核验为准。') * 12
                 for i in range(0, len(content), 24):
                     yield frame({'content': content[i:i+24]})
