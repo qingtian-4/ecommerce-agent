@@ -1351,3 +1351,14 @@ SQL恢复核验成功，Graph诊断仍需对账，不冒称镜像完全恢复。
 gateway Fixture路径，同类入口无需改动；不改CI初始化Demo库，也不修改用户默认数据库。
 保留初次CI及run1结果，新代码另行run2复验，输入和评分合同不变，见
 results/commerce_benchmark_v1_1_20261026_run2。
+
+2026-10-27 扩展Ecommerce-Agent-Bench：40商品/240订单/30文档/120检索题/60任务实例，
+复用M8双Runtime、SQL/工具/开放回答评分，按12场景族分割，参数化实例不称独立场景。
+发现扩展题面明细ID漏映射，先失败测试再发布v2.1，旧v2保留并标无效；未改冻结题迁就分数。
+真实本地BGE INT8/FAISS/RRF/Cross-Encoder对照中，验证80有答案题Recall@3分别
+BM25 1.0、Dense .80625、Hybrid .95、Rerank 1.0；精确型号问题多且简单，不能外推优劣。
+重排p50约785ms而BM25约.69ms，暂不值得切默认；8个无直接答案都有上下文，只记暴露非幻觉。
+50共同配对规范化输入/SQL/工具一致，各45通过、5个同族取消失败：前置语句导致整句授权拒绝，
+固定回答却称取消。10应用增量控制通过，模型质量尚未测；优先保持失败，未加关键词业务补丁。
+动态用户只读公开回答的实际工具控制与SDK MockTransport各自单列。详见
+BENCHMARK_COMPARISON.md及results/commerce_comparison_20261027；真实Pilot另记结果。
