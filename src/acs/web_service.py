@@ -10,6 +10,7 @@ import json
 import re
 import secrets
 import sqlite3
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, closing, contextmanager, nullcontext
 from datetime import UTC, datetime
@@ -175,6 +176,7 @@ class AnswerStreamCallback(BaseCallbackHandler):
     def __init__(self, engine, sid, jid):
         self.engine, self.sid, self.jid = engine, sid, jid
         self.answers = {}
+        self.published = {}
 
     def on_chat_model_start(self, serialized, messages, *, run_id, **kwargs):
         self.answers[run_id] = PublicAnswer(f"answer-{len(self.answers)+1}",
@@ -198,8 +200,18 @@ class AnswerStreamCallback(BaseCallbackHandler):
         if message.tool_call_chunks or message.invalid_tool_calls:
             self._discard(answer, "tool_phase")
         elif value := answer.add(message.content):
+            self.publish(answer, value)
+
+    def publish(self, answer, value, *, flush=False):
+        previous, finished = self.published.get(answer.message_id, (0, 0))
+        added = len(value) - previous
+        # Persist useful batches, not every SDK token. Measure the interval AFTER
+        # the preceding durable write so slow disks cannot defeat coalescing.
+        if added > 0 and (not previous or flush or added >= 64
+                          or (added >= 16 and time.monotonic() - finished >= .12)):
             self.engine.emit(self.sid, self.jid, "answer_delta", text=value,
                              message_id=answer.message_id, status="provisional")
+            self.published[answer.message_id] = (len(value), time.monotonic())
 
     def on_llm_end(self, response, *, run_id, **kwargs):
         for batch in response.generations:
@@ -207,6 +219,9 @@ class AnswerStreamCallback(BaseCallbackHandler):
                 message = getattr(generation, "message", None)
                 if message and (message.tool_calls or message.invalid_tool_calls):
                     self._discard(self.answers[run_id], "tool_phase")
+        answer = self.answers[run_id]
+        if not answer.blocked:
+            self.publish(answer, answer.visible, flush=True)
 
     def on_llm_error(self, error, *, run_id, **kwargs):
         if run_id in self.answers:
@@ -234,18 +249,33 @@ class WebEngine:
         self.secret_values = (*secret_values, *identity)
         self.db = self.root / "web.sqlite"
         self.lock_file = None
+        self.wal_anchor = None
 
     @contextmanager
     def tx(self):
         with closing(sqlite3.connect(self.db, timeout=10)) as conn, conn:
             conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA synchronous=FULL")
             conn.execute("BEGIN IMMEDIATE")
+            yield conn
+
+    @contextmanager
+    def read(self):
+        # SSE/auth/history must never acquire the single writer reservation.
+        with closing(sqlite3.connect(self.db.as_uri() + "?mode=ro", uri=True,
+                                     timeout=10)) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA query_only=ON")
             yield conn
 
     def start(self):
         self.lock_file = (self.root / "web-worker.lock").open("a")
         try:
             fcntl.flock(self.lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            # Keep one connection open for the worker lifetime. Otherwise closing
+            # each tiny transaction also checkpoints/deletes WAL on the last close.
+            self.wal_anchor = sqlite3.connect(self.db, check_same_thread=False)
+            self.wal_anchor.execute("PRAGMA journal_mode=WAL")
             with self.tx() as conn:
                 conn.execute(
                     "CREATE TABLE IF NOT EXISTS browsers(token_hash TEXT PRIMARY KEY, "
@@ -280,18 +310,21 @@ class WebEngine:
             self.db.chmod(0o600)
             self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="v3-demo")
         except BaseException:
+            if self.wal_anchor is not None:
+                self.wal_anchor.close()
             self.lock_file.close()
             raise
 
     def stop(self):
         self.executor.shutdown(wait=True)  # Don't close Graph/SDK while a job still owns it.
+        self.wal_anchor.close()
         self.lock_file.close()
 
     def browser(self, token):
         if not token:
             return None
         digest = hashlib.sha256(token.encode()).hexdigest()
-        with self.tx() as conn:
+        with self.read() as conn:
             row = conn.execute("SELECT * FROM browsers WHERE token_hash=?", (digest,)).fetchone()
         return dict(row) if row else None
 
@@ -515,7 +548,7 @@ class WebEngine:
                 )
 
     def events(self, sid, after):
-        with self.tx() as conn:
+        with self.read() as conn:
             return [
                 {
                     "id": r["id"],
@@ -538,7 +571,7 @@ class WebEngine:
 
     def present_answer(self, sid, tid, jid, raw):
         fingerprint = hashlib.sha256(raw.encode()).hexdigest()
-        with self.tx() as conn:
+        with self.read() as conn:
             row = conn.execute("SELECT * FROM answer_presentations WHERE session_id=? "
                                "AND turn_id=?", (sid, tid)).fetchone()
         if row:
@@ -577,7 +610,7 @@ class WebEngine:
             turns = conn.execute("SELECT turn_id,user_text,status,answer FROM "
                                  "conversation_turns WHERE session_id=? ORDER BY sequence",
                                  (sid,)).fetchall()
-        with self.tx() as conn:
+        with self.read() as conn:
             displays = {r["turn_id"]: r for r in conn.execute(
                 "SELECT * FROM answer_presentations WHERE session_id=?", (sid,))}
         history = []
@@ -600,7 +633,7 @@ class WebEngine:
     def snapshot(self, sid):
         # A completed job implies the following SQL/display reads are already durable.
         # Reading jobs last could pair a new terminal status with an earlier history.
-        with self.tx() as conn:
+        with self.read() as conn:
             jobs = [dict(r) for r in conn.execute(
                 "SELECT id,kind,status FROM jobs WHERE session_id=? ORDER BY rowid", (sid,))]
         state = self.gateway.state(sid, UID)

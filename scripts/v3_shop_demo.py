@@ -31,6 +31,8 @@ def main():
     parser.add_argument("--state-dir", type=Path, required=True)
     parser.add_argument("--port", type=int, default=8768)
     parser.add_argument("--init", action="store_true")
+    parser.add_argument("--dataset", type=Path,
+                        help="Versioned shop-realism-v1 data; requires a fresh --init")
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--authorization", type=Path)
@@ -40,7 +42,14 @@ def main():
     if not 1024 <= args.port <= 65535:
         parser.error("Invalid port")
     if args.init:
-        init_formal_fixture(root)
+        if args.dataset:
+            from acs.shop_demo_data import materialize
+
+            materialize(root, args.dataset)
+        else:
+            init_formal_fixture(root)
+    elif args.dataset:
+        parser.error("--dataset requires --init and never overwrites an existing fixture")
     origin = f"http://127.0.0.1:{args.port}"
     if args.live:
         if not all([args.env_file, args.authorization, args.price_review]):

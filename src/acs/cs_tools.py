@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 import traceback
-import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -30,7 +29,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .capabilities import capability_notice
 from .config import Settings, get_settings
 from .context import ContextLimitExceeded
-from .database import BusinessDB
+from .database import BusinessDB, normalized_name
 from .knowledge_context import load_source_documents, select_source_documents
 from .returns import ReturnService, policy_for_reason, return_policy
 from .runtime import BudgetExceeded
@@ -50,6 +49,12 @@ class CatalogArgs(BaseModel):
     name_contains: str = Field(default="", max_length=80)
     category: str = Field(default="", max_length=80)
     max_price: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+
+
+class OrderListArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    name_contains: str = Field(default="", max_length=80)
+    product_id: str = Field(default="", max_length=80)
 
 
 @dataclass
@@ -124,9 +129,10 @@ class ToolRegistry:
         ))
         self.register(ToolSpec(
             name="list_orders",
-            description=("列出当前用户的订单候选及商品明细，按下单时间倒序。用户不记得订单号时"
-                         "先列候选；存在多个匹配订单时询问用户选择，不能猜选。"),
-            parameters={"type": "object", "properties": {}, "required": []},
+            description=("列出本人订单及全部明细，时间倒序。按商品查订单用name_contains"
+                         "名称子串（忽略全半角、空白、大小写）或product_id精确筛选。"
+                         "多候选须澄清，无匹配不放宽。"),
+            parameters=OrderListArgs.model_json_schema(),
             func=self._list_orders,
         ))
         self.register(
@@ -469,10 +475,14 @@ class ToolRegistry:
     # ------------------------------------------------------------------ #
     # tool implementations
     # ------------------------------------------------------------------ #
-    def _list_orders(self, *, current_user_id: str) -> dict[str, Any]:
+    def _list_orders(self, *, current_user_id: str, **arguments) -> dict[str, Any]:
+        try:
+            args = OrderListArgs.model_validate(arguments)
+        except ValueError as exc:
+            raise TypeError(str(exc)) from exc
         orders = []
         categories = {}
-        for row in self.db.list_orders(current_user_id):
+        for row in self.db.list_orders(current_user_id, **args.model_dump()):
             order = {key: row[key] for key in ("order_id", "status", "created_at", "delivered_at")}
             items = self.db.get_order(row["order_id"], current_user_id)["items"]
             order["items"] = []
@@ -489,6 +499,8 @@ class ToolRegistry:
             orders.append(order)
         result = {"orders": orders, "count": len(orders),
                   "instruction": "候选不等于用户选择。多个匹配订单或明细时必须澄清。"}
+        if query := args.model_dump(exclude_defaults=True):
+            result["query"] = query
         if self.settings.order_candidate_render_enabled or self.settings.order_constraint_enabled:
             result["product_categories"] = categories
         return result
@@ -542,10 +554,6 @@ class ToolRegistry:
             # enclosing product_id; all SKU facts remain exactly reconstructable.
             product["skus"] = [[sku[key] for key in CATALOG_SKU_FIELDS]
                                for sku in product["skus"]]
-        def normalized_name(value):
-            # Typography only: no edit distance, synonyms, intent parsing or auto-selection.
-            return "".join(unicodedata.normalize("NFKC", value).casefold().split())
-
         query = normalized_name(args.name_contains)
         matched = [p for p in products if query in normalized_name(p["name"])
                    and (not args.category or p["category"] == args.category)
@@ -566,7 +574,7 @@ class ToolRegistry:
                                 | {"after_product_id": page[-1]["product_id"]})
                 if more and page else None,
                 sort="product_id ASC", detail_tool="get_product",
-                scope="本店业务目录；筛选为字面条件，未提供的字段未知。",
+                scope="本店目录，字面筛选，缺失字段未知。",
                 instruction="has_more须续查；未穷尽不能宣称无匹配。预算不足须说明查询未完成。",
             )
 

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import unicodedata
 from contextlib import closing
 from datetime import date, datetime
 from pathlib import Path
@@ -35,6 +36,11 @@ from .config import Settings, get_settings
 from .return_rules import delivery_days, read_return_policy, within_window
 
 DAYS_IN_PRICE_PROTECTION = 15
+
+
+def normalized_name(value: str) -> str:
+    """Typography only; never infer a synonym, intention or selected entity."""
+    return "".join(unicodedata.normalize("NFKC", value).casefold().split())
 
 
 def business_today(settings: Settings) -> date:
@@ -114,12 +120,19 @@ class BusinessDB:
             )
         }
 
-    def list_orders(self, current_user_id: str) -> list[dict[str, Any]]:
-        return [dict(row) for row in self._query(
-            "SELECT order_id, status, total_amount, paid_amount, created_at, shipped_at,"
-            " delivered_at FROM orders WHERE user_id = ? ORDER BY created_at DESC, order_id",
-            (current_user_id,),
-        )]
+    def list_orders(self, current_user_id: str, *, name_contains: str = "",
+                    product_id: str = "") -> list[dict[str, Any]]:
+        with closing(connect(self.settings.db_path)) as conn:
+            conn.create_function("normalized_name", 1, normalized_name, deterministic=True)
+            return [dict(row) for row in conn.execute(
+                "SELECT order_id,status,total_amount,paid_amount,created_at,shipped_at,"
+                "delivered_at FROM orders o WHERE user_id=? AND (?='' AND ?='' OR EXISTS("
+                "SELECT 1 FROM order_items i JOIN products p USING(product_id) "
+                "WHERE i.order_id=o.order_id AND instr(normalized_name(p.name),?)>0 "
+                "AND (?='' OR p.product_id=?))) ORDER BY created_at DESC,order_id",
+                (current_user_id, name_contains, product_id, normalized_name(name_contains),
+                 product_id, product_id),
+            )]
 
     # ------------------------------------------------------------------ #
     def get_order(self, order_id: str, current_user_id: str) -> dict[str, Any]:

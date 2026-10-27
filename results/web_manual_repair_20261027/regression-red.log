@@ -1,0 +1,51 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+________ test_event_and_browser_reads_do_not_wait_for_a_reserved_writer ________
+
+tmp_path = PosixPath('/tmp/acs-latency-red-20261027/test_event_and_browser_reads_d0')
+
+    def test_event_and_browser_reads_do_not_wait_for_a_reserved_writer(tmp_path):
+        root = tmp_path / "fixture"
+        init_formal_fixture(root)
+        engine = WebEngine(root, lambda: nullcontext(None))
+        engine.start()
+        try:
+            token = engine.bootstrap()
+            engine.emit("sid", "job", "turn_started", status="running")
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                with engine.tx():
+                    reads = [pool.submit(engine.events, "sid", 0), pool.submit(engine.browser, token)]
+                    try:
+                        values = [future.result(timeout=0.5) for future in reads]
+                        blocked = False
+                    except TimeoutError:
+                        blocked = True
+>               assert not blocked, "Read-only SSE/auth competed for the writer lock"
+E               AssertionError: Read-only SSE/auth competed for the writer lock
+E               assert not True
+
+tests/test_web_latency.py:30: AssertionError
+__________ test_small_tokens_are_coalesced_but_terminal_text_is_exact __________
+
+    def test_small_tokens_are_coalesced_but_terminal_text_is_exact():
+        emitted = []
+        engine = SimpleNamespace(secret_values=(), emit=lambda *args, **kw: emitted.append((args, kw)))
+        callback = AnswerStreamCallback(engine, "session", "job")
+        run = uuid4()
+        callback.on_chat_model_start({}, [], run_id=run)
+        text = "订单状态来自数据库，请从候选中选择需要查询的订单。" * 40
+        for i in range(0, len(text), 3):
+            part = text[i:i+3]
+            callback.on_llm_new_token(part, run_id=run,
+                                     chunk=SimpleNamespace(message=AIMessageChunk(content=part)))
+        deltas = [kw["text"] for args, kw in emitted if args[2] == "answer_delta"]
+        assert deltas, "A long answer must be visible before completion"
+>       assert len(deltas) <= 30, "Do not synchronously commit every few characters"
+E       AssertionError: Do not synchronously commit every few characters
+E       assert 75 <= 30
+E        +  where 75 = len(['订单状态来自数据库，', '订单状态来自数据库，请从候选中选择需要查询的订单。', '订单状态来自数据库，请从候选中选择需要查询的订单。订单状态来自数据库，', '订单状态来自数据库，请从候选中选择需要查询的订单。订单状态来自数据库...状态来自数据库，请从候选中选择需要查询的订单。订单状态来自数据库，', '订单状态来自数据库，请从候选中选择需要查询的订单。订单状态来自数据库，请从候选中选择需要查询的订单。订单状态来自数据库，请从候选中选择需要查询的订单。', ...])
+
+tests/test_web_latency.py:49: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_web_latency.py::test_event_and_browser_reads_do_not_wait_for_a_reserved_writer
+FAILED tests/test_web_latency.py::test_small_tokens_are_coalesced_but_terminal_text_is_exact

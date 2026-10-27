@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import re
 from contextlib import asynccontextmanager, closing
 from datetime import UTC, datetime
 from pathlib import Path
@@ -103,15 +104,22 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
         sid: str,
         page: int = Query(1, ge=1),
         page_size: int = Query(3, ge=1, le=10),
+        name_contains: str = Query("", max_length=80),
+        product_id: str = Query("", max_length=80),
     ):
         access(request, sid)
-        rows = engine.gateway.registry.db.list_orders(UID)
+        rows = engine.gateway.registry.db.list_orders(
+            UID, name_contains=name_contains, product_id=product_id,
+        )
         start = (page - 1) * page_size
         return {
             "orders": [order(r["order_id"]) for r in rows[start : start + page_size]],
             "total": len(rows),
             "page": page,
             "page_size": page_size,
+            "query": {k: v for k, v in {
+                "name_contains": name_contains, "product_id": product_id,
+            }.items() if v},
         }
 
     @app.get("/api/sessions/{sid}/orders/{oid}")
@@ -149,7 +157,7 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
         history = engine.display_history(sid)  # Existing grounding/hash gate, never raw SDK.
         if len(history) != sum(1 if r["status"] == "running" else 2 for r in rows):
             raise HTTPException(409, "对话状态正在更新，请只读刷新")
-        with engine.tx() as conn:
+        with engine.read() as conn:
             feedback = {
                 r["turn_id"]: pick(dict(r), ("vote", "reason"))
                 for r in conn.execute(
@@ -182,17 +190,22 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
                     continue
                 answer = history[index]
                 index += 1
-                cards = {"orders": [], "products": [], "logistics": []}
+                cards = {"orders": [], "products": [], "logistics": [],
+                         "orders_scope": "tool_receipt", "orders_query": {}}
                 for receipt in receipts:
                     if receipt["error"]:
                         continue
                     value, name = json.loads(receipt["result"]), receipt["name"]
                     if name == "list_orders":
                         cards["orders"] = value.get("orders", [])
+                        cards["orders_query"] = value.get("query", {})
+                        cards["orders_scope"] = ("tool_query" if cards["orders_query"]
+                                                 else "tool_receipt")
                     elif name == "get_order" and value.get("found"):
                         cards["orders"] = [
                             pick(value, ("order_id", "status", "created_at", "items"))
                         ]
+                        cards["orders_scope"], cards["orders_query"] = "tool_receipt", {}
                     elif name == "list_products":
                         cards["products"] = list({p["product_id"]: p for p in [
                             *cards["products"], *value.get("products", []),
@@ -210,6 +223,17 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
                                 value, ("found", "order_id", "carrier", "status", "trace", "reason")
                             )
                         ]
+                # Historical unfiltered tools can still produce a specifically enumerated
+                # answer. Project only explicit, receipt-backed IDs; never infer a filter
+                # from keywords or declare these references an exhaustive search result.
+                if not cards["orders_query"]:
+                    mentioned = list(dict.fromkeys(re.findall(
+                        r"\bO\d{5,}\b", answer["content"],
+                    )))
+                    owned = {o["order_id"]: o for o in cards["orders"]}
+                    if mentioned and set(mentioned) < set(owned):
+                        cards["orders"] = [owned[oid] for oid in mentioned]
+                        cards["orders_scope"] = "answer_references"
                 # Do not forward complete get_order items (which can contain private fields).
                 cards["orders"] = [
                     pick(o, ("order_id", "status", "created_at"))

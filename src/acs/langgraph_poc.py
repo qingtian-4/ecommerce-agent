@@ -28,7 +28,7 @@ from langgraph.config import get_stream_writer
 from pydantic import BaseModel, ConfigDict, Field
 
 from .config import Settings
-from .cs_tools import CatalogArgs, ToolRegistry
+from .cs_tools import CatalogArgs, OrderListArgs, ToolRegistry
 
 RUNTIME_VERSION = "v3-readonly-1"
 
@@ -49,7 +49,7 @@ READ_TOOLS = {
     "list_products": CatalogArgs,
     "get_product": ProductArgs,
     "get_price_history": ProductArgs,
-    "list_orders": EmptyArgs,
+    "list_orders": OrderListArgs,
     "get_order": OrderArgs,
     "get_logistics": OrderArgs,
 }

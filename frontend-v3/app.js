@@ -15,6 +15,11 @@ let sid = '', csrf = '', snapshot = null, card = null, messages = [], human = nu
 
 const progress = new Map(), drafts = new Map();
 
+const liveRow = el('article', 'assistant-message draft');
+const liveBody = el('div', 'message-body'), liveText = el('div', 'message-text');
+liveRow.setAttribute('aria-busy', 'true');
+liveRow.append(botIcon(), liveBody);
+
 
 let returnNode = el('section', 'return-card');
 returnNode.id = 'return-card';
@@ -154,15 +159,27 @@ async function showLogistics(oid) {
 }
 
 
-async function allOrders(page = 1) {
+async function allOrders(page = 1, query = '') {
   try {
-    const data = await api(endpoint('/orders?page=' + page + '&page_size=3'));
+    const data = await api(endpoint('/orders?page=' + page + '&page_size=3&name_contains=' + encodeURIComponent(query)));
     const box = el('div', 'all-orders');
+    const search = el('form', 'order-search'), input = el('input');
+    input.type = 'search';
+    input.value = query;
+    input.maxLength = 80;
+    input.placeholder = '按商品名称筛选订单';
+    input.setAttribute('aria-label', '订单商品名称');
+    const submit = el('button', 'outline', '筛选');
+    submit.type = 'submit';
+    search.append(input, submit);
+    search.onsubmit = e => { e.preventDefault(); allOrders(1, input.value.trim()); };
+    box.append(search);
     box.append(el('p', 'muted', `共 ${data.total} 笔合成订单 · 每页 ${data.page_size} 笔`));
+    if (!data.total) box.append(el('p', '', '没有符合当前条件的订单，请核对商品名称。'));
     for (const order of data.orders)
       box.append(orderCard(order, actions));
     const pager = el('div', 'pager');
-    const prev = btn('上一页', () => allOrders(page - 1)), next = btn('下一页', () => allOrders(page + 1));
+    const prev = btn('上一页', () => allOrders(page - 1, query)), next = btn('下一页', () => allOrders(page + 1, query));
     prev.disabled = page <= 1;
     next.disabled = page * data.page_size >= data.total;
     pager.append(prev, el('span', '', `${page} / ${Math.max(1, Math.ceil(data.total / data.page_size))}`), next);
@@ -171,6 +188,21 @@ async function allOrders(page = 1) {
   } catch (e) {
     error(e.message);
   }
+}
+
+
+function candidateOrders(orders, title, page = 1) {
+  const box = el('div', 'all-orders'), size = 3;
+  box.append(el('p', 'muted', `本轮候选 ${orders.length} 笔 · 每页 ${size} 笔`));
+  orders.slice((page - 1) * size, page * size).forEach(o => box.append(orderCard(o, actions)));
+  const pager = el('div', 'pager');
+  const prev = btn('上一页', () => candidateOrders(orders, title, page - 1));
+  const next = btn('下一页', () => candidateOrders(orders, title, page + 1));
+  prev.disabled = page <= 1;
+  next.disabled = page * size >= orders.length;
+  pager.append(prev, el('span', '', `${page} / ${Math.ceil(orders.length / size)}`), next);
+  box.append(pager);
+  openDialog(title, box);
 }
 
 
@@ -389,11 +421,13 @@ function feedback(message) {
 
 function attachCards(body, cards) {
   if (cards?.orders?.length) {
-    const list = el('section', 'results'), head = el('div', 'results-head', '最近订单');
+    const title = cards.orders_scope === 'answer_references' ? '回答中提及的订单' : cards.orders_scope === 'tool_query' ? '符合查询条件的订单' : '工具返回的订单候选';
+    const list = el('section', 'results'), head = el('div', 'results-head', title);
     head.append(el('span', '', `合成数据 · ${Math.min(3, cards.orders.length)} / ${cards.orders.length} 笔`));
     list.append(head);
     cards.orders.slice(0, 3).forEach((o, i) => list.append(orderCard(o, actions, i > 0)));
-    list.append(btn('查看全部订单 ›', () => allOrders(), 'results-tail'));
+    const filtered = cards.orders_scope !== 'tool_receipt';
+    list.append(btn(filtered ? '查看本轮全部候选 ›' : '查看全部订单 ›', () => candidateOrders(cards.orders, title), 'results-tail'));
     body.append(list);
   }
   if (cards?.products?.length)
@@ -437,16 +471,15 @@ function render() {
       const user = el('div', 'user-message', message.content);
       chat.append(user);
       turnAnchors.set(message.turn_id, { node: user, inside: false });
-      for (const id of turnGroups.get(message.turn_id) || []) {
-        chat.append(progress.get(id).node);
-        turnAnchors.set(message.turn_id, { node: progress.get(id).node, inside: false });
-        attached.add(id);
-      }
       continue;
     }
     const row = el('article', 'assistant-message');
     row.dataset.messageId = message.message_id;
     const body = el('div', 'message-body');
+    for (const id of turnGroups.get(message.turn_id) || []) {
+      body.append(progress.get(id).node);
+      attached.add(id);
+    }
     const text = el('div', 'message-text');
     markdown(text, message.content || '此轮未完成，请核对状态。');
     body.append(text);
@@ -461,28 +494,28 @@ function render() {
 
   if (outgoing)
     chat.append(el('div', 'user-message outgoing', outgoing));
+  liveBody.replaceChildren();
+  let currentProgress = false;
   for (const [id, record] of progress) {
     const job = jobs.find(j => j.id === id), status = record.node.dataset.status;
     const running = status === 'running' && (!job || ['queued', 'running'].includes(job.status));
     const latestFailure = status === 'failed' && (!job || id === jobs.at(-1)?.id);
-    if (!attached.has(id) && (running || latestFailure))
-      chat.append(record.node);
+    if (!attached.has(id) && (running || latestFailure)) {
+      liveBody.append(record.node);
+      currentProgress = true;
+    }
   }
-  for (const draft of drafts.values()) {
-    const row = el('article', 'assistant-message draft');
-    row.setAttribute('aria-busy', 'true');
-    const body = el('div', 'message-body');
-    body.append(el('p', 'message-note', '生成中 · 业务状态待核验'));
-    const text = el('div', 'message-text');
-    markdown(text, draft.text);
-    body.append(text);
-    row.append(botIcon(), body);
-    chat.append(row);
-  }
-  if (active() && !drafts.size && ![...progress.values()].some(p => p.node.dataset.status === 'running')) {
-    const p = el('div', 'pending-message', '正在接收问题');
-    p.append(dots());
-    chat.append(p);
+  if (active() || drafts.size || currentProgress) {
+    liveRow.classList.toggle('draft', active() || drafts.size > 0);
+    liveRow.setAttribute('aria-busy', String(active()));
+    if (!currentProgress && !drafts.size) {
+      const p = el('div', 'pending-message', '正在接收问题');
+      p.append(dots());
+      liveBody.append(p);
+    }
+    liveBody.append(liveText);
+    chat.append(liveRow);
+    updateLiveText();
   }
   renderReturn();
   if (!returnNode.hidden) {
@@ -500,6 +533,19 @@ function render() {
   updateJumpLatest();
   renderContext();
   controls();
+}
+
+
+function updateLiveText() {
+  const chat = $('chat'), stick = atLatest();
+  const draft = [...drafts.values()].at(-1);
+  liveText.replaceChildren();
+  if (draft) {
+    liveText.append(el('p', 'message-note', '生成中 · 业务状态待核验'));
+    markdown(liveText, draft.text, false);
+  }
+  if (stick) chat.scrollTop = chat.scrollHeight;
+  updateJumpLatest();
 }
 
 
@@ -522,11 +568,15 @@ function progressEvent(event) {
       let item = row.tools.get(event.data.call_id);
       if (!item) {
         item = el('li');
+        item.dataset.callId = event.data.call_id;
+        item.dataset.tool = event.data.name;
         row.tools.set(event.data.call_id, item);
         row.list.append(item);
       }
       item.textContent = (labels[event.data.name] || '核对业务信息') + ' · ' + (event.type === 'tool_requested' ? '等待回执' : event.data.status === 'success' ? '已有真实回执' : '工具返回拒绝或错误');
-      row.label.textContent = '正在' + (labels[event.data.name] || '整理业务信息');
+      item.dataset.status = event.type === 'tool_requested' ? 'pending' : event.data.status;
+      const pendingTool = [...row.tools.values()].find(n => n.dataset.status === 'pending');
+      row.label.textContent = pendingTool ? '正在' + (labels[pendingTool.dataset.tool] || '核对业务信息') : '工具已返回，正在整理回复';
     }
     if (event.type === 'turn_completed') {
       row.node.dataset.status = 'completed';
@@ -538,7 +588,7 @@ function progressEvent(event) {
       row.node.hidden = false;
       row.node.dataset.status = 'failed';
       row.node.open = true;
-      row.label.textContent = '本轮未完成，请核对业务状态';
+      row.label.textContent = event.data.reason === 'budget_exhausted' ? '额度或授权期限已用完，本轮已停止' : '本轮未完成，请核对业务状态';
       row.list.append(el('li', '', '执行未完成：' + (event.data.reason || '请只读核对结果')));
     }
   }
@@ -547,7 +597,9 @@ function progressEvent(event) {
     drafts.set(key, { job: event.execution_id, text: event.data.text });
   if (event.type === 'answer_discarded')
     drafts.delete(key);
-  if (['answer_completed', 'turn_completed', 'turn_failed'].includes(event.type))
+  // Keep the provisional bubble until the authoritative history arrives. Removing
+  // it at answer_completed creates an empty flash before the final SQL projection.
+  if (['turn_failed', 'answer_discarded'].includes(event.type))
     for (const [k, v] of drafts)
       if (v.job === event.execution_id)
         drafts.delete(k);
@@ -564,8 +616,9 @@ function acceptEvent(event, replay = false) {
     $('trace').append(el('li', '', `#${event.id} ${event.type} ${event.data.name || event.data.status || ''}`));
   if (replay)
     return;
-  render();
-  if (['turn_completed', 'turn_failed', 'tool_completed', 'submission_verified', 'confirmation_required'].includes(event.type))
+  if (event.type === 'answer_delta' && liveRow.isConnected) updateLiveText();
+  else render();
+  if (['turn_completed', 'turn_failed', 'business_state_updated', 'submission_verified', 'confirmation_required'].includes(event.type))
     refresh().catch(e => error(e.message));
 }
 
@@ -633,7 +686,13 @@ async function refresh() {
     if (m.reason.status !== 409)
       error(m.reason.message, 'state_read');
   const current = card, attempt = pending();
-  if (s.status === 'fulfilled' && c.status === 'fulfilled' && m.status === 'fulfilled' && current.state === 'PENDING_REVIEW' && current.authoritative && ['submission_transport', 'state_read'].includes($('global-error').dataset.kind)) error('');
+  if (s.status === 'fulfilled' && c.status === 'fulfilled' && m.status === 'fulfilled') {
+    if ($('global-error').dataset.kind === 'state_read' || (current.state === 'PENDING_REVIEW' && current.authoritative && $('global-error').dataset.kind === 'submission_transport')) error('');
+    for (const [key, draft] of drafts) {
+      const job = snapshot.jobs.find(j => j.id === draft.job);
+      if (job && !['queued', 'running'].includes(job.status)) drafts.delete(key);
+    }
+  }
   if (attempt && ((current.state === 'PENDING_REVIEW' && current.authoritative && current.confirmation?.wait_id === attempt.wait_id) || (['rejected', 'cancelled', 'invalidated'].includes(current.confirmation?.status) && current.confirmation.wait_id === attempt.wait_id)))
     pending(null);
   const users = messages.filter(row => row.role === 'user');

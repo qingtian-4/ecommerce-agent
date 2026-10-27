@@ -32,6 +32,7 @@ export function icon(name) {
   svg.setAttribute('aria-hidden', 'true');
   const paths = { chat: 'M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V7a3 3 0 0 1 3-3Z M7 9h10 M7 13h6', headset: 'M4 14v-3a8 8 0 0 1 16 0v3 M4 12H3v7h4v-7H4 M20 12h1v7h-4v-7h3 M20 19v2h-5', power: 'M13 2 4 14h7l-1 8 10-13h-7Z', send: 'm3 3 18 9-18 9 4-9-4-9Z M7 12h14', up: 'M8 10v11H3V10h5Zm0 0 5-8c2 0 2 3 1 7h6c2 0 1 3 1 4l-2 7H8' };
   const path = document.createElementNS(svg.namespaceURI, 'path');
+  paths.box = 'm3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7 5l10 4';
   path.setAttribute('d', paths[name === 'down' ? 'up' : name] || paths.chat);
   if (name === 'down')
     path.setAttribute('transform', 'rotate(180 12 12)');
@@ -49,8 +50,9 @@ export function botIcon() {
 
 export function thumb(item) {
   const name = item.product_name || item.name || '';
-  const n = el('div', 'prod-thumb ' + (/耳机/.test(name) ? 'music' : 'charger'));
-  n.append(icon(/耳机/.test(name) ? 'headset' : 'power'));
+  const kind = /耳机/.test(name) ? 'headset' : /充电/.test(name) ? 'power' : 'box';
+  const n = el('div', 'prod-thumb ' + (kind === 'headset' ? 'music' : 'charger'));
+  n.append(icon(kind));
   n.setAttribute('role', 'img');
   n.setAttribute('aria-label', '商品类别示意图，非实拍');
   n.title = '类别示意图，非商品实拍';
@@ -101,13 +103,13 @@ export function inline(target, text) {
 
 // Same restricted DOM-only Markdown grammar as the original V3 UI; no innerHTML.
 
-export function markdown(target, text) {
+export function markdown(target, text, collapseOrders = true) {
   const sections = String(text).split(/\n\s*\n/);
   for (const section of sections) {
     const lines = section.split('\n');
     const ids = new Set(section.match(/O\d{5,}/g) || []);
     const isOrderTable = lines.some(l => l.includes('|') && l.includes('订单'));
-    if (isOrderTable || (ids.size > 3 && lines.some(l => /^\s*[-·*|\d]/.test(l)))) {
+    if (collapseOrders && (isOrderTable || (ids.size > 3 && lines.some(l => /^\s*[-·*|\d]/.test(l))))) {
       const details = el('details', 'source-answer');
       details.append(el('summary', '', '订单文字明细（展开原文）'));
       const body = el('div', 'source-body');

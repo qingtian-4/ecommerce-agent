@@ -1,0 +1,91 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_____ test_literal_name_query_keeps_owned_matches_and_whole_order[Life P3] _____
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+query = 'Life P3'
+
+    @pytest.mark.parametrize("query", ["Life P3", "ｌｉｆｅ ｐ３", "L i f e P 3"])
+    def test_literal_name_query_keeps_owned_matches_and_whole_order(settings, query):
+        registry = ToolRegistry(settings)
+        result, _, error = registry.run("list_orders", json.dumps({"name_contains": query}),
+                                        current_user_id="USER001")
+>       assert error is None
+E       assert "invalid_arguments: ToolRegistry._list_orders() got an unexpected keyword argument 'name_contains'" is None
+
+tests/test_order_search.py:23: AssertionError
+_ test_literal_name_query_keeps_owned_matches_and_whole_order[\uff4c\uff49\uff46\uff45 \uff50\uff13] _
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+query = 'ｌｉｆｅ ｐ３'
+
+    @pytest.mark.parametrize("query", ["Life P3", "ｌｉｆｅ ｐ３", "L i f e P 3"])
+    def test_literal_name_query_keeps_owned_matches_and_whole_order(settings, query):
+        registry = ToolRegistry(settings)
+        result, _, error = registry.run("list_orders", json.dumps({"name_contains": query}),
+                                        current_user_id="USER001")
+>       assert error is None
+E       assert "invalid_arguments: ToolRegistry._list_orders() got an unexpected keyword argument 'name_contains'" is None
+
+tests/test_order_search.py:23: AssertionError
+___ test_literal_name_query_keeps_owned_matches_and_whole_order[L i f e P 3] ___
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+query = 'L i f e P 3'
+
+    @pytest.mark.parametrize("query", ["Life P3", "ｌｉｆｅ ｐ３", "L i f e P 3"])
+    def test_literal_name_query_keeps_owned_matches_and_whole_order(settings, query):
+        registry = ToolRegistry(settings)
+        result, _, error = registry.run("list_orders", json.dumps({"name_contains": query}),
+                                        current_user_id="USER001")
+>       assert error is None
+E       assert "invalid_arguments: ToolRegistry._list_orders() got an unexpected keyword argument 'name_contains'" is None
+
+tests/test_order_search.py:23: AssertionError
+_____ test_no_match_and_literal_sql_metacharacters_do_not_drop_constraint ______
+
+settings = Settings(llm_provider='deepseek', llm_api_key='', llm_base_url='https://api.deepseek.com/v1', llm_model='deepseek-flas...r_candidate_render_enabled=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=None)
+
+    def test_no_match_and_literal_sql_metacharacters_do_not_drop_constraint(settings):
+        registry = ToolRegistry(settings)
+        for query in ["不存在的商品", "%", "' OR 1=1 --"]:
+            value, _, error = registry.run("list_orders", json.dumps({"name_contains": query}),
+                                           current_user_id="USER001")
+>           assert error is None and value["orders"] == [] and value["count"] == 0
+E           assert ("invalid_arguments: ToolRegistry._list_orders() got an unexpected keyword argument 'name_contains'" is None)
+
+tests/test_order_search.py:37: AssertionError
+______ test_cards_and_candidate_pagination_use_the_answer_receipt_subset _______
+
+tmp_path = PosixPath('/tmp/acs-order-red-verified-20261027/test_cards_and_candidate_pagin0')
+
+    def test_cards_and_candidate_pagination_use_the_answer_receipt_subset(tmp_path):
+        root = tmp_path / "shop"
+        init_formal_fixture(root)
+    
+        @contextmanager
+        def factory():
+            yield ScriptedModel(responses=[
+                call("list_orders", {}, uuid4().hex),
+                AIMessage(content="回答中要查看的两笔订单：O10024、O10027。请明确选择。"),
+            ])
+    
+        with TestClient(create_shop_app(root, factory), base_url=ORIGIN) as client:
+            sid, headers = browser(client)
+            post(client, sid, headers, "messages", text="查询耳机订单")
+            done(client, sid)
+            message = client.get(f"/api/sessions/{sid}/messages").json()["messages"][-1]
+>           assert [o["order_id"] for o in message["cards"]["orders"]] == ["O10024", "O10027"]
+E           AssertionError: assert ['O10026', 'O...'O10027', ...] == ['O10024', 'O10027']
+E             
+E             At index 0 diff: 'O10026' != 'O10024'
+E             Left contains 8 more items, first extra item: 'O10024'
+E             Use -v to get more diff
+
+tests/test_order_search.py:56: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_order_search.py::test_literal_name_query_keeps_owned_matches_and_whole_order[Life P3]
+FAILED tests/test_order_search.py::test_literal_name_query_keeps_owned_matches_and_whole_order[\uff4c\uff49\uff46\uff45 \uff50\uff13]
+FAILED tests/test_order_search.py::test_literal_name_query_keeps_owned_matches_and_whole_order[L i f e P 3]
+FAILED tests/test_order_search.py::test_no_match_and_literal_sql_metacharacters_do_not_drop_constraint
+FAILED tests/test_order_search.py::test_cards_and_candidate_pagination_use_the_answer_receipt_subset
