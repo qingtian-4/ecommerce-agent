@@ -61,6 +61,24 @@ def test_new_shell_keeps_old_shell_and_cookie_security(app_data):
         assert client.get("/api/bootstrap").json()["runtime"]["mode"] == "custom"
 
 
+def test_product_cards_retain_all_pages_in_the_same_turn(app_data):
+    root, _ = app_data
+
+    @contextmanager
+    def factory():
+        yield ScriptedModel(responses=[
+            call("list_products", {"page_size": 2}, uuid4().hex),
+            call("list_products", {"page_size": 2, "after_product_id": "P002"}, uuid4().hex),
+            AIMessage(content="已查询全部四件商品。"),
+        ])
+
+    with TestClient(create_shop_app(root, factory), base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        message = completed(client, sid, headers)
+        ids = [p["product_id"] for p in message["cards"]["products"]]
+        assert ids == ["P001", "P002", "P003", "P004"]
+
+
 def test_orders_are_paged_ordered_owned_and_whitelisted(app_data):
     root, factory = app_data
     with TestClient(create_shop_app(root, factory), base_url=ORIGIN) as client:

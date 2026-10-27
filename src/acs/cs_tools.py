@@ -24,6 +24,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from .capabilities import capability_notice
 from .config import Settings, get_settings
 from .context import ContextLimitExceeded
@@ -32,6 +34,21 @@ from .knowledge_context import load_source_documents, select_source_documents
 from .returns import ReturnService, policy_for_reason, return_policy
 from .runtime import BudgetExceeded
 from .sessions import SessionStore, TaskValidationError
+
+CATALOG_PAGE_BYTES = 8000
+CATALOG_CONTRACT = "catalog-pages-v1"
+CATALOG_SKU_FIELDS = ["sku_id", "wearing_type", "anc", "color", "availability"]
+
+
+class CatalogArgs(BaseModel):
+    """One shared contract for the Demo Loop and both isolated runtimes."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    after_product_id: str = Field(default="", max_length=80)
+    page_size: int = Field(default=8, ge=1, le=8)
+    name_contains: str = Field(default="", max_length=80)
+    category: str = Field(default="", max_length=80)
+    max_price: float | None = Field(default=None, ge=0, allow_inf_nan=False)
 
 
 @dataclass
@@ -98,10 +115,11 @@ class ToolRegistry:
     # ------------------------------------------------------------------ #
     def _register_all(self) -> None:
         self.register(ToolSpec(
-            "list_products", "列出本店全部商品及当前有效价、类目、佩戴方式等已知属性。"
-            "用于枚举商品或按用户硬条件找候选；知识检索未命中不能说明店内没有商品。"
-            "这是完整目录，不是推荐结果；颜色、图片、库存等未提供的字段仍未知。",
-            {"type": "object", "properties": {}, "required": []}, self._list_products,
+            "list_products", "分页查询本店目录，product_id升序；每页最多8件。"
+            "name_contains是名称原文子串，category精确类目，max_price按当前有效价筛选。"
+            "不猜测用户条件；has_more时用next_arguments继续，未查完不能声称穷尽或无匹配。"
+            "SKU每行按返回的sku_fields列名读取，全部约束保留；get_product可查完整详情。",
+            CatalogArgs.model_json_schema(), self._list_products,
         ))
         self.register(ToolSpec(
             name="list_orders",
@@ -508,13 +526,58 @@ class ToolRegistry:
             "documents": [c.as_dict() for c in chunks],
         }
 
-    def _list_products(self, *, current_user_id: str) -> dict[str, Any]:
+    def _list_products(self, *, current_user_id: str, **arguments) -> dict[str, Any]:
+        try:
+            args = CatalogArgs.model_validate(arguments)
+        except ValueError as exc:
+            raise TypeError(str(exc)) from exc
         products = [self.db.get_product(p["product_id"]) for p in self.db.list_products()]
         for product in products:
-            product.pop("price", None)  # Base price is not today's effective price.
-        return {"products": products, "count": len(products), "complete_catalog": True,
-                "scope": "本店业务目录；没有返回颜色、图片或库存不代表这些属性存在",
-                "instruction": "优先满足用户的佩戴方式、预算等硬条件；无匹配如实说明，不替换条件。"}
+            # Only remove stale price and redundant detail metadata. Brand, currency,
+            # all specifications and every SKU constraint remain available on each page.
+            for key in ("price", "found", "price_changed_at"):
+                product.pop(key, None)
+            # Factor repeated column names, never values. Product identity is the
+            # enclosing product_id; all SKU facts remain exactly reconstructable.
+            product["skus"] = [[sku[key] for key in CATALOG_SKU_FIELDS]
+                               for sku in product["skus"]]
+        matched = [p for p in products if args.name_contains in p["name"]
+                   and (not args.category or p["category"] == args.category)
+                   and (args.max_price is None or p["current_price"] is not None
+                        and p["current_price"] <= args.max_price)]
+        remaining = [p for p in matched if p["product_id"] > args.after_product_id]
+
+        def envelope(page):
+            more = len(page) < len(remaining)
+            return dict(
+                contract=CATALOG_CONTRACT, products=page, count=len(page),
+                sku_fields=CATALOG_SKU_FIELDS,
+                total_count=len(matched), catalog_count=len(products), has_more=more,
+                complete_catalog=(not args.after_product_id and not more
+                                  and len(matched) == len(products)),
+                query_complete=not args.after_product_id and not more,
+                next_arguments=(args.model_dump(exclude_defaults=True)
+                                | {"after_product_id": page[-1]["product_id"]})
+                if more and page else None,
+                sort="product_id ASC", detail_tool="get_product",
+                scope="本店业务目录；筛选为字面条件，未提供的字段未知。",
+                instruction="has_more须续查；未穷尽不能宣称无匹配。预算不足须说明查询未完成。",
+            )
+
+        page = []
+        for product in remaining[:args.page_size]:
+            trial = envelope([*page, product])
+            if len(json.dumps(trial, ensure_ascii=False).encode()) > CATALOG_PAGE_BYTES:
+                if not page:
+                    return envelope([]) | dict(
+                        error_type="catalog_product_too_large",
+                        blocked_product_id=product["product_id"],
+                        detail_arguments={"product_id": product["product_id"]},
+                        reason="单件完整属性超过目录页预算；未丢弃候选。请单查详情，仍超预算须明确失败。",
+                    )
+                break
+            page.append(product)
+        return envelope(page)
 
     def _get_knowledge_documents(self, *, current_user_id: str, document_ids: list[str]) -> dict:
         return {"documents": select_source_documents(self.settings, document_ids),

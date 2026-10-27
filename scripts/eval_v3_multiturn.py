@@ -92,11 +92,9 @@ def live_model(out, ledger, episode, env_file, price_review, expires_at):
 
 def execute(args):
     os.umask(0o077)
-    tasks, contracts, manifest = load_suite(args.suite)
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    ids = args.ids or [t.task_id for t in tasks]
-    if not set(ids) <= {t.task_id for t in tasks} or len(ids) != len(set(ids)):
-        raise ValueError("Unknown or duplicate task IDs")
+    if args.mode == "live" and args.authorization is None:
+        authorization(None, sha, args.ids, args.out)
     source = {
         str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in [
@@ -125,6 +123,10 @@ def execute(args):
             "paid_authorization_present": False,
             "failure_retry": False,
         }
+    tasks, contracts, manifest = load_suite(args.suite)
+    ids = args.ids or [t.task_id for t in tasks]
+    if not set(ids) <= {t.task_id for t in tasks} or len(ids) != len(set(ids)):
+        raise ValueError("Unknown or duplicate task IDs")
     auth = None
     if args.mode == "live":
         if ids != PILOT_IDS:

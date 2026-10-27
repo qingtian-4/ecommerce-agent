@@ -159,7 +159,6 @@ def model_for(out, ledger, episode, *, queue=None, auth=None, env_file=None, pri
 
 def execute(args):
     os.umask(0o077)
-    tasks, contracts, manifest = load_contract()
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     if args.mode == "pilot-plan":
         return dict(pilot_plan(), source_sha=sha)
@@ -184,6 +183,7 @@ def execute(args):
             raise ValueError("Fresh price verification required")
         if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip():
             raise ValueError("Live source must be clean and frozen")
+    tasks, contracts, manifest = load_contract()
     args.out.mkdir(parents=True, exist_ok=False)
     private = args.out / ".private-evidence"
     private.mkdir(mode=0o700)

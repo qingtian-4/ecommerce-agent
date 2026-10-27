@@ -1,0 +1,837 @@
+.........FF..............FFFFF...FFF.F.FFFFF..F.F..FFFF.F.FFF            [100%]
+=================================== FAILURES ===================================
+________ test_actual_sdk_mock_and_sqlite_both_arms_share_contract[D02] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_actual_sdk_mock_and_sqlit0')
+tid = 'D02'
+
+    @pytest.mark.parametrize("tid", ["D02", "D04"])
+    def test_actual_sdk_mock_and_sqlite_both_arms_share_contract(tmp_path, tid):
+        from eval_live_readiness import model_for
+    
+        from acs.episode_budget import EpisodeLedger
+        from acs.live_evaluation import LIMITS, run_task
+        from acs.multiturn_evaluation import load_suite, summarise
+    
+>       tasks, contracts, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+________ test_actual_sdk_mock_and_sqlite_both_arms_share_contract[D04] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_actual_sdk_mock_and_sqlit1')
+tid = 'D04'
+
+    @pytest.mark.parametrize("tid", ["D02", "D04"])
+    def test_actual_sdk_mock_and_sqlite_both_arms_share_contract(tmp_path, tid):
+        from eval_live_readiness import model_for
+    
+        from acs.episode_budget import EpisodeLedger
+        from acs.live_evaluation import LIMITS, run_task
+        from acs.multiturn_evaluation import load_suite, summarise
+    
+>       tasks, contracts, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+____________ test_new_live_authorization_is_required_before_output _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_new_live_authorization_is0')
+
+    def test_new_live_authorization_is_required_before_output(tmp_path):
+        from argparse import Namespace
+    
+        from eval_live_readiness import authorization, execute
+    
+        with pytest.raises(ValueError, match="Fresh explicit"):
+            authorization(None, "sha", tmp_path / "new")
+>       with pytest.raises(ValueError, match="Fresh explicit"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'Fresh explicit'
+E         Actual message: 'Frozen implementation mismatch: src/acs/cs_tools.py'
+
+tests/test_live_evaluation.py:368: AssertionError
+________ test_real_sdk_novel_answer_and_sql_success_become_pending[old] ________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_real_sdk_novel_answer_and0')
+arm = 'old'
+
+    @pytest.mark.parametrize("arm", ["old", "v3"])
+    def test_real_sdk_novel_answer_and_sql_success_become_pending(tmp_path, arm):
+        from eval_live_readiness import model_for
+    
+        from acs.episode_budget import EpisodeLedger
+        from acs.live_evaluation import LIMITS, run_task
+        from acs.multiturn_evaluation import load_suite
+    
+>       tasks, contracts, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+________ test_real_sdk_novel_answer_and_sql_success_become_pending[v3] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_real_sdk_novel_answer_and1')
+arm = 'v3'
+
+    @pytest.mark.parametrize("arm", ["old", "v3"])
+    def test_real_sdk_novel_answer_and_sql_success_become_pending(tmp_path, arm):
+        from eval_live_readiness import model_for
+    
+        from acs.episode_budget import EpisodeLedger
+        from acs.live_evaluation import LIMITS, run_task
+        from acs.multiturn_evaluation import load_suite
+    
+>       tasks, contracts, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:406: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+_ test_actual_sql_write_fault_is_reconciled_before_pair_decision[before_commit-True] _
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_actual_sql_write_fault_is0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76481ba98d70>
+point = 'before_commit', stop = True
+
+    @pytest.mark.parametrize("point,stop", [("before_commit", True), ("after_commit", False)])
+    def test_actual_sql_write_fault_is_reconciled_before_pair_decision(
+        tmp_path, monkeypatch, point, stop
+    ):
+        import sqlite3
+    
+        from acs.live_evaluation import run_task
+        from acs.local_return_tools import LocalReturnGateway
+        from acs.multiturn_evaluation import load_suite
+    
+        original = LocalReturnGateway.execute
+    
+        def execute(self, name, *args, **kwargs):
+            def fault(where):
+                if name == "update_return_task" and where == point:
+                    raise RuntimeError("Injected SQL delivery fault")
+    
+            self.fault = fault
+            return original(self, name, *args, **kwargs)
+    
+        monkeypatch.setattr(LocalReturnGateway, "execute", execute)
+>       tasks, contracts, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:441: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+_ test_actual_sql_write_fault_is_reconciled_before_pair_decision[after_commit-False] _
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_actual_sql_write_fault_is1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76481bab3460>
+point = 'after_commit', stop = False
+
+    @pytest.mark.parametrize("point,stop", [("before_commit", True), ("after_commit", False)])
+    def test_actual_sql_write_fault_is_reconciled_before_pair_decision(
+        tmp_path, monkeypatch, point, stop
+    ):
+        import sqlite3
+    
+        from acs.live_evaluation import run_task
+        from acs.local_return_tools import LocalReturnGateway
+        from acs.multiturn_evaluation import load_suite
+    
+        original = LocalReturnGateway.execute
+    
+        def execute(self, name, *args, **kwargs):
+            def fault(where):
+                if name == "update_return_task" and where == point:
+                    raise RuntimeError("Injected SQL delivery fault")
+    
+            self.fault = fault
+            return original(self, name, *args, **kwargs)
+    
+        monkeypatch.setattr(LocalReturnGateway, "execute", execute)
+>       tasks, contracts, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:441: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+__________ test_real_sdk_unknown_tool_is_completed_safe_failure[old] ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_real_sdk_unknown_tool_is_0')
+arm = 'old'
+
+    @pytest.mark.parametrize("arm", ["old", "v3"])
+    def test_real_sdk_unknown_tool_is_completed_safe_failure(tmp_path, arm):
+        from eval_live_readiness import model_for
+    
+        from acs.episode_budget import EpisodeLedger
+        from acs.live_evaluation import LIMITS, run_task
+        from acs.multiturn_evaluation import load_suite
+    
+>       tasks, _, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:516: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+___________ test_real_sdk_unknown_tool_is_completed_safe_failure[v3] ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_real_sdk_unknown_tool_is_1')
+arm = 'v3'
+
+    @pytest.mark.parametrize("arm", ["old", "v3"])
+    def test_real_sdk_unknown_tool_is_completed_safe_failure(tmp_path, arm):
+        from eval_live_readiness import model_for
+    
+        from acs.episode_budget import EpisodeLedger
+        from acs.live_evaluation import LIMITS, run_task
+        from acs.multiturn_evaluation import load_suite
+    
+>       tasks, _, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:516: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+__________ test_actual_process_exit_cannot_replay_or_reset_experiment __________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_actual_process_exit_canno0')
+
+    def test_actual_process_exit_cannot_replay_or_reset_experiment(tmp_path):
+        import hashlib
+        from argparse import Namespace
+    
+        from eval_live_readiness import execute
+    
+        from acs.episode_budget import EpisodeLedger
+        from acs.live_evaluation import paired_run
+    
+        path = tmp_path / ".private-evidence/fees.jsonl"
+        path.parent.mkdir()
+        process = multiprocessing.get_context("fork").Process(target=exit_worker, args=(path,))
+        process.start()
+        process.join(20)
+        assert process.exitcode == 71
+        ledger = EpisodeLedger(path)
+        assert any(r["type"] == "arm_started" for r in ledger.rows())
+        assert not any(r["type"] == "arm_completed" for r in ledger.rows())
+        with pytest.raises(ValueError, match="started"):
+            paired_run(["D02"], lambda *args: pytest.fail("must not replay"), ledger)
+        before = hashlib.sha256(path.read_bytes()).hexdigest()
+>       inspection = execute(Namespace(mode="inspect", out=tmp_path))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_live_evaluation.py:561: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/eval_live_readiness.py:162: in execute
+    tasks, contracts, manifest = load_contract()
+                                 ^^^^^^^^^^^^^^^
+scripts/eval_live_readiness.py:51: in load_contract
+    tasks, contracts, old = load_suite(SUITE)
+                            ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+______ test_frozen_dataset_split_unique_and_not_historical_six_stage_copy ______
+
+    def test_frozen_dataset_split_unique_and_not_historical_six_stage_copy():
+        from eval_answer_stream import INPUTS
+    
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+______ test_initial_pair_fixtures_reproducible_and_formal_barriers_intact ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_initial_pair_fixtures_rep0')
+
+    def test_initial_pair_fixtures_reproducible_and_formal_barriers_intact(tmp_path):
+        from acs.local_return_tools import FORMAL_FIXTURE_KIND, fixture_settings, formal_barriers
+    
+>       task = load_suite(SUITE)[0][0]
+               ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+______ test_development_actual_runtimes_share_execution_and_not_gold[D01] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_development_actual_runtim0')
+tid = 'D01'
+
+    @pytest.mark.parametrize("tid", ["D01", "D03", "D07", "D10"])
+    def test_development_actual_runtimes_share_execution_and_not_gold(tmp_path, tid):
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+______ test_development_actual_runtimes_share_execution_and_not_gold[D03] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_development_actual_runtim1')
+tid = 'D03'
+
+    @pytest.mark.parametrize("tid", ["D01", "D03", "D07", "D10"])
+    def test_development_actual_runtimes_share_execution_and_not_gold(tmp_path, tid):
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+______ test_development_actual_runtimes_share_execution_and_not_gold[D07] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_development_actual_runtim2')
+tid = 'D07'
+
+    @pytest.mark.parametrize("tid", ["D01", "D03", "D07", "D10"])
+    def test_development_actual_runtimes_share_execution_and_not_gold(tmp_path, tid):
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+______ test_development_actual_runtimes_share_execution_and_not_gold[D10] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_development_actual_runtim3')
+tid = 'D10'
+
+    @pytest.mark.parametrize("tid", ["D01", "D03", "D07", "D10"])
+    def test_development_actual_runtimes_share_execution_and_not_gold(tmp_path, tid):
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+_____________ test_failed_tool_is_not_counted_as_business_success ______________
+
+    def test_failed_tool_is_not_counted_as_business_success():
+>       step = load_suite(SUITE)[0][0].steps[0]
+               ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+_________ test_fresh_authorization_required_before_any_output_or_http __________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_fresh_authorization_requi0')
+
+    def test_fresh_authorization_required_before_any_output_or_http(tmp_path):
+        from eval_v3_multiturn import PILOT_IDS, execute
+    
+        args = Namespace(
+            suite=SUITE,
+            out=tmp_path / "out",
+            ids=PILOT_IDS,
+            mode="live",
+            authorization=None,
+            price_review=None,
+            env_file=None,
+        )
+>       with pytest.raises(ValueError, match="Fresh explicit"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'Fresh explicit'
+E         Actual message: 'Frozen implementation mismatch: src/acs/cs_tools.py'
+
+tests/test_v3_multiturn_evaluation.py:179: AssertionError
+______ test_application_bridge_actions_and_recovery_with_real_sql[accept] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_application_bridge_action0')
+decision = 'accept'
+
+    @pytest.mark.parametrize("decision", ["accept", "reject", "cancel", "lost_commit_receipt"])
+    def test_application_bridge_actions_and_recovery_with_real_sql(tmp_path, decision):
+        from copy import deepcopy
+    
+        from acs.multiturn_evaluation import Step
+    
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+______ test_application_bridge_actions_and_recovery_with_real_sql[reject] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_application_bridge_action1')
+decision = 'reject'
+
+    @pytest.mark.parametrize("decision", ["accept", "reject", "cancel", "lost_commit_receipt"])
+    def test_application_bridge_actions_and_recovery_with_real_sql(tmp_path, decision):
+        from copy import deepcopy
+    
+        from acs.multiturn_evaluation import Step
+    
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+______ test_application_bridge_actions_and_recovery_with_real_sql[cancel] ______
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_application_bridge_action2')
+decision = 'cancel'
+
+    @pytest.mark.parametrize("decision", ["accept", "reject", "cancel", "lost_commit_receipt"])
+    def test_application_bridge_actions_and_recovery_with_real_sql(tmp_path, decision):
+        from copy import deepcopy
+    
+        from acs.multiturn_evaluation import Step
+    
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+_ test_application_bridge_actions_and_recovery_with_real_sql[lost_commit_receipt] _
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_application_bridge_action3')
+decision = 'lost_commit_receipt'
+
+    @pytest.mark.parametrize("decision", ["accept", "reject", "cancel", "lost_commit_receipt"])
+    def test_application_bridge_actions_and_recovery_with_real_sql(tmp_path, decision):
+        from copy import deepcopy
+    
+        from acs.multiturn_evaluation import Step
+    
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+___ test_business_not_found_is_not_a_successful_tool_even_without_exception ____
+
+    def test_business_not_found_is_not_a_successful_tool_even_without_exception():
+>       step = load_suite(SUITE)[0][0].steps[0]
+               ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:404: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+__________ test_pilot_plan_never_creates_ledger_or_reads_credentials ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_pilot_plan_never_creates_0')
+
+    def test_pilot_plan_never_creates_ledger_or_reads_credentials(tmp_path):
+        from eval_v3_multiturn import execute
+    
+        args = Namespace(
+            suite=SUITE,
+            out=tmp_path / "not-created",
+            mode="pilot-plan",
+            ids=None,
+            authorization=None,
+            price_review=None,
+            env_file=tmp_path / "missing-env",
+        )
+>       plan = execute(args)
+               ^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:448: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+scripts/eval_v3_multiturn.py:95: in execute
+    tasks, contracts, manifest = load_suite(args.suite)
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+____ test_fixture_order_totals_equal_actual_line_items_and_clock_is_shared _____
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_fixture_order_totals_equa0')
+
+    def test_fixture_order_totals_equal_actual_line_items_and_clock_is_shared(tmp_path):
+        from acs.answer_grounding import Evidence
+        from acs.multiturn_evaluation import NOW
+    
+>       task = load_suite(SUITE)[0][0]
+               ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:458: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+________ test_faithful_but_incomplete_answer_does_not_complete_the_goal ________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-24/test_faithful_but_incomplete_a0')
+
+    def test_faithful_but_incomplete_answer_does_not_complete_the_goal(tmp_path):
+>       tasks, contracts, _ = load_suite(SUITE)
+                              ^^^^^^^^^^^^^^^^^
+
+tests/test_v3_multiturn_evaluation.py:471: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/v3_multiturn_m8_v2')
+
+    def load_suite(path):
+        manifest = json.loads((path / "manifest.json").read_text())
+        for name, expected in manifest["files"].items():
+            if hashlib.sha256((path / name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen dataset fingerprint mismatch: " + name)
+        for name, expected in manifest.get("implementation", {}).items():
+            source = Path(__file__).resolve().parents[2] / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+>               raise ValueError("Frozen implementation mismatch: " + name)
+E               ValueError: Frozen implementation mismatch: src/acs/cs_tools.py
+
+src/acs/multiturn_evaluation.py:196: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_live_evaluation.py::test_actual_sdk_mock_and_sqlite_both_arms_share_contract[D02]
+FAILED tests/test_live_evaluation.py::test_actual_sdk_mock_and_sqlite_both_arms_share_contract[D04]
+FAILED tests/test_live_evaluation.py::test_new_live_authorization_is_required_before_output
+FAILED tests/test_live_evaluation.py::test_real_sdk_novel_answer_and_sql_success_become_pending[old]
+FAILED tests/test_live_evaluation.py::test_real_sdk_novel_answer_and_sql_success_become_pending[v3]
+FAILED tests/test_live_evaluation.py::test_actual_sql_write_fault_is_reconciled_before_pair_decision[before_commit-True]
+FAILED tests/test_live_evaluation.py::test_actual_sql_write_fault_is_reconciled_before_pair_decision[after_commit-False]
+FAILED tests/test_live_evaluation.py::test_real_sdk_unknown_tool_is_completed_safe_failure[old]
+FAILED tests/test_live_evaluation.py::test_real_sdk_unknown_tool_is_completed_safe_failure[v3]
+FAILED tests/test_live_evaluation.py::test_actual_process_exit_cannot_replay_or_reset_experiment
+FAILED tests/test_v3_multiturn_evaluation.py::test_frozen_dataset_split_unique_and_not_historical_six_stage_copy
+FAILED tests/test_v3_multiturn_evaluation.py::test_initial_pair_fixtures_reproducible_and_formal_barriers_intact
+FAILED tests/test_v3_multiturn_evaluation.py::test_development_actual_runtimes_share_execution_and_not_gold[D01]
+FAILED tests/test_v3_multiturn_evaluation.py::test_development_actual_runtimes_share_execution_and_not_gold[D03]
+FAILED tests/test_v3_multiturn_evaluation.py::test_development_actual_runtimes_share_execution_and_not_gold[D07]
+FAILED tests/test_v3_multiturn_evaluation.py::test_development_actual_runtimes_share_execution_and_not_gold[D10]
+FAILED tests/test_v3_multiturn_evaluation.py::test_failed_tool_is_not_counted_as_business_success
+FAILED tests/test_v3_multiturn_evaluation.py::test_fresh_authorization_required_before_any_output_or_http
+FAILED tests/test_v3_multiturn_evaluation.py::test_application_bridge_actions_and_recovery_with_real_sql[accept]
+FAILED tests/test_v3_multiturn_evaluation.py::test_application_bridge_actions_and_recovery_with_real_sql[reject]
+FAILED tests/test_v3_multiturn_evaluation.py::test_application_bridge_actions_and_recovery_with_real_sql[cancel]
+FAILED tests/test_v3_multiturn_evaluation.py::test_application_bridge_actions_and_recovery_with_real_sql[lost_commit_receipt]
+FAILED tests/test_v3_multiturn_evaluation.py::test_business_not_found_is_not_a_successful_tool_even_without_exception
+FAILED tests/test_v3_multiturn_evaluation.py::test_pilot_plan_never_creates_ledger_or_reads_credentials
+FAILED tests/test_v3_multiturn_evaluation.py::test_fixture_order_totals_equal_actual_line_items_and_clock_is_shared
+FAILED tests/test_v3_multiturn_evaluation.py::test_faithful_but_incomplete_answer_does_not_complete_the_goal

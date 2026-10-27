@@ -132,3 +132,33 @@ class ScriptedLLM:
 @pytest.fixture()
 def fake_embedder() -> FakeEmbedder:
     return FakeEmbedder()
+
+
+def load_current_regression_suite(path):
+    """Reuse frozen M8 inputs under current code without impersonating its old run.
+
+    Only a temporary manifest is rebound. The production loader still rejects
+    historical source drift, and frozen task/contract hashes remain mandatory.
+    """
+    import hashlib
+    import json
+    import shutil
+    from tempfile import TemporaryDirectory
+
+    from acs.multiturn_evaluation import load_suite
+
+    with TemporaryDirectory(prefix="m8-current-regression-") as directory:
+        target = Path(directory) / "suite"
+        shutil.copytree(path, target)
+        manifest_path = target / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        root = Path(__file__).resolve().parents[1]
+        manifest["regression_only"] = True
+        manifest["historical_manifest_sha256"] = hashlib.sha256(
+            (path / "manifest.json").read_bytes()).hexdigest()
+        manifest["implementation"] = {
+            name: hashlib.sha256((root / name).read_bytes()).hexdigest()
+            for name in manifest.get("implementation", {})
+        }
+        manifest_path.write_text(json.dumps(manifest))
+        return load_suite(target)

@@ -283,6 +283,21 @@ def assess_answer(text, references, state):
     ref = next((r for r in references if r.text == text), None)
     if ref is None:
         return {"status": "unresolved", "claims": [], "unresolved": 1}
+    # Validate exact authored entity annotations, not arbitrary natural language.
+    # A correct SQL value cannot certify a reference which literally names another ID.
+    import re
+
+    for c in ref.claims:
+        expected = c.value
+        ids = (re.findall(r"明细\s*(\d+)", c.span) if c.fact == "draft.item_id"
+               else re.findall(r"O\d{5,}", c.span) if c.fact == "draft.order_id" else [])
+        if c.fact.startswith(("product.", "price.", "order.", "access.")):
+            expected = c.fact.split(".")[1]
+            # Synthetic entity IDs have one letter and >=3 digits. PD3.0/QC4+
+            # are specifications, not entity assertions. Novel prose is not parsed.
+            ids = re.findall(r"(?<![A-Za-z0-9])[A-Z]\d{3,}(?![A-Za-z0-9])", c.span)
+        if ids and expected is not None and str(expected) not in ids:
+            raise ValueError("Authored entity value is absent from its claim span")
     values = [
         {"span": c.span, "fact": c.fact, "correct": claim_value(c, state)} for c in ref.claims
     ]

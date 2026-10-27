@@ -1,0 +1,31 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_product_cards_retain_all_pages_in_the_same_turn _____________
+
+app_data = (PosixPath('/tmp/pytest-of-qingtian/pytest-20/test_product_cards_retain_all_0/shop'), <function app_data.<locals>.factory at 0x74e249dd37e0>)
+
+    def test_product_cards_retain_all_pages_in_the_same_turn(app_data):
+        root, _ = app_data
+    
+        @contextmanager
+        def factory():
+            yield ScriptedModel(responses=[
+                call("list_products", {"page_size": 2}, uuid4().hex),
+                call("list_products", {"page_size": 2, "after_product_id": "P002"}, uuid4().hex),
+                AIMessage(content="已查询全部四件商品。"),
+            ])
+    
+        with TestClient(create_shop_app(root, factory), base_url=ORIGIN) as client:
+            sid, headers = browser(client)
+            message = completed(client, sid, headers)
+            ids = [p["product_id"] for p in message["cards"]["products"]]
+>           assert ids == ["P001", "P002", "P003", "P004"]
+E           AssertionError: assert ['P003', 'P004'] == ['P001', 'P00...P003', 'P004']
+E             
+E             At index 0 diff: 'P003' != 'P001'
+E             Right contains 2 more items, first extra item: 'P003'
+E             Use -v to get more diff
+
+tests/test_shop_frontend.py:79: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_shop_frontend.py::test_product_cards_retain_all_pages_in_the_same_turn

@@ -17,11 +17,12 @@ from acs.multiturn_evaluation import (
     assess_answer,
     build_fixture,
     business_clock,
-    load_suite,
     run_task,
     score_tools,
     summarise,
 )
+
+from .conftest import load_current_regression_suite as load_suite
 
 SUITE = Path(__file__).resolve().parents[1] / "data/eval/v3_multiturn_m8_v2"
 

@@ -1,5 +1,9 @@
 # Ecommerce-Agent-Bench 扩展与对照协议
 
+> 后续勘误：v2/v2.1 的 EC04-1～5 第三轮回答仍含旧明细 6111，原语言通过结果受影响。
+> 原数据和分数保留；当前修订及适用范围见 [v2.2 说明](COMMERCE_BENCHMARK_V22.md)
+> 和[独立勘误](../results/commerce_v2_2_20261027/ERRATUM.json)。下文保留原阶段记录。
+
 本轮在`feat/v3-local-agent-benchmark` / `0a5d204c54cbaa753eca9bb25a859f5f2acbd13c`
 上开发独立分支`feat/v3-benchmark-comparison`。原Demo、默认Runtime、历史数据和价格账本不修改。
 

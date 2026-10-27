@@ -46,7 +46,9 @@ def run(out, port):
             stdout=log,
             stderr=log,
         )
-        for _ in range(100):
+        # Cold imports and durable SQLite fixture creation can exceed ten seconds
+        # while the full offline suite is also doing fsyncs on the same disk.
+        for _ in range(600):
             try:
                 urllib.request.urlopen(origin + "/shop", timeout=1).close()
                 return server
@@ -54,7 +56,9 @@ def run(out, port):
                 if server.poll() is not None:
                     raise RuntimeError("Offline service failed to start") from None
                 time.sleep(0.1)
-        raise RuntimeError("Offline service not ready")
+        server.terminate()
+        server.wait(timeout=15)
+        raise RuntimeError("Offline service not ready after 60 seconds")
 
     server = start(True)
     checks, posts, errors = {}, [], []

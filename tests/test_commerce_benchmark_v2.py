@@ -144,7 +144,8 @@ def test_user_item_ids_refer_to_actual_order_lines(suite):
     assert seen and set(seen) <= valid
 
 
-def test_live_catalog_expansion_badcase_stops_before_second_http(tmp_path, suite, monkeypatch):
+@pytest.mark.parametrize("arm", ["old", "v3"])
+def test_live_catalog_badcase_recovers_below_original_body_limit(tmp_path, suite, monkeypatch, arm):
     """Replay the observed alternative tool choice, not a second paid attempt."""
     from acs.config import PROJECT_ROOT
     from acs.episode_budget import EpisodeLedger
@@ -157,7 +158,7 @@ def test_live_catalog_expansion_badcase_stops_before_second_http(tmp_path, suite
     root.mkdir()
     (root / ".private-evidence").mkdir()
     ledger = EpisodeLedger(root / "fees.jsonl", cap_cny=5, max_requests=40)
-    episode = "EC03-1:old"
+    episode = "EC03-1:" + arm
     ledger.begin(episode, LIMITS)
     queue = [
         dict(
@@ -166,23 +167,24 @@ def test_live_catalog_expansion_badcase_stops_before_second_http(tmp_path, suite
                 dict(id="observed-catalog", name="list_products", args={}),
             ]
         ),
-        dict(text="This SDK response must never be requested."),
     ]
+    queue.extend(copy.deepcopy(d) for turn in suite["contracts"]["EC03-1"] for d in turn)
     entry = next(e for e in suite["entries"] if e["task"]["task_id"] == "EC03-1")
     with model_for(root, ledger, episode, queue=queue) as model:
         r = run_case(
-            suite, entry, root / "fixture", "old", model=model, ledger=ledger, limits=LIMITS
+            suite, entry, root / "fixture", arm, model=model, ledger=ledger, limits=LIMITS
         )
-    assert r["global_stop"] and r["failure_class"] == "protocol_failure"
-    assert ledger.summary()["requests"] == 1 and len(queue) == 1
+    assert not r["global_stop"] and r["failure_class"] is None, r["error"]
+    assert r["sql_correct"] and r["tool_valid"] and r["raw_outcome"] == "pass"
+    assert not queue
     refused = [x for x in ledger.rows() if x["type"] == "preflight_rejected"]
-    assert (
-        len(refused) == 1
-        and refused[0]["reason"] == "body_limit"
-        and refused[0]["body_bytes"] > 32768
-    )
-    assert r["final"]["draft"] is None and r["final"]["requests"] == 0
-    assert {c["name"] for c in r["final"]["receipts"]} == {"get_order", "list_products"}
+    assert not refused
+    assert max(x["body_bytes"] for x in ledger.rows()
+               if x["type"] == "mock_http_observed") < 32768
+    assert r["final"]["draft"]["item_id"] == 720010 and r["final"]["requests"] == 0
+    page = next(json.loads(c["result"]) for c in r["final"]["receipts"]
+                if c["name"] == "list_products")
+    assert page["total_count"] == 40 and page["has_more"] and page["next_arguments"]
 
 
 def test_live_key_preflight_has_no_episode_or_ledger_side_effect(tmp_path, monkeypatch):

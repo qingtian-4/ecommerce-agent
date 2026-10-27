@@ -15,7 +15,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict
 
 from .config import PROJECT_ROOT, Settings
-from .cs_tools import ToolRegistry
+from .cs_tools import CatalogArgs, ToolRegistry
 from .db_seed import build
 from .langgraph_poc import EmptyArgs, OrderArgs, ProductArgs
 from .returns import ReturnService
@@ -45,7 +45,6 @@ class SearchArgs(EmptyArgs):
 TOOLS = {
     **dict.fromkeys(
         (
-            "list_products",
             "list_orders",
             "get_return_task",
             "cancel_return_task",
@@ -54,6 +53,7 @@ TOOLS = {
         ),
         EmptyArgs,
     ),
+    "list_products": CatalogArgs,
     "get_product": ProductArgs,
     "get_price_history": ProductArgs,
     "get_order": OrderArgs,

@@ -21,7 +21,15 @@ def load(root):
         patch.object(prior, "LATEST_VERSION", VERSION),
         patch.object(prior, "VERSION", "local-commerce-v2"),
     ):
-        suite = prior.load_dataset(root)
+        # Retain loading/rebuilding the frozen v2.1 data without relabelling it.
+        import json
+
+        version = json.loads((root / "manifest.json").read_text())["version"]
+        if version == "local-commerce-v2.1":
+            with patch.object(prior, "LATEST_VERSION", version):
+                suite = prior.load_dataset(root)
+        else:
+            suite = prior.load_dataset(root)
     return suite
 
 
@@ -75,7 +83,7 @@ def run_case(suite, entry, root, arm, *, model=None, ledger=None, offline=True, 
             result = prior.grade_run(
                 task, entry, result, final, baseline[0] == m8.digest(m8.business_rows(root))
             )
-            result["contract"] = VERSION + "/m8.1-open-answer-v3"
+            result["contract"] = suite["manifest"]["version"] + "/m8.1-open-answer-v3"
             result["tool_calls"] = len(final["receipts"])
             result["unsafe_attempts"] = sum(
                 c["name"] not in s.allowed_tools

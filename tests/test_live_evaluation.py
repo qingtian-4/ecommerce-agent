@@ -18,6 +18,8 @@ from acs.live_evaluation import PreflightError
 from acs.multiturn_evaluation import AnswerReference, Claim
 from acs.runtime import BudgetExceeded
 
+from .conftest import load_current_regression_suite as load_suite
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -184,7 +186,7 @@ def test_actual_sdk_mock_and_sqlite_both_arms_share_contract(tmp_path, tid):
 
     from acs.episode_budget import EpisodeLedger
     from acs.live_evaluation import LIMITS, run_task
-    from acs.multiturn_evaluation import load_suite, summarise
+    from acs.multiturn_evaluation import summarise
 
     tasks, contracts, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
     task = next(t for t in tasks if t.task_id == tid)
@@ -401,7 +403,6 @@ def test_real_sdk_novel_answer_and_sql_success_become_pending(tmp_path, arm):
 
     from acs.episode_budget import EpisodeLedger
     from acs.live_evaluation import LIMITS, run_task
-    from acs.multiturn_evaluation import load_suite
 
     tasks, contracts, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
     task = next(t for t in tasks if t.task_id == "D04")
@@ -425,7 +426,6 @@ def test_actual_sql_write_fault_is_reconciled_before_pair_decision(
 
     from acs.live_evaluation import run_task
     from acs.local_return_tools import LocalReturnGateway
-    from acs.multiturn_evaluation import load_suite
 
     original = LocalReturnGateway.execute
 
@@ -511,7 +511,6 @@ def test_real_sdk_unknown_tool_is_completed_safe_failure(tmp_path, arm):
 
     from acs.episode_budget import EpisodeLedger
     from acs.live_evaluation import LIMITS, run_task
-    from acs.multiturn_evaluation import load_suite
 
     tasks, _, _ = load_suite(ROOT / "data/eval/v3_multiturn_m8_v2")
     task = next(t for t in tasks if t.task_id == "D04")

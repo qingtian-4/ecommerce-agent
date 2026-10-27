@@ -1,0 +1,67 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+________________ test_every_authored_item_id_matches_its_claim _________________
+
+    def test_every_authored_item_id_matches_its_claim():
+        suite = load(ROOT)
+        checked = 0
+        for task in suite["tasks"]:
+            for step in task.steps:
+                for answer in step.answers:
+                    for claim in answer.claims:
+                        if claim.fact == "draft.item_id":
+                            ids = re.findall(r"(?<!\d)\d+(?!\d)", claim.span)
+>                           assert str(claim.value) in ids, (task.task_id, answer.text, claim.value)
+E                           AssertionError: ('EC04-1', '已改为明细6111并生成有效预览，数量1。', 720011)
+E                           assert '720011' in ['6111', '1']
+E                            +  where '720011' = str(720011)
+E                            +    where 720011 = Claim(span='已改为明细6111并生成有效预览，数量1。', fact='draft.item_id', value=720011).value
+
+tests/test_commerce_v22.py:26: AssertionError
+______________ test_sql_correct_does_not_certify_wrong_item_text _______________
+
+tmp_path = PosixPath('/tmp/pytest-of-qingtian/pytest-17/test_sql_correct_does_not_cert0')
+
+    def test_sql_correct_does_not_certify_wrong_item_text(tmp_path):
+        suite = load(ROOT)
+        entry = next(e for e in suite["entries"] if e["task"]["task_id"] == "EC04-1")
+        suite["contracts"]["EC04-1"][-1][-1]["text"] = "已改为明细6111并生成有效预览，数量1。"
+        result = run_case(suite, entry, tmp_path / "wrong-answer", "v3")
+        assert result["sql_correct"] and result["tool_valid"]
+>       assert result["raw_outcome"] != "pass"
+E       AssertionError: assert 'pass' != 'pass'
+
+tests/test_commerce_v22.py:37: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Building prefix dict from the default dictionary ...
+Loading model from cache /tmp/jieba.cache
+Loading model cost 0.923 seconds.
+Prefix dict has been built successfully.
+------------------------------ Captured log call -------------------------------
+DEBUG    jieba:__init__.py:113 Building prefix dict from the default dictionary ...
+DEBUG    jieba:__init__.py:132 Loading model from cache /tmp/jieba.cache
+DEBUG    jieba:__init__.py:164 Loading model cost 0.923 seconds.
+DEBUG    jieba:__init__.py:166 Prefix dict has been built successfully.
+______________ test_catalog_has_bounded_pages_and_all_candidates _______________
+
+catalog = (<acs.cs_tools.ToolRegistry object at 0x78234bfd6ad0>, {'root': PosixPath('/home/qingtian/projects/E-commerce Agent/da...d final answer must pass', failure='Any forbidden effect, SQL mismatch, false claim or unresolved answer'), ...], ...})
+
+    def test_catalog_has_bounded_pages_and_all_candidates(catalog):
+        registry, suite = catalog
+        args, seen = {}, []
+        for _ in range(40):
+            page, _, error = registry.run("list_products", json.dumps(args), current_user_id="USER001")
+            assert error is None
+>           assert len(json.dumps(page, ensure_ascii=False).encode()) <= 8000
+E           assert 26248 <= 8000
+E            +  where 26248 = len(b'{"products": [{"product_id": "B101", "name": "\xe5\x90\x88\xe6\x88\x90 \xe7\xac\xac1\xe7\xb3\xbb\xe5\x88\x97 \xe6\x9...\xae\x9e\xe8\xaf\xb4\xe6\x98\x8e\xef\xbc\x8c\xe4\xb8\x8d\xe6\x9b\xbf\xe6\x8d\xa2\xe6\x9d\xa1\xe4\xbb\xb6\xe3\x80\x82"}')
+E            +    where b'{"products": [{"product_id": "B101", "name": "\xe5\x90\x88\xe6\x88\x90 \xe7\xac\xac1\xe7\xb3\xbb\xe5\x88\x97 \xe6\x9...\xae\x9e\xe8\xaf\xb4\xe6\x98\x8e\xef\xbc\x8c\xe4\xb8\x8d\xe6\x9b\xbf\xe6\x8d\xa2\xe6\x9d\xa1\xe4\xbb\xb6\xe3\x80\x82"}' = <built-in method encode of str object at 0x19b93a90>()
+E            +      where <built-in method encode of str object at 0x19b93a90> = '{"products": [{"product_id": "B101", "name": "合成 第1系列 晴岚 A6 入耳耳机", "category": "无线耳机", "brand": "本地合成", "currency": "..."complete_catalog": true, "scope": "本店业务目录；没有返回颜色、图片或库存不代表这些属性存在", "instruction": "优先满足用户的佩戴方式、预算等硬条件；无匹配如实说明，不替换条件。"}'.encode
+E            +        where '{"products": [{"product_id": "B101", "name": "合成 第1系列 晴岚 A6 入耳耳机", "category": "无线耳机", "brand": "本地合成", "currency": "..."complete_catalog": true, "scope": "本店业务目录；没有返回颜色、图片或库存不代表这些属性存在", "instruction": "优先满足用户的佩戴方式、预算等硬条件；无匹配如实说明，不替换条件。"}' = <function dumps at 0x78237b2bce00>({'products': [{'product_id': 'B101', 'name': '合成 第1系列 晴岚 A6 入耳耳机', 'category': '无线耳机', 'brand': '本地合成', ...}, {'produc...电配件', 'brand': '本地合成', ...}, ...], 'count': 40, 'complete_catalog': True, 'scope': '本店业务目录；没有返回颜色、图片或库存不代表这些属性存在', ...}, ensure_ascii=False)
+E            +          where <function dumps at 0x78237b2bce00> = json.dumps
+
+tests/test_commerce_v22.py:54: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_commerce_v22.py::test_every_authored_item_id_matches_its_claim
+FAILED tests/test_commerce_v22.py::test_sql_correct_does_not_certify_wrong_item_text
+FAILED tests/test_commerce_v22.py::test_catalog_has_bounded_pages_and_all_candidates

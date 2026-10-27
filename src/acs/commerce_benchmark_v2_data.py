@@ -10,8 +10,8 @@ from .commerce_benchmark_data import CLOCK, SEED, agent_inputs, business_data, d
 from .config import PROJECT_ROOT, Settings
 from .rag import CHUNKER_VERSION, KnowledgeBase
 
-VERSION = "local-commerce-v2.1"
-ROOT = PROJECT_ROOT / "data/eval/commerce_benchmark_v2_1"
+VERSION = "local-commerce-v2.2"
+ROOT = PROJECT_ROOT / "data/eval/commerce_benchmark_v2_2"
 FAMILIES = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 14]
 DEV = {1, 3, 7, 12}
 
@@ -52,12 +52,15 @@ def expanded_business():
     )
 
 
-def transform(value, g):
+def transform(value, g, *, repair_text_ids=False):
     """Parameterise reviewed scenario families; do not call variants independent scenarios."""
     if isinstance(value, list):
-        return [transform(v, g) for v in value]
+        return [transform(v, g, repair_text_ids=repair_text_ids) for v in value]
     if isinstance(value, dict):
-        result = {transform(k, g): transform(v, g) for k, v in value.items()}
+        result = {
+            transform(k, g, repair_text_ids=repair_text_ids):
+            transform(v, g, repair_text_ids=repair_text_ids) for k, v in value.items()
+        }
         if str(result.get("fact", "")).startswith("price."):
             result["value"] += 3 * g
         return result
@@ -67,6 +70,12 @@ def transform(value, g):
         return 720000 + (u * 30 + g * 6 + slot + 1) * 10 + offset
     if not isinstance(value, str):
         return value
+    if repair_text_ids:
+        # Apply the same entity map to user, Gold, Claim spans and replay text.
+        value = re.sub(
+            r"(?<![0-9])6[12][0-9][01](?![0-9])",
+            lambda m: str(transform(int(m[0]), g)), value,
+        )
 
     def order(m):
         n = int(m[0][4:])
@@ -80,13 +89,13 @@ def transform(value, g):
     return value
 
 
-def expanded_tasks(*, repair_item_ids=True):
+def expanded_tasks(*, repair_item_ids=True, repair_answer_ids=False):
     entries, contracts = agent_inputs()
     selected, replay = [], {}
     for family in FAMILIES:
         base = next(e for e in entries if e["task"]["task_id"] == f"CB{family:02}")
         for g in range(5):
-            e = transform(copy.deepcopy(base), g)
+            e = transform(copy.deepcopy(base), g, repair_text_ids=repair_answer_ids)
             tid = f"EC{family:02}-{g + 1}"
             t = e["task"]
             t["task_id"] = tid
@@ -108,7 +117,15 @@ def expanded_tasks(*, repair_item_ids=True):
                             step["text"],
                         )
             selected.append(e)
-            replay[tid] = transform(copy.deepcopy(contracts[f"CB{family:02}"]), g)
+            replay[tid] = transform(
+                copy.deepcopy(contracts[f"CB{family:02}"]), g,
+                repair_text_ids=repair_answer_ids,
+            )
+            if repair_answer_ids and family == 1:
+                # The user's explicit series constraint is applied by both arms.
+                args = {"name_contains": f"第{g + 1}系列"}
+                e["tool_gold"][0][0]["arguments"] = args
+                replay[tid][0][0]["calls"][0]["args"] = args
     return selected, replay
 
 
@@ -166,14 +183,63 @@ def write_docs(out, data):
     return facts
 
 
+def revise_rag_evidence(cases, chunks):
+    """Authored facts and their legitimate alternatives, frozen before retrieval runs."""
+    overrides = {
+        "EQ081": [
+            ("return_policy", ["自商品签收之日起 **7 天内**",
+                               "| 七天无理由退货 | 7 天 | 签收日 | 买家 |"]),
+            ("return_policy", ["无理由退货的运费由买家承担",
+                               "| 七天无理由退货 | 7 天 | 签收日 | 买家 |"]),
+        ],
+        "EQ082": [
+            ("return_policy", ["自商品签收之日起 **15 天内**",
+                               "| 质量问题退货 | 15 天 | 签收日 | 店铺 |"]),
+            ("return_policy", ["往返运费由本店铺承担",
+                               "| 质量问题退货 | 15 天 | 签收日 | 店铺 |"]),
+        ],
+        "EQ083": [("shipping_policy", ["现货商品：付款后 **48 小时内**发出"])],
+        "EQ085": [("price_protection", ["下单之日起 15 天内", "下单后 15 天内"])],
+        "EQ093": [("audio_guide", ["先让耳机进入配对模式，再在手机蓝牙菜单选择对应型号"])],
+    }
+    for case in cases:
+        if case["id"] == "EQ083":
+            case["query"] = "正常非大促期间，现货商品付款后通常多久发货？"
+        if case["id"] == "EQ088":
+            case["query"] = "超过15天退货期后，是否仍可能进入保修流程？"
+        sources = [
+            [dict(document_id=doc, text=span) for span in spans]
+            for doc, spans in overrides.get(case["id"], [
+                (s["document_id"], [s["text"]]) for s in case["source_spans"]
+            ])
+        ]
+        if case["id"] == "EQ088":
+            sources[0].append(dict(
+                document_id="return_policy",
+                text="| 超过 15 天的质量问题 | 转为保修流程 |",
+            ))
+        case["source_alternatives"] = sources
+        case["source_spans"] = [s[0] for s in sources]
+        case["answer_facts"] = [s[0]["text"] for s in sources]
+        case["evidence_groups"] = [
+            [c.chunk_id for c in chunks if any(
+                c.document_id == s["document_id"] and s["text"] in c.content for s in group
+            )] for group in sources
+        ]
+        if any(not group for group in case["evidence_groups"]):
+            raise ValueError("Missing revised evidence: " + case["id"])
+
+
 def build(out: Path, *, revision=VERSION):
-    if revision not in {VERSION, "local-commerce-v2"}:
+    if revision not in {VERSION, "local-commerce-v2", "local-commerce-v2.1"}:
         raise ValueError("Unsupported revision")
     out.mkdir(parents=True, exist_ok=False)
     business = expanded_business()
     dump(out / "business.json", business)
     facts = write_docs(out / "docs", business)
-    tasks, replay = expanded_tasks(repair_item_ids=revision == VERSION)
+    tasks, replay = expanded_tasks(
+        repair_item_ids=revision != "local-commerce-v2", repair_answer_ids=revision == VERSION,
+    )
     dump(out / "agent_tasks.json", tasks)
     dump(out / "replay_contracts.json", replay)
     chunks = KnowledgeBase(
@@ -184,6 +250,7 @@ def build(out: Path, *, revision=VERSION):
     def add(query, spans, split, group, kind):
         groups = []
         for doc, span in spans:
+            # A product's fact must carry its identity, including in overlapping chunks.
             ids = [c.chunk_id for c in chunks if c.document_id == doc and span in c.content]
             if not ids:
                 raise ValueError((doc, span))
@@ -216,7 +283,8 @@ def build(out: Path, *, revision=VERSION):
         for i, question in enumerate(questions[(int(p["id"][1:]) - 101) % 100]):
             add(
                 f"{p['id']} {p['name']} {question}",
-                [(doc, p["attributes"][i])],
+                [(doc, f"{p['id']}：{p['attributes'][i]}" if revision == VERSION
+                  else p["attributes"][i])],
                 split,
                 doc,
                 "product",
@@ -252,9 +320,18 @@ def build(out: Path, *, revision=VERSION):
     for i in range(12):
         p, d = facts[i * 3]
         q, e = facts[i * 3 + 1]
+        fields = ["佩戴类型"] * 4 + ["最大输出功率"] * 2 + ["标称电池容量"] * 2
+        question = (
+            f"分别说明{p['id']}的{fields[(int(p['id'][1:]) - 101) % 100]}"
+            f"和{q['id']}的{fields[(int(q['id'][1:]) - 101) % 100]}。"
+            if revision == VERSION else f"比较{p['id']}和{q['id']}各自的首要规格。"
+        )
         add(
-            f"比较{p['id']}和{q['id']}各自的首要规格。",
-            [(d, p["attributes"][0]), (e, q["attributes"][0])],
+            question,
+            [(d, f"{p['id']}：{p['attributes'][0]}" if revision == VERSION
+              else p["attributes"][0]),
+             (e, f"{q['id']}：{q['attributes'][0]}" if revision == VERSION
+              else q["attributes"][0])],
             "development" if int(d[-2:]) < 6 else "validation",
             d,
             "multifact",
@@ -272,6 +349,8 @@ def build(out: Path, *, revision=VERSION):
         ]
     ):
         add(q, [], "validation", f"unsupported{i}", "unsupported")
+    if revision == VERSION:
+        revise_rag_evidence(cases, chunks)
     dump(
         out / "rag_cases.json",
         dict(
@@ -298,5 +377,11 @@ def build(out: Path, *, revision=VERSION):
             str(p.relative_to(out)): file_hash(p) for p in sorted(out.rglob("*")) if p.is_file()
         },
     )
+    if revision == VERSION:
+        manifest.update(
+            provenance="12 seen parameterised families x 5 instances; not 60 independent scenarios",
+            semantic_review="authored fixture checks; novel language requires independent review",
+            previous_versions_preserved=["local-commerce-v2", "local-commerce-v2.1"],
+        )
     dump(out / "manifest.json", manifest)
     return manifest

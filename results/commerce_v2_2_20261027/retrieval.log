@@ -1,0 +1,268 @@
+Building prefix dict from the default dictionary ...
+Loading model from cache /tmp/jieba.cache
+Loading model cost 0.574 seconds.
+Prefix dict has been built successfully.
+{
+  "kind": "real_local_onnx_quantized_BGE_inference",
+  "model_load_ms": 4005.3034000011394,
+  "index_ms": 885.3656190040056,
+  "chunks": 72,
+  "models": {
+    "dense": {
+      "repository": "Xenova/bge-small-zh-v1.5",
+      "revision": "75c43b069aac4d136ba6bc1122f995fedcfd2781",
+      "files": {
+        "tokenizer.json": "48cea5d44424912a6fd1ea647bf4fe50b55ab8b1e5879c3275f80e339e8fae26",
+        "onnx/model_quantized.onnx": "15b717c382bcb518ba457b93ea6850ede7f4f1cd8937454aa06972366cd19bcc"
+      }
+    },
+    "rerank": {
+      "repository": "Xenova/bge-reranker-base",
+      "revision": "280bcc27a84e0b898c251e06fddb25171bd9b101",
+      "files": {
+        "tokenizer.json": "48564c5c7d3fa64d85d95e65414a542385f88b0f128fd8d4163fd7a57f2be05c",
+        "onnx/model_quantized.onnx": "dd98f3e67837d23210a6b7550c08cced4f61845b940ac45be3565840a10f3244"
+      }
+    }
+  },
+  "summaries": {
+    "development": {
+      "bm25": {
+        "cases": 32,
+        "supported": 32,
+        "recall": {
+          "1": 0.90625,
+          "3": 0.96875,
+          "5": 1.0,
+          "10": 1.0
+        },
+        "all_evidence_at3": 31,
+        "mrr_at10": 0.9609375,
+        "document_recall_at3": 0.96875,
+        "unsupported": 0,
+        "unsupported_nonempty": 0,
+        "p50_ms": 0.7550099981017411,
+        "p95_ms": 1.4326358563266692
+      },
+      "dense": {
+        "cases": 32,
+        "supported": 32,
+        "recall": {
+          "1": 0.328125,
+          "3": 0.765625,
+          "5": 0.875,
+          "10": 0.921875
+        },
+        "all_evidence_at3": 24,
+        "mrr_at10": 0.5667534722222223,
+        "document_recall_at3": 0.796875,
+        "unsupported": 0,
+        "unsupported_nonempty": 0,
+        "p50_ms": 5.792062504042406,
+        "p95_ms": 10.210154004016658
+      },
+      "hybrid": {
+        "cases": 32,
+        "supported": 32,
+        "recall": {
+          "1": 0.75,
+          "3": 0.96875,
+          "5": 0.984375,
+          "10": 1.0
+        },
+        "all_evidence_at3": 30,
+        "mrr_at10": 0.8854166666666667,
+        "document_recall_at3": 0.984375,
+        "unsupported": 0,
+        "unsupported_nonempty": 0,
+        "p50_ms": 6.561934504134115,
+        "p95_ms": 11.533184703148436
+      },
+      "rerank": {
+        "cases": 32,
+        "supported": 32,
+        "recall": {
+          "1": 0.9375,
+          "3": 1.0,
+          "5": 1.0,
+          "10": 1.0
+        },
+        "all_evidence_at3": 32,
+        "mrr_at10": 1.0,
+        "document_recall_at3": 1.0,
+        "unsupported": 0,
+        "unsupported_nonempty": 0,
+        "p50_ms": 797.3957175054238,
+        "p95_ms": 1155.6311192172868
+      },
+      "oracle": {
+        "cases": 32,
+        "supported": 32,
+        "recall": {
+          "1": 0.9375,
+          "3": 1.0,
+          "5": 1.0,
+          "10": 1.0
+        },
+        "all_evidence_at3": 32,
+        "mrr_at10": 1.0,
+        "document_recall_at3": 1.0,
+        "unsupported": 0,
+        "unsupported_nonempty": 0,
+        "p50_ms": null,
+        "p95_ms": null
+      }
+    },
+    "validation": {
+      "bm25": {
+        "cases": 88,
+        "supported": 80,
+        "recall": {
+          "1": 0.88125,
+          "3": 0.98125,
+          "5": 1.0,
+          "10": 1.0
+        },
+        "all_evidence_at3": 78,
+        "mrr_at10": 0.9447916666666668,
+        "document_recall_at3": 0.98125,
+        "unsupported": 8,
+        "unsupported_nonempty": 8,
+        "p50_ms": 0.7127690041670576,
+        "p95_ms": 1.1368557032255922
+      },
+      "dense": {
+        "cases": 88,
+        "supported": 80,
+        "recall": {
+          "1": 0.5125,
+          "3": 0.8125,
+          "5": 0.875,
+          "10": 0.93125
+        },
+        "all_evidence_at3": 64,
+        "mrr_at10": 0.6685714285714285,
+        "document_recall_at3": 0.90625,
+        "unsupported": 8,
+        "unsupported_nonempty": 8,
+        "p50_ms": 5.886060498596635,
+        "p95_ms": 16.19406564350351
+      },
+      "hybrid": {
+        "cases": 88,
+        "supported": 80,
+        "recall": {
+          "1": 0.825,
+          "3": 0.95,
+          "5": 0.975,
+          "10": 1.0
+        },
+        "all_evidence_at3": 75,
+        "mrr_at10": 0.9038690476190476,
+        "document_recall_at3": 0.95625,
+        "unsupported": 8,
+        "unsupported_nonempty": 8,
+        "p50_ms": 6.76551648939494,
+        "p95_ms": 17.232521783444046
+      },
+      "rerank": {
+        "cases": 88,
+        "supported": 80,
+        "recall": {
+          "1": 0.95,
+          "3": 1.0,
+          "5": 1.0,
+          "10": 1.0
+        },
+        "all_evidence_at3": 80,
+        "mrr_at10": 1.0,
+        "document_recall_at3": 1.0,
+        "unsupported": 8,
+        "unsupported_nonempty": 8,
+        "p50_ms": 771.3353665167233,
+        "p95_ms": 1326.8368948076386
+      },
+      "oracle": {
+        "cases": 88,
+        "supported": 80,
+        "recall": {
+          "1": 0.95,
+          "3": 1.0,
+          "5": 1.0,
+          "10": 1.0
+        },
+        "all_evidence_at3": 80,
+        "mrr_at10": 1.0,
+        "document_recall_at3": 0.99375,
+        "unsupported": 8,
+        "unsupported_nonempty": 0,
+        "p50_ms": null,
+        "p95_ms": null
+      }
+    }
+  },
+  "generated_answer_quality": "not_evaluated",
+  "paid_requests": 0,
+  "conditions": {
+    "candidate_k": 10,
+    "context_k": 3,
+    "rrf_k": 60,
+    "dense_input": "title+content; CLS normalized; query instruction",
+    "max_sequence": 512
+  },
+  "dataset": {
+    "version": "local-commerce-v2.2",
+    "seed": 20261026,
+    "clock": "2026-11-06T04:00:00+00:00",
+    "agent_tasks": 60,
+    "rag_cases": 120,
+    "products": 40,
+    "orders": 240,
+    "documents": 30,
+    "task_families": 12,
+    "split_policy": "family-disjoint tasks; catalog-document-disjoint retrieval; no blind-human claim",
+    "files": {
+      "agent_tasks.json": "5cd863644d525bf52de84b3b64146134becab30d45442551d952e6ff2604987a",
+      "business.json": "caf3f12f1c7be0295f4292e1ae883dded48eb64cf9a611bf2c5fd99bc580f747",
+      "docs/audio_guide.md": "771e0141ff0e867be19bcac66f8b374595439b4db8d4c8e764eba65a7380df45",
+      "docs/battery_guide.md": "c988c6e50bd1a7556cfc1bbfd3935020035eca27fc630e38fa4e2f31ec01947f",
+      "docs/capabilities.md": "2df9431fd713616c35ca8d8b290067f465ee7d7351d85d9b95eff533d1f0d960",
+      "docs/catalog00.md": "06570d89c36867770f523fa0b34d5816103e20903e6b74c57672de77868a2823",
+      "docs/catalog01.md": "2210b7d167437f9a627def8dbeeb17a7c50562228937af5176150702dd0faf85",
+      "docs/catalog02.md": "6c2f5952601b12d6a9eb4c793d867f7f0479f4cd74fadde929cba8b536c4f720",
+      "docs/catalog03.md": "56dc1e64dcc7db88aad5ca7509a0b7100e3ffe84318446aab83e1b7e27622c3e",
+      "docs/catalog04.md": "c9ddf28d74025ca223c2dde65b8ddb61eb0b99a0acd6b26b2a9be3186b7ee12b",
+      "docs/catalog05.md": "f1cc6293539ec417d34d5e5c8a048bdfcfcfc6c92d66a924a8ec48f834d83e49",
+      "docs/catalog06.md": "2f62617b706342af2ab9e096fde2b246079c9f8c981098e842b6c31afae445ab",
+      "docs/catalog07.md": "a9792d848e555646e2d91827389e24e34dae82991cf9e33337aae68b49279ca0",
+      "docs/catalog08.md": "35d6413bdfb1d1546f50b0f0fc887397d20fa8d4fe003ede801b5e0061f69fff",
+      "docs/catalog09.md": "15260ef3053c5a4735d950bdf13470a7a2dbfb575ee9acce49b1474724aca6a4",
+      "docs/catalog10.md": "3383cff2be9490a47b251bb2ff657652429c6da1c2edcdb79e8e5d2ca70a8910",
+      "docs/catalog11.md": "5754a569b19459762f57e999b61b41003473032b78956b32ef424ac9d4eac05e",
+      "docs/catalog12.md": "1d5d3d165b8dd01dab615a0eecd11baa1cc2d64bed56734acb298085265e49d6",
+      "docs/catalog13.md": "25f2775fed559e246317e165f0b7f83e80e9ec22e49b2720ba89f302e5665216",
+      "docs/catalog14.md": "76e39a341053608664e0ca3195c1b6fe3d8828f9d582c5dfacf2126bd1670c3f",
+      "docs/catalog15.md": "925e749d9f119f9bbbe40b958241c66c687b11245de7121a9d0aa6d218435dc5",
+      "docs/catalog16.md": "3c41f6caa095be5d435edba5dbbf3eb7c9c47c94a5dbcbe7fe20943222238735",
+      "docs/catalog17.md": "5d6a67faff78963876c3f14fbc6ae722550f0c2e65d39812d83b91f540f2424d",
+      "docs/catalog18.md": "77e7ce337ce8ed8973b25be6d47b8334e58210a4f8a26852c93604f6003abfa4",
+      "docs/catalog19.md": "d005539e72fd9f0f4eccc5b03be4bc3c0cbb0baedc73a38dbde98b3ec6f391a5",
+      "docs/charger_guide.md": "1b44870068b73926960deecb51b6de34c7da80972119a92722917ad0ec01915b",
+      "docs/evidence_guide.md": "b7f2d228ae921a8230d5f19ea8af027c491ccfecdae444e3a546c8e49fc1d335",
+      "docs/order_guide.md": "5933c55066b91df792033615a749d4f90859489ce38764ff84caef440deec9d5",
+      "docs/price_protection.md": "27561c707ce92f0040b00d195645366144667cc03164314c657aad6cb6038fbe",
+      "docs/return_policy.md": "ac2accea093f9a63849654ca840ea0cb5789f5d41ccc2cd6300671dbab35afc9",
+      "docs/shipping_policy.md": "f96f3fc179d45a1bd1ff2ffe65e048d120cd9c7053c3b8dbe889fee88aad2ef5",
+      "docs/warranty_policy.md": "36a38c71cbfc48d87a275e9018a226c397ff964f7e659bd6e2a313af06114df9",
+      "rag_cases.json": "65d1bfcf9d4d5086ea69c971512787ba7ffccbc4e083eaf1f9e364431d1305bf",
+      "replay_contracts.json": "0bd21b1711de22c4437024425f9abba109db085ff2db1301c964f47056e00416"
+    },
+    "provenance": "12 seen parameterised families x 5 instances; not 60 independent scenarios",
+    "semantic_review": "authored fixture checks; novel language requires independent review",
+    "previous_versions_preserved": [
+      "local-commerce-v2",
+      "local-commerce-v2.1"
+    ]
+  },
+  "source_sha256": "85cfd5e9cd2bf77f1952d519ebdd7c9349ae17eeff067c91cfea75b01cf980ce"
+}

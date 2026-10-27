@@ -346,6 +346,14 @@ def grade_run(task, entry, result, fresh_final, immutable):
     )
     # Known negative controls are independently authored facts, not grounder regexes.
     annotated = task.model_copy(deep=True)
+    if task.task_id.startswith("EC04-"):
+        # Independently labelled historical negative control; never infer a verdict
+        # for arbitrary paraphrases from a keyword. SQL remains a separate score.
+        wrong = "已改为明细6111并生成有效预览，数量1。"
+        annotated.steps[2].answers.append(m8.AnswerReference(
+            text=wrong, claims=[m8.Claim(span="明细6111", fact="draft.item_id", value=6111)],
+            annotation="reviewed_historical_wrong_item_id",
+        ))
     for step in annotated.steps:
         step.answers.append(
             m8.AnswerReference(

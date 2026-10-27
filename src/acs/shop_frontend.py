@@ -194,7 +194,9 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
                             pick(value, ("order_id", "status", "created_at", "items"))
                         ]
                     elif name == "list_products":
-                        cards["products"] = value.get("products", [])
+                        cards["products"] = list({p["product_id"]: p for p in [
+                            *cards["products"], *value.get("products", []),
+                        ]}.values())
                     elif name == "get_product" and value.get("found"):
                         cards["products"] = [
                             pick(
