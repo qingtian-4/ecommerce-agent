@@ -1,0 +1,821 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="20" skipped="0" tests="77" time="9.431" timestamp="2026-10-27T13:45:30.421488+08:00" hostname="PC-20231129SOXU"><testcase classname="tests.test_episode_budget" name="test_reservations_cross_process_atomic" time="0.036" /><testcase classname="tests.test_episode_budget" name="test_deadline_and_limits_survive_reopen" time="0.003" /><testcase classname="tests.test_episode_budget" name="test_usage_roles_and_cache[agent]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_usage_roles_and_cache[user]" time="0.003" /><testcase classname="tests.test_episode_budget" name="test_usage_roles_and_cache[judge]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_missing_and_excess_usage_keep_reservation_and_stop[None]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_missing_and_excess_usage_keep_reservation_and_stop[usage1]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_missing_and_excess_usage_keep_reservation_and_stop[usage2]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_unknown_receipt_tool_limits_and_steps" time="0.003" /><testcase classname="tests.test_episode_budget" name="test_cost_limit_stops_before_transport" time="0.034" /><testcase classname="tests.test_episode_budget" name="test_sdk_multiturn_and_budget_no_http[acs_loop_receipt_guard]" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_sdk_multiturn_and_budget_0')
+arm = 'acs_loop_receipt_guard'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_sdk_multiturn_and_budget_no_http(tmp_path, arm):
+        ledger = EpisodeLedger(tmp_path / "ledger")
+        ledger.begin("e", EpisodeLimits(requests=2))
+        observed = []
+&gt;       agent = make_agent(arm, get_environment(), settings(), ledger, "e", tmp_path / "graph.sqlite",
+                                ^^^^^^^^^^^^^^^^^
+                           transport_factory=responder([{"role": "assistant", "content": "one"},
+                                {"role": "assistant", "content": "two"}], observed))
+
+tests/test_episode_budget.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_sdk_multiturn_and_budget_no_http[langgraph]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_sdk_multiturn_and_budget_1')
+arm = 'langgraph'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_sdk_multiturn_and_budget_no_http(tmp_path, arm):
+        ledger = EpisodeLedger(tmp_path / "ledger")
+        ledger.begin("e", EpisodeLimits(requests=2))
+        observed = []
+&gt;       agent = make_agent(arm, get_environment(), settings(), ledger, "e", tmp_path / "graph.sqlite",
+                                ^^^^^^^^^^^^^^^^^
+                           transport_factory=responder([{"role": "assistant", "content": "one"},
+                                {"role": "assistant", "content": "two"}], observed))
+
+tests/test_episode_budget.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_official_tool_receipt_budget_and_duplicate[acs_loop_receipt_guard]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_official_tool_receipt_bud0')
+arm = 'acs_loop_receipt_guard'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_official_tool_receipt_budget_and_duplicate(tmp_path, arm):
+        ledger = ledger_at(tmp_path / "ledger")
+&gt;       env, observed = get_environment(), []
+                        ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:216: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_official_tool_receipt_budget_and_duplicate[langgraph]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_official_tool_receipt_bud1')
+arm = 'langgraph'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_official_tool_receipt_budget_and_duplicate(tmp_path, arm):
+        ledger = ledger_at(tmp_path / "ledger")
+&gt;       env, observed = get_environment(), []
+                        ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:216: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_pending_write_reconnect_fails_closed[acs_loop_receipt_guard]" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_pending_write_reconnect_f0')
+arm = 'acs_loop_receipt_guard'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_pending_write_reconnect_fails_closed(tmp_path, arm):
+        ledger = ledger_at(tmp_path / "ledger")
+        ledger.tool_intent("e", {"id": "write", "name": "modify_user_address"})
+&gt;       agent = make_agent(arm, get_environment(), settings(), ledger, "e", tmp_path / "graph.sqlite",
+                                ^^^^^^^^^^^^^^^^^
+                           transport_factory=responder([], []))
+
+tests/test_episode_budget.py:240: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_pending_write_reconnect_fails_closed[langgraph]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_pending_write_reconnect_f1')
+arm = 'langgraph'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_pending_write_reconnect_fails_closed(tmp_path, arm):
+        ledger = ledger_at(tmp_path / "ledger")
+        ledger.tool_intent("e", {"id": "write", "name": "modify_user_address"})
+&gt;       agent = make_agent(arm, get_environment(), settings(), ledger, "e", tmp_path / "graph.sqlite",
+                                ^^^^^^^^^^^^^^^^^
+                           transport_factory=responder([], []))
+
+tests/test_episode_budget.py:240: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_official_litellm_real_sdk_path_and_limit[user]" time="0.084" /><testcase classname="tests.test_episode_budget" name="test_official_litellm_real_sdk_path_and_limit[judge]" time="0.030" /><testcase classname="tests.test_episode_budget" name="test_official_judge_uses_guarded_sdk" time="0.012" /><testcase classname="tests.test_episode_budget" name="test_total_response_timeout_not_per_chunk[2-0.02-TimeoutError]" time="0.025" /><testcase classname="tests.test_episode_budget" name="test_total_response_timeout_not_per_chunk[0.2-2-TimeoutError]" time="0.203" /><testcase classname="tests.test_episode_budget" name="test_unknown_write_is_terminal_after_process_reconnect[acs_loop_receipt_guard]" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_unknown_write_is_terminal0')
+arm = 'acs_loop_receipt_guard'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_unknown_write_is_terminal_after_process_reconnect(tmp_path, arm):
+        from tau2.data_model.message import ToolMessage
+        from tau2.domains.retail.environment import get_tasks
+&gt;       action = next(t for t in get_tasks("base") if t.id == "33").evaluation_criteria.actions[-1]
+                                 ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:311: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:36: in get_tasks
+    tasks = load_file(RETAIL_TASK_SET_PATH)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_unknown_write_is_terminal_after_process_reconnect[langgraph]" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_unknown_write_is_terminal1')
+arm = 'langgraph'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_unknown_write_is_terminal_after_process_reconnect(tmp_path, arm):
+        from tau2.data_model.message import ToolMessage
+        from tau2.domains.retail.environment import get_tasks
+&gt;       action = next(t for t in get_tasks("base") if t.id == "33").evaluation_criteria.actions[-1]
+                                 ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:311: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:36: in get_tasks
+    tasks = load_file(RETAIL_TASK_SET_PATH)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_late_real_receipt_recorded_without_next_model_request[acs_loop_receipt_guard]" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_late_real_receipt_recorde0')
+arm = 'acs_loop_receipt_guard'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_late_real_receipt_recorded_without_next_model_request(tmp_path, arm):
+        now = [100.0]
+        ledger = EpisodeLedger(tmp_path / "ledger", clock=lambda: now[0])
+        ledger.begin("e", EpisodeLimits(episode_timeout_s=2))
+&gt;       env, observed = get_environment(), []
+                        ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:346: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_late_real_receipt_recorded_without_next_model_request[langgraph]" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_late_real_receipt_recorde1')
+arm = 'langgraph'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_late_real_receipt_recorded_without_next_model_request(tmp_path, arm):
+        now = [100.0]
+        ledger = EpisodeLedger(tmp_path / "ledger", clock=lambda: now[0])
+        ledger.begin("e", EpisodeLimits(episode_timeout_s=2))
+&gt;       env, observed = get_environment(), []
+                        ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:346: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_native_outbox_usage_export_survives_lost_delivery" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_native_outbox_usage_expor0')
+
+    def test_native_outbox_usage_export_survives_lost_delivery(tmp_path):
+        ledger = ledger_at(tmp_path / "ledger")
+&gt;       env, observed = get_environment(), []
+                        ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:365: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_failure_canonical_reasons_same_on_both_arms[timeout-model_timeout-acs_loop_receipt_guard]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_failure_canonical_reasons0')
+arm = 'acs_loop_receipt_guard', failure = 'timeout', expected = 'model_timeout'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    @pytest.mark.parametrize("failure,expected", [("timeout", "model_timeout"),
+                                                 ("disconnect", "model_request_failed")])
+    def test_failure_canonical_reasons_same_on_both_arms(tmp_path, arm, failure, expected):
+        ledger = EpisodeLedger(tmp_path / "ledger")
+        ledger.begin("e", EpisodeLimits(model_timeout_s=0.1))
+        calls = []
+        async def broken(request):
+            calls.append(request)
+            if failure == "timeout":
+                await asyncio.sleep(1)
+            raise httpx.ReadError("offline disconnect")
+&gt;       agent = make_agent(arm, get_environment(), settings(), ledger, "e", tmp_path / "graph",
+                                ^^^^^^^^^^^^^^^^^
+                           transport_factory=lambda: httpx.MockTransport(broken))
+
+tests/test_episode_budget.py:395: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_failure_canonical_reasons_same_on_both_arms[timeout-model_timeout-langgraph]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_failure_canonical_reasons1')
+arm = 'langgraph', failure = 'timeout', expected = 'model_timeout'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    @pytest.mark.parametrize("failure,expected", [("timeout", "model_timeout"),
+                                                 ("disconnect", "model_request_failed")])
+    def test_failure_canonical_reasons_same_on_both_arms(tmp_path, arm, failure, expected):
+        ledger = EpisodeLedger(tmp_path / "ledger")
+        ledger.begin("e", EpisodeLimits(model_timeout_s=0.1))
+        calls = []
+        async def broken(request):
+            calls.append(request)
+            if failure == "timeout":
+                await asyncio.sleep(1)
+            raise httpx.ReadError("offline disconnect")
+&gt;       agent = make_agent(arm, get_environment(), settings(), ledger, "e", tmp_path / "graph",
+                                ^^^^^^^^^^^^^^^^^
+                           transport_factory=lambda: httpx.MockTransport(broken))
+
+tests/test_episode_budget.py:395: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_failure_canonical_reasons_same_on_both_arms[disconnect-model_request_failed-acs_loop_receipt_guard]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_failure_canonical_reasons2')
+arm = 'acs_loop_receipt_guard', failure = 'disconnect'
+expected = 'model_request_failed'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    @pytest.mark.parametrize("failure,expected", [("timeout", "model_timeout"),
+                                                 ("disconnect", "model_request_failed")])
+    def test_failure_canonical_reasons_same_on_both_arms(tmp_path, arm, failure, expected):
+        ledger = EpisodeLedger(tmp_path / "ledger")
+        ledger.begin("e", EpisodeLimits(model_timeout_s=0.1))
+        calls = []
+        async def broken(request):
+            calls.append(request)
+            if failure == "timeout":
+                await asyncio.sleep(1)
+            raise httpx.ReadError("offline disconnect")
+&gt;       agent = make_agent(arm, get_environment(), settings(), ledger, "e", tmp_path / "graph",
+                                ^^^^^^^^^^^^^^^^^
+                           transport_factory=lambda: httpx.MockTransport(broken))
+
+tests/test_episode_budget.py:395: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_failure_canonical_reasons_same_on_both_arms[disconnect-model_request_failed-langgraph]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_failure_canonical_reasons3')
+arm = 'langgraph', failure = 'disconnect', expected = 'model_request_failed'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    @pytest.mark.parametrize("failure,expected", [("timeout", "model_timeout"),
+                                                 ("disconnect", "model_request_failed")])
+    def test_failure_canonical_reasons_same_on_both_arms(tmp_path, arm, failure, expected):
+        ledger = EpisodeLedger(tmp_path / "ledger")
+        ledger.begin("e", EpisodeLimits(model_timeout_s=0.1))
+        calls = []
+        async def broken(request):
+            calls.append(request)
+            if failure == "timeout":
+                await asyncio.sleep(1)
+            raise httpx.ReadError("offline disconnect")
+&gt;       agent = make_agent(arm, get_environment(), settings(), ledger, "e", tmp_path / "graph",
+                                ^^^^^^^^^^^^^^^^^
+                           transport_factory=lambda: httpx.MockTransport(broken))
+
+tests/test_episode_budget.py:395: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_actual_sdk_wire_inputs_match_across_runtimes" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_actual_sdk_wire_inputs_ma0')
+
+    def test_actual_sdk_wire_inputs_match_across_runtimes(tmp_path):
+        bodies = []
+        for arm in ARMS:
+            ledger = ledger_at(tmp_path / (arm + ".ledger"))
+            observed = []
+&gt;           env = get_environment()
+                  ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:413: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_full_official_episode_paired_sdk_reward_db_and_inputs[33]" time="0.008"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_full_official_episode_pai0')
+task_id = '33'
+
+    @pytest.mark.parametrize("task_id", ["33", "34"])
+    def test_full_official_episode_paired_sdk_reward_db_and_inputs(tmp_path, task_id):
+        """Fixed decisions prove protocol parity only, never quality improvement."""
+        from eval_tau_development_pilot import attach_host_hooks
+        from tau2.domains.retail.environment import get_tasks
+        from tau2.orchestrator.orchestrator import Orchestrator
+        from tau2.runner.build import build_user
+        from tau2.runner.simulation import run_simulation
+&gt;       task = next(t for t in get_tasks("base") if t.id == task_id)
+                               ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:445: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:36: in get_tasks
+    tasks = load_file(RETAIL_TASK_SET_PATH)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_full_official_episode_paired_sdk_reward_db_and_inputs[34]" time="0.002"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_full_official_episode_pai1')
+task_id = '34'
+
+    @pytest.mark.parametrize("task_id", ["33", "34"])
+    def test_full_official_episode_paired_sdk_reward_db_and_inputs(tmp_path, task_id):
+        """Fixed decisions prove protocol parity only, never quality improvement."""
+        from eval_tau_development_pilot import attach_host_hooks
+        from tau2.domains.retail.environment import get_tasks
+        from tau2.orchestrator.orchestrator import Orchestrator
+        from tau2.runner.build import build_user
+        from tau2.runner.simulation import run_simulation
+&gt;       task = next(t for t in get_tasks("base") if t.id == task_id)
+                               ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:445: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:36: in get_tasks
+    tasks = load_file(RETAIL_TASK_SET_PATH)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/tasks.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_unpriced_or_expanded_request_rejected_without_reservation[payload0]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_unpriced_or_expanded_request_rejected_without_reservation[payload1]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_unpriced_or_expanded_request_rejected_without_reservation[payload2]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_unpriced_or_expanded_request_rejected_without_reservation[payload3]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_unpriced_or_expanded_request_rejected_without_reservation[payload4]" time="0.002" /><testcase classname="tests.test_episode_budget" name="test_unpriced_or_expanded_request_rejected_without_reservation[payload5]" time="0.001" /><testcase classname="tests.test_episode_budget" name="test_cli_freeze_and_gate_rejects_changed_source" time="0.028" /><testcase classname="tests.test_episode_budget" name="test_pilot_gate_cannot_silently_skip_tests[skipped]" time="0.021" /><testcase classname="tests.test_episode_budget" name="test_pilot_gate_cannot_silently_skip_tests[failure]" time="0.019" /><testcase classname="tests.test_episode_budget" name="test_pilot_gate_cannot_silently_skip_tests[error]" time="0.017" /><testcase classname="tests.test_episode_budget" name="test_pilot_gate_cannot_silently_skip_tests[empty]" time="0.016" /><testcase classname="tests.test_episode_budget" name="test_completed_history_reconnect_inherits_request_budget[acs_loop_receipt_guard]" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_completed_history_reconne0')
+arm = 'acs_loop_receipt_guard'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_completed_history_reconnect_inherits_request_budget(tmp_path, arm):
+        limits = EpisodeLimits(requests=1)
+        ledger = EpisodeLedger(tmp_path / "ledger")
+        ledger.begin("e", limits)
+&gt;       env, observed = get_environment(), []
+                        ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:532: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_completed_history_reconnect_inherits_request_budget[langgraph]" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'">tmp_path = PosixPath('/dev/shm/complex-paid-checks-k00yq0mp/pytest/test_completed_history_reconne1')
+arm = 'langgraph'
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_completed_history_reconnect_inherits_request_budget(tmp_path, arm):
+        limits = EpisodeLimits(requests=1)
+        ledger = EpisodeLedger(tmp_path / "ledger")
+        ledger.begin("e", limits)
+&gt;       env, observed = get_environment(), []
+                        ^^^^^^^^^^^^^^^^^
+
+tests/test_episode_budget.py:532: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.13/site-packages/tau2/domains/retail/environment.py:24: in get_environment
+    db = RetailDB.load(RETAIL_DB_PATH)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/tau2/environment/db.py:16: in load
+    data = load_file(path)
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+path = PosixPath('/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json')
+kwargs = {}
+
+    def load_file(path: str | Path, **kwargs: Any) -&gt; dict[str, Any]:
+        """Load the content of a file from a path based on the file extension.
+    
+        Args:
+            path: The path to the file to load.
+            **kwargs: Additional keyword arguments to pass to the file reader.
+    
+        Returns:
+            The data dictionary loaded from the file.
+        """
+        path = Path(path)
+        if path.suffix == ".json":
+&gt;           with open(path, "r") as fp:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: '/home/qingtian/projects/E-commerce Agent/.venv/lib/python3.13/data/tau2/domains/retail/db.json'
+
+.venv/lib/python3.13/site-packages/tau2/utils/io_utils.py:117: FileNotFoundError</failure></testcase><testcase classname="tests.test_episode_budget" name="test_wrong_receipt_identity_stops_durably[receipt0]" time="0.001" /><testcase classname="tests.test_episode_budget" name="test_wrong_receipt_identity_stops_durably[receipt1]" time="0.001" /><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[compact]" time="0.079" /><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[lowercase]" time="0.059" /><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[fullwidth]" time="0.057" /><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[series-compact]" time="0.052" /><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[series-fullwidth]" time="0.060" /><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[spaces]" time="0.056" /><testcase classname="tests.test_commerce_complex" name="test_normalization_does_not_invent_aliases_or_parse_negation" time="0.199" /><testcase classname="tests.test_commerce_complex" name="test_frozen_cases_rebuild_and_environment_is_reused" time="0.017" /><testcase classname="tests.test_commerce_complex" name="test_factual_partial_answer_is_not_full_intent_success" time="0.450" /><testcase classname="tests.test_commerce_complex" name="test_evidence_missing_despite_sql_truth_is_not_success" time="0.103" /><testcase classname="tests.test_commerce_complex" name="test_legitimate_catalog_and_history_evidence_and_query_binding" time="0.001" /><testcase classname="tests.test_commerce_complex" name="test_complex_runtime_keeps_all_goals_and_permissions[CX01]" time="0.993" /><testcase classname="tests.test_commerce_complex" name="test_complex_runtime_keeps_all_goals_and_permissions[CX02]" time="0.240" /><testcase classname="tests.test_commerce_complex" name="test_complex_runtime_keeps_all_goals_and_permissions[CX04]" time="0.357" /><testcase classname="tests.test_commerce_complex" name="test_complex_runtime_keeps_all_goals_and_permissions[CX07]" time="0.228" /><testcase classname="tests.test_commerce_complex" name="test_complex_runtime_keeps_all_goals_and_permissions[CX08]" time="0.181" /><testcase classname="tests.test_commerce_complex" name="test_complex_runtime_keeps_all_goals_and_permissions[CX10]" time="0.277" /><testcase classname="tests.test_commerce_complex" name="test_complex_runtime_keeps_all_goals_and_permissions[CX12]" time="0.206" /><testcase classname="tests.test_commerce_complex" name="test_paid_proposal_is_bounded_and_does_not_authorize_execution" time="0.025" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[source_sha-old]" time="0.035" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[dataset_manifest_sha256-changed]" time="0.033" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[environment_manifest_sha256-changed]" time="0.032" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[max_requests-33]" time="0.037" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[cap_cny-6]" time="0.048" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[body_bytes-65536]" time="0.041" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[output_tokens-2048]" time="0.040" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[requests_per_episode-9]" time="0.047" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[authorized-False]" time="0.038" /><testcase classname="tests.test_commerce_complex" name="test_paid_authorization_cannot_expand_frozen_scope[task_ids-value9]" time="0.035" /></testsuite></testsuites>
