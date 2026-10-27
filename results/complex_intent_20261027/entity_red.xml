@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="6" time="3.535" timestamp="2026-10-27T12:34:39.968017+08:00" hostname="PC-20231129SOXU"><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[compact]" time="0.168"><failure message="AssertionError: assert [] == ['B101', 'B20...B401', 'B501']&#10;  &#10;  Right contains 5 more items, first extra item: 'B101'&#10;  Use -v to get more diff">registry = &lt;acs.cs_tools.ToolRegistry object at 0x7962f1157230&gt;
+suite = {'root': PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/commerce_benchmark_v2_2'), 'manifest': {'versio...ed final answer must pass', failure='Any forbidden effect, SQL mismatch, false claim or unresolved answer'), ...], ...}
+case_id = 'compact'
+
+    @pytest.mark.parametrize("case_id", ["compact", "lowercase", "fullwidth", "series-compact",
+                                        "series-fullwidth", "spaces"])
+    def test_product_typography_retains_every_candidate(registry, suite, case_id):
+        case = next(c for c in suite["entity_probes"] if c["id"] == case_id)
+        payload, _, error = registry.run("list_products", json.dumps({"name_contains": case["query"]}),
+                                         current_user_id="USER001")
+        assert error is None
+&gt;       assert [p["product_id"] for p in payload["products"]] == case["expected_ids"]
+E       AssertionError: assert [] == ['B101', 'B20...B401', 'B501']
+E         
+E         Right contains 5 more items, first extra item: 'B101'
+E         Use -v to get more diff
+
+tests/test_commerce_complex.py:40: AssertionError</failure></testcase><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[lowercase]" time="0.110"><failure message="AssertionError: assert [] == ['B101', 'B20...B401', 'B501']&#10;  &#10;  Right contains 5 more items, first extra item: 'B101'&#10;  Use -v to get more diff">registry = &lt;acs.cs_tools.ToolRegistry object at 0x7962c40ad450&gt;
+suite = {'root': PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/commerce_benchmark_v2_2'), 'manifest': {'versio...ed final answer must pass', failure='Any forbidden effect, SQL mismatch, false claim or unresolved answer'), ...], ...}
+case_id = 'lowercase'
+
+    @pytest.mark.parametrize("case_id", ["compact", "lowercase", "fullwidth", "series-compact",
+                                        "series-fullwidth", "spaces"])
+    def test_product_typography_retains_every_candidate(registry, suite, case_id):
+        case = next(c for c in suite["entity_probes"] if c["id"] == case_id)
+        payload, _, error = registry.run("list_products", json.dumps({"name_contains": case["query"]}),
+                                         current_user_id="USER001")
+        assert error is None
+&gt;       assert [p["product_id"] for p in payload["products"]] == case["expected_ids"]
+E       AssertionError: assert [] == ['B101', 'B20...B401', 'B501']
+E         
+E         Right contains 5 more items, first extra item: 'B101'
+E         Use -v to get more diff
+
+tests/test_commerce_complex.py:40: AssertionError</failure></testcase><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[fullwidth]" time="0.118"><failure message="AssertionError: assert [] == ['B101', 'B20...B401', 'B501']&#10;  &#10;  Right contains 5 more items, first extra item: 'B101'&#10;  Use -v to get more diff">registry = &lt;acs.cs_tools.ToolRegistry object at 0x7962c40add10&gt;
+suite = {'root': PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/commerce_benchmark_v2_2'), 'manifest': {'versio...ed final answer must pass', failure='Any forbidden effect, SQL mismatch, false claim or unresolved answer'), ...], ...}
+case_id = 'fullwidth'
+
+    @pytest.mark.parametrize("case_id", ["compact", "lowercase", "fullwidth", "series-compact",
+                                        "series-fullwidth", "spaces"])
+    def test_product_typography_retains_every_candidate(registry, suite, case_id):
+        case = next(c for c in suite["entity_probes"] if c["id"] == case_id)
+        payload, _, error = registry.run("list_products", json.dumps({"name_contains": case["query"]}),
+                                         current_user_id="USER001")
+        assert error is None
+&gt;       assert [p["product_id"] for p in payload["products"]] == case["expected_ids"]
+E       AssertionError: assert [] == ['B101', 'B20...B401', 'B501']
+E         
+E         Right contains 5 more items, first extra item: 'B101'
+E         Use -v to get more diff
+
+tests/test_commerce_complex.py:40: AssertionError</failure></testcase><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[series-compact]" time="0.129"><failure message="AssertionError: assert [] == ['B501']&#10;  &#10;  Right contains one more item: 'B501'&#10;  Use -v to get more diff">registry = &lt;acs.cs_tools.ToolRegistry object at 0x7962c3f3c050&gt;
+suite = {'root': PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/commerce_benchmark_v2_2'), 'manifest': {'versio...ed final answer must pass', failure='Any forbidden effect, SQL mismatch, false claim or unresolved answer'), ...], ...}
+case_id = 'series-compact'
+
+    @pytest.mark.parametrize("case_id", ["compact", "lowercase", "fullwidth", "series-compact",
+                                        "series-fullwidth", "spaces"])
+    def test_product_typography_retains_every_candidate(registry, suite, case_id):
+        case = next(c for c in suite["entity_probes"] if c["id"] == case_id)
+        payload, _, error = registry.run("list_products", json.dumps({"name_contains": case["query"]}),
+                                         current_user_id="USER001")
+        assert error is None
+&gt;       assert [p["product_id"] for p in payload["products"]] == case["expected_ids"]
+E       AssertionError: assert [] == ['B501']
+E         
+E         Right contains one more item: 'B501'
+E         Use -v to get more diff
+
+tests/test_commerce_complex.py:40: AssertionError</failure></testcase><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[series-fullwidth]" time="0.169"><failure message="AssertionError: assert [] == ['B201']&#10;  &#10;  Right contains one more item: 'B201'&#10;  Use -v to get more diff">registry = &lt;acs.cs_tools.ToolRegistry object at 0x7962c3f3c770&gt;
+suite = {'root': PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/commerce_benchmark_v2_2'), 'manifest': {'versio...ed final answer must pass', failure='Any forbidden effect, SQL mismatch, false claim or unresolved answer'), ...], ...}
+case_id = 'series-fullwidth'
+
+    @pytest.mark.parametrize("case_id", ["compact", "lowercase", "fullwidth", "series-compact",
+                                        "series-fullwidth", "spaces"])
+    def test_product_typography_retains_every_candidate(registry, suite, case_id):
+        case = next(c for c in suite["entity_probes"] if c["id"] == case_id)
+        payload, _, error = registry.run("list_products", json.dumps({"name_contains": case["query"]}),
+                                         current_user_id="USER001")
+        assert error is None
+&gt;       assert [p["product_id"] for p in payload["products"]] == case["expected_ids"]
+E       AssertionError: assert [] == ['B201']
+E         
+E         Right contains one more item: 'B201'
+E         Use -v to get more diff
+
+tests/test_commerce_complex.py:40: AssertionError</failure></testcase><testcase classname="tests.test_commerce_complex" name="test_product_typography_retains_every_candidate[spaces]" time="0.171"><failure message="AssertionError: assert [] == ['B101', 'B20...B401', 'B501']&#10;  &#10;  Right contains 5 more items, first extra item: 'B101'&#10;  Use -v to get more diff">registry = &lt;acs.cs_tools.ToolRegistry object at 0x7962c40c5c70&gt;
+suite = {'root': PosixPath('/home/qingtian/projects/E-commerce Agent/data/eval/commerce_benchmark_v2_2'), 'manifest': {'versio...ed final answer must pass', failure='Any forbidden effect, SQL mismatch, false claim or unresolved answer'), ...], ...}
+case_id = 'spaces'
+
+    @pytest.mark.parametrize("case_id", ["compact", "lowercase", "fullwidth", "series-compact",
+                                        "series-fullwidth", "spaces"])
+    def test_product_typography_retains_every_candidate(registry, suite, case_id):
+        case = next(c for c in suite["entity_probes"] if c["id"] == case_id)
+        payload, _, error = registry.run("list_products", json.dumps({"name_contains": case["query"]}),
+                                         current_user_id="USER001")
+        assert error is None
+&gt;       assert [p["product_id"] for p in payload["products"]] == case["expected_ids"]
+E       AssertionError: assert [] == ['B101', 'B20...B401', 'B501']
+E         
+E         Right contains 5 more items, first extra item: 'B101'
+E         Use -v to get more diff
+
+tests/test_commerce_complex.py:40: AssertionError</failure></testcase></testsuite></testsuites>

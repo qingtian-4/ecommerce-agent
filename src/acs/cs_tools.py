@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import traceback
+import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -36,7 +37,7 @@ from .runtime import BudgetExceeded
 from .sessions import SessionStore, TaskValidationError
 
 CATALOG_PAGE_BYTES = 8000
-CATALOG_CONTRACT = "catalog-pages-v1"
+CATALOG_CONTRACT = "catalog-pages-v2"
 CATALOG_SKU_FIELDS = ["sku_id", "wearing_type", "anc", "color", "availability"]
 
 
@@ -116,9 +117,9 @@ class ToolRegistry:
     def _register_all(self) -> None:
         self.register(ToolSpec(
             "list_products", "分页查询本店目录，product_id升序；每页最多8件。"
-            "name_contains是名称原文子串，category精确类目，max_price按当前有效价筛选。"
-            "不猜测用户条件；has_more时用next_arguments继续，未查完不能声称穷尽或无匹配。"
-            "SKU每行按返回的sku_fields列名读取，全部约束保留；get_product可查完整详情。",
+            "name_contains按NFKC、去空白、忽略大小写匹配名称子串；category精确，max_price筛现价。"
+            "多个候选不猜选；has_more用next_arguments续查，未查完不可声称无匹配。"
+            "SKU行按sku_fields读取；get_product查完整详情。",
             CatalogArgs.model_json_schema(), self._list_products,
         ))
         self.register(ToolSpec(
@@ -541,7 +542,12 @@ class ToolRegistry:
             # enclosing product_id; all SKU facts remain exactly reconstructable.
             product["skus"] = [[sku[key] for key in CATALOG_SKU_FIELDS]
                                for sku in product["skus"]]
-        matched = [p for p in products if args.name_contains in p["name"]
+        def normalized_name(value):
+            # Typography only: no edit distance, synonyms, intent parsing or auto-selection.
+            return "".join(unicodedata.normalize("NFKC", value).casefold().split())
+
+        query = normalized_name(args.name_contains)
+        matched = [p for p in products if query in normalized_name(p["name"])
                    and (not args.category or p["category"] == args.category)
                    and (args.max_price is None or p["current_price"] is not None
                         and p["current_price"] <= args.max_price)]
