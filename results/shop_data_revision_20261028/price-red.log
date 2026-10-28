@@ -1,0 +1,22 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________ test_purchase_price_matches_recorded_price_on_order_date ___________
+
+fixture = PosixPath('/dev/shm/shop-price-red/revised0/runtime')
+
+    def test_purchase_price_matches_recorded_price_on_order_date(fixture):
+        # This fixture has no coupon or promotion table: a discount cannot be invented.
+        with closing(sqlite3.connect(fixture / "business.sqlite")) as db:
+            for oid, pid, purchased, created in db.execute(
+                "SELECT o.order_id,i.product_id,i.purchase_price,o.created_at "
+                "FROM orders o JOIN order_items i USING(order_id)"
+            ).fetchall():
+                price = db.execute("SELECT price FROM price_history WHERE product_id=? "
+                    "AND changed_at<=? ORDER BY changed_at DESC LIMIT 1", (pid, created)).fetchone()
+>               assert price and price[0] == purchased, (oid, pid, purchased, price)
+E               AssertionError: ('O830001', 'B101', 199.0, (219.0,))
+E               assert ((219.0,) and 219.0 == 199.0)
+
+tests/test_shop_data_revision.py:109: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_shop_data_revision.py::test_purchase_price_matches_recorded_price_on_order_date

@@ -13,11 +13,14 @@ from acs import multiturn_evaluation as m8  # noqa: E402
 from acs.commerce_benchmark import no_network  # noqa: E402
 from acs.commerce_benchmark_data import dump, file_hash  # noqa: E402
 from acs.episode_budget import EpisodeLedger  # noqa: E402
-from acs.shop_demo_data import SOURCE, materialize  # noqa: E402
+from acs.shop_demo_data import SOURCE, load_dataset, materialize  # noqa: E402
 
 
-def run(out):
+def run(out, dataset=SOURCE):
     out.mkdir(parents=True, exist_ok=False)
+    business = load_dataset(dataset)["business"]
+    order_count = sum(o["user_id"] == m8.UID for o in business["orders"])
+    product_count = len(business["products"])
     cases = ROOT / "data/eval/multi_intent_progress_v1/cases.json"
     reports = []
     for mode in ("observed_first_page", "proposed_overview"):
@@ -38,7 +41,7 @@ def run(out):
             ledger.begin(episode, m8.LIMITS)
 
             def fixture(path, task):
-                materialize(path, SOURCE)
+                materialize(path, dataset)
                 return m8.initial_fingerprint(path)
 
             with (no_network(), patch.object(m8, "build_fixture", fixture),
@@ -48,26 +51,30 @@ def run(out):
             receipts = {r["name"]: json.loads(r["result"]) for r in result["final"]["receipts"]}
             bodies = [r["body_bytes"] for r in ledger.rows() if r["type"] == "mock_http_observed"]
             assert result["status"] == "completed" and not queue
-            assert len(receipts["list_orders"]["orders"]) == 30
+            assert len(receipts["list_orders"]["orders"]) == order_count
             products = receipts["list_products"]
-            assert len(products["products"]) == (8 if mode == "observed_first_page" else 48)
+            expected_count = 8 if mode == "observed_first_page" else product_count
+            assert len(products["products"]) == expected_count
             text = result["steps"][-1]["display"]
             if mode == "observed_first_page":
-                assert "订单查询已返回30笔" in text and "查询尚未完成" in text
+                assert f"订单查询已返回{order_count}笔" in text and "查询尚未完成" in text
             else:
                 assert products["complete_catalog"] and not products["specifications_complete"]
             reports.append(dict(mode=mode, arm=arm, body_bytes=bodies,
-                orders=30, products=len(products["products"]),
+                orders=order_count, products=len(products["products"]),
                 enumeration_complete=products["query_complete"], displayed=text,
                 semantic_status="pending_review", paid_requests=0,
                 note="Scripted tool choices, not model-autonomous improvement."))
     assert reports[0]["body_bytes"] == reports[1]["body_bytes"]
     assert reports[2]["body_bytes"] == reports[3]["body_bytes"]
-    dump(out / "report.json", dict(cases_sha256=file_hash(cases), reports=reports))
+    dump(out / "report.json", dict(cases_sha256=file_hash(cases),
+        dataset_sha256=file_hash(dataset / "manifest.json"), reports=reports))
     print(json.dumps(reports, ensure_ascii=False), flush=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
-    run(parser.parse_args().out.resolve())
+    parser.add_argument("--dataset", type=Path, default=SOURCE)
+    args = parser.parse_args()
+    run(args.out.resolve(), args.dataset.resolve())

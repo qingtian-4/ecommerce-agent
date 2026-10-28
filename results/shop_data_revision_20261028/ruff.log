@@ -1,0 +1,25 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> scripts/audit_shop_data_revision.py:14:1
+   |
+12 |   ROOT = Path(__file__).resolve().parents[1]
+13 |   sys.path[:0] = [str(ROOT), str(ROOT / "src"), str(ROOT / "scripts")]
+14 | / from acs.commerce_benchmark import no_network  # noqa: E402
+15 | | from acs.commerce_benchmark_data import dump, file_hash  # noqa: E402
+16 | | from acs.cs_tools import ToolRegistry  # noqa: E402
+17 | | from acs.local_return_tools import FORMAL_FIXTURE_KIND, LocalKnowledge, fixture_settings  # noqa: E402
+18 | | from acs.shop_demo_data import REVISED_SOURCE, SOURCE, load_dataset, materialize  # noqa: E402
+   | |________________________________________________________________________________^
+help: Organize imports
+   |
+16 | from acs.cs_tools import ToolRegistry  # noqa: E402
+   - from acs.local_return_tools import FORMAL_FIXTURE_KIND, LocalKnowledge, fixture_settings  # noqa: E402
+17 + from acs.local_return_tools import (  # noqa: E402
+18 +     FORMAL_FIXTURE_KIND,
+19 +     LocalKnowledge,
+20 +     fixture_settings,
+21 + )
+22 | from acs.shop_demo_data import REVISED_SOURCE, SOURCE, load_dataset, materialize  # noqa: E402
+   |
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.
