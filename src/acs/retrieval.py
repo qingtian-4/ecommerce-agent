@@ -35,9 +35,11 @@ class LexicalIndex:
         self.chunks = chunks
         self.index = BM25Okapi([tokenize(f"{c.title}\n{c.content}") for c in chunks])
 
-    def search(self, query: str, k: int) -> list[Chunk]:
+    def search(self, query: str, k: int, *, document_id: str | None = None) -> list[Chunk]:
         scores = self.index.get_scores(tokenize(query))
-        indices = sorted(range(len(scores)), key=lambda i: (-scores[i], self.chunks[i].chunk_id))
+        eligible = [i for i in range(len(scores))
+                    if document_id is None or self.chunks[i].document_id == document_id]
+        indices = sorted(eligible, key=lambda i: (-scores[i], self.chunks[i].chunk_id))
         return [
             replace(self.chunks[i], score=float(scores[i]), score_type="bm25")
             for i in indices[:k] if scores[i] > 0

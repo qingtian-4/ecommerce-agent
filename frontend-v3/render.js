@@ -195,7 +195,8 @@ export function orderCard(order, actions, compact = false) {
   const buttons = el('div', 'order-buttons');
   for (const [text, fn] of [['查看详情', actions.detail], ['查物流', actions.logistics], ['申请售后', actions.afterSale]]) {
     const unsupported = text === '申请售后' && order.items?.length && order.items.every(i => i.policy_scope?.return === false);
-    const button = btn(unsupported ? '暂无适用售后政策' : text, () => fn(order.order_id), text === '申请售后' ? 'order-button main-action' : 'order-button');
+    const consultation = unsupported && order.items.every(i => i.policy_scope?.consultation === true);
+    const button = btn(unsupported ? consultation ? '仅咨询，暂不支持办理' : '暂无适用售后政策' : text, () => fn(order.order_id), text === '申请售后' ? 'order-button main-action' : 'order-button');
     button.disabled = Boolean(unsupported);
     buttons.append(button);
   }

@@ -138,10 +138,16 @@ async function showOrder(oid) {
     for (const item of order.items || []) {
       const row = el('div', 'context-card');
       const eligible = item.policy_scope?.return !== false;
-      const apply = btn(eligible ? '退这件商品' : '暂无适用售后政策', () => afterSale(oid, item.id), 'order-button main-action');
+      const consultation = item.policy_scope?.consultation === true;
+      const apply = btn(eligible ? '退这件商品' : consultation ? '仅咨询，暂不支持办理' : '暂无适用售后政策', () => afterSale(oid, item.id), 'order-button main-action');
       apply.disabled = !eligible;
       row.append(thumb(item), el('strong', '', item.product_name), el('p', 'muted', `明细 ${item.id} · 数量 ${item.quantity}`), apply);
-      if (!eligible) row.append(el('p', 'muted', '目前可查询规格、价格、订单和物流，不能判断保修或办理此类售后。'));
+      if (!eligible) row.append(el('p', 'muted', consultation ? '可以解释模拟期限与证据要求；资格仍需核实，不能提交家电申请。' : '目前可查询规格、价格、订单和物流，不能判断保修或办理此类售后。'));
+      if (consultation) row.append(btn('咨询模拟政策', () => {
+        closeDialog();
+        $('message').value = `只咨询模拟政策：订单${oid}中的${item.product_id} ${item.product_name}，请解释保修与退货期限、所需证据和当前办理边界。不要修改退货草稿。`;
+        $('message').focus();
+      }, 'order-button'));
       box.append(row);
     }
     box.append(el('p', 'muted', '这里只展示本人合成订单，查看订单不等于选择了退货商品。'));
@@ -224,7 +230,8 @@ async function afterSale(oid, itemId) {
     const order = await chooseOrder(oid);
     const eligible = order.items.filter(i => i.policy_scope?.return !== false);
     if (!eligible.length || (itemId && !eligible.some(i => i.id === itemId))) {
-      openDialog('缺少适用售后政策', el('p', '', '此商品目前只支持规格、价格、订单和物流查询，缺少适用的退货、保修、安装或换货政策，不能生成售后预览。'));
+      const consultation = order.items.some(i => (!itemId || i.id === itemId) && i.policy_scope?.consultation === true);
+      openDialog(consultation ? '家电仅支持模拟政策咨询' : '缺少适用售后政策', el('p', '', consultation ? '可以在订单详情咨询模拟期限和证据要求；家电预览、申请、退款、安装及维修换货办理仍未启用。' : '此商品目前只支持规格、价格、订单和物流查询，缺少适用的退货、保修、安装或换货政策，不能生成售后预览。'));
       return;
     }
     const box = el('form');

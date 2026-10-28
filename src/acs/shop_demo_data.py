@@ -15,13 +15,14 @@ from . import multiturn_evaluation as m8
 from .commerce_benchmark_data import dump, file_hash
 from .config import PROJECT_ROOT
 from .local_submission import init_formal_fixture
+from .shop_data_revision import CONSULTATION_VERSION, enable_consultation, revise
 from .shop_data_revision import VERSION as REVISED_VERSION
-from .shop_data_revision import revise
 
 VERSION = "shop-realism-v1.1"
 LEGACY_VERSION = "shop-realism-v1"
 SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1_1"
 REVISED_SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1_2"
+CONSULTATION_SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1_3"
 CURATED_SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1"
 BASE = PROJECT_ROOT / "data/eval/commerce_benchmark_v2_2"
 
@@ -30,7 +31,7 @@ def build_dataset(out: Path, source=CURATED_SOURCE, *, revision=VERSION):
     """Rebuild bytes from curated public sources and unchanged v2.2 business data."""
     sources = json.loads((source / "sources.json").read_text())
     assert sources["version"] == LEGACY_VERSION
-    if revision not in {VERSION, LEGACY_VERSION, REVISED_VERSION}:
+    if revision not in {VERSION, LEGACY_VERSION, REVISED_VERSION, CONSULTATION_VERSION}:
         raise ValueError("Unknown shop demo revision")
     out.mkdir(parents=True, exist_ok=False)
     for name in ("sources.json", "LICENSE"):
@@ -86,8 +87,10 @@ def build_dataset(out: Path, source=CURATED_SOURCE, *, revision=VERSION):
             "保修凭证或补充经过确认的适用政策；本系统不能承诺保修、安装、换货，"
             "也不能创建家电售后预览或申请。商品规格、价格、订单和物流仍可正常查询。\n"
         )
-    if revision == REVISED_VERSION:
+    if revision in {REVISED_VERSION, CONSULTATION_VERSION}:
         data, sources = revise(out)
+    if revision == CONSULTATION_VERSION:
+        enable_consultation(out)
     dump(out / "manifest.json", dict(
         version=revision, clock=data["reference_date"]+"T04:00:00+00:00",
         source_commit=sources["upstream"]["commit"],
@@ -102,7 +105,7 @@ def build_dataset(out: Path, source=CURATED_SOURCE, *, revision=VERSION):
 
 def load_dataset(root):
     manifest = json.loads((root / "manifest.json").read_text())
-    if manifest["version"] not in {VERSION, LEGACY_VERSION, REVISED_VERSION}:
+    if manifest["version"] not in {VERSION, LEGACY_VERSION, REVISED_VERSION, CONSULTATION_VERSION}:
         raise ValueError("Unknown shop demo data version")
     actual = {str(p.relative_to(root)): file_hash(p) for p in root.rglob("*")
               if p.is_file() and p.name != "manifest.json"}
@@ -133,7 +136,8 @@ def materialize(root, dataset=SOURCE):
                 conn.execute("INSERT INTO order_item_skus SELECT id,? FROM order_items "
                              "WHERE product_id=?", (pid + "-1", pid))
                 conn.execute("UPDATE products SET brand='美的' WHERE product_id=?", (pid,))
-            if suite["manifest"]["version"] == REVISED_VERSION:
+            revised = suite["manifest"]["version"] in {REVISED_VERSION, CONSULTATION_VERSION}
+            if revised:
                 for row in json.loads((dataset / "sku_facts.json").read_text()):
                     for sku in row["skus"]:
                         conn.execute("UPDATE product_skus SET wearing_type=?,anc=?,color=?,"
@@ -146,7 +150,7 @@ def materialize(root, dataset=SOURCE):
                                  "trace_json=? WHERE order_id=?", (
                                      row["carrier"], trace[-1]["location"], trace[-1]["time"],
                                      json.dumps(trace, ensure_ascii=False), row["order_id"]))
-            for order in data["orders"] if suite["manifest"]["version"] != REVISED_VERSION else []:
+            for order in data["orders"] if not revised else []:
                 if not order["shipped_at"]:
                     continue
                 route = sources["logistics_route"]["nodes"]

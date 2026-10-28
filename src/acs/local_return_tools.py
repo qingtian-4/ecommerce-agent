@@ -40,6 +40,7 @@ class DraftArgs(BaseModel):
 
 class SearchArgs(EmptyArgs):
     query: str
+    document_id: str | None = None
 
 
 TOOLS = {

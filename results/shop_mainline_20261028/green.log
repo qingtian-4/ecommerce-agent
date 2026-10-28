@@ -1,0 +1,35 @@
+.....F...F.........                                                      [100%]
+=================================== FAILURES ===================================
+_____ test_scoped_consultation_evidence_is_retrievable[\u6d17\u7897\u673a] _____
+
+fixture = (PosixPath('/dev/shm/consult-green/test_scoped_consultation_evide3/shop'), Settings(llm_provider='deepseek', llm_api_k...ed=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=datetime.date(2026, 10, 28)))
+category = '洗碗机'
+
+    @pytest.mark.parametrize("category", ["电热水器", "厨房热水器", "燃气热水器", "洗碗机",
+                                         "油烟机", "净饮机", "燃气灶", "冰箱"])
+    def test_scoped_consultation_evidence_is_retrievable(fixture, category):
+        _, settings = fixture
+        chunks = LocalKnowledge(settings).search(f"{category}模拟保修期限和退货条件")
+        found = [c for c in chunks if c.document_id == "appliance_consultation"]
+>       assert found and any("12个月" in c.content and "不支持家电" in c.content for c in found)
+E       assert ([])
+
+tests/test_appliance_consultation.py:53: AssertionError
+________ test_scoped_consultation_evidence_is_retrievable[\u51b0\u7bb1] ________
+
+fixture = (PosixPath('/dev/shm/consult-green/test_scoped_consultation_evide7/shop'), Settings(llm_provider='deepseek', llm_api_k...ed=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=datetime.date(2026, 10, 28)))
+category = '冰箱'
+
+    @pytest.mark.parametrize("category", ["电热水器", "厨房热水器", "燃气热水器", "洗碗机",
+                                         "油烟机", "净饮机", "燃气灶", "冰箱"])
+    def test_scoped_consultation_evidence_is_retrievable(fixture, category):
+        _, settings = fixture
+        chunks = LocalKnowledge(settings).search(f"{category}模拟保修期限和退货条件")
+        found = [c for c in chunks if c.document_id == "appliance_consultation"]
+>       assert found and any("12个月" in c.content and "不支持家电" in c.content for c in found)
+E       assert ([])
+
+tests/test_appliance_consultation.py:53: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_appliance_consultation.py::test_scoped_consultation_evidence_is_retrievable[\u6d17\u7897\u673a]
+FAILED tests/test_appliance_consultation.py::test_scoped_consultation_evidence_is_retrievable[\u51b0\u7bb1]

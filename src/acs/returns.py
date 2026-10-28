@@ -14,7 +14,13 @@ from PIL import Image, UnidentifiedImageError
 
 from .config import Settings
 from .database import BusinessDB, business_today, item_sku
-from .return_rules import UNSUPPORTED_POLICY, delivery_days, read_return_policy, within_window
+from .return_rules import (
+    UNSUPPORTED_POLICY,
+    delivery_days,
+    policy_notice,
+    read_return_policy,
+    within_window,
+)
 from .sessions import ConversationBusy, SessionStore, TaskValidationError, _now
 
 REQUEST_QUERY = ("SELECT r.*,v.decision AS review_decision,v.reason AS review_reason,"
@@ -56,6 +62,8 @@ def scoped_task_view(settings, view, uid):
         category = next((i["product_category"] for i in order.get("items", [])
                          if i["id"] == task["item_id"]), None)
     policy = policy_for_reason(return_policy(settings), task.get("reason"), category)
+    if policy.get("applicable") is False:
+        policy["notice"] = policy_notice(settings, category)
     return view | {"policy": policy} | (
         {"can_submit": False} if policy.get("applicable") is False else {})
 
@@ -89,10 +97,11 @@ class ReturnService:
         if row is None:
             return {}, ["订单或商品不属于当前用户"]
         if row["category"] not in policy["applicable_categories"]:
+            scoped = policy_for_reason(policy, task["reason"], row["category"])
+            scoped["notice"] = policy_notice(self.settings, row["category"])
             return {"order_id": task["order_id"], "item_id": task["item_id"],
                     "product_id": row["product_id"], "product_name": row["product_name"],
-                    "policy": policy_for_reason(policy, task["reason"], row["category"])}, [
-                        UNSUPPORTED_POLICY]
+                    "policy": scoped}, [scoped["notice"]]
         reasons, today = [], business_today(self.settings)
         if row["status"] != "delivered" or not row["delivered_at"]:
             reasons.append("订单尚未签收或已取消，不能创建退货申请")

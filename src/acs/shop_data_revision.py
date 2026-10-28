@@ -12,6 +12,53 @@ from .config import PROJECT_ROOT
 
 INPUTS = PROJECT_ROOT / "data/demo_revision_v1"
 VERSION = "shop-realism-v1.2"
+CONSULTATION_VERSION = "shop-realism-v1.3"
+
+
+def enable_consultation(out):
+    """Activate only consultation; operational return_policy stays unchanged."""
+    draft = json.loads((out / "drafts/appliance_policy.json").read_text())
+    policy = dict(version="appliance-consultation-v1", mode="consultation_only",
+        simulation_only=True, consultation_enabled=True, application_enabled=False,
+        categories=draft["categories"], no_reason_days=draft["proposed_no_reason_days"],
+        quality_return_days=draft["proposed_quality_return_days"],
+        warranty_months=draft["proposed_warranty_months"], starting_point="签收日",
+        boundary_status="month_end_and_component_terms_require_review")
+    body = ("---\ndocument_id: appliance_consultation\ntitle: 家电模拟政策咨询\n"
+            "category: policy\nversion: appliance-consultation-v1\n---\n\n"
+            "# 家电模拟政策咨询（仅咨询）\n\n"
+            "仅用于本地合成演示，不代表任何品牌、平台或法律承诺。适用品类："
+            + "、".join(policy["categories"]) + "。\n\n"
+            f"模拟无理由退货期限：签收日起{policy['no_reason_days']}天；"
+            "需未拆封、配件包装齐全且不影响二次销售。\n\n"
+            f"模拟质量问题退货期限：签收日起{policy['quality_return_days']}天；"
+            "需非人为功能故障并核验凭证。\n\n"
+            f"模拟整机保修期：签收日起{policy['warranty_months']}个月；"
+            "需核验本人订单、签收日期、购买凭证和故障描述。用户自述不等于故障已确认。"
+            "月末边界、部件差异和特殊情况尚未确定，不能自动判定资格。\n\n"
+            "用户只说用了两个月时，可以解释模拟期限，但不能把使用时长当成已核验签收日期。"
+            "多商品订单必须逐明细区分耳机政策与家电模拟政策。\n\n"
+            "当前只支持模拟政策咨询，不支持家电退货预览、申请提交、退款、安装预约、维修"
+            "派单或换货发货；即使用户确认也不能办理。上游历史安装维修资料不是本店政策。\n")
+    path = out / "docs/appliance_consultation.md"
+    path.write_text(body)
+    policy["document_sha256"] = file_hash(path)
+    dump(out / "docs/appliance_consultation.json", policy)
+    (out / "docs/appliance_policy_boundary.md").write_text(
+        "---\ndocument_id: appliance_policy_boundary\ntitle: 家电办理边界\ncategory: policy\n"
+        f"version: {CONSULTATION_VERSION}\n---\n\n# 家电办理边界\n\n"
+        "已启用家电模拟政策咨询，规则见appliance_consultation。耳机和充电配件条款"
+        "不能套用于家电。家电预览、申请、退款、安装、维修、换货办理仍未启用；"
+        "聊天或页面确认均不能扩大权限。模拟咨询不代表真实售后资格。\n")
+    scope = out / "docs/demo_data_scope.md"
+    scope.write_text(scope.read_text().replace(
+        "家电政策草案不在当前知识库中，不得承诺家电保修或售后办理。",
+        "家电模拟政策已启用咨询，详见appliance_consultation；仍不能承诺真实保修或办理售后。"))
+    for name in ("return_policy", "warranty_policy"):
+        path = out / "docs" / (name+".md")
+        path.write_text(path.read_text().replace(
+            "详见家电政策边界说明。",
+            "另有家电模拟政策仅供咨询，详见appliance_consultation和家电办理边界。"))
 
 
 def logistics_rows(business, spec):

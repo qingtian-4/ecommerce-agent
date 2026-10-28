@@ -1,0 +1,18 @@
+....F.......                                                             [100%]
+=================================== FAILURES ===================================
+___________ test_mixed_goals_and_original_draft_are_preserved[SX05] ____________
+
+tmp_path = PosixPath('/dev/shm/shop-mainline-targeted/test_mixed_goals_and_original_3')
+tid = 'SX05'
+
+    @pytest.mark.parametrize("tid", ["SX02", "SX03", "SX04", "SX05"])
+    def test_mixed_goals_and_original_draft_are_preserved(tmp_path, tid):
+        suite = load()
+        entry = next(e for e in suite["entries"] if e["task"]["task_id"] == tid)
+        result = run(suite, entry, tmp_path / "case", "v3")
+>       assert result["sql_correct"] and result["tool_valid"]
+E       assert (True and False)
+
+tests/test_shop_mainline.py:28: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_shop_mainline.py::test_mixed_goals_and_original_draft_are_preserved[SX05]

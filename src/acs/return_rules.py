@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from datetime import date, datetime
 
@@ -52,12 +53,43 @@ def policy_scope(settings: Settings, category: str) -> dict:
     covered = set(re.findall(r"^\| ([^|]+) \| \d+ 个月 \| 签收日 \|", text, re.M))
     warranty = category in covered or (category == "充电配件"
                                       and {"充电器", "充电宝"} <= covered)
-    return {"return": category in policy["applicable_categories"], "warranty": warranty,
-            "installation": False, "exchange": False}
+    scope = {"return": category in policy["applicable_categories"], "warranty": warranty,
+             "installation": False, "exchange": False}
+    if consultation_policy(settings, category):
+        scope["consultation"] = True
+    return scope
 
 
 UNSUPPORTED_POLICY = ("缺少适用于此商品类别的售后政策，不能判断退货或保修资格，"
                       "也不能承诺安装、换货。")
+
+CONSULTATION_NOTICE = ("仅支持模拟政策咨询，规则见appliance_consultation；"
+                       "不代表真实资格，不支持家电预览、申请、退款、安装或维修换货办理。")
+
+
+def consultation_policy(settings: Settings, category: str | None = None) -> dict | None:
+    """Separate evidence contract; this function cannot enable operational rules."""
+    try:
+        value = json.loads((settings.docs_dir / "appliance_consultation.json").read_text())
+        document = (settings.docs_dir / "appliance_consultation.md").read_bytes()
+        if (value.get("mode") != "consultation_only"
+                or value.get("consultation_enabled") is not True
+                or value.get("application_enabled") is not False
+                or value.get("simulation_only") is not True
+                or value.get("document_sha256") != hashlib.sha256(document).hexdigest()
+                or not isinstance(value.get("categories"), list)
+                or any(not isinstance(c, str) for c in value["categories"])
+                or any(type(value.get(k)) is not int or value[k] <= 0 for k in
+                       ("no_reason_days", "quality_return_days", "warranty_months"))
+                or category is not None and category not in value["categories"]):
+            return None
+        return value
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def policy_notice(settings: Settings, category: str | None) -> str:
+    return CONSULTATION_NOTICE if consultation_policy(settings, category) else UNSUPPORTED_POLICY
 
 
 

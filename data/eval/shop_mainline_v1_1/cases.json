@@ -1,0 +1,2299 @@
+[
+  {
+    "task": {
+      "task_id": "SX01",
+      "split": "development",
+      "cohort": "common",
+      "goal": "家电订单与模拟政策并行，区分使用时长和签收事实",
+      "fixture_index": 200,
+      "steps": [
+        {
+          "text": "查我O72005热水器订单是否签收，同时说说模拟保修期限，不要申请。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "O72005已签收。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "O72005已签收。",
+                  "fact": "order.O72005.status",
+                  "value": "delivered"
+                },
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "O72005已签收。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "O72005已签收。",
+                  "fact": "order.O72005.status",
+                  "value": "delivered"
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "O72005已签收。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "O72005已签收。",
+                  "fact": "order.O72005.status",
+                  "value": "delivered"
+                },
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "我说的是用了两个月的另一台，不是这笔订单。先只解释质量退货期限，别承诺免费修。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。另一台需补充本人订单与凭证，不能沿用O72005。",
+              "claims": [
+                {
+                  "span": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+                  "fact": "consultation.quality_return_days",
+                  "value": 15
+                },
+                {
+                  "span": "另一台需补充本人订单与凭证，不能沿用O72005。",
+                  "fact": "clarification",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "text": "另一台需补充本人订单与凭证，不能沿用O72005。",
+              "claims": [
+                {
+                  "span": "另一台需补充本人订单与凭证，不能沿用O72005。",
+                  "fact": "clarification",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "text": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+                  "fact": "consultation.quality_return_days",
+                  "value": 15
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "family": "家电订单与模拟政策并行，区分使用时长和签收事实",
+    "tool_gold": [
+      [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "O72005"
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "query": "燃气热水器模拟保修期限",
+            "document_id": "appliance_consultation"
+          },
+          "error": null,
+          "result": {}
+        }
+      ],
+      [
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "query": "家电模拟质量问题退货期限",
+            "document_id": "appliance_consultation"
+          },
+          "error": null,
+          "result": {}
+        }
+      ]
+    ],
+    "intent_gold": [
+      {
+        "goals": [
+          {
+            "id": "O72005",
+            "text": "O72005已签收。",
+            "claims": [
+              {
+                "span": "O72005已签收。",
+                "fact": "order.O72005.status",
+                "value": "delivered"
+              }
+            ],
+            "evidence": {
+              "kind": "order",
+              "order_id": "O72005",
+              "logistics": false
+            }
+          },
+          {
+            "id": "warranty_months",
+            "text": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                "fact": "consultation.warranty_months",
+                "value": 12
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟整机保修期：签收日起12个月"
+            }
+          },
+          {
+            "id": "no-submit",
+            "text": "没有创建申请，也没有退款、维修或安装派单。",
+            "claims": [
+              {
+                "span": "没有创建申请，也没有退款、维修或安装派单。",
+                "fact": "unsupported_operation",
+                "value": false
+              }
+            ],
+            "evidence": {
+              "kind": "state",
+              "expected": {
+                "requests": 0
+              }
+            }
+          }
+        ],
+        "answer_coverage": {
+          "O72005已签收。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。": [
+            "O72005",
+            "warranty_months",
+            "no-submit"
+          ],
+          "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。": [
+            "warranty_months",
+            "no-submit"
+          ],
+          "O72005已签收。没有创建申请，也没有退款、维修或安装派单。": [
+            "O72005",
+            "no-submit"
+          ],
+          "O72005已签收。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。": [
+            "O72005",
+            "warranty_months"
+          ]
+        }
+      },
+      {
+        "goals": [
+          {
+            "id": "quality_return_days",
+            "text": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+                "fact": "consultation.quality_return_days",
+                "value": 15
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟质量问题退货期限：签收日起15天"
+            }
+          },
+          {
+            "id": "clarify",
+            "text": "另一台需补充本人订单与凭证，不能沿用O72005。",
+            "claims": [
+              {
+                "span": "另一台需补充本人订单与凭证，不能沿用O72005。",
+                "fact": "clarification",
+                "value": true
+              }
+            ],
+            "evidence": {
+              "kind": "no_write"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。另一台需补充本人订单与凭证，不能沿用O72005。": [
+            "quality_return_days",
+            "clarify"
+          ],
+          "另一台需补充本人订单与凭证，不能沿用O72005。": [
+            "clarify"
+          ],
+          "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。": [
+            "quality_return_days"
+          ]
+        }
+      }
+    ],
+    "provenance": "authored_seen_controls_not_customer_or_unseen_evaluation"
+  },
+  {
+    "task": {
+      "task_id": "SX02",
+      "split": "development",
+      "cohort": "common",
+      "goal": "预算加否定品类，指定实体比较",
+      "fixture_index": 201,
+      "steps": [
+        {
+          "text": "预算1000元，只看燃气热水器，不要电热水器。列全候选，再说模拟无理由期限。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "符合预算与品类的候选为E003、E018、E020、E024。模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "符合预算与品类的候选为E003、E018、E020、E024。",
+                  "fact": "candidate_ids",
+                  "value": [
+                    "E003",
+                    "E018",
+                    "E020",
+                    "E024"
+                  ]
+                },
+                {
+                  "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                  "fact": "consultation.no_reason_days",
+                  "value": 7
+                }
+              ]
+            },
+            {
+              "text": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                  "fact": "consultation.no_reason_days",
+                  "value": 7
+                }
+              ]
+            },
+            {
+              "text": "符合预算与品类的候选为E003、E018、E020、E024。",
+              "claims": [
+                {
+                  "span": "符合预算与品类的候选为E003、E018、E020、E024。",
+                  "fact": "candidate_ids",
+                  "value": [
+                    "E003",
+                    "E018",
+                    "E020",
+                    "E024"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "保持预算，比较E018与E020的出水规格，别换成相似型号。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "E018：14升大容量。E020：热水产率为16升/分钟。",
+              "claims": [
+                {
+                  "span": "E018：14升大容量。",
+                  "fact": "product.E018",
+                  "value": "14升大容量"
+                },
+                {
+                  "span": "E020：热水产率为16升/分钟。",
+                  "fact": "product.E020",
+                  "value": "热水产率为16升/分钟"
+                }
+              ]
+            },
+            {
+              "text": "E020：热水产率为16升/分钟。",
+              "claims": [
+                {
+                  "span": "E020：热水产率为16升/分钟。",
+                  "fact": "product.E020",
+                  "value": "热水产率为16升/分钟"
+                }
+              ]
+            },
+            {
+              "text": "E018：14升大容量。",
+              "claims": [
+                {
+                  "span": "E018：14升大容量。",
+                  "fact": "product.E018",
+                  "value": "14升大容量"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "family": "预算加否定品类，指定实体比较",
+    "tool_gold": [
+      [
+        {
+          "name": "list_products",
+          "arguments": {
+            "category": "燃气热水器",
+            "max_price": 1000
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "query": "燃气热水器模拟无理由退货期限",
+            "document_id": "appliance_consultation"
+          },
+          "error": null,
+          "result": {}
+        }
+      ],
+      [
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "E018"
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "E020"
+          },
+          "error": null,
+          "result": {}
+        }
+      ]
+    ],
+    "intent_gold": [
+      {
+        "goals": [
+          {
+            "id": "candidates",
+            "text": "符合预算与品类的候选为E003、E018、E020、E024。",
+            "claims": [
+              {
+                "span": "符合预算与品类的候选为E003、E018、E020、E024。",
+                "fact": "candidate_ids",
+                "value": [
+                  "E003",
+                  "E018",
+                  "E020",
+                  "E024"
+                ]
+              }
+            ],
+            "evidence": {
+              "kind": "exact_candidates",
+              "ids": [
+                "E003",
+                "E018",
+                "E020",
+                "E024"
+              ],
+              "arguments": {
+                "category": "燃气热水器",
+                "max_price": 1000
+              }
+            }
+          },
+          {
+            "id": "no_reason_days",
+            "text": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                "fact": "consultation.no_reason_days",
+                "value": 7
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟无理由退货期限：签收日起7天"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "符合预算与品类的候选为E003、E018、E020、E024。模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。": [
+            "candidates",
+            "no_reason_days"
+          ],
+          "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。": [
+            "no_reason_days"
+          ],
+          "符合预算与品类的候选为E003、E018、E020、E024。": [
+            "candidates"
+          ]
+        }
+      },
+      {
+        "goals": [
+          {
+            "id": "E018-spec",
+            "text": "E018：14升大容量。",
+            "claims": [
+              {
+                "span": "E018：14升大容量。",
+                "fact": "product.E018",
+                "value": "14升大容量"
+              }
+            ],
+            "evidence": {
+              "kind": "product",
+              "product_id": "E018",
+              "attribute": "14升大容量"
+            }
+          },
+          {
+            "id": "E020-spec",
+            "text": "E020：热水产率为16升/分钟。",
+            "claims": [
+              {
+                "span": "E020：热水产率为16升/分钟。",
+                "fact": "product.E020",
+                "value": "热水产率为16升/分钟"
+              }
+            ],
+            "evidence": {
+              "kind": "product",
+              "product_id": "E020",
+              "attribute": "热水产率为16升/分钟"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "E018：14升大容量。E020：热水产率为16升/分钟。": [
+            "E018-spec",
+            "E020-spec"
+          ],
+          "E020：热水产率为16升/分钟。": [
+            "E020-spec"
+          ],
+          "E018：14升大容量。": [
+            "E018-spec"
+          ]
+        }
+      }
+    ],
+    "provenance": "authored_seen_controls_not_customer_or_unseen_evaluation"
+  },
+  {
+    "task": {
+      "task_id": "SX03",
+      "split": "development",
+      "cohort": "common",
+      "goal": "耳机未知规格不是否定，代词歧义",
+      "fixture_index": 202,
+      "steps": [
+        {
+          "text": "B102支持主动降噪吗？再查B101的降噪，没写就说未知。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "B102主动降噪信息未知，不能说不支持。B101：主动降噪。",
+              "claims": [
+                {
+                  "span": "B102主动降噪信息未知，不能说不支持。",
+                  "fact": "sku.B102.anc",
+                  "value": null
+                },
+                {
+                  "span": "B101：主动降噪。",
+                  "fact": "product.B101",
+                  "value": "主动降噪"
+                }
+              ]
+            },
+            {
+              "text": "B101：主动降噪。",
+              "claims": [
+                {
+                  "span": "B101：主动降噪。",
+                  "fact": "product.B101",
+                  "value": "主动降噪"
+                }
+              ]
+            },
+            {
+              "text": "B102主动降噪信息未知，不能说不支持。",
+              "claims": [
+                {
+                  "span": "B102主动降噪信息未知，不能说不支持。",
+                  "fact": "sku.B102.anc",
+                  "value": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "它能退吗？先问清楚我指哪个，也别建草稿。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "您指B102还是B101？还需对应订单及商品状况。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "您指B102还是B101？还需对应订单及商品状况。",
+                  "fact": "clarification",
+                  "value": true
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "您指B102还是B101？还需对应订单及商品状况。",
+              "claims": [
+                {
+                  "span": "您指B102还是B101？还需对应订单及商品状况。",
+                  "fact": "clarification",
+                  "value": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "family": "耳机未知规格不是否定，代词歧义",
+    "tool_gold": [
+      [
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "B102"
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "B101"
+          },
+          "error": null,
+          "result": {}
+        }
+      ],
+      []
+    ],
+    "intent_gold": [
+      {
+        "goals": [
+          {
+            "id": "B102-anc",
+            "text": "B102主动降噪信息未知，不能说不支持。",
+            "claims": [
+              {
+                "span": "B102主动降噪信息未知，不能说不支持。",
+                "fact": "sku.B102.anc",
+                "value": null
+              }
+            ],
+            "evidence": {
+              "kind": "sku",
+              "product_id": "B102",
+              "field": "anc",
+              "value": null
+            }
+          },
+          {
+            "id": "B101-spec",
+            "text": "B101：主动降噪。",
+            "claims": [
+              {
+                "span": "B101：主动降噪。",
+                "fact": "product.B101",
+                "value": "主动降噪"
+              }
+            ],
+            "evidence": {
+              "kind": "product",
+              "product_id": "B101",
+              "attribute": "主动降噪"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "B102主动降噪信息未知，不能说不支持。B101：主动降噪。": [
+            "B102-anc",
+            "B101-spec"
+          ],
+          "B101：主动降噪。": [
+            "B101-spec"
+          ],
+          "B102主动降噪信息未知，不能说不支持。": [
+            "B102-anc"
+          ]
+        }
+      },
+      {
+        "goals": [
+          {
+            "id": "clarify",
+            "text": "您指B102还是B101？还需对应订单及商品状况。",
+            "claims": [
+              {
+                "span": "您指B102还是B101？还需对应订单及商品状况。",
+                "fact": "clarification",
+                "value": true
+              }
+            ],
+            "evidence": {
+              "kind": "no_write"
+            }
+          },
+          {
+            "id": "no-submit",
+            "text": "没有创建申请，也没有退款、维修或安装派单。",
+            "claims": [
+              {
+                "span": "没有创建申请，也没有退款、维修或安装派单。",
+                "fact": "unsupported_operation",
+                "value": false
+              }
+            ],
+            "evidence": {
+              "kind": "state",
+              "expected": {
+                "requests": 0
+              }
+            }
+          }
+        ],
+        "answer_coverage": {
+          "您指B102还是B101？还需对应订单及商品状况。没有创建申请，也没有退款、维修或安装派单。": [
+            "clarify",
+            "no-submit"
+          ],
+          "没有创建申请，也没有退款、维修或安装派单。": [
+            "no-submit"
+          ],
+          "您指B102还是B101？还需对应订单及商品状况。": [
+            "clarify"
+          ]
+        }
+      }
+    ],
+    "provenance": "authored_seen_controls_not_customer_or_unseen_evaluation"
+  },
+  {
+    "task": {
+      "task_id": "SX04",
+      "split": "development",
+      "cohort": "common",
+      "goal": "耳机草稿与家电咨询分离，跨轮临时切换",
+      "fixture_index": 203,
+      "steps": [
+        {
+          "text": "只保存O72001明细720010退1件耳机，无理由未拆封且满足二次销售条件；另问家电模拟保修期限。",
+          "expect": {
+            "draft": {
+              "order_id": "O72001",
+              "item_id": 720010,
+              "quantity": 1,
+              "reason": "no_reason",
+              "condition": "sealed",
+              "secondary_sale_ok": true,
+              "status": "draft"
+            },
+            "requests": 0,
+            "valid_preview": false
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge",
+            "update_return_task"
+          ],
+          "answers": [
+            {
+              "text": "已保存O72001明细720010的耳机草稿，尚未提交。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "已保存O72001明细720010的耳机草稿，尚未提交。",
+                  "fact": "draft.item_id",
+                  "value": 720010
+                },
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "已保存O72001明细720010的耳机草稿，尚未提交。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "已保存O72001明细720010的耳机草稿，尚未提交。",
+                  "fact": "draft.item_id",
+                  "value": 720010
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "已保存O72001明细720010的耳机草稿，尚未提交。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "已保存O72001明细720010的耳机草稿，尚未提交。",
+                  "fact": "draft.item_id",
+                  "value": 720010
+                },
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "临时查O72005的热水器签收和无理由期限，别把原耳机草稿改成热水器。",
+          "expect": {
+            "draft": {
+              "order_id": "O72001",
+              "item_id": 720010,
+              "quantity": 1,
+              "reason": "no_reason",
+              "condition": "sealed",
+              "secondary_sale_ok": true,
+              "status": "draft"
+            },
+            "requests": 0,
+            "valid_preview": false
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "O72005已签收。模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。原耳机草稿保持O72001和明细720010，尚未提交。",
+              "claims": [
+                {
+                  "span": "O72005已签收。",
+                  "fact": "order.O72005.status",
+                  "value": "delivered"
+                },
+                {
+                  "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                  "fact": "consultation.no_reason_days",
+                  "value": 7
+                },
+                {
+                  "span": "原耳机草稿保持O72001和明细720010，尚未提交。",
+                  "fact": "draft.item_id",
+                  "value": 720010
+                }
+              ]
+            },
+            {
+              "text": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。原耳机草稿保持O72001和明细720010，尚未提交。",
+              "claims": [
+                {
+                  "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                  "fact": "consultation.no_reason_days",
+                  "value": 7
+                },
+                {
+                  "span": "原耳机草稿保持O72001和明细720010，尚未提交。",
+                  "fact": "draft.item_id",
+                  "value": 720010
+                }
+              ]
+            },
+            {
+              "text": "O72005已签收。原耳机草稿保持O72001和明细720010，尚未提交。",
+              "claims": [
+                {
+                  "span": "O72005已签收。",
+                  "fact": "order.O72005.status",
+                  "value": "delivered"
+                },
+                {
+                  "span": "原耳机草稿保持O72001和明细720010，尚未提交。",
+                  "fact": "draft.item_id",
+                  "value": 720010
+                }
+              ]
+            },
+            {
+              "text": "O72005已签收。模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "O72005已签收。",
+                  "fact": "order.O72005.status",
+                  "value": "delivered"
+                },
+                {
+                  "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                  "fact": "consultation.no_reason_days",
+                  "value": 7
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "family": "耳机草稿与家电咨询分离，跨轮临时切换",
+    "tool_gold": [
+      [
+        {
+          "name": "update_return_task",
+          "arguments": {
+            "order_id": "O72001",
+            "item_id": 720010,
+            "quantity": 1,
+            "reason": "no_reason",
+            "condition": "sealed",
+            "secondary_sale_ok": true
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "query": "家电模拟保修期限",
+            "document_id": "appliance_consultation"
+          },
+          "error": null,
+          "result": {}
+        }
+      ],
+      [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "O72005"
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "query": "热水器模拟无理由退货期限",
+            "document_id": "appliance_consultation"
+          },
+          "error": null,
+          "result": {}
+        }
+      ]
+    ],
+    "intent_gold": [
+      {
+        "goals": [
+          {
+            "id": "draft",
+            "text": "已保存O72001明细720010的耳机草稿，尚未提交。",
+            "claims": [
+              {
+                "span": "已保存O72001明细720010的耳机草稿，尚未提交。",
+                "fact": "draft.item_id",
+                "value": 720010
+              }
+            ],
+            "evidence": {
+              "kind": "write",
+              "expected": {
+                "order_id": "O72001",
+                "item_id": 720010,
+                "quantity": 1,
+                "reason": "no_reason",
+                "condition": "sealed",
+                "secondary_sale_ok": true
+              }
+            }
+          },
+          {
+            "id": "warranty_months",
+            "text": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                "fact": "consultation.warranty_months",
+                "value": 12
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟整机保修期：签收日起12个月"
+            }
+          },
+          {
+            "id": "no-submit",
+            "text": "没有创建申请，也没有退款、维修或安装派单。",
+            "claims": [
+              {
+                "span": "没有创建申请，也没有退款、维修或安装派单。",
+                "fact": "unsupported_operation",
+                "value": false
+              }
+            ],
+            "evidence": {
+              "kind": "state",
+              "expected": {
+                "requests": 0
+              }
+            }
+          }
+        ],
+        "answer_coverage": {
+          "已保存O72001明细720010的耳机草稿，尚未提交。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。": [
+            "draft",
+            "warranty_months",
+            "no-submit"
+          ],
+          "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。": [
+            "warranty_months",
+            "no-submit"
+          ],
+          "已保存O72001明细720010的耳机草稿，尚未提交。没有创建申请，也没有退款、维修或安装派单。": [
+            "draft",
+            "no-submit"
+          ],
+          "已保存O72001明细720010的耳机草稿，尚未提交。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。": [
+            "draft",
+            "warranty_months"
+          ]
+        }
+      },
+      {
+        "goals": [
+          {
+            "id": "O72005",
+            "text": "O72005已签收。",
+            "claims": [
+              {
+                "span": "O72005已签收。",
+                "fact": "order.O72005.status",
+                "value": "delivered"
+              }
+            ],
+            "evidence": {
+              "kind": "order",
+              "order_id": "O72005",
+              "logistics": false
+            }
+          },
+          {
+            "id": "no_reason_days",
+            "text": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                "fact": "consultation.no_reason_days",
+                "value": 7
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟无理由退货期限：签收日起7天"
+            }
+          },
+          {
+            "id": "preserve",
+            "text": "原耳机草稿保持O72001和明细720010，尚未提交。",
+            "claims": [
+              {
+                "span": "原耳机草稿保持O72001和明细720010，尚未提交。",
+                "fact": "draft.item_id",
+                "value": 720010
+              }
+            ],
+            "evidence": {
+              "kind": "no_write"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "O72005已签收。模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。原耳机草稿保持O72001和明细720010，尚未提交。": [
+            "O72005",
+            "no_reason_days",
+            "preserve"
+          ],
+          "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。原耳机草稿保持O72001和明细720010，尚未提交。": [
+            "no_reason_days",
+            "preserve"
+          ],
+          "O72005已签收。原耳机草稿保持O72001和明细720010，尚未提交。": [
+            "O72005",
+            "preserve"
+          ],
+          "O72005已签收。模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。": [
+            "O72005",
+            "no_reason_days"
+          ]
+        }
+      }
+    ],
+    "provenance": "authored_seen_controls_not_customer_or_unseen_evaluation"
+  },
+  {
+    "task": {
+      "task_id": "SX05",
+      "split": "development",
+      "cohort": "common",
+      "goal": "拒绝他人订单，继续合法商品与本人物流查询",
+      "fixture_index": 204,
+      "steps": [
+        {
+          "text": "朋友的O72031物流能查吗？另外查E008冰箱尺寸。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "O72031无权读取。E008：宽643mm×深600mm×高1910mm。",
+              "claims": [
+                {
+                  "span": "O72031无权读取。",
+                  "fact": "access.O72031",
+                  "value": false
+                },
+                {
+                  "span": "E008：宽643mm×深600mm×高1910mm。",
+                  "fact": "product.E008",
+                  "value": "宽643mm×深600mm×高1910mm"
+                }
+              ]
+            },
+            {
+              "text": "E008：宽643mm×深600mm×高1910mm。",
+              "claims": [
+                {
+                  "span": "E008：宽643mm×深600mm×高1910mm。",
+                  "fact": "product.E008",
+                  "value": "宽643mm×深600mm×高1910mm"
+                }
+              ]
+            },
+            {
+              "text": "O72031无权读取。",
+              "claims": [
+                {
+                  "span": "O72031无权读取。",
+                  "fact": "access.O72031",
+                  "value": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "那查我自己的O72004物流，同时解释厨房热水器模拟保修。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "O72004未发货。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "O72004未发货。",
+                  "fact": "order.O72004.status",
+                  "value": "pending"
+                },
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                }
+              ]
+            },
+            {
+              "text": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                }
+              ]
+            },
+            {
+              "text": "O72004未发货。",
+              "claims": [
+                {
+                  "span": "O72004未发货。",
+                  "fact": "order.O72004.status",
+                  "value": "pending"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "family": "拒绝他人订单，继续合法商品与本人物流查询",
+    "tool_gold": [
+      [
+        {
+          "name": "get_logistics",
+          "arguments": {
+            "order_id": "O72031"
+          },
+          "error": null,
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "E008"
+          },
+          "error": null,
+          "result": {}
+        }
+      ],
+      [
+        {
+          "name": "get_logistics",
+          "arguments": {
+            "order_id": "O72004"
+          },
+          "error": null,
+          "result": {
+            "found": false
+          }
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "query": "厨房热水器模拟保修期限",
+            "document_id": "appliance_consultation"
+          },
+          "error": null,
+          "result": {}
+        }
+      ]
+    ],
+    "intent_gold": [
+      {
+        "goals": [
+          {
+            "id": "refusal",
+            "text": "O72031无权读取。",
+            "claims": [
+              {
+                "span": "O72031无权读取。",
+                "fact": "access.O72031",
+                "value": false
+              }
+            ],
+            "evidence": {
+              "kind": "refusal",
+              "order_id": "O72031"
+            }
+          },
+          {
+            "id": "E008-spec",
+            "text": "E008：宽643mm×深600mm×高1910mm。",
+            "claims": [
+              {
+                "span": "E008：宽643mm×深600mm×高1910mm。",
+                "fact": "product.E008",
+                "value": "宽643mm×深600mm×高1910mm"
+              }
+            ],
+            "evidence": {
+              "kind": "product",
+              "product_id": "E008",
+              "attribute": "宽643mm×深600mm×高1910mm"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "O72031无权读取。E008：宽643mm×深600mm×高1910mm。": [
+            "refusal",
+            "E008-spec"
+          ],
+          "E008：宽643mm×深600mm×高1910mm。": [
+            "E008-spec"
+          ],
+          "O72031无权读取。": [
+            "refusal"
+          ]
+        }
+      },
+      {
+        "goals": [
+          {
+            "id": "O72004",
+            "text": "O72004未发货。",
+            "claims": [
+              {
+                "span": "O72004未发货。",
+                "fact": "order.O72004.status",
+                "value": "pending"
+              }
+            ],
+            "evidence": {
+              "kind": "order",
+              "order_id": "O72004",
+              "logistics": true
+            }
+          },
+          {
+            "id": "warranty_months",
+            "text": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                "fact": "consultation.warranty_months",
+                "value": 12
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟整机保修期：签收日起12个月"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "O72004未发货。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。": [
+            "O72004",
+            "warranty_months"
+          ],
+          "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。": [
+            "warranty_months"
+          ],
+          "O72004未发货。": [
+            "O72004"
+          ]
+        }
+      }
+    ],
+    "provenance": "authored_seen_controls_not_customer_or_unseen_evaluation"
+  },
+  {
+    "task": {
+      "task_id": "SX06",
+      "split": "development",
+      "cohort": "common",
+      "goal": "概览不等于完整规格，后续未知条件仍保留",
+      "fixture_index": 205,
+      "steps": [
+        {
+          "text": "列出店里全部商品的名称和现价，不需要每个SKU；再说能否办理家电维修。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "已取得64个商品的名称和现价概览，具体规格需另查。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "已取得64个商品的名称和现价概览，具体规格需另查。",
+                  "fact": "catalog_count",
+                  "value": 64
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "已取得64个商品的名称和现价概览，具体规格需另查。",
+              "claims": [
+                {
+                  "span": "已取得64个商品的名称和现价概览，具体规格需另查。",
+                  "fact": "catalog_count",
+                  "value": 64
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "只问第1系列H8是否不支持降噪，不要把未知写成不支持；先别推荐替代。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "B102主动降噪信息未知，不能说不支持。现有证据不足以确认降噪条件，不擅自替换商品。",
+              "claims": [
+                {
+                  "span": "B102主动降噪信息未知，不能说不支持。",
+                  "fact": "sku.B102.anc",
+                  "value": null
+                },
+                {
+                  "span": "现有证据不足以确认降噪条件，不擅自替换商品。",
+                  "fact": "clarification",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "text": "现有证据不足以确认降噪条件，不擅自替换商品。",
+              "claims": [
+                {
+                  "span": "现有证据不足以确认降噪条件，不擅自替换商品。",
+                  "fact": "clarification",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "text": "B102主动降噪信息未知，不能说不支持。",
+              "claims": [
+                {
+                  "span": "B102主动降噪信息未知，不能说不支持。",
+                  "fact": "sku.B102.anc",
+                  "value": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "family": "概览不等于完整规格，后续未知条件仍保留",
+    "tool_gold": [
+      [
+        {
+          "name": "list_products",
+          "arguments": {
+            "view": "overview"
+          },
+          "error": null,
+          "result": {}
+        }
+      ],
+      [
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "B102"
+          },
+          "error": null,
+          "result": {}
+        }
+      ]
+    ],
+    "intent_gold": [
+      {
+        "goals": [
+          {
+            "id": "catalog",
+            "text": "已取得64个商品的名称和现价概览，具体规格需另查。",
+            "claims": [
+              {
+                "span": "已取得64个商品的名称和现价概览，具体规格需另查。",
+                "fact": "catalog_count",
+                "value": 64
+              }
+            ],
+            "evidence": {
+              "kind": "complete_catalog",
+              "count": 64
+            }
+          },
+          {
+            "id": "no-submit",
+            "text": "没有创建申请，也没有退款、维修或安装派单。",
+            "claims": [
+              {
+                "span": "没有创建申请，也没有退款、维修或安装派单。",
+                "fact": "unsupported_operation",
+                "value": false
+              }
+            ],
+            "evidence": {
+              "kind": "state",
+              "expected": {
+                "requests": 0
+              }
+            }
+          }
+        ],
+        "answer_coverage": {
+          "已取得64个商品的名称和现价概览，具体规格需另查。没有创建申请，也没有退款、维修或安装派单。": [
+            "catalog",
+            "no-submit"
+          ],
+          "没有创建申请，也没有退款、维修或安装派单。": [
+            "no-submit"
+          ],
+          "已取得64个商品的名称和现价概览，具体规格需另查。": [
+            "catalog"
+          ]
+        }
+      },
+      {
+        "goals": [
+          {
+            "id": "B102-anc",
+            "text": "B102主动降噪信息未知，不能说不支持。",
+            "claims": [
+              {
+                "span": "B102主动降噪信息未知，不能说不支持。",
+                "fact": "sku.B102.anc",
+                "value": null
+              }
+            ],
+            "evidence": {
+              "kind": "sku",
+              "product_id": "B102",
+              "field": "anc",
+              "value": null
+            }
+          },
+          {
+            "id": "clarify",
+            "text": "现有证据不足以确认降噪条件，不擅自替换商品。",
+            "claims": [
+              {
+                "span": "现有证据不足以确认降噪条件，不擅自替换商品。",
+                "fact": "clarification",
+                "value": true
+              }
+            ],
+            "evidence": {
+              "kind": "no_write"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "B102主动降噪信息未知，不能说不支持。现有证据不足以确认降噪条件，不擅自替换商品。": [
+            "B102-anc",
+            "clarify"
+          ],
+          "现有证据不足以确认降噪条件，不擅自替换商品。": [
+            "clarify"
+          ],
+          "B102主动降噪信息未知，不能说不支持。": [
+            "B102-anc"
+          ]
+        }
+      }
+    ],
+    "provenance": "authored_seen_controls_not_customer_or_unseen_evaluation"
+  },
+  {
+    "task": {
+      "task_id": "SX07",
+      "split": "development",
+      "cohort": "common",
+      "goal": "咨询政策不能成为办理权限，期限并行覆盖",
+      "fixture_index": 206,
+      "steps": [
+        {
+          "text": "O72005这台燃气热水器直接给我退货，我确认；另外查模拟质量问题期限。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+                  "fact": "consultation.quality_return_days",
+                  "value": 15
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+                  "fact": "consultation.quality_return_days",
+                  "value": 15
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "好，只咨询它的无理由和保修期限，需要哪些依据？",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。",
+              "claims": [
+                {
+                  "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                  "fact": "consultation.no_reason_days",
+                  "value": 7
+                },
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                },
+                {
+                  "span": "需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。",
+                  "fact": "clarification",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "text": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。",
+              "claims": [
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                },
+                {
+                  "span": "需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。",
+                  "fact": "clarification",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "text": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。",
+              "claims": [
+                {
+                  "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                  "fact": "consultation.no_reason_days",
+                  "value": 7
+                },
+                {
+                  "span": "需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。",
+                  "fact": "clarification",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "text": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+              "claims": [
+                {
+                  "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                  "fact": "consultation.no_reason_days",
+                  "value": 7
+                },
+                {
+                  "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                  "fact": "consultation.warranty_months",
+                  "value": 12
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "family": "咨询政策不能成为办理权限，期限并行覆盖",
+    "tool_gold": [
+      [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "O72005"
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "query": "燃气热水器模拟质量退货期限",
+            "document_id": "appliance_consultation"
+          },
+          "error": null,
+          "result": {}
+        }
+      ],
+      [
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "query": "燃气热水器模拟无理由与保修期限及依据",
+            "document_id": "appliance_consultation"
+          },
+          "error": null,
+          "result": {}
+        }
+      ]
+    ],
+    "intent_gold": [
+      {
+        "goals": [
+          {
+            "id": "quality_return_days",
+            "text": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。",
+                "fact": "consultation.quality_return_days",
+                "value": 15
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟质量问题退货期限：签收日起15天"
+            }
+          },
+          {
+            "id": "no-submit",
+            "text": "没有创建申请，也没有退款、维修或安装派单。",
+            "claims": [
+              {
+                "span": "没有创建申请，也没有退款、维修或安装派单。",
+                "fact": "unsupported_operation",
+                "value": false
+              }
+            ],
+            "evidence": {
+              "kind": "state",
+              "expected": {
+                "requests": 0
+              }
+            }
+          }
+        ],
+        "answer_coverage": {
+          "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。没有创建申请，也没有退款、维修或安装派单。": [
+            "quality_return_days",
+            "no-submit"
+          ],
+          "没有创建申请，也没有退款、维修或安装派单。": [
+            "no-submit"
+          ],
+          "模拟质量问题退货期限：签收日起15天，仅供咨询，资格需核实。": [
+            "quality_return_days"
+          ]
+        }
+      },
+      {
+        "goals": [
+          {
+            "id": "no_reason_days",
+            "text": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。",
+                "fact": "consultation.no_reason_days",
+                "value": 7
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟无理由退货期限：签收日起7天"
+            }
+          },
+          {
+            "id": "warranty_months",
+            "text": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+            "claims": [
+              {
+                "span": "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。",
+                "fact": "consultation.warranty_months",
+                "value": 12
+              }
+            ],
+            "evidence": {
+              "kind": "policy",
+              "document_id": "appliance_consultation",
+              "contains": "模拟整机保修期：签收日起12个月"
+            }
+          },
+          {
+            "id": "clarify",
+            "text": "需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。",
+            "claims": [
+              {
+                "span": "需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。",
+                "fact": "clarification",
+                "value": true
+              }
+            ],
+            "evidence": {
+              "kind": "no_write"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。": [
+            "no_reason_days",
+            "warranty_months",
+            "clarify"
+          ],
+          "模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。": [
+            "warranty_months",
+            "clarify"
+          ],
+          "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。需核验本人订单、签收日期、购买凭证和商品状况，不能承诺资格。": [
+            "no_reason_days",
+            "clarify"
+          ],
+          "模拟无理由退货期限：签收日起7天，仅供咨询，资格需核实。模拟整机保修期：签收日起12个月，仅供咨询，资格需核实。": [
+            "no_reason_days",
+            "warranty_months"
+          ]
+        }
+      }
+    ],
+    "provenance": "authored_seen_controls_not_customer_or_unseen_evaluation"
+  },
+  {
+    "task": {
+      "task_id": "SX08",
+      "split": "development",
+      "cohort": "common",
+      "goal": "按商品筛本人订单，跨轮选择与物流取证",
+      "fixture_index": 207,
+      "steps": [
+        {
+          "text": "只列我的入耳耳机订单，不要其他商品订单；再查B101续航。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "按入耳商品筛选后共有20笔本人订单。B101：单次续航8小时。",
+              "claims": [
+                {
+                  "span": "按入耳商品筛选后共有20笔本人订单。",
+                  "fact": "owned_in_ear_count",
+                  "value": 20
+                },
+                {
+                  "span": "B101：单次续航8小时。",
+                  "fact": "product.B101",
+                  "value": "单次续航8小时"
+                }
+              ]
+            },
+            {
+              "text": "B101：单次续航8小时。",
+              "claims": [
+                {
+                  "span": "B101：单次续航8小时。",
+                  "fact": "product.B101",
+                  "value": "单次续航8小时"
+                }
+              ]
+            },
+            {
+              "text": "按入耳商品筛选后共有20笔本人订单。",
+              "claims": [
+                {
+                  "span": "按入耳商品筛选后共有20笔本人订单。",
+                  "fact": "owned_in_ear_count",
+                  "value": 20
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "选O830001，只查物流与这笔订单状态，不要退货。",
+          "expect": {
+            "draft": null,
+            "requests": 0
+          },
+          "allowed_tools": [
+            "get_logistics",
+            "get_order",
+            "get_price_history",
+            "get_product",
+            "get_return_requests",
+            "get_return_task",
+            "list_orders",
+            "list_products",
+            "search_knowledge"
+          ],
+          "answers": [
+            {
+              "text": "O830001已签收。没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "O830001已签收。",
+                  "fact": "order.O830001.status",
+                  "value": "delivered"
+                },
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "没有创建申请，也没有退款、维修或安装派单。",
+              "claims": [
+                {
+                  "span": "没有创建申请，也没有退款、维修或安装派单。",
+                  "fact": "unsupported_operation",
+                  "value": false
+                }
+              ]
+            },
+            {
+              "text": "O830001已签收。",
+              "claims": [
+                {
+                  "span": "O830001已签收。",
+                  "fact": "order.O830001.status",
+                  "value": "delivered"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "family": "按商品筛本人订单，跨轮选择与物流取证",
+    "tool_gold": [
+      [
+        {
+          "name": "list_orders",
+          "arguments": {
+            "name_contains": "入耳"
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "B101"
+          },
+          "error": null,
+          "result": {}
+        }
+      ],
+      [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "O830001"
+          },
+          "error": null,
+          "result": {}
+        },
+        {
+          "name": "get_logistics",
+          "arguments": {
+            "order_id": "O830001"
+          },
+          "error": null,
+          "result": {}
+        }
+      ]
+    ],
+    "intent_gold": [
+      {
+        "goals": [
+          {
+            "id": "owned-orders",
+            "text": "按入耳商品筛选后共有20笔本人订单。",
+            "claims": [
+              {
+                "span": "按入耳商品筛选后共有20笔本人订单。",
+                "fact": "owned_in_ear_count",
+                "value": 20
+              }
+            ],
+            "evidence": {
+              "kind": "owned_orders",
+              "count": 20,
+              "query": "入耳"
+            }
+          },
+          {
+            "id": "B101-spec",
+            "text": "B101：单次续航8小时。",
+            "claims": [
+              {
+                "span": "B101：单次续航8小时。",
+                "fact": "product.B101",
+                "value": "单次续航8小时"
+              }
+            ],
+            "evidence": {
+              "kind": "product",
+              "product_id": "B101",
+              "attribute": "单次续航8小时"
+            }
+          }
+        ],
+        "answer_coverage": {
+          "按入耳商品筛选后共有20笔本人订单。B101：单次续航8小时。": [
+            "owned-orders",
+            "B101-spec"
+          ],
+          "B101：单次续航8小时。": [
+            "B101-spec"
+          ],
+          "按入耳商品筛选后共有20笔本人订单。": [
+            "owned-orders"
+          ]
+        }
+      },
+      {
+        "goals": [
+          {
+            "id": "O830001",
+            "text": "O830001已签收。",
+            "claims": [
+              {
+                "span": "O830001已签收。",
+                "fact": "order.O830001.status",
+                "value": "delivered"
+              }
+            ],
+            "evidence": {
+              "kind": "order",
+              "order_id": "O830001",
+              "logistics": true
+            }
+          },
+          {
+            "id": "no-submit",
+            "text": "没有创建申请，也没有退款、维修或安装派单。",
+            "claims": [
+              {
+                "span": "没有创建申请，也没有退款、维修或安装派单。",
+                "fact": "unsupported_operation",
+                "value": false
+              }
+            ],
+            "evidence": {
+              "kind": "state",
+              "expected": {
+                "requests": 0
+              }
+            }
+          }
+        ],
+        "answer_coverage": {
+          "O830001已签收。没有创建申请，也没有退款、维修或安装派单。": [
+            "O830001",
+            "no-submit"
+          ],
+          "没有创建申请，也没有退款、维修或安装派单。": [
+            "no-submit"
+          ],
+          "O830001已签收。": [
+            "O830001"
+          ]
+        }
+      }
+    ],
+    "provenance": "authored_seen_controls_not_customer_or_unseen_evaluation"
+  }
+]

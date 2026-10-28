@@ -1,0 +1,19 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_consultation_is_available_without_operational_eligibility ________
+
+fixture = (PosixPath('/dev/shm/consult-red/test_consultation_is_available0/shop'), Settings(llm_provider='deepseek', llm_api_key...ed=False, order_constraint_enabled=False, order_aggregation_enabled=False, reference_date=datetime.date(2026, 10, 28)))
+
+    def test_consultation_is_available_without_operational_eligibility(fixture):
+        _, settings = fixture
+        db = BusinessDB(settings)
+        product = db.get_product("E003")
+>       assert product["policy_scope"].get("consultation") is True
+E       AssertionError: assert None is True
+E        +  where None = <built-in method get of dict object at 0x7befc752c780>('consultation')
+E        +    where <built-in method get of dict object at 0x7befc752c780> = {'return': False, 'warranty': False, 'installation': False, 'exchange': False}.get
+
+tests/test_appliance_consultation.py:25: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_appliance_consultation.py::test_consultation_is_available_without_operational_eligibility
+1 failed in 1.20s

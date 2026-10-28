@@ -338,7 +338,8 @@ class ToolRegistry:
                         "query": {
                             "type": "string",
                             "description": "检索关键词或问题，例如：无线耳机退货期限",
-                        }
+                        },
+                        "document_id": {"type": "string", "description": "可选：限定来源文档"},
                     },
                     "required": ["query"],
                 },
@@ -613,13 +614,26 @@ class ToolRegistry:
     def _get_price_history(self, *, current_user_id: str, product_id: str) -> dict[str, Any]:
         return self.db.get_price_history(product_id)
 
-    def _search_knowledge(self, *, current_user_id: str, query: str) -> dict[str, Any]:
-        chunks = self.knowledge.search(query)
+    def _search_knowledge(self, *, current_user_id: str, query: str,
+                         document_id: str | None = None) -> dict[str, Any]:
+        if document_id is None:
+            chunks = self.knowledge.search(query)
+        else:
+            # Filter before top-k; retain full-corpus IDF (a singleton can have negative IDF).
+            from .rag import KnowledgeBase
+            from .retrieval import LexicalIndex
+
+            corpus = KnowledgeBase(self.settings).load_documents()
+            chunks = (LexicalIndex(corpus).search(query, self.settings.top_k,
+                                                 document_id=document_id) if corpus else [])
         pipeline = {"retrieval_mode": self.settings.retrieval_mode,
                     "application_notice": capability_notice(),
                     "reranker_model": self.settings.reranker_model
                     if self.settings.reranker_enabled else None,
                     "evidence_backfill": self.settings.evidence_backfill}
+        if document_id is not None:
+            pipeline.update(retrieval_mode="bm25_scoped", document_id=document_id,
+                            source_scope="document_id")
         if not chunks:
             return {
                 **pipeline,

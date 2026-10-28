@@ -59,7 +59,10 @@ def decide(messages):
         )
     if not offset:
         if "政策" in text:
-            return ("search_knowledge", {"query": text}), ""
+            args = {"query": text}
+            if "模拟政策" in text:
+                args["document_id"] = "appliance_consultation"
+            return ("search_knowledge", args), ""
         if "商品" in text or "店里" in text:
             return ("list_products", {"view": "overview"}), ""
         if "订单" in text or "物流" in text or "退货" in text:
@@ -68,6 +71,11 @@ def decide(messages):
                 return ("get_logistics", {"order_id": oid.group()}), ""
             return ("list_orders", {}), ""
     if tool:
+        consultation = [d for d in result.get("documents", [])
+                        if d.get("document_id") == "appliance_consultation"]
+        if consultation:
+            return None, ("以下是知识库中的模拟咨询规则，不代表真实售后承诺：\n\n"
+                          + "\n\n".join(d["content"] for d in consultation))
         if "orders" in result and "测试订单表格" in text:
             table = "| 订单号 | 状态 |\n|---|---|\n" + "\n".join(
                 f"| {o['order_id']} | {o['status']} |" for o in result["orders"]

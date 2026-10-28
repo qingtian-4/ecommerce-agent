@@ -34,6 +34,7 @@ from zoneinfo import ZoneInfo
 
 from .config import Settings, get_settings
 from .return_rules import (
+    CONSULTATION_NOTICE,
     UNSUPPORTED_POLICY,
     delivery_days,
     policy_scope,
@@ -116,7 +117,8 @@ class BusinessDB:
         scope = policy_scope(self.settings, product["category"])
         if not scope["return"] or not scope["warranty"]:
             product["policy_scope"] = scope
-            product["policy_notice"] = UNSUPPORTED_POLICY
+            product["policy_notice"] = (CONSULTATION_NOTICE if scope.get("consultation")
+                                        else UNSUPPORTED_POLICY)
         return product
 
     def list_products(self) -> list[dict[str, Any]]:
@@ -231,7 +233,9 @@ class BusinessDB:
             for key in ("return_window_days", "quality_return_window_days",
                         "within_return_window", "within_quality_return_window"):
                 order[key] = None
-            order["policy_notice"] = (UNSUPPORTED_POLICY
+            notice = (CONSULTATION_NOTICE if all(i["policy_scope"].get("consultation")
+                                                for i in uncovered) else UNSUPPORTED_POLICY)
+            order["policy_notice"] = (notice
                                       + "混合订单须按明细核验，不适用整单期限判断。")
         return order
 
