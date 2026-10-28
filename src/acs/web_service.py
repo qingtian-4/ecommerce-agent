@@ -111,7 +111,7 @@ def scrub(text, secret_values=()):
     for pattern in (
         r"(?i)(?:sk-|Bearer\s+)[A-Za-z0-9_.-]+",
         r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}",
-        r"(?<!\d)1[3-9]\d{9}(?!\d)",
+        r"(?<![A-Za-z0-9])1[3-9]\d{9}(?![A-Za-z0-9])",
         r"(?i)(?:authorization|api[_-]?key)\s*[:=]\s*\S+",
     ):
         text = re.sub(pattern, "[已隐藏]", text)
