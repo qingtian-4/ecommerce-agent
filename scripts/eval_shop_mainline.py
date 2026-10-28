@@ -164,6 +164,10 @@ def execute(args):
                     model_context=getattr(args, "model_context", False),
                     semantic_scope="exact authored controls only; novel language pending_review")
                 dump(args.out / "scorecard.json", report)
+                if result.get("global_stop"):
+                    report["stopped_early"] = True
+                    dump(args.out / "scorecard.json", report)
+                    return report
     return report
 
 

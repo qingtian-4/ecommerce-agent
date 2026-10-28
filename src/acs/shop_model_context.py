@@ -14,6 +14,8 @@ INSTRUCTIONS = (
     "return/warranty=false不能被解释为禁止咨询，仍不得承诺真实资格或执行办理。"
     "已启用的家电模拟咨询来源为appliance_consultation；相关问题先用search_knowledge的"
     "document_id限定该来源。商品规格保留原始单位，不推断安装条件、适用人数或缺失参数。"
+    "家电模拟条款未定义含首尾日等日期边界时，只解释签收日起的期限和待核验条件，"
+    "不要自行推算截止日期或认定资格。"
 )
 
 
@@ -26,12 +28,13 @@ def project_messages(messages):
     payloads, counts = [], Counter()
 
     def count(value):
-        if isinstance(value, (dict, list)):
+        if isinstance(value, (dict, list, str)):
             encoded = dumps(value)
             if len(encoded.encode()) >= 180:
                 counts[encoded] += 1
-            for item in value.values() if isinstance(value, dict) else value:
-                count(item)
+            if not isinstance(value, str):
+                for item in value.values() if isinstance(value, dict) else value:
+                    count(item)
 
     for index, message in enumerate(projected):
         text = message.get("content")
@@ -51,23 +54,28 @@ def project_messages(messages):
     pool, ids = {}, {}
 
     def encode(value):
-        if isinstance(value, (dict, list)):
+        if isinstance(value, (dict, list, str)):
             encoded = dumps(value)
             if counts[encoded] > 1:
                 if encoded not in ids:
                     key = "v"+str(len(pool))
                     ids[encoded], pool[key] = key, value
+                    if isinstance(value, dict):
+                        pool[key] = {k: encode(v) for k, v in value.items()}
+                    elif isinstance(value, list):
+                        pool[key] = [encode(v) for v in value]
                 return {"$context_ref": ids[encoded]}
             if isinstance(value, dict):
                 return {k: encode(v) for k, v in value.items()}
-            return [encode(v) for v in value]
+            if isinstance(value, list):
+                return [encode(v) for v in value]
         return value
 
     for index, prefix, value in payloads:
         projected[index]["content"] = prefix+dumps(dict(model_format=FORMAT, value=encode(value)))
     if pool:
         projected.append(dict(role="system", content=POOL_PREFIX+dumps(pool)+
-            "\n工具/当前事实中的$context_ref引用以上完整JSON值；按引用读取，未省略任何字段。"))
+            "\n工具/当前事实中的$context_ref引用共享JSON值；可递归展开，未省略任何字段。"))
     else:
         return copy.deepcopy(messages)
     # Do not enlarge small inputs merely to use the projection.
@@ -80,12 +88,15 @@ def expand_messages(messages):
         if m["role"] == "system" and m.get("content", "").startswith(POOL_PREFIX):
             pool = json.loads(m["content"][len(POOL_PREFIX):].split("\n", 1)[0])
 
-    def expand(value):
+    def expand(value, active=()):
         if isinstance(value, dict):
             if set(value) == {"$context_ref"}:
-                return copy.deepcopy(pool[value["$context_ref"]])
-            return {k: expand(v) for k, v in value.items()}
-        return [expand(v) for v in value] if isinstance(value, list) else value
+                key = value["$context_ref"]
+                if key in active:
+                    raise ValueError("Cyclic shared context reference")
+                return expand(pool[key], (*active, key))
+            return {k: expand(v, active) for k, v in value.items()}
+        return [expand(v, active) for v in value] if isinstance(value, list) else value
 
     output = []
     for message in copy.deepcopy(messages):

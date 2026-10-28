@@ -100,7 +100,48 @@ def test_real_failure_projection_is_byte_safe_if_private_trace_is_available():
         data = json.loads((root / f"scoped-SX04-{arm}/model-inputs.json").read_text())[-1]
         projected = data | {"messages": project_messages(data["messages"])}
         assert len(json.dumps(projected, ensure_ascii=False,
-                              separators=(",", ":")).encode())+256 < 32768
+                              separators=(",", ":")).encode())+256 < 30000
+
+
+def test_long_policy_text_with_different_scores_is_shared_without_changing_facts():
+    from acs.shop_model_context import expand_messages, project_messages
+
+    text = "模拟政策来源：需核实本人订单，不能批准资格。"*40
+    messages = [dict(role="tool", tool_call_id=str(i), content=json.dumps(dict(
+        documents=[dict(document_id="policy", content=text, score=i)]))) for i in range(3)]
+    projected = project_messages(messages)
+    expanded = expand_messages(projected)
+    assert [json.loads(m["content"]) for m in expanded] == [json.loads(m["content"])
+                                                          for m in messages]
+    assert len(json.dumps(projected, ensure_ascii=False).encode()) < 0.65*len(
+        json.dumps(messages, ensure_ascii=False).encode())
+
+
+def test_nested_reference_cycles_fail_explicitly():
+    from acs.shop_model_context import POOL_PREFIX, expand_messages
+
+    messages = [dict(role="tool", content=json.dumps(dict(model_format="shared-values-v1",
+        value={"$context_ref": "v0"}))), dict(role="system", content=POOL_PREFIX+json.dumps(
+            {"v0": {"$context_ref": "v0"}}))]
+    with pytest.raises(ValueError, match="Cyclic"):
+        expand_messages(messages)
+
+
+def test_private_trace_has_space_for_one_extra_constraint_turn_without_eviction():
+    from acs.shop_model_context import INSTRUCTIONS, project_messages
+
+    p = Path('results/shop_failure_live_20261029_run1/.private-evidence')
+    if not p.exists():
+        return
+    for arm in ('old', 'v3'):
+        record = json.loads((p / f'scoped-SX04-{arm}/model-inputs.json').read_text())[-1]
+        history = [dict(role='user', content='历史约束：'+('不得改草稿；'*100)),
+                   dict(role='assistant', content='已记录约束。')]
+        messages = record['messages'][:1]+history+record['messages'][1:]
+        projected = project_messages(messages)+[dict(role='system', content=INSTRUCTIONS)]
+        assert history[0] in projected
+        assert len(json.dumps(record|{'messages': projected}, ensure_ascii=False,
+                              separators=(',', ':')).encode())+256 <= 32768
 
 
 def test_rehearsal_http_usage_is_per_episode_and_aggregates_once(tmp_path, monkeypatch):
@@ -122,3 +163,21 @@ def test_rehearsal_http_usage_is_per_episode_and_aggregates_once(tmp_path, monke
         result = json.loads((tmp_path / "trial/.private-evidence" / key.replace(':','-') /
                              "result.json").read_text())
         assert result["model_http_requests"] == 6 and result["input_tokens"] == 600
+
+
+def test_unverifiable_state_stops_before_dispatching_the_partner(tmp_path, monkeypatch):
+    from argparse import Namespace
+
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
+    import eval_shop_mainline as pilot
+
+    execute = pilot.run
+
+    def uncertain(*args, **kwargs):
+        return execute(*args, **kwargs) | dict(global_stop=True)
+
+    monkeypatch.setattr(pilot, 'run', uncertain)
+    report = pilot.execute(Namespace(mode="rehearsal", out=tmp_path / "trial",
+        model_context=True, env_file=None, price_review=None))
+    assert report['stopped_early'] and len(report['cases']) == 1
+    assert report['ledger_total']['requests'] == 6
