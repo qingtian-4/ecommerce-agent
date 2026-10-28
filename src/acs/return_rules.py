@@ -31,11 +31,33 @@ def read_return_policy(settings: Settings) -> dict:
     version = re.search(r"^version: (.+)$", text, re.MULTILINE)
     if version is None:
         raise ValueError("退货政策缺少版本，不能生成申请预览")
+    scope = re.search(r"本政策适用于本店铺全部([^。\n]+)类商品。", text)
+    categories = re.split(r"与|、", scope[1]) if scope else []
     return {"hash": hashlib.sha256(data).hexdigest(), "windows": windows, "shipping": shipping,
+            "applicable_categories": categories,
             "secondary_sale_conditions": [s.strip("- ;；") for s in conditions[1].splitlines()
                                           if s.strip()], "quality_condition": quality_condition[1],
             "source": "return_policy.md",
             "version": version[1]}
+
+
+def policy_scope(settings: Settings, category: str) -> dict:
+    """Evidence availability, not a legal determination of warranty/return rights."""
+    try:
+        policy = read_return_policy(settings)
+    except (OSError, ValueError):
+        policy = {"applicable_categories": []}
+    path = settings.docs_dir / "warranty_policy.md"
+    text = path.read_text() if path.exists() else ""
+    covered = set(re.findall(r"^\| ([^|]+) \| \d+ 个月 \| 签收日 \|", text, re.M))
+    warranty = category in covered or (category == "充电配件"
+                                      and {"充电器", "充电宝"} <= covered)
+    return {"return": category in policy["applicable_categories"], "warranty": warranty,
+            "installation": False, "exchange": False}
+
+
+UNSUPPORTED_POLICY = ("缺少适用于此商品类别的售后政策，不能判断退货或保修资格，"
+                      "也不能承诺安装、换货。")
 
 
 

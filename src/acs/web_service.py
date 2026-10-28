@@ -181,6 +181,10 @@ class AnswerStreamCallback(BaseCallbackHandler):
     def on_chat_model_start(self, serialized, messages, *, run_id, **kwargs):
         self.answers[run_id] = PublicAnswer(f"answer-{len(self.answers)+1}",
                                             self.engine.secret_values)
+        gateway = getattr(self.engine, "gateway", None)
+        if gateway and any(not q["complete"] for q in gateway.catalog_queries(self.sid, UID)):
+            # A partial catalog cannot authorize an interim assertion of completeness.
+            self.answers[run_id].blocked = True
 
     def discard(self, reason):
         for answer in self.answers.values():
@@ -530,7 +534,8 @@ class WebEngine:
                     if isinstance(error, BudgetExceeded)), None)
                 if budget:
                     code, status = str(budget), "stopped"
-                    reason = ("budget_exhausted" if code.endswith("_limit") or code in {
+                    reason = ("query_incomplete" if code == "request_body_limit" else
+                        "budget_exhausted" if code.endswith("_limit") or code in {
                         "episode_deadline", "model_timeout"} else "model_response_rejected"
                         if code == "adapter_protocol_error" else "model_receipt_unverified"
                         if code in {"usage_missing", "invalid_usage", "state_uncertain",

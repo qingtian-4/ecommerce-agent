@@ -31,13 +31,80 @@ from .config import Settings, get_settings
 from .context import ContextLimitExceeded
 from .database import BusinessDB, normalized_name
 from .knowledge_context import load_source_documents, select_source_documents
-from .returns import ReturnService, policy_for_reason, return_policy
+from .returns import ReturnService, scoped_task_view
 from .runtime import BudgetExceeded
 from .sessions import SessionStore, TaskValidationError
 
 CATALOG_PAGE_BYTES = 8000
 CATALOG_CONTRACT = "catalog-pages-v2"
 CATALOG_SKU_FIELDS = ["sku_id", "wearing_type", "anc", "color", "availability"]
+
+
+def catalog_model_view(value):
+    """Lossless model-only column encoding. SQL receipts keep full product objects."""
+    if not isinstance(value, dict):
+        return value
+    if isinstance(value.get("result"), dict):
+        return value | {"result": catalog_model_view(value["result"])}
+    products = value.get("products")
+    if (value.get("contract") != CATALOG_CONTRACT or not products
+            or not all(isinstance(p, dict) for p in products)):
+        return value
+    fields = list(products[0])
+    if any(set(p) != set(fields) for p in products):
+        return value  # No invented nulls for heterogeneous schemas.
+    defaults = {k: products[0][k] for k in fields if k != "product_id"
+                and all(p[k] == products[0][k] for p in products)}
+    fields = [k for k in fields if k not in defaults]
+    prefix = ""
+    if "name" in fields:
+        words = products[0]["name"].split(" ")
+        for end in range(1, len(words)):
+            trial = " ".join(words[:end]) + " "
+            if all(p["name"].startswith(trial) for p in products):
+                prefix = trial
+    suffix = []
+    if "attributes" in fields:
+        for n in range(1, min(len(p["attributes"]) for p in products) + 1):
+            trial = products[0]["attributes"][-n:]
+            if all(p["attributes"][-n:] == trial for p in products):
+                suffix = trial
+            else:
+                break
+    rows = []
+    for p in products:
+        row = p | ({"name": p["name"][len(prefix):]} if prefix else {})
+        if suffix:
+            row["attributes"] = p["attributes"][:-len(suffix)]
+        rows.append([row[k] for k in fields])
+    return value | dict(model_format="catalog-columns-v1", product_fields=fields,
+                        product_defaults=defaults, name_prefix=prefix,
+                        attributes_suffix=suffix, products=rows)
+
+
+def expand_model_catalog(value):
+    """Executable contract for tests/readers; no natural-language inference."""
+    if value.get("model_format") != "catalog-columns-v1":
+        return value
+    products = []
+    for row in value["products"]:
+        p = value["product_defaults"] | dict(zip(value["product_fields"], row, strict=True))
+        if value["name_prefix"]:
+            p["name"] = value["name_prefix"] + p["name"]
+        if value["attributes_suffix"]:
+            p["attributes"] = p["attributes"] + value["attributes_suffix"]
+        products.append(p)
+    return {k: v for k, v in value.items() if k not in {
+        "model_format", "product_fields", "product_defaults", "name_prefix", "attributes_suffix",
+    }} | {"products": products}
+
+
+def tool_model_content(value):
+    projected = catalog_model_view(value)
+    result = projected.get("result", projected) if isinstance(projected, dict) else {}
+    compact = isinstance(result, dict) and result.get("contract") == CATALOG_CONTRACT
+    return json.dumps(projected, ensure_ascii=False, default=str,
+                      separators=(",", ":") if compact else None)
 
 
 class CatalogArgs(BaseModel):
@@ -55,6 +122,33 @@ class OrderListArgs(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     name_contains: str = Field(default="", max_length=80)
     product_id: str = Field(default="", max_length=80)
+
+
+def catalog_progress(receipts):
+    """Completeness is proved by same-query SQL receipts, not a model's wording."""
+    groups = {}
+    for receipt in receipts:
+        if receipt["name"] != "list_products" or receipt.get("error"):
+            continue
+        value = json.loads(receipt["result"])
+        if value.get("contract") != CATALOG_CONTRACT:
+            continue
+        args = CatalogArgs.model_validate(json.loads(receipt["arguments"]))
+        query = args.model_dump(exclude={"after_product_id", "page_size"}, exclude_defaults=True)
+        key = json.dumps(query, sort_keys=True)
+        if key not in groups or not args.after_product_id:
+            groups[key] = dict(query=query, ids=set(), first=not args.after_product_id,
+                               total=value["total_count"], changed=False)
+        group = groups[key]
+        group["changed"] |= group["total"] != value["total_count"]
+        group["ids"].update(p["product_id"] for p in value["products"])
+        group.update(has_more=value["has_more"], next_arguments=value.get("next_arguments"),
+                     error=value.get("error_type"))
+    return [dict(query=g["query"], seen_count=len(g["ids"]), total_count=g["total"],
+                 complete=g["first"] and not g["changed"] and not g["has_more"]
+                 and not g["error"] and len(g["ids"]) == g["total"],
+                 next_arguments=g["next_arguments"])
+            for g in groups.values()]
 
 
 @dataclass
@@ -124,7 +218,8 @@ class ToolRegistry:
             "list_products", "分页查询本店目录，product_id升序；每页最多8件。"
             "name_contains按NFKC、去空白、忽略大小写匹配名称子串；category精确，max_price筛现价。"
             "多个候选不猜选；has_more用next_arguments续查，未查完不可声称无匹配。"
-            "SKU行按sku_fields读取；get_product查完整详情。",
+            "SKU按sku_fields列读取。列式products按product_fields读取并合并product_defaults；"
+            "名称加name_prefix，属性追加attributes_suffix。get_product查完整详情。",
             CatalogArgs.model_json_schema(), self._list_products,
         ))
         self.register(ToolSpec(
@@ -255,15 +350,11 @@ class ToolRegistry:
         """Bind application context for one turn; model arguments cannot choose a session."""
         def read(*, current_user_id: str) -> dict:
             view = store.get_return_task(sid, current_user_id)
-            return view | {"policy": policy_for_reason(
-                return_policy(self.settings), (view["task"] or {}).get("reason"),
-            )}
+            return scoped_task_view(self.settings, view, current_user_id)
 
         def update(*, current_user_id: str, **fields) -> dict:
             view = store.update_return_task(sid, current_user_id, tid, fields)
-            return view | {"policy": policy_for_reason(
-                return_policy(self.settings), view["task"]["reason"],
-            )}
+            return scoped_task_view(self.settings, view, current_user_id)
 
         def cancel(*, current_user_id: str) -> dict:
             return store.cancel_return_task(sid, current_user_id, tid)
@@ -492,6 +583,8 @@ class ToolRegistry:
                 )}
                 sku = item.get("sku")
                 candidate["sku"] = {k: sku[k] for k in ("sku_id", "color")} if sku else None
+                if item.get("policy_scope"):
+                    candidate["policy_scope"] = item["policy_scope"]
                 if (self.settings.order_candidate_render_enabled
                         or self.settings.order_constraint_enabled):
                     categories[item["product_id"]] = item["product_category"]

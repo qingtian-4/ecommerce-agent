@@ -33,7 +33,13 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from .config import Settings, get_settings
-from .return_rules import delivery_days, read_return_policy, within_window
+from .return_rules import (
+    UNSUPPORTED_POLICY,
+    delivery_days,
+    policy_scope,
+    read_return_policy,
+    within_window,
+)
 
 DAYS_IN_PRICE_PROTECTION = 15
 
@@ -107,6 +113,10 @@ class BusinessDB:
                 "SELECT * FROM product_skus WHERE product_id=? ORDER BY sku_id", (product_id,),
             )] if has_skus else []
         product["sku_information"] = "provided" if product["skus"] else "unknown"
+        scope = policy_scope(self.settings, product["category"])
+        if not scope["return"] or not scope["warranty"]:
+            product["policy_scope"] = scope
+            product["policy_notice"] = UNSUPPORTED_POLICY
         return product
 
     def list_products(self) -> list[dict[str, Any]]:
@@ -213,6 +223,16 @@ class BusinessDB:
             "距今的天数。请直接使用这些值，不要自行推算或改用其他日期。"
             "within_return_window只表示政策配置的无理由日期窗口，不适用于质量问题，也不代表完整退货资格。"
         )
+        uncovered = [i for i in items if i["product_category"]
+                     not in policy["applicable_categories"]]
+        for item in uncovered:
+            item["policy_scope"] = policy_scope(self.settings, item["product_category"])
+        if uncovered:
+            for key in ("return_window_days", "quality_return_window_days",
+                        "within_return_window", "within_quality_return_window"):
+                order[key] = None
+            order["policy_notice"] = (UNSUPPORTED_POLICY
+                                      + "混合订单须按明细核验，不适用整单期限判断。")
         return order
 
     # ------------------------------------------------------------------ #

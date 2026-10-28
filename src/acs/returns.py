@@ -13,8 +13,8 @@ from uuid import uuid4
 from PIL import Image, UnidentifiedImageError
 
 from .config import Settings
-from .database import business_today, item_sku
-from .return_rules import delivery_days, read_return_policy, within_window
+from .database import BusinessDB, business_today, item_sku
+from .return_rules import UNSUPPORTED_POLICY, delivery_days, read_return_policy, within_window
 from .sessions import ConversationBusy, SessionStore, TaskValidationError, _now
 
 REQUEST_QUERY = ("SELECT r.*,v.decision AS review_decision,v.reason AS review_reason,"
@@ -29,16 +29,35 @@ def return_policy(settings: Settings) -> dict:
         raise TaskValidationError(str(exc)) from exc
 
 
-def policy_for_reason(policy: dict, reason: str | None) -> dict:
+def policy_for_reason(policy: dict, reason: str | None, category: str | None = None) -> dict:
     """Expose the relevant section; no-reason conditions must not leak into quality evidence."""
     conditions = policy["secondary_sale_conditions"] if reason == "no_reason" else (
         [policy["quality_condition"]] if reason == "quality" else []
     )
+    if (not policy["applicable_categories"]
+            or category is not None and category not in policy["applicable_categories"]):
+        return {"source": policy["source"], "version": policy["version"], "hash": policy["hash"],
+                "applicable": False, "category": category, "reason": reason,
+                "window_days": None, "shipping_payer": None, "required_conditions": [],
+                "notice": UNSUPPORTED_POLICY}
     return {"source": policy["source"], "version": policy["version"], "hash": policy["hash"],
+            "applicable_categories": policy["applicable_categories"],
             "reason": reason, "window_days": policy["windows"].get(reason),
             "shipping_payer": policy["shipping"].get(reason),
             "starting_point": "签收日", "required_conditions": conditions,
             "requires_uploaded_media": reason == "quality"}
+
+
+def scoped_task_view(settings, view, uid):
+    task = view.get("task") or {}
+    category = None
+    if task.get("order_id") and task.get("item_id"):
+        order = BusinessDB(settings).get_order(task["order_id"], uid)
+        category = next((i["product_category"] for i in order.get("items", [])
+                         if i["id"] == task["item_id"]), None)
+    policy = policy_for_reason(return_policy(settings), task.get("reason"), category)
+    return view | {"policy": policy} | (
+        {"can_submit": False} if policy.get("applicable") is False else {})
 
 
 class ReturnService:
@@ -62,13 +81,18 @@ class ReturnService:
             return {}, ["草稿还缺订单、商品、数量或原因，请先补充"]
         row = conn.execute(
             "SELECT o.status,o.delivered_at,i.quantity AS purchased,i.product_id,"
-            "i.purchase_price,p.name AS product_name FROM orders o "
+            "i.purchase_price,p.name AS product_name,p.category FROM orders o "
             "JOIN order_items i ON i.order_id=o.order_id JOIN products p USING(product_id) "
             "WHERE o.order_id=? AND o.user_id=? AND i.id=?",
             (task["order_id"], uid, task["item_id"]),
         ).fetchone()
         if row is None:
             return {}, ["订单或商品不属于当前用户"]
+        if row["category"] not in policy["applicable_categories"]:
+            return {"order_id": task["order_id"], "item_id": task["item_id"],
+                    "product_id": row["product_id"], "product_name": row["product_name"],
+                    "policy": policy_for_reason(policy, task["reason"], row["category"])}, [
+                        UNSUPPORTED_POLICY]
         reasons, today = [], business_today(self.settings)
         if row["status"] != "delivered" or not row["delivered_at"]:
             reasons.append("订单尚未签收或已取消，不能创建退货申请")

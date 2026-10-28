@@ -137,7 +137,11 @@ async function showOrder(oid) {
     box.append(facts([['下单日期', order.created_at], ['订单金额', order.total_amount == null ? '未提供' : `¥${order.total_amount}`]]));
     for (const item of order.items || []) {
       const row = el('div', 'context-card');
-      row.append(thumb(item), el('strong', '', item.product_name), el('p', 'muted', `明细 ${item.id} · 数量 ${item.quantity}`), btn('退这件商品', () => afterSale(oid, item.id), 'order-button main-action'));
+      const eligible = item.policy_scope?.return !== false;
+      const apply = btn(eligible ? '退这件商品' : '暂无适用售后政策', () => afterSale(oid, item.id), 'order-button main-action');
+      apply.disabled = !eligible;
+      row.append(thumb(item), el('strong', '', item.product_name), el('p', 'muted', `明细 ${item.id} · 数量 ${item.quantity}`), apply);
+      if (!eligible) row.append(el('p', 'muted', '目前可查询规格、价格、订单和物流，不能判断保修或办理此类售后。'));
       box.append(row);
     }
     box.append(el('p', 'muted', '这里只展示本人合成订单，查看订单不等于选择了退货商品。'));
@@ -218,6 +222,11 @@ async function afterSale(oid, itemId) {
     return;
   try {
     const order = await chooseOrder(oid);
+    const eligible = order.items.filter(i => i.policy_scope?.return !== false);
+    if (!eligible.length || (itemId && !eligible.some(i => i.id === itemId))) {
+      openDialog('缺少适用售后政策', el('p', '', '此商品目前只支持规格、价格、订单和物流查询，缺少适用的退货、保修、安装或换货政策，不能生成售后预览。'));
+      return;
+    }
     const box = el('form');
     box.id = 'return-form';
     box.append(el('p', 'muted', '请选择商品并如实填写。信息将作为你的本轮消息交由原有客服工具校验；此处不会直接提交申请。'));
@@ -225,7 +234,7 @@ async function afterSale(oid, itemId) {
 
     const item = el('select');
     item.name = 'item_id';
-    for (const row of order.items) {
+    for (const row of eligible) {
       const option = el('option', '', row.product_name + ' × ' + row.quantity);
       option.value = row.id;
       option.selected = row.id === itemId;
@@ -588,7 +597,7 @@ function progressEvent(event) {
       row.node.hidden = false;
       row.node.dataset.status = 'failed';
       row.node.open = true;
-      row.label.textContent = event.data.reason === 'budget_exhausted' ? '额度或授权期限已用完，本轮已停止' : '本轮未完成，请核对业务状态';
+      row.label.textContent = event.data.reason === 'query_incomplete' ? '查询尚未完成：输入超出预算，请另开会话或缩小范围' : event.data.reason === 'budget_exhausted' ? '额度或授权期限已用完，本轮已停止' : '本轮未完成，请核对业务状态';
       row.list.append(el('li', '', '执行未完成：' + (event.data.reason || '请只读核对结果')));
     }
   }

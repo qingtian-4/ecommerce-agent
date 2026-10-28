@@ -1,0 +1,17 @@
+{
+  "version": "shop-boundary-v1",
+  "kind": "frozen_authored_offline_development_controls",
+  "body_limit_bytes": 32768,
+  "paid_requests": 0,
+  "cases": [
+    {"id": "all48", "history_turns": 0, "history_chars": 0, "query": {}, "expect_complete": true},
+    {"id": "history1", "history_turns": 1, "history_chars": 256, "query": {}, "expect_complete": true},
+    {"id": "history2", "history_turns": 2, "history_chars": 768, "query": {}, "expect_complete": true},
+    {"id": "history_exhausted", "history_turns": 3, "history_chars": 4000, "query": {}, "expect_complete": false},
+    {"id": "filtered", "history_turns": 2, "history_chars": 768, "query": {"name_contains": "燃气"}, "expect_complete": true},
+    {"id": "last_page", "history_turns": 0, "history_chars": 0, "query": {}, "start_after": "B508", "expect_complete": false},
+    {"id": "no_match", "history_turns": 0, "history_chars": 0, "query": {"name_contains": "不存在的商品"}, "expect_complete": true},
+    {"id": "early_stop", "history_turns": 0, "history_chars": 0, "query": {}, "max_pages": 1, "expect_complete": false}
+  ],
+  "policy_controls": ["appliance_preview_denied", "legacy_preview_invalidated", "appliance_order_window_unknown", "appliance_warranty_unknown", "covered_earphone_unchanged", "missing_policy_scope_fails_closed"]
+}

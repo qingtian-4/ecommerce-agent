@@ -65,7 +65,8 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
         return engine.clean(
             pick(
                 result,
-                ("order_id", "status", "created_at", "delivered_at", "shipped_at", "total_amount"),
+                ("order_id", "status", "created_at", "delivered_at", "shipped_at", "total_amount",
+                 "policy_notice"),
             )
             | {
                 "items": [
@@ -78,6 +79,7 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
                             "quantity",
                             "purchase_price",
                             "product_category",
+                            "policy_scope",
                         ),
                     )
                     for item in result["items"]
@@ -214,7 +216,8 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
                         cards["products"] = [
                             pick(
                                 value,
-                                ("product_id", "name", "current_price", "attributes", "category"),
+                                ("product_id", "name", "current_price", "attributes", "category",
+                                 "policy_scope", "policy_notice"),
                             )
                         ]
                     elif name == "get_logistics":
@@ -239,14 +242,16 @@ def install_shop(app, *, origin="http://127.0.0.1:8767"):
                     pick(o, ("order_id", "status", "created_at"))
                     | {
                         "items": [
-                            pick(i, ("id", "product_id", "product_name", "quantity"))
+                            pick(i, ("id", "product_id", "product_name", "quantity",
+                                     "policy_scope"))
                             for i in o.get("items", [])
                         ]
                     }
                     for o in cards["orders"]
                 ]
                 cards["products"] = [
-                    pick(p, ("product_id", "name", "current_price", "attributes", "category"))
+                    pick(p, ("product_id", "name", "current_price", "attributes", "category",
+                             "policy_scope", "policy_notice"))
                     for p in cards["products"]
                 ]
                 complete = (

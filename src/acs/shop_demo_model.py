@@ -162,6 +162,7 @@ def offline_factory(root):
                     )
                 ),
                 streaming=True,
+                max_body_bytes=32768,
             )
         ) as client:
             yield deepseek_model(

@@ -26,6 +26,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langchain_core.tools import StructuredTool, ToolException
 from langgraph.checkpoint.sqlite import SqliteSaver
 
+from .cs_tools import tool_model_content
 from .langgraph_poc import AuditEvent
 from .local_return_tools import (
     TOOLS,
@@ -42,6 +43,7 @@ from .sessions import ConversationBusy
 
 PROMPT = """你是电商客服。本实验仅支持本人商品、订单、物流和知识查询，退货草稿及预览。
 用户身份和会话由应用提供，不能切换。订单、商品明细id、数量来自业务工具，政策来自知识工具。
+政策须匹配商品类别；缺少适用政策时仅可查询规格、价格、订单和物流，不得套用期限或承诺保修、安装、换货。
 明确退货意图必须调用update_return_task保存用户提供的字段，不能只口头答应；缺信息保留待办并询问。
 先读取get_return_task及订单；只记录用户明确说出的字段，不能猜商品、数量、二次销售或非人为声明。
 用户插问、否定取消、假设或引用取消都保留草稿。更正覆盖旧值，换订单/商品会清除依赖字段，需重新补齐。
@@ -247,7 +249,7 @@ class LocalReturnPoc:
             )
             if receipt["error"]:
                 raise ToolException(json.dumps(receipt, ensure_ascii=False))
-            return json.dumps(receipt, ensure_ascii=False)
+            return tool_model_content(receipt)
 
         return StructuredTool.from_function(
             execute,
@@ -315,7 +317,7 @@ class LocalReturnPoc:
                     if (receipt["name"], receipt["arguments"]) != (call["name"], canonical):
                         raise ReconciliationError("Graph call differs from business receipt")
                     exposed = json.loads(delivered.content)
-                    if exposed["result"] != model_view(json.loads(receipt["result"])):
+                    if model_view(exposed["result"]) != model_view(json.loads(receipt["result"])):
                         raise ReconciliationError("Graph result differs from business receipt")
 
     def stream(self, sid, text=None):

@@ -25,7 +25,7 @@ def test_demo_byte_rebuild_and_no_historical_inputs_changed(tmp_path):
         str(p.relative_to(SOURCE)): p.read_bytes() for p in SOURCE.rglob("*") if p.is_file()}
     suite = load_dataset(out)
     assert (suite["manifest"]["products"], suite["manifest"]["orders"],
-            suite["manifest"]["documents"]) == (48, 240, 38)
+            suite["manifest"]["documents"]) == (48, 240, 39)
     assert len({p["category"] for p in suite["business"]["products"]}) == 10
 
 

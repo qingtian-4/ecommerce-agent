@@ -193,8 +193,12 @@ export function orderCard(order, actions, compact = false) {
   else
     node.append(line);
   const buttons = el('div', 'order-buttons');
-  for (const [text, fn] of [['查看详情', actions.detail], ['查物流', actions.logistics], ['申请售后', actions.afterSale]])
-    buttons.append(btn(text, () => fn(order.order_id), text === '申请售后' ? 'order-button main-action' : 'order-button'));
+  for (const [text, fn] of [['查看详情', actions.detail], ['查物流', actions.logistics], ['申请售后', actions.afterSale]]) {
+    const unsupported = text === '申请售后' && order.items?.length && order.items.every(i => i.policy_scope?.return === false);
+    const button = btn(unsupported ? '暂无适用售后政策' : text, () => fn(order.order_id), text === '申请售后' ? 'order-button main-action' : 'order-button');
+    button.disabled = Boolean(unsupported);
+    buttons.append(button);
+  }
   node.append(buttons);
   return node;
 }
@@ -226,6 +230,8 @@ export function productGrid(products) {
     card.append(thumb(p), el('strong', '', p.name || p.product_name || p.product_id), el('p', 'price', p.current_price == null ? '价格待查询' : `¥${p.current_price}`));
     if (p.attributes)
       card.append(el('p', 'order-meta', Array.isArray(p.attributes) ? p.attributes.join(' · ') : p.attributes));
+    if (p.policy_notice)
+      card.append(el('p', 'muted', p.policy_notice));
     grid.append(card);
   }
   return grid;

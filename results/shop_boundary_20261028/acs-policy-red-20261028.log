@@ -1,0 +1,40 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+______________ test_uncovered_appliance_cannot_get_return_preview ______________
+
+fixture = (PosixPath('/dev/shm/acs-policy-red-20261028/test_uncovered_appliance_canno0/shop'), Settings(llm_provider='deepseek',...gation_enabled=False, reference_date=datetime.date(2026, 11, 6)), <acs.sessions.SessionStore object at 0x702a1d4b3c50>)
+
+    def test_uncovered_appliance_cannot_get_return_preview(fixture):
+        settings, store, sid, tid, _ = appliance_draft(fixture)
+        result = ReturnService(settings, store).preview(sid, "USER001", tid)
+>       assert result["ready"] is False
+E       assert True is False
+
+tests/test_shop_policy_boundary.py:37: AssertionError
+___________ test_uncovered_order_dates_cannot_be_return_eligibility ____________
+
+fixture = (PosixPath('/dev/shm/acs-policy-red-20261028/test_uncovered_order_dates_can0/shop'), Settings(llm_provider='deepseek',...gation_enabled=False, reference_date=datetime.date(2026, 11, 6)), <acs.sessions.SessionStore object at 0x702a1d4ff770>)
+
+    def test_uncovered_order_dates_cannot_be_return_eligibility(fixture):
+        settings, _, _, _, oid = appliance_draft(fixture)
+        order = BusinessDB(settings).get_order(oid, "USER001")
+>       assert order["within_return_window"] is None
+E       assert True is None
+
+tests/test_shop_policy_boundary.py:46: AssertionError
+_____________ test_appliance_product_exposes_unknown_policy_scope ______________
+
+fixture = (PosixPath('/dev/shm/acs-policy-red-20261028/test_appliance_product_exposes0/shop'), Settings(llm_provider='deepseek',...gation_enabled=False, reference_date=datetime.date(2026, 11, 6)), <acs.sessions.SessionStore object at 0x702a1d362b50>)
+
+    def test_appliance_product_exposes_unknown_policy_scope(fixture):
+        _, settings, _ = fixture
+        product = BusinessDB(settings).get_product("E003")
+>       assert product["policy_scope"]["return"] is False
+               ^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'policy_scope'
+
+tests/test_shop_policy_boundary.py:53: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_shop_policy_boundary.py::test_uncovered_appliance_cannot_get_return_preview
+FAILED tests/test_shop_policy_boundary.py::test_uncovered_order_dates_cannot_be_return_eligibility
+FAILED tests/test_shop_policy_boundary.py::test_appliance_product_exposes_unknown_policy_scope

@@ -32,7 +32,7 @@ def main():
     parser.add_argument("--port", type=int, default=8768)
     parser.add_argument("--init", action="store_true")
     parser.add_argument("--dataset", type=Path,
-                        help="Versioned shop-realism-v1 data; requires a fresh --init")
+                        help="Versioned shop-realism data; requires a fresh --init")
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--authorization", type=Path)

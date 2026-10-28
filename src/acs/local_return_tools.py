@@ -15,10 +15,10 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict
 
 from .config import PROJECT_ROOT, Settings
-from .cs_tools import CatalogArgs, OrderListArgs, ToolRegistry
+from .cs_tools import CatalogArgs, OrderListArgs, ToolRegistry, catalog_model_view, catalog_progress
 from .db_seed import build
 from .langgraph_poc import EmptyArgs, OrderArgs, ProductArgs
-from .returns import ReturnService
+from .returns import ReturnService, scoped_task_view
 from .sessions import SessionStore
 
 FORMAL_FIXTURE_KIND = "local-return-formal-synthetic-1"
@@ -241,11 +241,11 @@ def model_view(value):
     if isinstance(value, list):
         return [model_view(v) for v in value]
     if isinstance(value, dict):
-        return {
+        return catalog_model_view({
             k: model_view(v)
             for k, v in value.items()
             if k not in {"user_id", "session_id", "turn_id", "current_user_id"}
-        }
+        })
     return value
 
 
@@ -350,16 +350,28 @@ class LocalReturnGateway:
             latest = self.service.latest_preview(context.session_id, context.user_id)
             if not latest or latest["preview_id"] != result["preview_id"]:
                 raise ReconciliationError("Recorded preview is now stale; no automatic re-preview")
+        current_task = (self.store.get_return_task(context.session_id, context.user_id)
+                        if name in WRITES else None)
+        if current_task is not None:
+            scoped = scoped_task_view(self.settings, current_task, context.user_id)
+            if scoped["policy"].get("applicable") is False:
+                current_task = scoped
         return model_view(
             {
                 "result": result,
                 "error": error,
                 "replayed": replayed,
-                "current_task": self.store.get_return_task(context.session_id, context.user_id)
-                if name in WRITES
-                else None,
+                "current_task": current_task,
             }
         )
+
+    def catalog_queries(self, sid, uid):
+        with closing(self.store._connect()) as conn:
+            self.store._require_owner(conn, sid, uid)
+            return catalog_progress([dict(r) for r in conn.execute(
+                "SELECT name,arguments,result,error FROM local_receipts WHERE session_id=? "
+                "AND turn_id=(SELECT turn_id FROM local_threads WHERE session_id=?) ORDER BY rowid",
+                (sid, sid))])
 
     def state(self, sid, uid):
         with closing(self.store._connect()) as conn:
@@ -367,12 +379,14 @@ class LocalReturnGateway:
             preview_count = conn.execute(
                 "SELECT COUNT(*) FROM return_previews WHERE session_id=?", (sid,)
             ).fetchone()[0]
+        catalogs = self.catalog_queries(sid, uid)
         return model_view(
             {
-                "task": self.store.get_return_task(sid, uid),
+                "task": scoped_task_view(self.settings, self.store.get_return_task(sid, uid), uid),
                 "preview": self.service.latest_preview(sid, uid),
                 "submission_enabled": False,
                 "preview_record_count": preview_count,
+                **({"catalog_queries": catalogs} if catalogs else {}),
                 **(
                     {"application_confirmation_enabled": True}
                     if self.application_confirmation_enabled

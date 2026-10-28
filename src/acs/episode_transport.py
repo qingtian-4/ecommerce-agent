@@ -17,6 +17,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 
 from acs.async_transport import iterate_request
 from acs.model_response_contract import ModelResponseError, inspect_wire
+from acs.runtime import BudgetExceeded
 
 
 def response_usage(content):
@@ -34,15 +35,20 @@ def response_usage(content):
 
 
 class EpisodeAsyncTransport(httpx.AsyncBaseTransport):
-    def __init__(self, ledger, episode, role, inner=None):
+    def __init__(self, ledger, episode, role, inner=None, *, max_body_bytes=None):
         self.ledger, self.episode, self.role = ledger, episode, role
         self.inner = inner or httpx.AsyncHTTPTransport(retries=0)
+        self.max_body_bytes = max_body_bytes
 
     async def handle_async_request(self, request):
         return await self._handle(request)
 
     async def _handle(self, request, publish=None):
         body = await request.aread()
+        if self.max_body_bytes is not None and len(body) > self.max_body_bytes:
+            self.ledger.event(self.episode, "preflight_rejected", reason="body_limit",
+                              body_bytes=len(body), limit=self.max_body_bytes)
+            raise BudgetExceeded("request_body_limit")
         reservation = self.ledger.reserve(self.episode, self.role, body)
         started = time.perf_counter()
         partial = bytearray()
@@ -141,10 +147,12 @@ class EpisodeAsyncTransport(httpx.AsyncBaseTransport):
 class EpisodeSyncTransport(httpx.BaseTransport):
     """Official LiteLLM/OpenAI sync SDK; fresh async I/O lifecycle per request."""
 
-    def __init__(self, ledger, episode, role, inner_factory=None, *, streaming=False):
+    def __init__(self, ledger, episode, role, inner_factory=None, *, streaming=False,
+                 max_body_bytes=None):
         self.ledger, self.episode, self.role = ledger, episode, role
         self.inner_factory = inner_factory
         self.streaming = streaming
+        self.max_body_bytes = max_body_bytes
 
     def handle_request(self, request):
         request.read()
@@ -152,7 +160,8 @@ class EpisodeSyncTransport(httpx.BaseTransport):
 
         async def receive(publish):
             inner = self.inner_factory() if self.inner_factory else None
-            transport = EpisodeAsyncTransport(self.ledger, self.episode, self.role, inner)
+            transport = EpisodeAsyncTransport(self.ledger, self.episode, self.role, inner,
+                                               max_body_bytes=self.max_body_bytes)
             try:
                 if live:
                     await transport._handle(request, publish)

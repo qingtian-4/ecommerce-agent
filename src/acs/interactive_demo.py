@@ -110,6 +110,7 @@ def interactive_model(root, settings, ledger):
             "agent",
             lambda: RequestCapture(ledger, ledger.evidence),
             streaming=True,
+            max_body_bytes=32768,
         )
     ) as client:
         yield deepseek_model(

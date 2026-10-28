@@ -33,7 +33,7 @@ from typing import Any
 from .capabilities import capability_notice
 from .config import Settings, get_settings
 from .context import ContextLimitExceeded, input_chars, model_context
-from .cs_tools import ToolRegistry, TraceEvent
+from .cs_tools import ToolRegistry, TraceEvent, tool_model_content
 from .database import business_today
 from .knowledge_context import load_source_documents
 from .llm import LLMClient
@@ -59,6 +59,7 @@ SYSTEM_PROMPT = """你是一名专业的电商客服助手，服务于一家销�
    订单的无理由日期标志以当前政策期限为准，不代表完整资格或质量问题期限。
 2. **订单、物流、价格等实时事实**必须来自对应的业务工具，不得猜测或编造。
 3. 工具没有返回的信息，就是不知道的信息。**不要编造**，可以如实告知需要进一步核实。
+   政策须匹配商品类别；缺少适用政策时不得套用期限或承诺保修、安装、换货。
 4. 用户不记得订单号时先用 `list_orders` 定位；多个候选须展示选项并追问，不能猜选。
    一个订单多个商品时也须明确商品，不能把“这单/只退一个”随意关联明细。
    编号查商品未命中不能证明订单不存在；结合语境再用订单工具核对，不能忽略已给编号。
@@ -379,7 +380,7 @@ class CustomerServiceAgent:
                     {
                         "role": "tool",
                         "tool_call_id": call.id,
-                        "content": json.dumps(payload, ensure_ascii=False, default=str),
+                        "content": tool_model_content(payload),
                     }
                 )
                 yield self._snapshot(result, started)

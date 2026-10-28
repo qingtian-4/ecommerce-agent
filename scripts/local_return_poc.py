@@ -101,10 +101,12 @@ def paid_model(root, settings, *, max_requests=32, answer_streaming=False, ledge
         sync = stack.enter_context(
             httpx.Client(transport=EpisodeSyncTransport(
                 ledger, EPISODE, "agent", factory, streaming=answer_streaming,
+                max_body_bytes=32768,
             ))
         )
         async_client = httpx.AsyncClient(
-            transport=EpisodeAsyncTransport(ledger, EPISODE, "agent", factory())
+            transport=EpisodeAsyncTransport(ledger, EPISODE, "agent", factory(),
+                                            max_body_bytes=32768)
         )
         stack.callback(lambda: asyncio.run(async_client.aclose()))
         settings = settings.model_copy(
