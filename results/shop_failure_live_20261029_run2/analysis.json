@@ -1,0 +1,330 @@
+{
+  "source_sha": "f724b69238f5322f0c342815254cd4ace13c67b3",
+  "cases": [
+    {
+      "task_id": "SX02",
+      "arm": "old",
+      "status": "completed",
+      "outcome": "pending_review",
+      "sql_correct": true,
+      "tool_valid": true,
+      "error": null,
+      "goals": 4,
+      "evidence": 4,
+      "model_http_requests": 4,
+      "ledger_http_requests": 4,
+      "input_tokens": 16709,
+      "output_tokens": 1036,
+      "latency_ms": 15093.289062999247,
+      "chat_latency_ms": 12708.785563001584,
+      "transport_latency_ms": 7867.325036997499,
+      "estimated_cny": "0.008810760",
+      "body_bytes": [
+        10385,
+        16411,
+        17911,
+        20308
+      ],
+      "preflight_rejections": [],
+      "tools": [
+        {
+          "name": "list_products",
+          "arguments": {
+            "category": "燃气热水器",
+            "max_price": 1000.0,
+            "view": "overview"
+          }
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "document_id": "appliance_consultation",
+            "query": "燃气热水器 模拟无理由退货期限 签收日起 条件"
+          }
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "E018"
+          }
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "E020"
+          }
+        }
+      ],
+      "projection_roundtrip": true,
+      "sql_counts": {
+        "return_tasks": 0,
+        "return_previews": 0,
+        "return_requests": 0,
+        "return_confirmations": 0,
+        "return_audit": 0
+      },
+      "foreign_keys_ok": true,
+      "final_draft": null,
+      "raw_display_equal": true
+    },
+    {
+      "task_id": "SX02",
+      "arm": "v3",
+      "status": "completed",
+      "outcome": "pending_review",
+      "sql_correct": true,
+      "tool_valid": true,
+      "error": null,
+      "goals": 4,
+      "evidence": 4,
+      "model_http_requests": 4,
+      "ledger_http_requests": 4,
+      "input_tokens": 16619,
+      "output_tokens": 939,
+      "latency_ms": 20575.07788699877,
+      "chat_latency_ms": 17949.050686009286,
+      "transport_latency_ms": 8697.044380001898,
+      "estimated_cny": "0.008332760",
+      "body_bytes": [
+        10385,
+        16399,
+        17795,
+        20192
+      ],
+      "preflight_rejections": [],
+      "tools": [
+        {
+          "name": "list_products",
+          "arguments": {
+            "category": "燃气热水器",
+            "max_price": 1000.0,
+            "view": "overview"
+          }
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "document_id": "appliance_consultation",
+            "query": "燃气热水器 模拟无理由退货期限 签收日起 条件"
+          }
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "E018"
+          }
+        },
+        {
+          "name": "get_product",
+          "arguments": {
+            "product_id": "E020"
+          }
+        }
+      ],
+      "projection_roundtrip": true,
+      "sql_counts": {
+        "return_tasks": 0,
+        "return_previews": 0,
+        "return_requests": 0,
+        "return_confirmations": 0,
+        "return_audit": 0
+      },
+      "foreign_keys_ok": true,
+      "final_draft": null,
+      "raw_display_equal": true
+    },
+    {
+      "task_id": "SX04",
+      "arm": "old",
+      "status": "completed",
+      "outcome": "pending_review",
+      "sql_correct": true,
+      "tool_valid": true,
+      "error": null,
+      "goals": 6,
+      "evidence": 6,
+      "model_http_requests": 7,
+      "ledger_http_requests": 7,
+      "input_tokens": 39127,
+      "output_tokens": 1101,
+      "latency_ms": 25148.708116998023,
+      "chat_latency_ms": 19747.146506997524,
+      "transport_latency_ms": 11834.215941002185,
+      "estimated_cny": "0.021829880",
+      "body_bytes": [
+        10403,
+        15592,
+        16139,
+        23403,
+        26486,
+        27996,
+        31461
+      ],
+      "preflight_rejections": [],
+      "tools": [
+        {
+          "name": "get_return_task",
+          "arguments": {}
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "document_id": "appliance_consultation",
+            "query": "家电模拟保修期限"
+          }
+        },
+        {
+          "name": "list_orders",
+          "arguments": {
+            "product_id": "720010"
+          }
+        },
+        {
+          "name": "list_orders",
+          "arguments": {
+            "name_contains": "耳机"
+          }
+        },
+        {
+          "name": "update_return_task",
+          "arguments": {
+            "condition": "sealed",
+            "item_id": 720010,
+            "order_id": "O72001",
+            "quantity": 1,
+            "reason": "no_reason",
+            "secondary_sale_ok": true
+          }
+        },
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "O72005"
+          }
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "document_id": "appliance_consultation",
+            "query": "热水器 无理由退货期限 签收日起 未拆封 二次销售"
+          }
+        }
+      ],
+      "projection_roundtrip": true,
+      "sql_counts": {
+        "return_tasks": 1,
+        "return_previews": 0,
+        "return_requests": 0,
+        "return_confirmations": 0,
+        "return_audit": 0
+      },
+      "foreign_keys_ok": true,
+      "final_draft": {
+        "order_id": "O72001",
+        "item_id": 720010,
+        "quantity": 1,
+        "revision": 1,
+        "status": "draft"
+      },
+      "raw_display_equal": true
+    },
+    {
+      "task_id": "SX04",
+      "arm": "v3",
+      "status": "completed",
+      "outcome": "pending_review",
+      "sql_correct": true,
+      "tool_valid": true,
+      "error": null,
+      "goals": 6,
+      "evidence": 6,
+      "model_http_requests": 6,
+      "ledger_http_requests": 6,
+      "input_tokens": 28837,
+      "output_tokens": 1121,
+      "latency_ms": 25995.033188999514,
+      "chat_latency_ms": 22932.906474998163,
+      "transport_latency_ms": 10349.609475000761,
+      "estimated_cny": "0.013752360",
+      "body_bytes": [
+        10403,
+        15592,
+        17846,
+        20929,
+        22586,
+        25809
+      ],
+      "preflight_rejections": [],
+      "tools": [
+        {
+          "name": "get_return_task",
+          "arguments": {}
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "document_id": "appliance_consultation",
+            "query": "家电模拟保修期限"
+          }
+        },
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "O72001"
+          }
+        },
+        {
+          "name": "update_return_task",
+          "arguments": {
+            "condition": "sealed",
+            "item_id": 720010,
+            "order_id": "O72001",
+            "quantity": 1,
+            "reason": "no_reason",
+            "secondary_sale_ok": true
+          }
+        },
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "O72005"
+          }
+        },
+        {
+          "name": "search_knowledge",
+          "arguments": {
+            "document_id": "appliance_consultation",
+            "query": "热水器 无理由退货期限 签收日起 未拆封 二次销售"
+          }
+        }
+      ],
+      "projection_roundtrip": true,
+      "sql_counts": {
+        "return_tasks": 1,
+        "return_previews": 0,
+        "return_requests": 0,
+        "return_confirmations": 0,
+        "return_audit": 0
+      },
+      "foreign_keys_ok": true,
+      "final_draft": {
+        "order_id": "O72001",
+        "item_id": 720010,
+        "quantity": 1,
+        "revision": 1,
+        "status": "draft"
+      },
+      "raw_display_equal": true
+    }
+  ],
+  "quota_mode": "uncapped",
+  "total_requests": 21,
+  "total_estimated_cny": "0.052725760",
+  "max_body_bytes": 31461,
+  "total_goals": 20,
+  "evidence": 20,
+  "outcomes": {
+    "pending_review": 4
+  },
+  "semantic_review": "pending_independent_review; assistant observations are not blind review"
+}
