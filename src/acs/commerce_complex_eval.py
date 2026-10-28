@@ -115,7 +115,12 @@ def evidence_present(goal, record, receipts, previous_state):
 
 def grade_objectives(entry, result):
     previous, state, rows = 0, {"draft": None}, []
-    for record, gold in zip(result["steps"], entry["intent_gold"], strict=False):
+    for index, gold in enumerate(entry["intent_gold"]):
+        if index >= len(result["steps"]):
+            rows.extend(dict(step=index, goal=g["id"], evidence=False,
+                             raw="not_executed", display="not_executed") for g in gold["goals"])
+            continue
+        record = result["steps"][index]
         receipts = record["state"]["receipts"][previous:]
         previous = len(record["state"]["receipts"])
         for goal in gold["goals"]:

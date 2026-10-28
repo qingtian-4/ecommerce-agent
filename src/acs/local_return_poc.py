@@ -144,6 +144,20 @@ class LocalReturnPoc:
                         content="当前应用核验事实：" + json.dumps(facts, ensure_ascii=False)
                     )
                 )
+                from .return_rules import consultation_policy
+
+                if (consultation_policy(self.settings) and getattr(self.model, "_llm_type", "")
+                        != "m8-controlled-model-boundary"):
+                    from langchain_core.messages import (
+                        convert_to_messages,
+                        convert_to_openai_messages,
+                    )
+
+                    from .shop_model_context import INSTRUCTIONS, project_messages
+
+                    messages = convert_to_messages(project_messages(
+                        convert_to_openai_messages(messages)))
+                    messages.append(SystemMessage(content=INSTRUCTIONS))
                 response = handler(request.override(messages=messages))
                 used = {
                     c["id"]

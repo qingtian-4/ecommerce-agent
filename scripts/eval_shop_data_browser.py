@@ -1,6 +1,7 @@
 """Browser checks for a separately started, FREE shop-realism-v1.2 fixture."""
 import argparse
 import json
+import re
 from pathlib import Path
 
 
@@ -47,8 +48,8 @@ def run(out, port):
         page.wait_for_function("()=>document.querySelector('#dialog-title')"
                                ".textContent.startsWith('订单详情')")
         disabled = page.locator("#dialog").get_by_role(
-            "button", name="暂无适用售后政策", exact=True)
-        checks["appliance_draft_did_not_activate"] = (
+            "button", name=re.compile(r"^(暂无适用售后政策|仅咨询，暂不支持办理)$"))
+        checks["appliance_submission_disabled"] = (
             disabled.count() > 0 and all(b.is_disabled() for b in disabled.all()))
         page.screenshot(path=str(out / "policy-boundary.png"))
         context.close()

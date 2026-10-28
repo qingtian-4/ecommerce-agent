@@ -116,7 +116,10 @@ def offline_factory(root):
 
     class Stream(httpx.AsyncByteStream):
         def __init__(self, request):
+            from .shop_model_context import expand_messages
+
             self.body = json.loads(request.content)
+            self.body["messages"] = expand_messages(self.body["messages"])
 
         async def __aiter__(self):
             call, text = decide(self.body["messages"])

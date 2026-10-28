@@ -18,6 +18,7 @@ execution (calls, arguments, results) and not model chain-of-thought.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import traceback
 from collections.abc import Callable
@@ -31,6 +32,7 @@ from .config import Settings, get_settings
 from .context import ContextLimitExceeded
 from .database import BusinessDB, normalized_name
 from .knowledge_context import load_source_documents, select_source_documents
+from .return_rules import consultation_policy
 from .returns import ReturnService, scoped_task_view
 from .runtime import BudgetExceeded
 from .sessions import SessionStore, TaskValidationError
@@ -331,6 +333,9 @@ class ToolRegistry:
                     "检索店铺的知识库文档，包括退换货政策、配送与发货说明、价格保护规则、"
                     "保修与维修政策，以及各商品的详细说明。"
                     "使用涵盖问题全部条件的自然语言 query；已有依据足够时无需重复检索。"
+                    + ("家电模拟期限咨询请指定document_id=appliance_consultation；"
+                       "仅咨询，不授予退货、维修或退款权限。"
+                       if consultation_policy(self.settings) else "")
                 ),
                 parameters={
                     "type": "object",
@@ -634,6 +639,10 @@ class ToolRegistry:
         if document_id is not None:
             pipeline.update(retrieval_mode="bm25_scoped", document_id=document_id,
                             source_scope="document_id")
+        consultation = consultation_policy(self.settings)
+        if consultation and any(c.document_id == "appliance_consultation" for c in chunks):
+            pipeline["source_fingerprints"] = {"appliance_consultation": hashlib.sha256(
+                (self.settings.docs_dir / "appliance_consultation.md").read_bytes()).hexdigest()}
         if not chunks:
             return {
                 **pipeline,

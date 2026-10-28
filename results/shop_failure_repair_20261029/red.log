@@ -1,0 +1,54 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_context_roundtrip_reduces_repeated_business_facts_without_losing_constraints _
+
+    def test_context_roundtrip_reduces_repeated_business_facts_without_losing_constraints():
+>       from acs.shop_model_context import expand_messages, project_messages
+E       ModuleNotFoundError: No module named 'acs.shop_model_context'
+
+tests/test_shop_failure_repair.py:14: ModuleNotFoundError
+_____ test_context_does_not_interpret_existing_reference_keys_as_authority _____
+
+    def test_context_does_not_interpret_existing_reference_keys_as_authority():
+>       from acs.shop_model_context import expand_messages, project_messages
+E       ModuleNotFoundError: No module named 'acs.shop_model_context'
+
+tests/test_shop_failure_repair.py:37: ModuleNotFoundError
+____ test_missing_second_turn_goals_are_visible_without_certifying_language ____
+
+    def test_missing_second_turn_goals_are_visible_without_certifying_language():
+        entry = next(e for e in load()["entries"] if e["task"]["task_id"] == "SX04")
+        result = dict(steps=[], raw_outcome="execution_error", display_outcome="execution_error")
+        score = grade(entry, result)
+>       assert len(score["objectives"]) == sum(len(g["goals"]) for g in entry["intent_gold"])
+E       assert 0 == 6
+E        +  where 0 = len([])
+E        +  and   6 = sum(<generator object test_missing_second_turn_goals_are_visible_without_certifying_language.<locals>.<genexpr> at 0x7a4ad86c2c00>)
+
+tests/test_shop_failure_repair.py:48: AssertionError
+___ test_uncapped_accounting_is_explicit_and_cannot_reopen_a_limited_ledger ____
+
+tmp_path = PosixPath('/dev/shm/shop-failure-red/test_uncapped_accounting_is_ex0')
+
+    def test_uncapped_accounting_is_explicit_and_cannot_reopen_a_limited_ledger(tmp_path):
+        path = tmp_path / "ledger.jsonl"
+        EpisodeLedger(path)
+        with pytest.raises(ValueError):
+>           EpisodeLedger(path, cap_cny=None, max_requests=None,
+                          uncapped_authorization="current human request")
+E           TypeError: EpisodeLedger.__init__() got an unexpected keyword argument 'uncapped_authorization'
+
+tests/test_shop_failure_repair.py:57: TypeError
+___ test_real_failure_projection_is_byte_safe_if_private_trace_is_available ____
+
+    def test_real_failure_projection_is_byte_safe_if_private_trace_is_available():
+>       from acs.shop_model_context import project_messages
+E       ModuleNotFoundError: No module named 'acs.shop_model_context'
+
+tests/test_shop_failure_repair.py:74: ModuleNotFoundError
+=========================== short test summary info ============================
+FAILED tests/test_shop_failure_repair.py::test_context_roundtrip_reduces_repeated_business_facts_without_losing_constraints
+FAILED tests/test_shop_failure_repair.py::test_context_does_not_interpret_existing_reference_keys_as_authority
+FAILED tests/test_shop_failure_repair.py::test_missing_second_turn_goals_are_visible_without_certifying_language
+FAILED tests/test_shop_failure_repair.py::test_uncapped_accounting_is_explicit_and_cannot_reopen_a_limited_ledger
+FAILED tests/test_shop_failure_repair.py::test_real_failure_projection_is_byte_safe_if_private_trace_is_available

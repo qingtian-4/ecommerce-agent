@@ -12,6 +12,7 @@ from .cs_tools import CatalogArgs, catalog_progress
 from .live_evaluation import LIMITS
 from .return_rules import consultation_policy
 from .shop_demo_data import materialize
+from .shop_model_context import ShopContextModel
 
 BASE_SNAPSHOT = prior.authoritative_snapshot
 BASE_CLAIM = prior.claim_value
@@ -54,6 +55,17 @@ def evidence_present(goal, record, receipts, previous_state):
     e = goal["evidence"]
     values = [(r["name"], json.loads(r["result"]), json.loads(r["arguments"]))
               for r in receipts if not r["error"]]
+    if e["kind"] == "policy" and e.get("document_id") == "appliance_consultation":
+        current = record["state"].get("consultation", {}).get("document_sha256")
+        for receipt in record["state"]["receipts"]:
+            if receipt["name"] != "search_knowledge" or receipt["error"]:
+                continue
+            result = json.loads(receipt["result"])
+            if (current and result.get("source_fingerprints", {}).get(e["document_id"]) == current
+                    and any(d.get("document_id") == e["document_id"]
+                            and e["contains"] in d.get("content", "")
+                            for d in result.get("documents", []))):
+                return True
     if e["kind"] == "sku":
         all_values = [(r["name"], json.loads(r["result"]))
                       for r in record["state"]["receipts"] if not r["error"]]
@@ -111,16 +123,22 @@ def grade(entry, result):
         return complex_eval.grade_objectives(entry, result)
 
 
-def run(suite, entry, root, arm, *, model=None, ledger=None, offline=True):
+def run(suite, entry, root, arm, *, model=None, ledger=None, offline=True,
+        model_context=False):
     def fixture(path, ignored):
         materialize(path, suite["environment_root"])
         return m8.initial_fingerprint(path)
 
+    projected = ShopContextModel(model) if model_context and model is not None else None
     with (patch.object(prior, "materialize", fixture),
           patch.object(prior, "authoritative_snapshot", snapshot),
           patch.object(prior, "claim_value", claim_value)):
-        result = run_case(suite, entry, root, arm, model=model, ledger=ledger,
+        result = run_case(suite, entry, root, arm, model=projected or model, ledger=ledger,
                           offline=offline, limits=LIMITS)
+    if projected:
+        from .commerce_benchmark_data import dump
+
+        dump(root / "model-projected-inputs.json", projected.requests)
     result["legacy_raw_outcome"] = result["raw_outcome"]
     result.update(grade(entry, result))
     return result

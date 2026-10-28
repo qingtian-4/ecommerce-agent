@@ -47,19 +47,28 @@ PRICE = {
 
 
 class EpisodeLedger:
-    def __init__(self, path, *, cap_cny=5, max_requests=48, clock=time.time):
-        if not 0 < cap_cny <= 5 or not 0 < max_requests <= 48:
+    def __init__(self, path, *, cap_cny=5, max_requests=48, clock=time.time,
+                 uncapped_authorization=None):
+        uncapped = cap_cny is None and max_requests is None
+        if uncapped and (not isinstance(uncapped_authorization, str)
+                         or not uncapped_authorization.strip()):
+            raise ValueError("Uncapped accounting requires explicit human authorization")
+        if not uncapped and (cap_cny is None or max_requests is None
+                             or not 0 < cap_cny <= 5 or not 0 < max_requests <= 48):
             raise ValueError("Pilot limits cannot exceed 5 CNY / 48 HTTP requests")
         self.journal, self.clock = BudgetJournal(path), clock
         policy = {"type": "policy", "cap_cny": cap_cny, "max_requests": max_requests,
                   "price": PRICE, "reservation_refundable": False,
                   "input_bound": "2 * actual serialized HTTP UTF-8 bytes + 4096"}
+        if uncapped:
+            policy.update(quota_mode="uncapped", user_instruction_reference=uncapped_authorization)
         with self.journal.transaction() as (rows, append):
             if not rows:
                 append(policy)
             elif rows[0] != policy:
                 raise ValueError("Frozen ledger policy differs")
-        self.cap_cny, self.max_requests = Decimal(str(cap_cny)), max_requests
+        self.cap_cny = None if uncapped else Decimal(str(cap_cny))
+        self.max_requests = max_requests
 
     def begin(self, episode, limits=None):
         limits = limits or EpisodeLimits()
@@ -97,8 +106,11 @@ class EpisodeLedger:
             row = {"type": "restriction", "name": name, "added_cny": str(amount),
                    "added_requests": added_requests, "baseline_requests": len(attempts),
                    "baseline_reserved_cny": str(total),
-                   "request_ceiling": min(self.max_requests, len(attempts) + added_requests),
-                   "reserved_ceiling_cny": str(min(self.cap_cny, total + amount))}
+                   "request_ceiling": (min(self.max_requests, len(attempts) + added_requests)
+                                       if self.max_requests is not None
+                                       else len(attempts) + added_requests),
+                   "reserved_ceiling_cny": str(min(self.cap_cny, total + amount)
+                                               if self.cap_cny is not None else total + amount)}
             append(row)
             return row
 
@@ -138,12 +150,12 @@ class EpisodeLedger:
         with self.journal.transaction() as (rows, append):
             state = self._check(rows, append, episode)
             attempts = [r for r in rows if r["type"] == "reserved"]
-            if len(attempts) >= self.max_requests:
+            if self.max_requests is not None and len(attempts) >= self.max_requests:
                 self._stop(append, episode, "global_request_limit")
             if sum(r["episode"] == episode for r in attempts) >= state["limits"]["requests"]:
                 self._stop(append, episode, "episode_request_limit")
             total = sum((Decimal(r["reserved_cny"]) for r in attempts), Decimal(0))
-            if total + cost > self.cap_cny:
+            if self.cap_cny is not None and total + cost > self.cap_cny:
                 self._stop(append, episode, "global_cost_limit")
             for restriction in (r for r in rows if r["type"] == "restriction"):
                 if len(attempts) >= restriction["request_ceiling"]:
