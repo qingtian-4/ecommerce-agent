@@ -1,0 +1,15 @@
+{
+  "version": "multi-intent-progress-v1",
+  "kind": "seen_manual_badcase_and_authored_offline_controls",
+  "source_base": "164e5963896adedfe04a1c54a7ab61df247bcb69",
+  "dataset": "shop-realism-v1.1",
+  "paid_requests": 0,
+  "cases": [
+    {"id": "MP01", "query": "我目前都有哪些订单，然后我们这个店都有哪些产品", "goals": ["owned_order_candidates", "complete_product_overview"], "required_counts": {"orders": 30, "products": 48}},
+    {"id": "MP02", "query": "列出全部商品的名称、类别和当前价格", "goals": ["complete_product_overview"], "required_counts": {"products": 48}},
+    {"id": "MP03", "query": "燃气类商品有哪些，当前价格是多少", "goals": ["filtered_product_overview"], "literal_filter": "燃气", "required_counts": {"products": 2}},
+    {"id": "MP04", "query": "查我的订单，再列出所有商品的完整规格", "goals": ["owned_order_candidates", "complete_product_details"], "partial_control": "first_detail_page_must_preserve_order_result_and_remain_incomplete"},
+    {"id": "MP05", "query": "有哪些不存在的商品", "goals": ["complete_empty_query"], "literal_filter": "不存在的商品", "required_counts": {"products": 0}},
+    {"id": "MP06", "query": "挑一款不入耳、支持降噪且价格不超过300元的耳机", "goals": ["constraint_evidence_required"], "negative_control": "overview_is_not_specification_or_sku_evidence"}
+  ]
+}

@@ -22,7 +22,7 @@ import json
 import traceback
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -111,6 +111,7 @@ class CatalogArgs(BaseModel):
     """One shared contract for the Demo Loop and both isolated runtimes."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
+    view: Literal["details", "overview"] = "details"
     after_product_id: str = Field(default="", max_length=80)
     page_size: int = Field(default=8, ge=1, le=8)
     name_contains: str = Field(default="", max_length=80)
@@ -134,7 +135,8 @@ def catalog_progress(receipts):
         if value.get("contract") != CATALOG_CONTRACT:
             continue
         args = CatalogArgs.model_validate(json.loads(receipt["arguments"]))
-        query = args.model_dump(exclude={"after_product_id", "page_size"}, exclude_defaults=True)
+        query = args.model_dump(exclude={"after_product_id", "page_size", "view"},
+                                exclude_defaults=True)
         key = json.dumps(query, sort_keys=True)
         if key not in groups or not args.after_product_id:
             groups[key] = dict(query=query, ids=set(), first=not args.after_product_id,
@@ -216,6 +218,7 @@ class ToolRegistry:
     def _register_all(self) -> None:
         self.register(ToolSpec(
             "list_products", "分页查询本店目录，product_id升序；每页最多8件。"
+            "概览用view=overview一次返回名称/类目/现价全清单，不含规格/SKU；条件决策须查details或get_product。"
             "name_contains按NFKC、去空白、忽略大小写匹配名称子串；category精确，max_price筛现价。"
             "多个候选不猜选；has_more用next_arguments续查，未查完不可声称无匹配。"
             "SKU按sku_fields列读取。列式products按product_fields读取并合并product_defaults；"
@@ -652,6 +655,25 @@ class ToolRegistry:
                    and (not args.category or p["category"] == args.category)
                    and (args.max_price is None or p["current_price"] is not None
                         and p["current_price"] <= args.max_price)]
+        if args.view == "overview":
+            if args.after_product_id:
+                raise TypeError("overview不接受分页游标；请清空游标或使用details续查")
+            overview = [{k: p[k] for k in (
+                "product_id", "name", "category", "current_price", "currency",
+            )} for p in matched]
+            result = dict(contract=CATALOG_CONTRACT, view="overview", products=overview,
+                count=len(overview), total_count=len(matched), catalog_count=len(products),
+                has_more=False, complete_catalog=len(matched) == len(products),
+                query_complete=True, specifications_complete=False, next_arguments=None,
+                sort="product_id ASC", detail_tool="get_product",
+                scope="完整名称/类目/现价清单，不提供规格、SKU或售后依据。")
+            if len(json.dumps(result, ensure_ascii=False).encode()) > 16000:
+                return result | dict(products=[], count=0, has_more=True,
+                    complete_catalog=False, query_complete=False,
+                    error_type="overview_too_large",
+                    next_arguments=args.model_dump(exclude_defaults=True) | {"view": "details"},
+                    reason="概览超出预算，查询尚未完成；请筛选或逐页查询，未静默丢弃商品。")
+            return result
         remaining = [p for p in matched if p["product_id"] > args.after_product_id]
 
         def envelope(page):

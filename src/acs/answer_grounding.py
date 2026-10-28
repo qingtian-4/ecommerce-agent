@@ -29,6 +29,7 @@ class Evidence(BaseModel):
     known_orders: list[str] = Field(default_factory=list)
     known_products: list[str] = Field(default_factory=list)
     catalog_queries: list[dict] = Field(default_factory=list)
+    completed_reads: list[dict] = Field(default_factory=list)
 
 
 class Finding(BaseModel):
@@ -73,9 +74,16 @@ def collect_evidence(gateway, root, sid, uid, tid):
     # A preview created this turn is not a prior historical preview even if it
     # expires or becomes ineligible before presentation.
     with closing(gateway.store._connect()) as conn:
-        catalogs = catalog_progress([dict(r) for r in conn.execute(
+        receipts = [dict(r) for r in conn.execute(
             "SELECT name,arguments,result,error FROM local_receipts "
-            "WHERE session_id=? AND turn_id=? ORDER BY rowid", (sid, tid))])
+            "WHERE session_id=? AND turn_id=? ORDER BY rowid", (sid, tid))]
+        catalogs = catalog_progress(receipts)
+        reads = []
+        for r in receipts:
+            if r["error"] or r["name"] != "list_orders":
+                continue
+            value = json.loads(r["result"])
+            reads.append(dict(tool="list_orders", count=len(value["orders"])))
         generated = [
             json.loads(r[0])
             for r in conn.execute(
@@ -106,6 +114,7 @@ def collect_evidence(gateway, root, sid, uid, tid):
         known_orders=[o["order_id"] for o in gateway.registry.db.list_orders(uid)],
         known_products=[p["product_id"] for p in gateway.registry.db.list_products()],
         catalog_queries=catalogs,
+        completed_reads=reads,
     )
 
 
@@ -150,8 +159,12 @@ def _units(answer):
 def review_answer(answer, evidence):
     unfinished = [q for q in evidence.catalog_queries if not q["complete"]]
     if unfinished:
+        completed = "\n".join(f"订单查询已返回{r['count']}笔候选，详见订单卡片。"
+                              for r in evidence.completed_reads if r["tool"] == "list_orders")
+        if completed:
+            completed += "\n\n"
         counts = "；".join(f"已核验{q['seen_count']}/{q['total_count']}个候选" for q in unfinished)
-        return Review(text=f"目录查询尚未完成：{counts}。当前页面不能代表完整目录。"
+        return Review(text=completed + f"目录查询尚未完成：{counts}。当前页面不能代表完整目录。"
                       "请继续分页查询或缩小商品条件；不能据此声称已查全或没有其他匹配商品。",
                       findings=[Finding(predicate="catalog_query_incomplete", action="withheld")])
     findings = []

@@ -61,7 +61,7 @@ def decide(messages):
         if "政策" in text:
             return ("search_knowledge", {"query": text}), ""
         if "商品" in text or "店里" in text:
-            return ("list_products", {}), ""
+            return ("list_products", {"view": "overview"}), ""
         if "订单" in text or "物流" in text or "退货" in text:
             oid = re.search(r"O\d+", text)
             if "物流" in text and oid:
@@ -82,7 +82,7 @@ def decide(messages):
                 "有多个候选时，我不会自动确定退货对象。"
             )
         if "products" in result:
-            return None, "已查询实际合成商品目录，商品规格与价格见下方卡片。"
+            return None, "已查询商品名称、类别和现价，见下方卡片；具体规格需另查详情。"
         return None, "查询已返回，请查看实际回执；未创建任何正式申请。"
     return None, "当前为离线SDK交互验收，可以查询订单、商品或按卡片准备退货。"
 

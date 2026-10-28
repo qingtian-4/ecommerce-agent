@@ -1,0 +1,55 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_______ test_complete_overview_contains_every_identity_and_current_price _______
+
+registry = <acs.cs_tools.ToolRegistry object at 0x7bc0046ab230>
+
+    def test_complete_overview_contains_every_identity_and_current_price(registry):
+        result, _, error = registry.run("list_products", '{"view":"overview"}',
+                                        current_user_id="USER001")
+>       assert error is None
+E       assert "invalid_arguments: 1 validation error for CatalogArgs\nview\n  Extra inputs are not permitted [type=extra_forbidden, ...alue='overview', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden" is None
+
+tests/test_catalog_overview.py:22: AssertionError
+_ test_overview_filter_is_complete_and_does_not_relax_conditions[\u71c3\u6c14-2] _
+
+registry = <acs.cs_tools.ToolRegistry object at 0x7bbfd77c0410>, query = '燃气'
+expected = 2
+
+    @pytest.mark.parametrize("query,expected", [("燃气", 2), ("不存在的商品", 0)])
+    def test_overview_filter_is_complete_and_does_not_relax_conditions(registry, query, expected):
+        value, _, error = registry.run("list_products", json.dumps({
+            "view": "overview", "name_contains": query}), current_user_id="USER001")
+>       assert error is None and len(value["products"]) == expected
+E       assert ("invalid_arguments: 1 validation error for CatalogArgs\nview\n  Extra inputs are not permitted [type=extra_forbidden, ...alue='overview', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden" is None)
+
+tests/test_catalog_overview.py:38: AssertionError
+_ test_overview_filter_is_complete_and_does_not_relax_conditions[\u4e0d\u5b58\u5728\u7684\u5546\u54c1-0] _
+
+registry = <acs.cs_tools.ToolRegistry object at 0x7bc0047fb390>
+query = '不存在的商品', expected = 0
+
+    @pytest.mark.parametrize("query,expected", [("燃气", 2), ("不存在的商品", 0)])
+    def test_overview_filter_is_complete_and_does_not_relax_conditions(registry, query, expected):
+        value, _, error = registry.run("list_products", json.dumps({
+            "view": "overview", "name_contains": query}), current_user_id="USER001")
+>       assert error is None and len(value["products"]) == expected
+E       assert ("invalid_arguments: 1 validation error for CatalogArgs\nview\n  Extra inputs are not permitted [type=extra_forbidden, ...alue='overview', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden" is None)
+
+tests/test_catalog_overview.py:38: AssertionError
+____ test_partial_catalog_preserves_independent_authoritative_order_result _____
+
+    def test_partial_catalog_preserves_independent_authoritative_order_result():
+>       evidence = Evidence(catalog_queries=[dict(complete=False, seen_count=8, total_count=48)],
+                            completed_reads=[dict(tool="list_orders", count=30)])
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for Evidence
+E       completed_reads
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=[{'tool': 'list_orders', 'count': 30}], input_type=list]
+E           For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden
+
+tests/test_catalog_overview.py:44: ValidationError
+=========================== short test summary info ============================
+FAILED tests/test_catalog_overview.py::test_complete_overview_contains_every_identity_and_current_price
+FAILED tests/test_catalog_overview.py::test_overview_filter_is_complete_and_does_not_relax_conditions[\u71c3\u6c14-2]
+FAILED tests/test_catalog_overview.py::test_overview_filter_is_complete_and_does_not_relax_conditions[\u4e0d\u5b58\u5728\u7684\u5546\u54c1-0]
+FAILED tests/test_catalog_overview.py::test_partial_catalog_preserves_independent_authoritative_order_result
