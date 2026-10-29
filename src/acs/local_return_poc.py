@@ -26,6 +26,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langchain_core.tools import StructuredTool, ToolException
 from langgraph.checkpoint.sqlite import SqliteSaver
 
+from .context_compaction import compact_long_assistant_answers
 from .cs_tools import tool_model_content
 from .langgraph_poc import AuditEvent
 from .local_return_tools import (
@@ -145,6 +146,7 @@ class LocalReturnPoc:
                         content="当前应用核验事实：" + json.dumps(facts, ensure_ascii=False)
                     )
                 )
+                messages = compact_long_assistant_answers(messages)
                 route_hint = getattr(request.runtime.context, "route_hint", "")
                 if route_hint:
                     messages.append(SystemMessage(content=route_hint))
