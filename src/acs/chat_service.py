@@ -98,7 +98,10 @@ class ChatService:
             budget.remaining()
             agent = agent() if callable(agent) else agent
             agent = agent or CustomerServiceAgent(
-                settings=self.settings, current_user_id=user_id, goal_check=True
+                settings=self.settings,
+                current_user_id=user_id,
+                goal_check=True,
+                intent_routing=True,
             )
             agent.set_user(user_id)
             agent.registry.bind_return_task(self.store, sid, tid)

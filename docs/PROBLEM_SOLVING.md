@@ -1590,3 +1590,35 @@ SX02原决策仍失败，未放宽判据。未来更长历史仍可能超限，�
 一次补答后两目标都在、重试用尽明确未完成；另跑 `test_agent_loop`、`test_chat_service`、
 `test_shop_mainline` 及两个此前受影响的 benchmark 回归。限制：中文关键词规则，不是
 通用 NLU；未知措辞不触发，仍由模型和答案核验处理。
+
+## 2026-10-29 — 规则意图路由（与多意图完成检查分开）
+
+“多意图识别”回答的是“这一轮有几个目标”；“意图路由”回答的是“每个目标属于哪类、
+应该给模型哪些工具”。两者不是同一个功能。GoalLedger 只覆盖订单、商品概览、政策/期限
+三类，且只做完成检查；本轮新增 `src/acs/intent_router.py`，做显式线索路由。
+
+当前路由类别（规则词表，不调用额外模型）：
+
+| 类别 | 典型说法 | 工具白名单 |
+|---|---|---|
+| 订单查询 | 我的订单、买了什么、订单号 | list_orders、get_order、get_logistics、get_return_requests |
+| 物流查询 | 物流、快递、到哪、签收 | get_logistics、get_order |
+| 商品咨询 | 商品、产品、型号、规格、降噪、续航、价格、对比 | list_products、get_product、get_price_history、search_knowledge |
+| 退换货政策 | 退货政策、保修期限、能退吗、怎么退 | search_knowledge、get_order、get_product、get_return_task |
+| 退换货办理 | 申请退货、帮我退、退款、换货、修改草稿 | 退货读取/草稿/预览工具 + 订单/商品/政策 |
+| 价保 | 价保、差价、降价 | get_order、get_price_history、search_knowledge |
+| 寒暄 | 你好、谢谢、再见 | 无工具，直接回答 |
+| 未识别 | 其他 | 保留全部工具，不限制 |
+
+多意图取并集，例如“订单 + 商品咨询”两族工具都开放；“订单 + 退货政策”只开放读取和
+检索，不开放 preview/update。路由命中时给模型一条短 system 提示（优先用这些工具、
+不要调用未列出的工具），并过滤模型可见的 tool schema；未识别时保持原行为。
+
+接入范围：`CustomerServiceAgent(intent_routing=True)`，只在 `ChatService` 产品路径启用；
+固定决策 benchmark/旧 Loop 评测默认关闭，避免改变冻结 contracts。V3 原生 Graph 仍是
+模型自主选工具，尚未接入本路由，不能声称“全运行时已覆盖”。
+
+验证：`tests/test_intent_router.py` 10 项，覆盖订单+商品、订单+政策不开放写、显式退货
+办理、商品咨询+退换货政策、物流、价保、寒暄、未知、以及 agent 侧 tool schema 过滤；
+`tests/test_goal_ledger.py` 8 项；ChatService 相关 293 项回归通过。限制：中文词表，
+未命中的自然语言不限制；不是意图分类模型，也不是通用 NLU。

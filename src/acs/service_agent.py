@@ -36,6 +36,7 @@ from .context import ContextLimitExceeded, input_chars, model_context
 from .cs_tools import ToolRegistry, TraceEvent, tool_model_content
 from .database import business_today
 from .goal_ledger import GoalLedger
+from .intent_router import IntentRouter
 from .knowledge_context import load_source_documents
 from .llm import LLMClient
 from .runtime import BudgetExceeded, RunBudget
@@ -200,6 +201,7 @@ class CustomerServiceAgent:
         current_user_id: str = "USER001",
         max_steps: int | None = None,
         goal_check: bool = False,
+        intent_routing: bool = False,
     ) -> None:
         self.settings = settings or get_settings()
         self.llm = llm or LLMClient(settings=self.settings)
@@ -207,6 +209,7 @@ class CustomerServiceAgent:
         self.current_user_id = current_user_id
         self.max_steps = max_steps or self.settings.max_steps
         self.goal_check = goal_check
+        self.intent_routing = intent_routing
         self.messages: list[dict[str, Any]] = [
             {"role": "system", "content": build_system_prompt(self.settings)}
         ]
@@ -251,12 +254,34 @@ class CustomerServiceAgent:
         started = perf_counter()
         self.llm.reset_usage()
         current_start = len(self.messages)
+        routing = IntentRouter().route(user_message) if self.intent_routing else None
+        route_hint = routing.hint if routing else ""
         self.messages.append({"role": "user", "content": user_message})
         goals = GoalLedger(user_message) if self.goal_check else None
         partial_answers: list[str] = []
 
         result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
         schemas = self.registry.schemas()
+        if routing and routing.tools is not None:
+            schemas = [
+                schema
+                for schema in schemas
+                if schema.get("function", {}).get("name") in routing.tools
+            ]
+        if routing:
+            result.trace.append(
+                TraceEvent(
+                    type="intent_route",
+                    label="+".join(routing.names) or "unknown",
+                    detail={
+                        "routes": routing.names,
+                        "labels": routing.labels,
+                        "tools": sorted(routing.tools)
+                        if routing.tools is not None
+                        else "all",
+                    },
+                )
+            )
         retrievals = 0
 
         for step in range(1, self.max_steps + 1):
@@ -268,6 +293,12 @@ class CustomerServiceAgent:
                 model_messages = model_context(
                     self.messages, current_start, schemas, self.settings.context_max_chars,
                 )
+                if route_hint:
+                    model_messages = (
+                        model_messages[:1]
+                        + [{"role": "system", "content": route_hint}]
+                        + model_messages[1:]
+                    )
                 result.totals["model_input_chars"].append(input_chars(model_messages, schemas))
                 if stream_text:
                     response = None
