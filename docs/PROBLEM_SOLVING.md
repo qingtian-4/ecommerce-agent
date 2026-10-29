@@ -1614,11 +1614,16 @@ SX02原决策仍失败，未放宽判据。未来更长历史仍可能超限，�
 检索，不开放 preview/update。路由命中时给模型一条短 system 提示（优先用这些工具、
 不要调用未列出的工具），并过滤模型可见的 tool schema；未识别时保持原行为。
 
-接入范围：`CustomerServiceAgent(intent_routing=True)`，只在 `ChatService` 产品路径启用；
-固定决策 benchmark/旧 Loop 评测默认关闭，避免改变冻结 contracts。V3 原生 Graph 仍是
-模型自主选工具，尚未接入本路由，不能声称“全运行时已覆盖”。
+接入范围：`CustomerServiceAgent(intent_routing=True)` 在 `ChatService` 产品路径启用高
+约束版本（过滤模型可见 tool schema）；V3 网页路径已接**提示级**路由，route hint 注入
+模型请求，但工具仍全部可见，硬过滤尚未下沉到 V3，不能声称 V3 也已硬隔离。
+固定决策 benchmark/旧 Loop 评测默认关闭，避免改变冻结 contracts。
 
-验证：`tests/test_intent_router.py` 10 项，覆盖订单+商品、订单+政策不开放写、显式退货
-办理、商品咨询+退换货政策、物流、价保、寒暄、未知、以及 agent 侧 tool schema 过滤；
-`tests/test_goal_ledger.py` 8 项；ChatService 相关 293 项回归通过。限制：中文词表，
+验证：`tests/test_intent_router.py` 11 项，覆盖订单+商品、订单+政策不开放写、显式退货
+办理、商品咨询+退换货政策、物流、价保、寒暄、未知、裸退货/退款政策区分，以及 agent
+侧 tool schema 过滤；`tests/test_goal_ledger.py` 8 项；ChatService 相关 293 项回归通过。
+
+冻结回归集 `data/eval/intent_routing_v1` 24 条（作者编写，已见）路由标签完全匹配
+24/24，11 条多意图全部匹配；无模型调用。这只是规则表回归一致性，不是未见测试或
+“意图识别准确率”；要外推需独立标注 100–200 条查询并区分开发/验证。限制：中文词表，
 未命中的自然语言不限制；不是意图分类模型，也不是通用 NLU。

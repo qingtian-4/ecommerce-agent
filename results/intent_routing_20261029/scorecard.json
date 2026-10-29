@@ -1,0 +1,539 @@
+{
+  "cases": 24,
+  "exact_match": 24,
+  "accuracy": 1.0,
+  "multi_intent_cases": 11,
+  "multi_intent_exact": 11,
+  "per_route": {
+    "chitchat": {
+      "support": 2,
+      "predicted": 2,
+      "tp": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "logistics": {
+      "support": 4,
+      "predicted": 4,
+      "tp": 4,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "orders": {
+      "support": 9,
+      "predicted": 9,
+      "tp": 9,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "policy": {
+      "support": 6,
+      "predicted": 6,
+      "tp": 6,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "price": {
+      "support": 2,
+      "predicted": 2,
+      "tp": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "product": {
+      "support": 7,
+      "predicted": 7,
+      "tp": 7,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "return": {
+      "support": 4,
+      "predicted": 4,
+      "tp": 4,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "rows": [
+    {
+      "id": "R01",
+      "query": "我目前都有哪些订单，然后我们这个店都有哪些产品",
+      "expected": [
+        "orders",
+        "product"
+      ],
+      "predicted": [
+        "orders",
+        "product"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_logistics",
+        "get_order",
+        "get_price_history",
+        "get_product",
+        "get_return_requests",
+        "list_orders",
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R02",
+      "query": "查我的订单和退货政策",
+      "expected": [
+        "orders",
+        "policy"
+      ],
+      "predicted": [
+        "orders",
+        "policy"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_logistics",
+        "get_order",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "list_orders",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R03",
+      "query": "帮我退货，订单 O72001",
+      "expected": [
+        "orders",
+        "return"
+      ],
+      "predicted": [
+        "orders",
+        "return"
+      ],
+      "exact": true,
+      "tools": [
+        "cancel_return_task",
+        "get_knowledge_documents",
+        "get_logistics",
+        "get_order",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "list_orders",
+        "preview_return",
+        "search_knowledge",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "R04",
+      "query": "这款耳机降噪怎么样，能退吗",
+      "expected": [
+        "policy",
+        "product"
+      ],
+      "predicted": [
+        "policy",
+        "product"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_order",
+        "get_price_history",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R05",
+      "query": "我的快递到哪了，签收了吗",
+      "expected": [
+        "logistics"
+      ],
+      "predicted": [
+        "logistics"
+      ],
+      "exact": true,
+      "tools": [
+        "get_logistics",
+        "get_order"
+      ]
+    },
+    {
+      "id": "R06",
+      "query": "这个订单能价保吗，有没有差价",
+      "expected": [
+        "orders",
+        "price"
+      ],
+      "predicted": [
+        "orders",
+        "price"
+      ],
+      "exact": true,
+      "tools": [
+        "get_logistics",
+        "get_order",
+        "get_price_history",
+        "get_return_requests",
+        "list_orders",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R07",
+      "query": "你好",
+      "expected": [
+        "chitchat"
+      ],
+      "predicted": [
+        "chitchat"
+      ],
+      "exact": true,
+      "tools": []
+    },
+    {
+      "id": "R08",
+      "query": "今天天气怎么样",
+      "expected": [],
+      "predicted": [],
+      "exact": true,
+      "tools": "all"
+    },
+    {
+      "id": "R09",
+      "query": "店铺有哪些商品",
+      "expected": [
+        "product"
+      ],
+      "predicted": [
+        "product"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_price_history",
+        "get_product",
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R10",
+      "query": "查订单状态",
+      "expected": [
+        "orders"
+      ],
+      "predicted": [
+        "orders"
+      ],
+      "exact": true,
+      "tools": [
+        "get_logistics",
+        "get_order",
+        "get_return_requests",
+        "list_orders"
+      ]
+    },
+    {
+      "id": "R11",
+      "query": "退款政策是什么",
+      "expected": [
+        "policy"
+      ],
+      "predicted": [
+        "policy"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_order",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R12",
+      "query": "我要退款",
+      "expected": [
+        "return"
+      ],
+      "predicted": [
+        "return"
+      ],
+      "exact": true,
+      "tools": [
+        "cancel_return_task",
+        "get_knowledge_documents",
+        "get_order",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "preview_return",
+        "search_knowledge",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "R13",
+      "query": "查物流和商品价格",
+      "expected": [
+        "logistics",
+        "product"
+      ],
+      "predicted": [
+        "logistics",
+        "product"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_logistics",
+        "get_order",
+        "get_price_history",
+        "get_product",
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R14",
+      "query": "列出全部商品和我的订单",
+      "expected": [
+        "orders",
+        "product"
+      ],
+      "predicted": [
+        "orders",
+        "product"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_logistics",
+        "get_order",
+        "get_price_history",
+        "get_product",
+        "get_return_requests",
+        "list_orders",
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R15",
+      "query": "保修期限多久",
+      "expected": [
+        "policy"
+      ],
+      "predicted": [
+        "policy"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_order",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R16",
+      "query": "推荐一款降噪耳机",
+      "expected": [
+        "product"
+      ],
+      "predicted": [
+        "product"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_price_history",
+        "get_product",
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R17",
+      "query": "订单 O72005 的物流和签收",
+      "expected": [
+        "logistics",
+        "orders"
+      ],
+      "predicted": [
+        "logistics",
+        "orders"
+      ],
+      "exact": true,
+      "tools": [
+        "get_logistics",
+        "get_order",
+        "get_return_requests",
+        "list_orders"
+      ]
+    },
+    {
+      "id": "R18",
+      "query": "帮我退货并查退款政策",
+      "expected": [
+        "policy",
+        "return"
+      ],
+      "predicted": [
+        "policy",
+        "return"
+      ],
+      "exact": true,
+      "tools": [
+        "cancel_return_task",
+        "get_knowledge_documents",
+        "get_order",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "preview_return",
+        "search_knowledge",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "R19",
+      "query": "价保和差价",
+      "expected": [
+        "price"
+      ],
+      "predicted": [
+        "price"
+      ],
+      "exact": true,
+      "tools": [
+        "get_order",
+        "get_price_history",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R20",
+      "query": "你好，谢谢",
+      "expected": [
+        "chitchat"
+      ],
+      "predicted": [
+        "chitchat"
+      ],
+      "exact": true,
+      "tools": []
+    },
+    {
+      "id": "R21",
+      "query": "我的订单和物流",
+      "expected": [
+        "logistics",
+        "orders"
+      ],
+      "predicted": [
+        "logistics",
+        "orders"
+      ],
+      "exact": true,
+      "tools": [
+        "get_logistics",
+        "get_order",
+        "get_return_requests",
+        "list_orders"
+      ]
+    },
+    {
+      "id": "R22",
+      "query": "换货政策",
+      "expected": [
+        "policy"
+      ],
+      "predicted": [
+        "policy"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_order",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "R23",
+      "query": "我要换货",
+      "expected": [
+        "return"
+      ],
+      "predicted": [
+        "return"
+      ],
+      "exact": true,
+      "tools": [
+        "cancel_return_task",
+        "get_knowledge_documents",
+        "get_order",
+        "get_product",
+        "get_return_requests",
+        "get_return_task",
+        "preview_return",
+        "search_knowledge",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "R24",
+      "query": "查一下订单 O72001 和商品 B102 的规格",
+      "expected": [
+        "orders",
+        "product"
+      ],
+      "predicted": [
+        "orders",
+        "product"
+      ],
+      "exact": true,
+      "tools": [
+        "get_knowledge_documents",
+        "get_logistics",
+        "get_order",
+        "get_price_history",
+        "get_product",
+        "get_return_requests",
+        "list_orders",
+        "list_products",
+        "search_knowledge"
+      ]
+    }
+  ],
+  "kind": "intent_routing_regression",
+  "dataset": "data/eval/intent_routing_v1/cases.json",
+  "dataset_sha256": "a7aa666e3ea3132805fa9222cf8c7d4f07ce10c13e69f9ebd3cd35b45b467290",
+  "source_sha": "6f31ac4627aa0867e330331a4befe1fba025e8db",
+  "paid_requests": 0,
+  "note": "Authored frozen regression set, not unseen data. Measures route labels only; does not measure model tool choice or answer quality."
+}

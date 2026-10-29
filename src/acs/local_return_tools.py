@@ -73,6 +73,7 @@ class TurnContext:
     session_id: str
     user_id: str
     turn_id: str
+    route_hint: str = ""
 
 
 class BoundStore(SessionStore):

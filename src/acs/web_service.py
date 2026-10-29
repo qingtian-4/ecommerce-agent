@@ -429,7 +429,8 @@ class WebEngine:
             with (
                 factory() as model,
                 FormalReturnPoc(self.root, UID, model=model, fault=self.fault,
-                                stream_callback=stream, read_only=read_only) as poc,
+                                stream_callback=stream, read_only=read_only,
+                                intent_routing=True) as poc,
             ):
                 if kind in {"message", "resume"}:
                     self.emit(sid, jid, "turn_started", status="running")

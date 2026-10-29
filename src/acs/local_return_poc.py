@@ -66,7 +66,7 @@ class LocalReturnPoc:
     preview_description = "核查当前草稿、政策与数量并生成隔离预览；没有提交、审核或退款入口。"
 
     def __init__(self, root, user_id, *, model, registry=None, fault=None, stream_callback=None,
-                 read_only=False):
+                 read_only=False, intent_routing=False):
         self.settings = fixture_settings(root, kind=self.fixture_kind)
         self.root = root.resolve()
         self.user_id, self.model = user_id, model
@@ -76,6 +76,7 @@ class LocalReturnPoc:
         self.run_lock = Lock()
         self.stream_callback = stream_callback
         self.read_only = read_only  # Fresh application restriction, never checkpoint authority.
+        self.intent_routing = intent_routing
 
     def __enter__(self):
         self.stack = ExitStack()
@@ -144,6 +145,9 @@ class LocalReturnPoc:
                         content="当前应用核验事实：" + json.dumps(facts, ensure_ascii=False)
                     )
                 )
+                route_hint = getattr(request.runtime.context, "route_hint", "")
+                if route_hint:
+                    messages.append(SystemMessage(content=route_hint))
                 from .return_rules import consultation_policy
 
                 if (consultation_policy(self.settings) and getattr(self.model, "_llm_type", "")
@@ -375,6 +379,7 @@ class LocalReturnPoc:
                         "Completed business Turn has inconsistent Graph image"
                     )
                 self._reconcile(sid, binding, state)
+        route_hint = ""
         if text is not None:
             if not text.strip():
                 raise ValueError("Empty message")
@@ -388,6 +393,10 @@ class LocalReturnPoc:
                     (tid, offset, sid),
                 )
             binding.update(turn_id=tid, offset=offset)
+            if self.intent_routing:
+                from .intent_router import IntentRouter
+
+                route_hint = IntentRouter().route(text).hint
             inputs = {"messages": [HumanMessage(content=text)], "turn_id": tid}
         else:
             tid = binding["turn_id"]
@@ -422,7 +431,7 @@ class LocalReturnPoc:
                     ).fetchone():
                         raise ReconciliationError("Graph image missing for committed receipts")
                 inputs = {"messages": [HumanMessage(content=row["user_text"])], "turn_id": tid}
-        context = TurnContext(sid, self.user_id, tid)
+        context = TurnContext(sid, self.user_id, tid, route_hint=route_hint)
         yield self._event(sid, tid, "started", {"resume": text is None})
         try:
             for mode, data in self.graph.stream(
