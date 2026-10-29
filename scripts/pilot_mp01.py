@@ -204,7 +204,15 @@ def main() -> None:
                 price_review=args.price_review,
             ) as model,
         ):
-            result = m8.run_task(task(), [], trial, arm, model=model, ledger=ledger, limits=limits)
+            result = m8.run_task(
+                task(),
+                [],
+                trial / "fixture",
+                arm,
+                model=model,
+                ledger=ledger,
+                limits=limits,
+            )
         row = summarize(result, arm)
         summary.append(row)
         print(json.dumps(row, ensure_ascii=False, indent=2), flush=True)

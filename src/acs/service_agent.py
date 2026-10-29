@@ -35,6 +35,7 @@ from .config import Settings, get_settings
 from .context import ContextLimitExceeded, input_chars, model_context
 from .cs_tools import ToolRegistry, TraceEvent, tool_model_content
 from .database import business_today
+from .goal_ledger import GoalLedger
 from .knowledge_context import load_source_documents
 from .llm import LLMClient
 from .runtime import BudgetExceeded, RunBudget
@@ -198,12 +199,14 @@ class CustomerServiceAgent:
         registry: ToolRegistry | None = None,
         current_user_id: str = "USER001",
         max_steps: int | None = None,
+        goal_check: bool = False,
     ) -> None:
         self.settings = settings or get_settings()
         self.llm = llm or LLMClient(settings=self.settings)
         self.registry = registry or ToolRegistry(self.settings, llm=self.llm)
         self.current_user_id = current_user_id
         self.max_steps = max_steps or self.settings.max_steps
+        self.goal_check = goal_check
         self.messages: list[dict[str, Any]] = [
             {"role": "system", "content": build_system_prompt(self.settings)}
         ]
@@ -249,6 +252,8 @@ class CustomerServiceAgent:
         self.llm.reset_usage()
         current_start = len(self.messages)
         self.messages.append({"role": "user", "content": user_message})
+        goals = GoalLedger(user_message) if self.goal_check else None
+        partial_answers: list[str] = []
 
         result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
         schemas = self.registry.schemas()
@@ -312,10 +317,40 @@ class CustomerServiceAgent:
 
             # --- no tool calls: this is the final answer ------------------ #
             if not response.wants_tools:
-                result.answer = (
-                    response.text.strip()
-                    or "抱歉，我没能组织出回答，请再描述一下您的问题。"
+                answer = response.text.strip() or (
+                    "抱歉，我没能组织出回答，请再描述一下您的问题。"
                 )
+                missing = goals.missing() if goals else []
+                if goals and goals.active and missing and goals.can_retry():
+                    goals.retries += 1
+                    result.trace.append(TraceEvent(
+                        type="goal_check", label="missing_goals",
+                        detail={"missing": missing, "retry": goals.retries,
+                                "max_retries": goals.max_retries},
+                    ))
+                    if answer:
+                        self.messages.append({"role": "assistant", "content": answer})
+                        partial_answers.append(answer)
+                    self.messages.append(
+                        {"role": "system", "content": goals.retry_prompt(missing)}
+                    )
+                    result.answer = ""
+                    continue
+                result.answer = answer
+                for part in dict.fromkeys(partial_answers):
+                    if part and part not in result.answer:
+                        result.answer = part + "\n\n" + result.answer
+                if goals and goals.active and missing:
+                    result.trace.append(TraceEvent(
+                        type="goal_check", label="missing_goals_exhausted",
+                        detail={"missing": missing},
+                    ))
+                    result.errors.append("missing_goals:" + ",".join(missing))
+                    result.answer += (
+                        "\n\n（本轮还缺少："
+                        + "、".join(goals.labels(missing))
+                        + "；为避免把未完成写成已完成，未并入结论。）"
+                    )
                 result.trace.append(
                     TraceEvent(type="final", label="answer", detail={"text": result.answer})
                 )
@@ -366,6 +401,8 @@ class CustomerServiceAgent:
                     events = [result.trace[-1], TraceEvent(type="error", label=call.name,
                                                           detail=payload)]
                     error = limit_reason
+                if goals:
+                    goals.record(call.name, payload, error)
                 # The registry's first event is the call already published above.
                 result.trace.extend(events[1:])
                 if error:

@@ -1550,3 +1550,43 @@ SX02原决策仍失败，未放宽判据。未来更长历史仍可能超限，�
 语言仍待独立复核，old/SX02有“多2升/分钟”的无依据换算反例，两臂本次没有再推算
 具体截止日期。原文和原成绩保留，不把证据完整当作语言通过，不归因为LangGraph优越。
 见[最终对照](../results/shop_failure_live_20261029_run2/REPORT.md)。
+
+## 2026-10-29 — MP01 混合请求的真实模型探针
+
+10/28 的用户真实会话在取得 30 笔订单和目录第一页 8 件商品后停止，原答写明“已展示前
+8 件”。当时可用的目录工具是分页 details，模型按页读取后提前结束；这不是数据库缺少
+剩余商品。之后加入 `list_products(view="overview")` 和“逐项处理”提示，但没有用真实
+模型复测这条查询。
+
+本轮用 v1.3 数据、`deepseek-flash`、temperature 0，在同一段内只问一次：
+“我目前都有哪些订单，然后我们这个店都有哪些产品”。两臂各 2 次 HTTP，工具均为
+`list_orders` + `list_products(view="overview")`，返回 38 笔订单和 64 件商品，
+`complete_catalog=true`；两臂回答都同时给出订单数和商品数，未触发 32KB 停止。
+合计 4 次请求，按时段价目估算 0.04730840 元。
+
+这不是成功率：每臂一次、问题已见、没有 Gold 参考答案（自动状态为 `unresolved`），
+也没有独立人工盲审。它只说明当前 v1.3 合同下这条已见请求可以由真实模型一次完成两个
+子目标；更长的历史、更多商品或其他措辞仍需单独验证。原始请求和回答保存在
+`results/mp01_live_20261029_baseline/.private-evidence/`，公开摘要见
+`results/mp01_live_20261029_baseline/REPORT.md`。
+
+## 2026-10-29 — 显式多目标完成检查（GoalLedger）
+
+观察到失败模式：用户在一轮里同时问“我的订单”和“店铺有哪些产品”时，模型可能只回答
+第一个子目标就结束。评测侧的 `intent_gold` 只能事后判漏答，运行时没有“还缺一个目标”
+的继续条件。仅靠加强提示不能保证模型不会提前结束。
+
+新增 `src/acs/goal_ledger.py`：只识别四类可验证目标（订单、商品概览、政策/期限），
+从工具回执判断完成状态；商品概览必须 `complete_catalog=true`，不能用分页第一页冒充。
+模型准备结束时若仍缺目标，注入一条 system 继续指令，最多补 2 步；补答的部分与先前
+已答部分合并，重试用尽则明确写“还缺少……”，并在 `AgentResult.errors` 记
+`missing_goals:*`，不把未完成写成已完成。
+
+接入范围：`CustomerServiceAgent(goal_check=True)` 只在 `ChatService` 产品路径启用；
+固定决策的 benchmark/旧 Loop 评测默认关闭，避免改变已冻结的 contracts 和模型请求
+数量。V3 原生 Graph 路径尚未接入，不能把本提交说成“全运行时都已覆盖”。
+
+验证：`tests/test_goal_ledger.py` 覆盖混合意图识别、单目标不触发、第一页不算完整、
+一次补答后两目标都在、重试用尽明确未完成；另跑 `test_agent_loop`、`test_chat_service`、
+`test_shop_mainline` 及两个此前受影响的 benchmark 回归。限制：中文关键词规则，不是
+通用 NLU；未知措辞不触发，仍由模型和答案核验处理。

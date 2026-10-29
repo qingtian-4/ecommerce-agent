@@ -97,7 +97,9 @@ class ChatService:
                     yield update("queued")
             budget.remaining()
             agent = agent() if callable(agent) else agent
-            agent = agent or CustomerServiceAgent(settings=self.settings, current_user_id=user_id)
+            agent = agent or CustomerServiceAgent(
+                settings=self.settings, current_user_id=user_id, goal_check=True
+            )
             agent.set_user(user_id)
             agent.registry.bind_return_task(self.store, sid, tid)
             required = [{"role": "system", "content": build_system_prompt(self.settings)}]
