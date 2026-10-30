@@ -1713,3 +1713,21 @@ tool schema；规则 router 保留为实验/回归基线；V3 仍是提示级。
 限制：验证集是作者编写合成语义集，不是真实客服日志；exact 86.7% 不是线上准确率；
 V3 网页默认保留旧提示级规则 route，设置 ACS_V3_PLANNER=1 后启用 planner；
 没有声称生产端到端成功率。相关 106 项单测/应用测试通过。
+
+## 2026-10-30 — 记忆机制 MVP
+
+问题：会话状态/Graph Checkpoint 只能恢复同一会话，跨会话没有用户偏好、历史任务和
+会话摘要；把所有聊天记录塞进上下文会污染上下文且无法删除。
+
+方案：migration 6 新增 `memory_facts`、`memory_summaries`、`memory_episodes`，全部按
+`user_id` 隔离；只从显式偏好/画像语句抽取事实，带 source session/turn、confidence、
+TTL 和软删除；明显 PII 跳过；终态 turn 写摘要/情节；`MemoryStore.context()` 以
+“[用户记忆，仅作参考…]”注入，当前工具/数据库事实优先。ChatService 默认关闭，app 显式
+启用。
+
+评测：`data/eval/memory_v1/cases.json` 12 条确定性场景（偏好/否定/画像/预算/颜色/
+退货偏好/PII/过期/跨用户/情节），expected hit 11/11、forbidden hit 0、抽取失败 0、
+模型调用 0、LLM judge 0，费用 0。逐条结果在 results/memory_eval_20261030。
+
+限制：规则抽取只覆盖显式表达；摘要是确定性拼接；情节只按时间取最近几条；没有向量
+检索/冲突消解；V3 尚未接入；评测是作者编写的合成集，不是真实日志。

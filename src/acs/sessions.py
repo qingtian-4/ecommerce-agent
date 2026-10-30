@@ -73,7 +73,7 @@ class SessionStore:
             conn.execute("CREATE TABLE IF NOT EXISTS acs_migrations "
                          "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
             version = conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] or 0
-            if version > 5:
+            if version > 6:
                 raise RuntimeError("数据库迁移版本比当前程序新，不能自动降级")
             conn.execute("CREATE TABLE IF NOT EXISTS conversations ("
                          "session_id TEXT PRIMARY KEY,"
@@ -156,6 +156,40 @@ class SessionStore:
                          "item_id INTEGER PRIMARY KEY REFERENCES order_items(id),"
                          "sku_id TEXT NOT NULL REFERENCES product_skus(sku_id))")
             conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(5, ?)", (_now(),))
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS memory_facts ("
+                "fact_id TEXT PRIMARY KEY,"
+                "user_id TEXT NOT NULL REFERENCES users(user_id),"
+                "kind TEXT NOT NULL CHECK(kind IN ('preference','profile','fact')),"
+                "text TEXT NOT NULL CHECK(length(trim(text))>0),"
+                "source_session_id TEXT, source_turn_id TEXT,"
+                "confidence REAL NOT NULL DEFAULT 1.0,"
+                "created_at TEXT NOT NULL, updated_at TEXT NOT NULL,"
+                "expires_at TEXT, deleted_at TEXT,"
+                "UNIQUE(user_id, kind, text))"
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS memory_facts_user "
+                         "ON memory_facts(user_id, deleted_at, updated_at)")
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS memory_summaries ("
+                "session_id TEXT PRIMARY KEY REFERENCES conversations(session_id),"
+                "user_id TEXT NOT NULL REFERENCES users(user_id),"
+                "summary TEXT NOT NULL, through_turn_id TEXT, updated_at TEXT NOT NULL)"
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS memory_summaries_user "
+                         "ON memory_summaries(user_id, updated_at)")
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS memory_episodes ("
+                "episode_id TEXT PRIMARY KEY,"
+                "user_id TEXT NOT NULL REFERENCES users(user_id),"
+                "session_id TEXT NOT NULL REFERENCES conversations(session_id),"
+                "turn_id TEXT, summary TEXT NOT NULL,"
+                "outcome_json TEXT NOT NULL DEFAULT '{}',"
+                "created_at TEXT NOT NULL, expires_at TEXT)"
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS memory_episodes_user "
+                         "ON memory_episodes(user_id, created_at)")
+            conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(6, ?)", (_now(),))
 
     @staticmethod
     def _require_owner(conn, sid: str, user_id: str) -> sqlite3.Row:

@@ -1,0 +1,19 @@
+{
+  "version": "memory-eval-v1",
+  "frozen_at": "2026-10-30",
+  "note": "Deterministic memory recall/isolation cases; no LLM judge and no model calls.",
+  "cases": [
+    {"id": "M01", "kind": "fact", "user_text": "记住我偏好入耳式耳机，预算500以内", "query": "推荐一款耳机", "expected": ["入耳式", "500"], "forbidden": []},
+    {"id": "M02", "kind": "fact", "user_text": "请记住以后推荐开放式挂耳", "query": "推荐耳机", "expected": ["开放式"], "forbidden": []},
+    {"id": "M03", "kind": "fact", "user_text": "我习惯用黑色", "query": "给我推荐一个", "expected": ["黑色"], "forbidden": []},
+    {"id": "M04", "kind": "fact", "user_text": "我叫小明", "query": "你好", "expected": ["小明"], "forbidden": []},
+    {"id": "M05", "kind": "fact", "user_text": "记住我的退货偏好是先存草稿", "query": "我要退货", "expected": ["先存草稿"], "forbidden": []},
+    {"id": "M06", "kind": "fact", "user_text": "以后都按预算300推荐", "query": "推荐耳机", "expected": ["300"], "forbidden": []},
+    {"id": "M07", "kind": "pii", "user_text": "记住我的手机号是13800138000", "query": "推荐耳机", "expected": [], "forbidden": ["13800138000"]},
+    {"id": "M08", "kind": "fact", "user_text": "记住我不喜欢入耳式", "query": "推荐耳机", "expected": ["不喜欢"], "forbidden": []},
+    {"id": "M09", "kind": "fact", "user_text": "记住我偏好白色，预算800", "query": "推荐耳机", "expected": ["白色", "800"], "forbidden": []},
+    {"id": "M10", "kind": "expired", "user_text": "记住我偏好过期款", "query": "推荐耳机", "expected": [], "forbidden": ["过期款"]},
+    {"id": "M11", "kind": "cross_user", "user_text": "这是USER002的秘密", "query": "推荐耳机", "expected": [], "forbidden": ["USER002的秘密"]},
+    {"id": "M12", "kind": "episode", "user_text": "查询订单O10024的状态", "query": "之前那笔订单怎么样了", "expected": ["查询订单状态"], "forbidden": []}
+  ]
+}
