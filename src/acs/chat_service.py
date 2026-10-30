@@ -43,10 +43,11 @@ class TurnUpdate:
 
 class ChatService:
     def __init__(self, settings: Settings, store: SessionStore | None = None, *,
-                 limiter: BoundedSemaphore | None = None):
+                 limiter: BoundedSemaphore | None = None, intent_planning: bool = False):
         self.settings = settings
         self.store = store or SessionStore(settings.db_path)
         self.limiter = limiter if limiter is not None else _ACTIVE_TURNS
+        self.intent_planning = intent_planning
 
     def run_turn(self, message: str, user_id: str, session_id: str | None = None, *,
                  agent: CustomerServiceAgent | Callable[[], CustomerServiceAgent] | None = None,
@@ -101,8 +102,7 @@ class ChatService:
                 settings=self.settings,
                 current_user_id=user_id,
                 goal_check=True,
-                intent_routing=True,
-                strict_routing=False,
+                intent_planning=self.intent_planning,
             )
             agent.set_user(user_id)
             agent.registry.bind_return_task(self.store, sid, tid)

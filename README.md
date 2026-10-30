@@ -17,7 +17,7 @@ Gradio、SQLite 和 RAG，将订单查询、退货草稿、明确确认、申请
   逐次 usage 和可观察 Trace；ChatService 统一服务页面与评测，同一会话串行、最多两个活动轮次。
 - **RAG 与工具**：BM25、Dense、RRF、可选 API 重排和证据核验；小知识库支持全文及整篇文档
   对照。订单、SKU、数量和物流来自 SQLite，政策与规格来自版本化知识文档。
-- **意图路由**：6 类规则路由（订单、物流、商品咨询、退换货政策、退换货办理、价保），命中后给模型工具白名单和短提示；多意图取并集，未识别保留全部工具。当前 ChatService 使用软提示（不按规则硬过滤 tool schema），V3 网页路径也是提示级；硬过滤只保留在 direct agent/实验路径。held-out 170 条规则路由仅 21.8% exact、62.4% coverage，不能作为产品硬路由。
+- **意图规划**：版本化 Intent Registry + BM25 边界示例检索 + 一次 JSON 多目标规划；所有工具始终可见，route 只做优先级提示，低置信度/歧义走澄清。ChatService/app 已切到 planner，旧的规则硬过滤已删除；170 条覆盖集 99.4% coverage、96.3% 多意图 coverage，30 条最终验收集 100% coverage、86.7% exact、100% 多意图 coverage、未澄清 return 误触发 0。V3 网页默认保留旧提示级 route，设置 ACS_V3_PLANNER=1 后启用 planner。
 - **状态化售后**：SQLite 持久会话、带来源的草稿及修订、更正与恢复；预览后由页面明确确认
   创建待审申请，管理员独立认证审核，用户只查询本人记录。事务、幂等和剩余数量约束在服务端。
 - **有限可靠性保护**：补存遗漏的订单草稿、绑定订单商品事实、执行明确历史颜色限制、区分
@@ -121,6 +121,8 @@ v2 演示使用 `get_knowledge_documents` 选择整篇版本化文档，无需 E
 1326项Pytest及16项浏览器检查通过。本轮两版39次模型请求估算0.103466360元，原结果保留。
 
 [家电售后政策 v1.4](docs/SHOP_APPLIANCE_AFTER_SALES.md) 在不改 64 商品/304 订单的前提下，为 8 个家电品类补充合成的 7/15 天退货和 24/36 个月保修政策；家电不再显示“仅咨询”，可进入模拟退货预览和待审核申请，真实退款/安装/维修仍不执行。
+
+[RAG 意图规划器与多意图评测](docs/INTENT_PLANNER.md) 用 Intent Registry + BM25 检索 + JSON 多目标规划替代规则硬路由；30 条最终验收集 coverage 100%、exact 86.7%、多意图 coverage 100%、未澄清 return 误触发 0，30 次 planner 调用 0.023989 元。
 
 [意图路由 held-out 评测](docs/INTENT_ROUTING_EVALUATION.md) 用已有冻结任务 170 条验证：规则路由器 exact 21.8%、coverage 62.4%；DeepSeek 分类基线 exact 30.0%、coverage 82.4%，170 次调用估算 0.052759 元。规则硬过滤已降级为软提示。
 

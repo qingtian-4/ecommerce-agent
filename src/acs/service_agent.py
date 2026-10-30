@@ -15,8 +15,9 @@ answerable by reading this file. A graph framework would hide that in edge
 declarations, and the request would not be unit-testable without executing the
 whole graph.
 
-What this loop deliberately does NOT do: no router, no planner, no reflection,
-no self-critique, no long-term memory. The model decides whether to call tools,
+What this loop deliberately does NOT do: no hard router, no reflection, no
+self-critique, no long-term memory. An optional intent planner supplies a soft
+hint; every tool stays visible. The model decides whether to call tools,
 which ones, how many, and when to stop -- that is the baseline everything later
 is measured against.
 """
@@ -36,7 +37,7 @@ from .context import ContextLimitExceeded, input_chars, model_context
 from .cs_tools import ToolRegistry, TraceEvent, tool_model_content
 from .database import business_today
 from .goal_ledger import GoalLedger
-from .intent_router import IntentRouter
+from .intent_planner import IntentPlanner
 from .knowledge_context import load_source_documents
 from .llm import LLMClient
 from .runtime import BudgetExceeded, RunBudget
@@ -201,8 +202,8 @@ class CustomerServiceAgent:
         current_user_id: str = "USER001",
         max_steps: int | None = None,
         goal_check: bool = False,
-        intent_routing: bool = False,
-        strict_routing: bool = True,
+        intent_planning: bool = False,
+        intent_planner: IntentPlanner | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self.llm = llm or LLMClient(settings=self.settings)
@@ -210,8 +211,9 @@ class CustomerServiceAgent:
         self.current_user_id = current_user_id
         self.max_steps = max_steps or self.settings.max_steps
         self.goal_check = goal_check
-        self.intent_routing = intent_routing
-        self.strict_routing = strict_routing
+        self.intent_planner = intent_planner
+        if self.intent_planner is None and intent_planning and hasattr(self.llm, "complete"):
+            self.intent_planner = IntentPlanner(self.llm)
         self.messages: list[dict[str, Any]] = [
             {"role": "system", "content": build_system_prompt(self.settings)}
         ]
@@ -256,31 +258,39 @@ class CustomerServiceAgent:
         started = perf_counter()
         self.llm.reset_usage()
         current_start = len(self.messages)
-        routing = IntentRouter().route(user_message) if self.intent_routing else None
-        route_hint = routing.hint if routing else ""
+        history = [
+            message["content"]
+            for message in self.messages[-6:]
+            if message.get("role") == "user" and isinstance(message.get("content"), str)
+        ]
+        plan = None
+        if self.intent_planner is not None:
+            try:
+                plan = self.intent_planner.plan(user_message, history=history)
+            except Exception:  # planner failure must not block the business turn
+                plan = None
+        route_hint = plan.to_hint() if plan else ""
         self.messages.append({"role": "user", "content": user_message})
-        goals = GoalLedger(user_message) if self.goal_check else None
+        if plan and plan.goals and not plan.needs_clarification:
+            goals = GoalLedger.from_plan(plan) if self.goal_check else None
+        else:
+            goals = GoalLedger(user_message) if self.goal_check and plan is None else None
         partial_answers: list[str] = []
 
         result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
         schemas = self.registry.schemas()
-        if routing and routing.tools is not None and self.strict_routing:
-            schemas = [
-                schema
-                for schema in schemas
-                if schema.get("function", {}).get("name") in routing.tools
-            ]
-        if routing:
+        if plan:
             result.trace.append(
                 TraceEvent(
-                    type="intent_route",
-                    label="+".join(routing.names) or "unknown",
+                    type="intent_plan",
+                    label="+".join(plan.names) or "unknown",
                     detail={
-                        "routes": routing.names,
-                        "labels": routing.labels,
-                        "tools": sorted(routing.tools)
-                        if routing.tools is not None
-                        else "all",
+                        "goals": [
+                            {"intent": goal.intent, "confidence": goal.confidence}
+                            for goal in plan.goals
+                        ],
+                        "clarify": plan.needs_clarification,
+                        "source": plan.source,
                     },
                 )
             )

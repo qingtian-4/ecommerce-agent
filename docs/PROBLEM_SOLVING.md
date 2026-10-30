@@ -1692,3 +1692,24 @@ DeepSeek 分类基线（同一 170 条、temperature 0、每 query 一次 JSON �
 决策：ChatService 的 `strict_routing` 默认改为 False，只保留 route 提示，不按规则过滤
 tool schema；规则 router 保留为实验/回归基线；V3 仍是提示级。硬路由要等独立人工语义
 标签 + coverage 门槛 + 低置信度兜底。详细数字与复现见 docs/INTENT_ROUTING_EVALUATION.md。
+
+## 2026-10-30 — RAG 意图规划器替代规则硬路由
+
+规则路由在 170 条 held-out 任务上只有 21.8% exact、62.4% coverage，24/24 是作者用例
+过拟合。根因是把意图当成关键词分类，并用 route 硬裁 tool schema：退货/政策、订单/物流、
+商品/价保的边界靠词表无法稳定区分，且漏 route 会直接挡工具。
+
+改为：版本化 Intent Registry（定义+正反例+工具+证据）→ BM25 检索边界示例 → 一次 JSON
+模型调用输出多 goal/confidence/clarify → 所有工具保持可见、route 仅软提示 → GoalLedger
+按 goal 检查工具回执。退货动作缺订单对象、颜色变更等歧义先澄清；写操作仍由 ReturnService
+草稿/预览/确认/审核链路控制。ChatService 的 strict tool 过滤已删除，app 显式启用 planner。
+
+结果：170 条开发/覆盖集 coverage 99.4%、多意图 coverage 96.3%（exact 42.4%，因为 expected
+只表示必需工具族，额外 route 会拉低 exact）；30 条最终验收集（首次运行前冻结）coverage
+100%、exact 86.7%、多意图 coverage 100%、未澄清 return 误触发 0、澄清准确率 93.3%；
+规则基线同集 coverage 70%、exact 56.7%、多意图 62.5%。30 次 planner 调用 0.023989 元，
+170 条开发集 0.174398 元。
+
+限制：验证集是作者编写合成语义集，不是真实客服日志；exact 86.7% 不是线上准确率；
+V3 网页默认保留旧提示级规则 route，设置 ACS_V3_PLANNER=1 后启用 planner；
+没有声称生产端到端成功率。相关 105 项单测/应用测试通过。

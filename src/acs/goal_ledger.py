@@ -32,6 +32,14 @@ SHOP_WORDS = (
 POLICY_WORDS = ("政策", "规则", "期限", "保修", "多久", "条件")
 ALL_WORDS = ("都有哪些", "全部", "所有", "列全", "一共", "多少笔")
 COMPLETE_WORDS = SHOP_WORDS + ("都有哪些",)
+LABELS = {
+    "orders": "订单",
+    "logistics": "物流",
+    "product": "商品咨询",
+    "policy": "政策/期限",
+    "return": "退换货办理",
+    "price": "价保",
+}
 
 
 @dataclass(frozen=True)
@@ -99,6 +107,30 @@ def _policy_done(name: str, payload: dict[str, Any]) -> bool:
     return payload.get("found") is True or bool(payload.get("documents"))
 
 
+def _logistics_done(name: str, payload: dict[str, Any]) -> bool:
+    return name in {"get_logistics", "get_order"} and bool(payload)
+
+
+def _product_done(name: str, payload: dict[str, Any]) -> bool:
+    if name == "list_products":
+        return payload.get("products") is not None
+    return name in {"get_product", "get_price_history"} and bool(payload)
+
+
+def _return_done(name: str, payload: dict[str, Any]) -> bool:
+    return name in {
+        "get_return_task",
+        "update_return_task",
+        "cancel_return_task",
+        "preview_return",
+        "get_return_requests",
+    } and bool(payload)
+
+
+def _price_done(name: str, payload: dict[str, Any]) -> bool:
+    return name in {"get_price_history", "get_order"} and bool(payload)
+
+
 @dataclass
 class GoalLedger:
     user_text: str
@@ -109,6 +141,16 @@ class GoalLedger:
 
     def __post_init__(self) -> None:
         self.specs = detect_goals(self.user_text)
+
+    @classmethod
+    def from_plan(cls, plan: Any) -> GoalLedger:
+        ledger = cls(user_text="")
+        ledger.specs = [
+            GoalSpec(name, LABELS[name])
+            for name in plan.names
+            if name in LABELS
+        ]
+        return ledger
 
     @property
     def active(self) -> bool:
@@ -139,6 +181,14 @@ class GoalLedger:
                     done[spec.name] = _catalog_done(spec, name, payload)
                 elif spec.name == "policy":
                     done[spec.name] = _policy_done(name, payload)
+                elif spec.name == "logistics":
+                    done[spec.name] = _logistics_done(name, payload)
+                elif spec.name == "product":
+                    done[spec.name] = _product_done(name, payload)
+                elif spec.name == "return":
+                    done[spec.name] = _return_done(name, payload)
+                elif spec.name == "price":
+                    done[spec.name] = _price_done(name, payload)
         return [spec.name for spec in self.specs if not done[spec.name]]
 
     def labels(self, missing: list[str] | None = None) -> list[str]:
@@ -170,6 +220,14 @@ class GoalLedger:
                     hints.append("调用 get_product 或 list_products 获取商品事实")
             elif spec.name == "policy":
                 hints.append("调用 search_knowledge 获取政策原文")
+            elif spec.name == "logistics":
+                hints.append("调用 get_logistics 获取物流轨迹")
+            elif spec.name == "product":
+                hints.append("调用 list_products 或 get_product 获取商品事实")
+            elif spec.name == "return":
+                hints.append("调用退货草稿/预览/申请查询工具，确认业务回执")
+            elif spec.name == "price":
+                hints.append("调用 get_price_history 获取价格历史")
         return (
             "本轮用户明确提出了多个诉求，目前还缺少："
             + labels

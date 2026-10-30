@@ -79,6 +79,21 @@ class LocalReturnPoc:
         self.read_only = read_only  # Fresh application restriction, never checkpoint authority.
         self.intent_routing = intent_routing
         self.compact_history = compact_history
+        self.intent_planner = None
+        import os
+
+        if (
+            intent_routing
+            and os.environ.get("ACS_V3_PLANNER") == "1"
+            and getattr(self.settings, "llm_api_key", None)
+        ):
+            try:
+                from .intent_planner import IntentPlanner
+                from .llm import LLMClient
+
+                self.intent_planner = IntentPlanner(LLMClient(settings=self.settings))
+            except Exception:
+                self.intent_planner = None
 
     def __enter__(self):
         self.stack = ExitStack()
@@ -398,9 +413,17 @@ class LocalReturnPoc:
                 )
             binding.update(turn_id=tid, offset=offset)
             if self.intent_routing:
-                from .intent_router import IntentRouter
+                if self.intent_planner is not None:
+                    try:
+                        plan = self.intent_planner.plan(text)
+                        if plan.goals and not plan.needs_clarification:
+                            route_hint = plan.to_hint()
+                    except Exception:
+                        route_hint = ""
+                if not route_hint:
+                    from .intent_router import IntentRouter
 
-                route_hint = IntentRouter().route(text).hint
+                    route_hint = IntentRouter().route(text).hint
             inputs = {"messages": [HumanMessage(content=text)], "turn_id": tid}
         else:
             tid = binding["turn_id"]

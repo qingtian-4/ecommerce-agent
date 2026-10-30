@@ -1,22 +1,12 @@
-"""Rule intent routes and their tool-schema policy in the agent loop."""
+"""Legacy rule-router unit tests.
+
+The product path no longer hard-filters tools with these rules.  They remain only as
+a V3 prompt-hint baseline and as a regression record for the held-out evaluation.
+"""
 
 from __future__ import annotations
 
-import pytest
-
-from acs.cs_tools import ToolRegistry
 from acs.intent_router import IntentRouter
-from acs.rag import KnowledgeBase
-from acs.service_agent import CustomerServiceAgent
-
-from .conftest import ScriptedLLM, ScriptedResponse
-
-
-@pytest.fixture()
-def registry(settings, fake_embedder):
-    kb = KnowledgeBase(settings, llm=fake_embedder)
-    kb.build()
-    return ToolRegistry(settings, kb=kb)
 
 
 def test_order_plus_product_is_multi_route():
@@ -74,68 +64,6 @@ def test_chitchat_has_no_tools_and_unknown_keeps_all():
     assert unknown.tools is None
 
 
-def _tool_names(call):
-    return {tool["function"]["name"] for tool in call["tools"]}
-
-
-def test_agent_filters_schemas_for_a_single_route(settings, registry):
-    llm = ScriptedLLM([ScriptedResponse(text="B102 支持主动降噪。")])
-    agent = CustomerServiceAgent(
-        settings=settings,
-        llm=llm,
-        registry=registry,
-        current_user_id="USER001",
-        intent_routing=True,
-    )
-    result = agent.chat("这款耳机降噪怎么样")
-
-    names = _tool_names(llm.calls[0])
-    assert "get_product" in names and "list_products" in names
-    assert "list_orders" not in names
-    assert any(event.type == "intent_route" for event in result.trace)
-
-
-def test_agent_keeps_both_tool_families_for_two_routes(settings, registry):
-    llm = ScriptedLLM([ScriptedResponse(text="订单与政策分别回答。")])
-    agent = CustomerServiceAgent(
-        settings=settings,
-        llm=llm,
-        registry=registry,
-        current_user_id="USER001",
-        intent_routing=True,
-    )
-    agent.chat("查我的订单，并说明退货政策期限")
-
-    names = _tool_names(llm.calls[0])
-    assert "list_orders" in names and "search_knowledge" in names
-    assert "list_products" not in names
-    assert "preview_return" not in names
-
-
-def test_agent_chitchat_has_empty_tools_and_unknown_keeps_all(settings, registry):
-    chat_llm = ScriptedLLM([ScriptedResponse(text="您好，有什么可以帮您？")])
-    chat_agent = CustomerServiceAgent(
-        settings=settings,
-        llm=chat_llm,
-        registry=registry,
-        current_user_id="USER001",
-        intent_routing=True,
-    )
-    chat_agent.chat("你好")
-    assert _tool_names(chat_llm.calls[0]) == set()
-
-    unknown_llm = ScriptedLLM([ScriptedResponse(text="今天天气我无法查询。")])
-    unknown_agent = CustomerServiceAgent(
-        settings=settings,
-        llm=unknown_llm,
-        registry=registry,
-        current_user_id="USER001",
-        intent_routing=True,
-    )
-    unknown_agent.chat("今天天气怎么样")
-    assert _tool_names(unknown_llm.calls[0]) == set(registry.names)
-
-
 def test_bare_return_is_an_action_but_refund_policy_is_not():
     router = IntentRouter()
     bare = router.route("退货")
@@ -148,19 +76,3 @@ def test_bare_return_is_an_action_but_refund_policy_is_not():
 
     action = router.route("我要退款")
     assert action.names == ["return"]
-
-
-def test_soft_routing_keeps_all_tools_but_records_the_route(settings, registry):
-    llm = ScriptedLLM([ScriptedResponse(text="B102 支持主动降噪。")])
-    agent = CustomerServiceAgent(
-        settings=settings,
-        llm=llm,
-        registry=registry,
-        current_user_id="USER001",
-        intent_routing=True,
-        strict_routing=False,
-    )
-    result = agent.chat("这款耳机降噪怎么样")
-
-    assert _tool_names(llm.calls[0]) == set(registry.names)
-    assert any(event.type == "intent_route" for event in result.trace)

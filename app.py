@@ -582,7 +582,7 @@ def on_send(message: str, history: list[dict] | None, state_dict: dict, user_key
     started = perf_counter()
     reply_index = len(history)
     try:
-        service = ChatService(SETTINGS, store)
+        service = ChatService(SETTINGS, store, intent_planning=True)
         with closing(service.run_turn(
             message, user_id, sid, agent=lambda: ensure_agent(state_dict, user_key),
         )) as stream:

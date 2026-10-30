@@ -1,0 +1,157 @@
+{
+  "version": "intent-registry-v1",
+  "note": "Versioned intent definitions for RAG-enhanced planning. Not a keyword router.",
+  "intents": [
+    {
+      "name": "orders",
+      "label": "订单查询",
+      "description": "查询本人订单列表、订单状态、订单号、下单时间、订单明细；不负责物流轨迹本身，也不办理退货。",
+      "positive_examples": [
+        "我最近买了什么",
+        "帮我看下我的订单",
+        "O72001 现在是什么状态",
+        "这个月下了几单"
+      ],
+      "negative_examples": [
+        "帮我退货",
+        "包裹到哪了",
+        "这个耳机降噪吗"
+      ],
+      "tools": [
+        "list_orders",
+        "get_order"
+      ],
+      "evidence": [
+        "本人订单列表或订单详情回执"
+      ]
+    },
+    {
+      "name": "logistics",
+      "label": "物流查询",
+      "description": "查询已有订单的物流轨迹、承运商、签收、发货、配送进度；只涉及配送，不办理退货。",
+      "positive_examples": [
+        "我的快递到哪了",
+        "这个包裹什么时候能到",
+        "显示签收了但我没收到",
+        "查一下 O72001 的物流"
+      ],
+      "negative_examples": [
+        "我的订单是什么状态",
+        "帮我退款",
+        "这个商品多少钱"
+      ],
+      "tools": [
+        "get_logistics",
+        "get_order"
+      ],
+      "evidence": [
+        "物流轨迹回执，必要时订单签收状态"
+      ]
+    },
+    {
+      "name": "product",
+      "label": "商品咨询",
+      "description": "询问商品规格、参数、降噪、续航、颜色、尺寸、价格、对比、推荐、是否有货；不涉及订单归属和退货资格。",
+      "positive_examples": [
+        "B102 支持主动降噪吗",
+        "推荐一款 500 元以内的入耳耳机",
+        "E018 和 E020 哪个出水大",
+        "这个冰箱多宽"
+      ],
+      "negative_examples": [
+        "我的订单到哪了",
+        "帮我退货",
+        "退货政策是什么"
+      ],
+      "tools": [
+        "list_products",
+        "get_product",
+        "get_price_history",
+        "search_knowledge"
+      ],
+      "evidence": [
+        "商品详情、目录或价格历史回执"
+      ]
+    },
+    {
+      "name": "policy",
+      "label": "退换货政策",
+      "description": "询问退货、换货、退款、保修、安装、期限、运费、条件、资格规则；只解释政策，不创建或修改退货草稿。",
+      "positive_examples": [
+        "退货政策是什么",
+        "退款多久到账",
+        "耳机保修多久",
+        "能退吗",
+        "退货运费谁出",
+        "二次销售是什么意思"
+      ],
+      "negative_examples": [
+        "帮我退货",
+        "我要退款",
+        "把草稿数量改成两件"
+      ],
+      "tools": [
+        "search_knowledge",
+        "get_order",
+        "get_product",
+        "get_return_task"
+      ],
+      "evidence": [
+        "知识库政策原文；资格判断还需要订单/商品事实"
+      ]
+    },
+    {
+      "name": "return",
+      "label": "退换货办理",
+      "description": "用户明确要求创建、修改、取消退货草稿，生成预览，或查询本人退货申请进度；涉及写操作或草稿状态。",
+      "positive_examples": [
+        "帮我退这一件",
+        "我要退款",
+        "把退货草稿的数量改成两件",
+        "生成退货预览",
+        "取消刚才的退货申请"
+      ],
+      "negative_examples": [
+        "退货政策是什么",
+        "能退吗",
+        "退款一般多久到账",
+        "退货运费谁出"
+      ],
+      "tools": [
+        "get_return_task",
+        "update_return_task",
+        "cancel_return_task",
+        "preview_return",
+        "get_return_requests",
+        "get_order",
+        "get_product",
+        "search_knowledge"
+      ],
+      "evidence": [
+        "当前草稿、预览、申请回执或明确拒绝/澄清"
+      ]
+    },
+    {
+      "name": "price",
+      "label": "价保",
+      "description": "询问价保、差价、降价补差、价格保护期限；不是普通商品现价咨询。",
+      "positive_examples": [
+        "这个订单能价保吗",
+        "买完降价了能补差价吗",
+        "价保期限多久"
+      ],
+      "negative_examples": [
+        "这个商品多少钱",
+        "推荐一款便宜耳机"
+      ],
+      "tools": [
+        "get_order",
+        "get_price_history",
+        "search_knowledge"
+      ],
+      "evidence": [
+        "订单购买价、当前价或价格历史、价保政策"
+      ]
+    }
+  ]
+}
