@@ -102,6 +102,7 @@ class ChatService:
                 current_user_id=user_id,
                 goal_check=True,
                 intent_routing=True,
+                strict_routing=False,
             )
             agent.set_user(user_id)
             agent.registry.bind_return_task(self.store, sid, tid)

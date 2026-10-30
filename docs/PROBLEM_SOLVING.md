@@ -1672,3 +1672,23 @@ v1.3 的家电只有模拟咨询，`policy_scope.return=false`，页面显示“
 `ready=true`；v1.3 仍为 `return=false/consultation=true`。限制：安装状态没有独立字段，
 “未安装/未通水通电/未接入燃气”靠政策文案和用户声明，不是自动核验；安装、换货、真实
 退款/维修派单仍未实现；所有条款是合成演示。
+
+## 2026-10-30 — 意图路由 held-out 评测与硬路由降级
+
+之前 24/24 是作者看规则后编写的开发集，不能证明泛化。本轮从已有冻结任务
+（shop_mainline 16 轮、commerce_complex 24 轮、commerce_benchmark_v2_2 130 个 chat 步骤）
+取 170 条，用 gold tool 的必需工具族推导 expected route；这是“至少需要哪些工具族”，
+不是穷尽语义标签。
+
+规则路由器：exact 37/170（21.8%），coverage 106/170（62.4%），缺失 70，多余 163；
+多意图 exact 4/27、coverage 13/27。最大问题是 return 漏识别和 orders/policy 过度触发。
+24/24 与 21.8% 的差距说明规则词表过拟合作者用例。
+
+DeepSeek 分类基线（同一 170 条、temperature 0、每 query 一次 JSON 分类）：exact 51/170
+（30.0%），coverage 140/170（82.4%），缺失 31，多余 107；多意图 exact 11/27、coverage
+22/27。170 次请求估算 0.052759 元。模型更好，但仍会过度标注且有 31 个缺失，不能直接做
+硬工具白名单。
+
+决策：ChatService 的 `strict_routing` 默认改为 False，只保留 route 提示，不按规则过滤
+tool schema；规则 router 保留为实验/回归基线；V3 仍是提示级。硬路由要等独立人工语义
+标签 + coverage 门槛 + 低置信度兜底。详细数字与复现见 docs/INTENT_ROUTING_EVALUATION.md。

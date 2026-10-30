@@ -202,6 +202,7 @@ class CustomerServiceAgent:
         max_steps: int | None = None,
         goal_check: bool = False,
         intent_routing: bool = False,
+        strict_routing: bool = True,
     ) -> None:
         self.settings = settings or get_settings()
         self.llm = llm or LLMClient(settings=self.settings)
@@ -210,6 +211,7 @@ class CustomerServiceAgent:
         self.max_steps = max_steps or self.settings.max_steps
         self.goal_check = goal_check
         self.intent_routing = intent_routing
+        self.strict_routing = strict_routing
         self.messages: list[dict[str, Any]] = [
             {"role": "system", "content": build_system_prompt(self.settings)}
         ]
@@ -262,7 +264,7 @@ class CustomerServiceAgent:
 
         result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
         schemas = self.registry.schemas()
-        if routing and routing.tools is not None:
+        if routing and routing.tools is not None and self.strict_routing:
             schemas = [
                 schema
                 for schema in schemas

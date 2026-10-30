@@ -148,3 +148,19 @@ def test_bare_return_is_an_action_but_refund_policy_is_not():
 
     action = router.route("我要退款")
     assert action.names == ["return"]
+
+
+def test_soft_routing_keeps_all_tools_but_records_the_route(settings, registry):
+    llm = ScriptedLLM([ScriptedResponse(text="B102 支持主动降噪。")])
+    agent = CustomerServiceAgent(
+        settings=settings,
+        llm=llm,
+        registry=registry,
+        current_user_id="USER001",
+        intent_routing=True,
+        strict_routing=False,
+    )
+    result = agent.chat("这款耳机降噪怎么样")
+
+    assert _tool_names(llm.calls[0]) == set(registry.names)
+    assert any(event.type == "intent_route" for event in result.trace)

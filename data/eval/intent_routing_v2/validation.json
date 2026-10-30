@@ -1,0 +1,2310 @@
+{
+  "version": "intent-routing-v2-validation",
+  "frozen_at": "2026-10-30",
+  "note": "Frozen existing task texts; expected routes derived from gold tool families in the source data, not from router cues. Not human-labelled, not a model result.",
+  "route_order": [
+    "orders",
+    "logistics",
+    "product",
+    "policy",
+    "return",
+    "price"
+  ],
+  "cases": [
+    {
+      "id": "shop_mainline:SX01:0",
+      "query": "查我O72005热水器订单是否签收，同时说说模拟保修期限，不要申请。",
+      "expected": [
+        "orders",
+        "policy"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX01",
+      "step": 0,
+      "gold_tools": [
+        "get_order",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX01:1",
+      "query": "我说的是用了两个月的另一台，不是这笔订单。先只解释质量退货期限，别承诺免费修。",
+      "expected": [
+        "policy"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX01",
+      "step": 1,
+      "gold_tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX02:0",
+      "query": "预算1000元，只看燃气热水器，不要电热水器。列全候选，再说模拟无理由期限。",
+      "expected": [
+        "product",
+        "policy"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX02",
+      "step": 0,
+      "gold_tools": [
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX02:1",
+      "query": "保持预算，比较E018与E020的出水规格，别换成相似型号。",
+      "expected": [
+        "product"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX02",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX03:0",
+      "query": "B102支持主动降噪吗？再查B101的降噪，没写就说未知。",
+      "expected": [
+        "product"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX03",
+      "step": 0,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX03:1",
+      "query": "它能退吗？先问清楚我指哪个，也别建草稿。",
+      "expected": [],
+      "source": "shop_mainline",
+      "task_id": "SX03",
+      "step": 1,
+      "gold_tools": []
+    },
+    {
+      "id": "shop_mainline:SX04:0",
+      "query": "只保存O72001明细720010退1件耳机，无理由未拆封且满足二次销售条件；另问家电模拟保修期限。",
+      "expected": [
+        "policy",
+        "return"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX04",
+      "step": 0,
+      "gold_tools": [
+        "search_knowledge",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX04:1",
+      "query": "临时查O72005的热水器签收和无理由期限，别把原耳机草稿改成热水器。",
+      "expected": [
+        "orders",
+        "policy"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX04",
+      "step": 1,
+      "gold_tools": [
+        "get_order",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX05:0",
+      "query": "朋友的O72031物流能查吗？另外查E008冰箱尺寸。",
+      "expected": [
+        "logistics",
+        "product"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX05",
+      "step": 0,
+      "gold_tools": [
+        "get_logistics",
+        "get_product"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX05:1",
+      "query": "那查我自己的O72004物流，同时解释厨房热水器模拟保修。",
+      "expected": [
+        "logistics",
+        "policy"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX05",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX06:0",
+      "query": "列出店里全部商品的名称和现价，不需要每个SKU；再说能否办理家电维修。",
+      "expected": [
+        "product"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX06",
+      "step": 0,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX06:1",
+      "query": "只问第1系列H8是否不支持降噪，不要把未知写成不支持；先别推荐替代。",
+      "expected": [
+        "product"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX06",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX07:0",
+      "query": "O72005这台燃气热水器直接给我退货，我确认；另外查模拟质量问题期限。",
+      "expected": [
+        "orders",
+        "policy"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX07",
+      "step": 0,
+      "gold_tools": [
+        "get_order",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX07:1",
+      "query": "好，只咨询它的无理由和保修期限，需要哪些依据？",
+      "expected": [
+        "policy"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX07",
+      "step": 1,
+      "gold_tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX08:0",
+      "query": "只列我的入耳耳机订单，不要其他商品订单；再查B101续航。",
+      "expected": [
+        "orders",
+        "product"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX08",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "list_orders"
+      ]
+    },
+    {
+      "id": "shop_mainline:SX08:1",
+      "query": "选O830001，只查物流与这笔订单状态，不要退货。",
+      "expected": [
+        "orders",
+        "logistics"
+      ],
+      "source": "shop_mainline",
+      "task_id": "SX08",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics",
+        "get_order"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX01:0",
+      "query": "晴岚A6有哪些系列？先让我选；另外无理由退货运费谁出？",
+      "expected": [
+        "product",
+        "policy"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX01",
+      "step": 0,
+      "gold_tools": [
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX01:1",
+      "query": "选第5系列，只咨询：支持主动降噪吗？单次续航多久？",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX01",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX02:0",
+      "query": "查第２系列晴岚ａ６的现价和降噪，不要换成第1系列。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX02",
+      "step": 0,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX02:1",
+      "query": "保持第2系列，比较它和H8的单次续航。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX02",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX03:0",
+      "query": "比较B105和B106的功率以及接口数量。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX03",
+      "step": 0,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX03:1",
+      "query": "它附赠线吗？不要替我下单，先问清楚我指哪个。",
+      "expected": [],
+      "source": "commerce_complex",
+      "task_id": "CX03",
+      "step": 1,
+      "gold_tools": []
+    },
+    {
+      "id": "commerce_complex:CX04:0",
+      "query": "我要退O72001，先只保存订单；顺便查第5系列晴岚A6是否主动降噪。",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX04",
+      "step": 0,
+      "gold_tools": [
+        "list_products",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX04:1",
+      "query": "选明细720010退1件，无理由，未拆封且满足全部二次销售条件。运费谁出？",
+      "expected": [
+        "policy",
+        "return"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX04",
+      "step": 1,
+      "gold_tools": [
+        "search_knowledge",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX05:0",
+      "query": "我的第1系列A6有两笔订单，先列候选别替我选，再说A6是否降噪。",
+      "expected": [
+        "orders",
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX05",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "list_orders"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX05:1",
+      "query": "选O72002，只查物流并保持没有退货申请。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX05",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX06:0",
+      "query": "保存O72001明细720010退1件，无理由未拆封且满足二次销售条件；查B105功率。",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX06",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX06:1",
+      "query": "改退O72007，商品数量重新选；咨询也改成B205，问它接口。",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX06",
+      "step": 1,
+      "gold_tools": [
+        "get_product",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX07:0",
+      "query": "O72001明细720010退1件，无理由未拆封且满足二次销售条件；也核实签收状态。",
+      "expected": [
+        "orders",
+        "return"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX07",
+      "step": 0,
+      "gold_tools": [
+        "get_order",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX07:1",
+      "query": "‘取消退货’只是引用，先别取消。查B306附线情况和无理由退货运费。",
+      "expected": [
+        "product",
+        "policy"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX07",
+      "step": 1,
+      "gold_tools": [
+        "get_product",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX08:0",
+      "query": "朋友的O72031能看吗？另查B108容量与现价。",
+      "expected": [
+        "orders",
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX08",
+      "step": 0,
+      "gold_tools": [
+        "get_order",
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX08:1",
+      "query": "那查我自己的O72004物流，同时告诉我B107容量。",
+      "expected": [
+        "logistics",
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX08",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics",
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX09:0",
+      "query": "查晴岚A60，找不到不要改成A6；另问无理由退货运费。",
+      "expected": [
+        "product",
+        "policy"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX09",
+      "step": 0,
+      "gold_tools": [
+        "list_products",
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX09:1",
+      "query": "我改正一下，是第1系列的a6。告诉我现价和主动降噪。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX09",
+      "step": 1,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX10:0",
+      "query": "列出店内全部充电宝型号，别漏后面的系列；不要假称查到了精确库存件数。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX10",
+      "step": 0,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX10:1",
+      "query": "选B508，只咨询它的最大有线输出和当前价格。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX10",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX11:0",
+      "query": "分别查B105充电器和B107充电宝的输出功率。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX11",
+      "step": 0,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX11:1",
+      "query": "前一个改成B106，后一个仍是B107。分别说功率，再说充电宝支不支持无线充。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX11",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX12:0",
+      "query": "O72001先保存订单到退货草稿，再给我退款；顺便查B105接口。",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX12",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_complex:CX12:1",
+      "query": "我在聊天里说确认提交，但没有点应用按钮。只读查当前状态，再问B105附线吗。",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_complex",
+      "task_id": "CX12",
+      "step": 1,
+      "gold_tools": [
+        "get_product",
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-1:0",
+      "query": "这次针对第1系列：通勤不想入耳，预算300元以内，请给开放挂耳候选，别改成头戴。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-1",
+      "step": 0,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-1:1",
+      "query": "这次针对第1系列：它支持主动降噪吗？单次能听多久？",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-1",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-2:0",
+      "query": "这次针对第2系列：通勤不想入耳，预算300元以内，请给开放挂耳候选，别改成头戴。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-2",
+      "step": 0,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-2:1",
+      "query": "这次针对第2系列：它支持主动降噪吗？单次能听多久？",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-2",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-3:0",
+      "query": "这次针对第3系列：通勤不想入耳，预算300元以内，请给开放挂耳候选，别改成头戴。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-3",
+      "step": 0,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-3:1",
+      "query": "这次针对第3系列：它支持主动降噪吗？单次能听多久？",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-3",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-4:0",
+      "query": "这次针对第4系列：通勤不想入耳，预算300元以内，请给开放挂耳候选，别改成头戴。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-4",
+      "step": 0,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-4:1",
+      "query": "这次针对第4系列：它支持主动降噪吗？单次能听多久？",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-4",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-5:0",
+      "query": "这次针对第5系列：通勤不想入耳，预算300元以内，请给开放挂耳候选，别改成头戴。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-5",
+      "step": 0,
+      "gold_tools": [
+        "list_products"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC01-5:1",
+      "query": "这次针对第5系列：它支持主动降噪吗？单次能听多久？",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC01-5",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-1:0",
+      "query": "这次针对第1系列：两笔A6耳机订单我记混了，先列候选，不要自动选退货对象。",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-1",
+      "step": 0,
+      "gold_tools": [
+        "list_orders"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-1:1",
+      "query": "这次针对第1系列：选O72001，看看它的物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-1",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-2:0",
+      "query": "这次针对第2系列：两笔A6耳机订单我记混了，先列候选，不要自动选退货对象。",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-2",
+      "step": 0,
+      "gold_tools": [
+        "list_orders"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-2:1",
+      "query": "这次针对第2系列：选O72007，看看它的物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-2",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-3:0",
+      "query": "这次针对第3系列：两笔A6耳机订单我记混了，先列候选，不要自动选退货对象。",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-3",
+      "step": 0,
+      "gold_tools": [
+        "list_orders"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-3:1",
+      "query": "这次针对第3系列：选O72013，看看它的物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-3",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-4:0",
+      "query": "这次针对第4系列：两笔A6耳机订单我记混了，先列候选，不要自动选退货对象。",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-4",
+      "step": 0,
+      "gold_tools": [
+        "list_orders"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-4:1",
+      "query": "这次针对第4系列：选O72019，看看它的物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-4",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-5:0",
+      "query": "这次针对第5系列：两笔A6耳机订单我记混了，先列候选，不要自动选退货对象。",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-5",
+      "step": 0,
+      "gold_tools": [
+        "list_orders"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC02-5:1",
+      "query": "这次针对第5系列：选O72025，看看它的物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC02-5",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-1:0",
+      "query": "这次针对第1系列：我要退O72001，先只保存订单；顺便问B105有几个接口？",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-1",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-1:1",
+      "query": "这次针对第1系列：选明细720010退1件，无理由，未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-1",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-2:0",
+      "query": "这次针对第2系列：我要退O72007，先只保存订单；顺便问B205有几个接口？",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-2",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-2:1",
+      "query": "这次针对第2系列：选明细720070退1件，无理由，未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-2",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-3:0",
+      "query": "这次针对第3系列：我要退O72013，先只保存订单；顺便问B305有几个接口？",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-3",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-3:1",
+      "query": "这次针对第3系列：选明细720130退1件，无理由，未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-3",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-4:0",
+      "query": "这次针对第4系列：我要退O72019，先只保存订单；顺便问B405有几个接口？",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-4",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-4:1",
+      "query": "这次针对第4系列：选明细720190退1件，无理由，未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-4",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-5:0",
+      "query": "这次针对第5系列：我要退O72025，先只保存订单；顺便问B505有几个接口？",
+      "expected": [
+        "product",
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-5",
+      "step": 0,
+      "gold_tools": [
+        "get_product",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC03-5:1",
+      "query": "这次针对第5系列：选明细720250退1件，无理由，未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC03-5",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-1:0",
+      "query": "这次针对第1系列：我要退订单O72001的明细720010，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-1",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-1:1",
+      "query": "这次针对第1系列：先插问：无理由退货运费由谁承担？保留草稿。",
+      "expected": [
+        "policy"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-1",
+      "step": 1,
+      "gold_tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-1:2",
+      "query": "这次针对第1系列：改成同单明细720011的充电宝，退1件，无理由未拆封，满足二次销售条件，生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-1",
+      "step": 2,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-2:0",
+      "query": "这次针对第2系列：我要退订单O72007的明细720070，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-2",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-2:1",
+      "query": "这次针对第2系列：先插问：无理由退货运费由谁承担？保留草稿。",
+      "expected": [
+        "policy"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-2",
+      "step": 1,
+      "gold_tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-2:2",
+      "query": "这次针对第2系列：改成同单明细720071的充电宝，退1件，无理由未拆封，满足二次销售条件，生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-2",
+      "step": 2,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-3:0",
+      "query": "这次针对第3系列：我要退订单O72013的明细720130，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-3",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-3:1",
+      "query": "这次针对第3系列：先插问：无理由退货运费由谁承担？保留草稿。",
+      "expected": [
+        "policy"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-3",
+      "step": 1,
+      "gold_tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-3:2",
+      "query": "这次针对第3系列：改成同单明细720131的充电宝，退1件，无理由未拆封，满足二次销售条件，生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-3",
+      "step": 2,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-4:0",
+      "query": "这次针对第4系列：我要退订单O72019的明细720190，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-4",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-4:1",
+      "query": "这次针对第4系列：先插问：无理由退货运费由谁承担？保留草稿。",
+      "expected": [
+        "policy"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-4",
+      "step": 1,
+      "gold_tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-4:2",
+      "query": "这次针对第4系列：改成同单明细720191的充电宝，退1件，无理由未拆封，满足二次销售条件，生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-4",
+      "step": 2,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-5:0",
+      "query": "这次针对第5系列：我要退订单O72025的明细720250，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-5",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-5:1",
+      "query": "这次针对第5系列：先插问：无理由退货运费由谁承担？保留草稿。",
+      "expected": [
+        "policy"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-5",
+      "step": 1,
+      "gold_tools": [
+        "search_knowledge"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC04-5:2",
+      "query": "这次针对第5系列：改成同单明细720251的充电宝，退1件，无理由未拆封，满足二次销售条件，生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC04-5",
+      "step": 2,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-1:0",
+      "query": "这次针对第1系列：我要退订单O72001的明细720010，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-1",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-1:1",
+      "query": "这次针对第1系列：不是这单，改成O72002，只确定订单，商品数量重新选择。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-1",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-1:2",
+      "query": "这次针对第1系列：选明细720020退1件，无理由未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-1",
+      "step": 2,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-2:0",
+      "query": "这次针对第2系列：我要退订单O72007的明细720070，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-2",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-2:1",
+      "query": "这次针对第2系列：不是这单，改成O72008，只确定订单，商品数量重新选择。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-2",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-2:2",
+      "query": "这次针对第2系列：选明细720080退1件，无理由未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-2",
+      "step": 2,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-3:0",
+      "query": "这次针对第3系列：我要退订单O72013的明细720130，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-3",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-3:1",
+      "query": "这次针对第3系列：不是这单，改成O72014，只确定订单，商品数量重新选择。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-3",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-3:2",
+      "query": "这次针对第3系列：选明细720140退1件，无理由未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-3",
+      "step": 2,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-4:0",
+      "query": "这次针对第4系列：我要退订单O72019的明细720190，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-4",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-4:1",
+      "query": "这次针对第4系列：不是这单，改成O72020，只确定订单，商品数量重新选择。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-4",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-4:2",
+      "query": "这次针对第4系列：选明细720200退1件，无理由未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-4",
+      "step": 2,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-5:0",
+      "query": "这次针对第5系列：我要退订单O72025的明细720250，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-5",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-5:1",
+      "query": "这次针对第5系列：不是这单，改成O72026，只确定订单，商品数量重新选择。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-5",
+      "step": 1,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC05-5:2",
+      "query": "这次针对第5系列：选明细720260退1件，无理由未拆封，满足全部二次销售条件。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC05-5",
+      "step": 2,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-1:0",
+      "query": "这次针对第1系列：我要退订单O72001的明细720010，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-1",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-1:1",
+      "query": "这次针对第1系列：我不是要取消，‘取消退货草稿’只是引用；如果以后取消会怎样？现在保留，再查B106功率。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-1",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-2:0",
+      "query": "这次针对第2系列：我要退订单O72007的明细720070，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-2",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-2:1",
+      "query": "这次针对第2系列：我不是要取消，‘取消退货草稿’只是引用；如果以后取消会怎样？现在保留，再查B206功率。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-2",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-3:0",
+      "query": "这次针对第3系列：我要退订单O72013的明细720130，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-3",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-3:1",
+      "query": "这次针对第3系列：我不是要取消，‘取消退货草稿’只是引用；如果以后取消会怎样？现在保留，再查B306功率。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-3",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-4:0",
+      "query": "这次针对第4系列：我要退订单O72019的明细720190，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-4",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-4:1",
+      "query": "这次针对第4系列：我不是要取消，‘取消退货草稿’只是引用；如果以后取消会怎样？现在保留，再查B406功率。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-4",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-5:0",
+      "query": "这次针对第5系列：我要退订单O72025的明细720250，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-5",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC06-5:1",
+      "query": "这次针对第5系列：我不是要取消，‘取消退货草稿’只是引用；如果以后取消会怎样？现在保留，再查B506功率。",
+      "expected": [
+        "product"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC06-5",
+      "step": 1,
+      "gold_tools": [
+        "get_product"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-1:0",
+      "query": "这次针对第1系列：我要退订单O72001的明细720010，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-1",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-1:1",
+      "query": "这次针对第1系列：取消退货草稿",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-1",
+      "step": 1,
+      "gold_tools": [
+        "cancel_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-2:0",
+      "query": "这次针对第2系列：我要退订单O72007的明细720070，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-2",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-2:1",
+      "query": "这次针对第2系列：取消退货草稿",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-2",
+      "step": 1,
+      "gold_tools": [
+        "cancel_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-3:0",
+      "query": "这次针对第3系列：我要退订单O72013的明细720130，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-3",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-3:1",
+      "query": "这次针对第3系列：取消退货草稿",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-3",
+      "step": 1,
+      "gold_tools": [
+        "cancel_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-4:0",
+      "query": "这次针对第4系列：我要退订单O72019的明细720190，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-4",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-4:1",
+      "query": "这次针对第4系列：取消退货草稿",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-4",
+      "step": 1,
+      "gold_tools": [
+        "cancel_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-5:0",
+      "query": "这次针对第5系列：我要退订单O72025的明细720250，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-5",
+      "step": 0,
+      "gold_tools": [
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC07-5:1",
+      "query": "这次针对第5系列：取消退货草稿",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC07-5",
+      "step": 1,
+      "gold_tools": [
+        "cancel_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-1:0",
+      "query": "这次针对第1系列：朋友订单O72031我想看一下，能读取吗？",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-1",
+      "step": 0,
+      "gold_tools": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-1:1",
+      "query": "这次针对第1系列：那只查我自己的O72004物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-1",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-2:0",
+      "query": "这次针对第2系列：朋友订单O72037我想看一下，能读取吗？",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-2",
+      "step": 0,
+      "gold_tools": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-2:1",
+      "query": "这次针对第2系列：那只查我自己的O72010物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-2",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-3:0",
+      "query": "这次针对第3系列：朋友订单O72043我想看一下，能读取吗？",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-3",
+      "step": 0,
+      "gold_tools": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-3:1",
+      "query": "这次针对第3系列：那只查我自己的O72016物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-3",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-4:0",
+      "query": "这次针对第4系列：朋友订单O72049我想看一下，能读取吗？",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-4",
+      "step": 0,
+      "gold_tools": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-4:1",
+      "query": "这次针对第4系列：那只查我自己的O72022物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-4",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-5:0",
+      "query": "这次针对第5系列：朋友订单O72055我想看一下，能读取吗？",
+      "expected": [
+        "orders"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-5",
+      "step": 0,
+      "gold_tools": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC09-5:1",
+      "query": "这次针对第5系列：那只查我自己的O72028物流。",
+      "expected": [
+        "logistics"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC09-5",
+      "step": 1,
+      "gold_tools": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-1:0",
+      "query": "这次针对第1系列：我要退订单O72001的明细720010，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-1",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-1:2",
+      "query": "这次针对第1系列：预览过期了，只核对现状，不要重做。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-1",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-2:0",
+      "query": "这次针对第2系列：我要退订单O72007的明细720070，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-2",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-2:2",
+      "query": "这次针对第2系列：预览过期了，只核对现状，不要重做。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-2",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-3:0",
+      "query": "这次针对第3系列：我要退订单O72013的明细720130，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-3",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-3:2",
+      "query": "这次针对第3系列：预览过期了，只核对现状，不要重做。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-3",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-4:0",
+      "query": "这次针对第4系列：我要退订单O72019的明细720190，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-4",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-4:2",
+      "query": "这次针对第4系列：预览过期了，只核对现状，不要重做。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-4",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-5:0",
+      "query": "这次针对第5系列：我要退订单O72025的明细720250，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-5",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC10-5:2",
+      "query": "这次针对第5系列：预览过期了，只核对现状，不要重做。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC10-5",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-1:0",
+      "query": "这次针对第1系列：我要退订单O72001的明细720010，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-1",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-1:2",
+      "query": "这次针对第1系列：政策修订后旧预览还有效吗？只读核对。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-1",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-2:0",
+      "query": "这次针对第2系列：我要退订单O72007的明细720070，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-2",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-2:2",
+      "query": "这次针对第2系列：政策修订后旧预览还有效吗？只读核对。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-2",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-3:0",
+      "query": "这次针对第3系列：我要退订单O72013的明细720130，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-3",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-3:2",
+      "query": "这次针对第3系列：政策修订后旧预览还有效吗？只读核对。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-3",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-4:0",
+      "query": "这次针对第4系列：我要退订单O72019的明细720190，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-4",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-4:2",
+      "query": "这次针对第4系列：政策修订后旧预览还有效吗？只读核对。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-4",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-5:0",
+      "query": "这次针对第5系列：我要退订单O72025的明细720250，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-5",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC11-5:2",
+      "query": "这次针对第5系列：政策修订后旧预览还有效吗？只读核对。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC11-5",
+      "step": 2,
+      "gold_tools": [
+        "get_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-1:0",
+      "query": "这次针对第1系列：我要退订单O72001的明细720010，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-1",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-1:4",
+      "query": "这次针对第1系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-1",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-2:0",
+      "query": "这次针对第2系列：我要退订单O72007的明细720070，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-2",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-2:4",
+      "query": "这次针对第2系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-2",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-3:0",
+      "query": "这次针对第3系列：我要退订单O72013的明细720130，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-3",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-3:4",
+      "query": "这次针对第3系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-3",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-4:0",
+      "query": "这次针对第4系列：我要退订单O72019的明细720190，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-4",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-4:4",
+      "query": "这次针对第4系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-4",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-5:0",
+      "query": "这次针对第5系列：我要退订单O72025的明细720250，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-5",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC12-5:4",
+      "query": "这次针对第5系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC12-5",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-1:0",
+      "query": "这次针对第1系列：我要退订单O72001的明细720010，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-1",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-1:4",
+      "query": "这次针对第1系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-1",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-2:0",
+      "query": "这次针对第2系列：我要退订单O72007的明细720070，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-2",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-2:4",
+      "query": "这次针对第2系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-2",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-3:0",
+      "query": "这次针对第3系列：我要退订单O72013的明细720130，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-3",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-3:4",
+      "query": "这次针对第3系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-3",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-4:0",
+      "query": "这次针对第4系列：我要退订单O72019的明细720190，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-4",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-4:4",
+      "query": "这次针对第4系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-4",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-5:0",
+      "query": "这次针对第5系列：我要退订单O72025的明细720250，数量1，无理由，未拆封且满足全部二次销售条件，先存草稿。请生成预览。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-5",
+      "step": 0,
+      "gold_tools": [
+        "preview_return",
+        "update_return_task"
+      ]
+    },
+    {
+      "id": "commerce_benchmark:EC14-5:4",
+      "query": "这次针对第5系列：请只读核对结果，不要重复创建。",
+      "expected": [
+        "return"
+      ],
+      "source": "commerce_benchmark",
+      "task_id": "EC14-5",
+      "step": 4,
+      "gold_tools": [
+        "get_return_requests"
+      ]
+    }
+  ],
+  "source_sha256": {
+    "shop_mainline": "afa84b9df9fb04b6ce661a0293b93767c8f7aeb421bacae34793fac12f39e7a4",
+    "commerce_complex": "38a5b3987b1b58728109ad9838236cd592d7de3b23465431a2833e634fdf4ecc",
+    "commerce_benchmark": "5cd863644d525bf52de84b3b64146134becab30d45442551d952e6ff2604987a"
+  },
+  "route_counts": {
+    "orders": 18,
+    "policy": 17,
+    "product": 47,
+    "return": 98,
+    "logistics": 15
+  },
+  "multi_intent_cases": 27,
+  "unknown_cases": 2
+}
