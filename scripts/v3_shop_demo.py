@@ -37,10 +37,14 @@ def main():
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--authorization", type=Path)
     parser.add_argument("--price-review", type=Path)
+    parser.add_argument("--max-body-bytes", type=int, default=65536,
+                        help="Interactive request body cap; default 65536 bytes")
     args = parser.parse_args()
     root = args.state_dir.resolve()
     if not 1024 <= args.port <= 65535:
         parser.error("Invalid port")
+    if not 32768 <= args.max_body_bytes <= 262144:
+        parser.error("--max-body-bytes must be between 32768 and 262144")
     if args.init:
         if args.dataset:
             from acs.shop_demo_data import materialize
@@ -64,7 +68,9 @@ def main():
 
         @contextmanager
         def factory():
-            with interactive_model(root, settings, ledger) as model:
+            with interactive_model(
+                root, settings, ledger, max_body_bytes=args.max_body_bytes
+            ) as model:
                 yield model
 
         app = install_shop(

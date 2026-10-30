@@ -67,7 +67,7 @@ class LocalReturnPoc:
     preview_description = "核查当前草稿、政策与数量并生成隔离预览；没有提交、审核或退款入口。"
 
     def __init__(self, root, user_id, *, model, registry=None, fault=None, stream_callback=None,
-                 read_only=False, intent_routing=False):
+                 read_only=False, intent_routing=False, compact_history=False):
         self.settings = fixture_settings(root, kind=self.fixture_kind)
         self.root = root.resolve()
         self.user_id, self.model = user_id, model
@@ -78,6 +78,7 @@ class LocalReturnPoc:
         self.stream_callback = stream_callback
         self.read_only = read_only  # Fresh application restriction, never checkpoint authority.
         self.intent_routing = intent_routing
+        self.compact_history = compact_history
 
     def __enter__(self):
         self.stack = ExitStack()
@@ -146,7 +147,8 @@ class LocalReturnPoc:
                         content="当前应用核验事实：" + json.dumps(facts, ensure_ascii=False)
                     )
                 )
-                messages = compact_long_assistant_answers(messages)
+                if self.compact_history:
+                    messages = compact_long_assistant_answers(messages)
                 route_hint = getattr(request.runtime.context, "route_hint", "")
                 if route_hint:
                     messages.append(SystemMessage(content=route_hint))

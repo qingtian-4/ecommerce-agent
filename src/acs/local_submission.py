@@ -211,10 +211,10 @@ class FormalReturnPoc(LocalReturnPoc):
     )
 
     def __init__(self, root, user_id, *, model, registry=None, fault=None, stream_callback=None,
-                 read_only=False, intent_routing=False):
+                 read_only=False, intent_routing=False, compact_history=False):
         super().__init__(root, user_id, model=model, registry=registry, fault=fault,
                          stream_callback=stream_callback, read_only=read_only,
-                         intent_routing=intent_routing)
+                         intent_routing=intent_routing, compact_history=compact_history)
         self.gateway.application_confirmation_enabled = True
         self.gateway.preview_notice = (
             "隔离预览，尚未创建申请；模型不能提交，只有应用确认可创建模拟待审核申请；"

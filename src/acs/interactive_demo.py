@@ -88,7 +88,7 @@ def load_grant(path, root):
 
 
 @contextmanager
-def interactive_model(root, settings, ledger):
+def interactive_model(root, settings, ledger, *, max_body_bytes=32768):
     # Imported from the existing CLI to preserve its price and private capture protocol.
     from scripts.local_return_poc import RequestCapture, verify_price
 
@@ -110,7 +110,7 @@ def interactive_model(root, settings, ledger):
             "agent",
             lambda: RequestCapture(ledger, ledger.evidence),
             streaming=True,
-            max_body_bytes=32768,
+            max_body_bytes=max_body_bytes,
         )
     ) as client:
         yield deepseek_model(
