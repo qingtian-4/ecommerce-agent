@@ -889,7 +889,7 @@ async function loadMemory() {
         const response = await fetch(endpoint('/memory/' + encodeURIComponent(fact.id)), {
           method: 'DELETE',
           credentials: 'same-origin',
-          headers: { 'X-CSRF-Token': csrf },
+          headers: { 'X-CSRF-Token': csrf, 'Origin': window.location.origin },
         });
         if (!response.ok) {
           error('删除记忆失败，请刷新后重试');
