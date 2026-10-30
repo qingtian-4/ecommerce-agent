@@ -13,6 +13,7 @@ from .config import PROJECT_ROOT
 INPUTS = PROJECT_ROOT / "data/demo_revision_v1"
 VERSION = "shop-realism-v1.2"
 CONSULTATION_VERSION = "shop-realism-v1.3"
+AFTER_SALES_VERSION = "shop-realism-v1.4"
 
 
 def enable_consultation(out):

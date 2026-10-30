@@ -1655,3 +1655,20 @@ system 消息不压缩。这样模型下一轮不再重发整张订单/商品表
 这次把之前 33909 字节的后续请求放入 64KiB 上限内，仍然记录实际 usage、费用和请求正文，
 没有取消单轮工具/步数/超时保护。模型窗口本身足够，之前卡住的是应用层正文保护，不是
 模型上下文窗口。
+
+## 2026-10-30 — 家电售后政策 v1.4
+
+v1.3 的家电只有模拟咨询，`policy_scope.return=false`，页面显示“仅咨询，暂不支持办理”，
+用户认为离真实售后太远。v1.4 保留同一业务数据，新增家电退货/保修政策：8 个品类
+（电热水器、燃气热水器、厨房热水器、洗碗机、油烟机、净饮机、燃气灶、冰箱）覆盖
+7 天无理由、15 天质量问题、24/36 个月保修；家电现在 `return=true`、`warranty=true`，
+可以进入模拟退货预览和待审核申请，不再显示“仅咨询/暂无适用政策”。
+
+合成方式是先固定 prompt（`prompts/appliance_after_sales_v1.md`），再生成
+`return_policy.md`、`warranty_policy.md`、`appliance_after_sales.md`；保留解析器锚点，
+更新 manifest 哈希。v1.3 文件不改写，旧边界和历史结果保留。
+
+验证：v1.4 家电订单 `within_return_window=true`，`ReturnService.preview` 返回
+`ready=true`；v1.3 仍为 `return=false/consultation=true`。限制：安装状态没有独立字段，
+“未安装/未通水通电/未接入燃气”靠政策文案和用户声明，不是自动核验；安装、换货、真实
+退款/维修派单仍未实现；所有条款是合成演示。

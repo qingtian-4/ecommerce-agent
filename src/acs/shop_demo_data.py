@@ -15,7 +15,12 @@ from . import multiturn_evaluation as m8
 from .commerce_benchmark_data import dump, file_hash
 from .config import PROJECT_ROOT
 from .local_submission import init_formal_fixture
-from .shop_data_revision import CONSULTATION_VERSION, enable_consultation, revise
+from .shop_data_revision import (
+    AFTER_SALES_VERSION,
+    CONSULTATION_VERSION,
+    enable_consultation,
+    revise,
+)
 from .shop_data_revision import VERSION as REVISED_VERSION
 
 VERSION = "shop-realism-v1.1"
@@ -23,6 +28,7 @@ LEGACY_VERSION = "shop-realism-v1"
 SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1_1"
 REVISED_SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1_2"
 CONSULTATION_SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1_3"
+AFTER_SALES_SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1_4"
 CURATED_SOURCE = PROJECT_ROOT / "data/demo/shop_realism_v1"
 BASE = PROJECT_ROOT / "data/eval/commerce_benchmark_v2_2"
 
@@ -105,7 +111,10 @@ def build_dataset(out: Path, source=CURATED_SOURCE, *, revision=VERSION):
 
 def load_dataset(root):
     manifest = json.loads((root / "manifest.json").read_text())
-    if manifest["version"] not in {VERSION, LEGACY_VERSION, REVISED_VERSION, CONSULTATION_VERSION}:
+    if manifest["version"] not in {
+        VERSION, LEGACY_VERSION, REVISED_VERSION, CONSULTATION_VERSION,
+        AFTER_SALES_VERSION,
+    }:
         raise ValueError("Unknown shop demo data version")
     actual = {str(p.relative_to(root)): file_hash(p) for p in root.rglob("*")
               if p.is_file() and p.name != "manifest.json"}
@@ -136,7 +145,9 @@ def materialize(root, dataset=SOURCE):
                 conn.execute("INSERT INTO order_item_skus SELECT id,? FROM order_items "
                              "WHERE product_id=?", (pid + "-1", pid))
                 conn.execute("UPDATE products SET brand='美的' WHERE product_id=?", (pid,))
-            revised = suite["manifest"]["version"] in {REVISED_VERSION, CONSULTATION_VERSION}
+            revised = suite["manifest"]["version"] in {
+                REVISED_VERSION, CONSULTATION_VERSION, AFTER_SALES_VERSION,
+            }
             if revised:
                 for row in json.loads((dataset / "sku_facts.json").read_text()):
                     for sku in row["skus"]:
