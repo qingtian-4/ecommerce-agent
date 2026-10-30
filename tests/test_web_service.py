@@ -181,9 +181,7 @@ def test_return_card_expired_and_unknown_are_read_only(setup):
         post(client, sid, headers, "messages", text="预览")
         done(client, sid)
         with sqlite3.connect(root / "business.sqlite") as conn:
-            conn.execute(
-                "UPDATE return_previews SET expires_at='2000-01-01T00:00:00+00:00'"
-            )
+            conn.execute("UPDATE return_previews SET expires_at='2000-01-01T00:00:00+00:00'")
             conn.commit()
         expired = client.get(f"/api/sessions/{sid}/return-card").json()
         assert expired["state"] == "EXPIRED"
@@ -633,3 +631,25 @@ def test_preview_replay_preserves_its_authoritative_historical_receipt(setup):
             )
         replay = poc.gateway.execute("preview_return", {}, "preview", context, expected_revision=1)
         assert replay["replayed"] and replay["result"] == previous
+
+
+def test_memory_api_lists_and_deletes_only_current_user_facts(setup):
+    from acs.memory import MemoryStore
+
+    root, factory, _ = setup
+    app = create_app(root, factory)
+    store = MemoryStore(app.state.engine.settings.db_path)
+    visible = store.add_fact("USER001", "偏好入耳式")
+    store.add_fact("USER002", "不应对USER001可见")
+    with TestClient(app, base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        response = client.get(f"/api/sessions/{sid}/memory")
+        assert response.status_code == 200
+        facts = response.json()["facts"]
+        assert [fact["text"] for fact in facts] == ["偏好入耳式"]
+        assert "不应对USER001可见" not in json.dumps(facts, ensure_ascii=False)
+
+        deleted = client.delete(f"/api/sessions/{sid}/memory/{visible.fact_id}", headers=headers)
+        assert deleted.status_code == 200
+        assert deleted.json()["deleted"] is True
+        assert client.get(f"/api/sessions/{sid}/memory").json()["facts"] == []

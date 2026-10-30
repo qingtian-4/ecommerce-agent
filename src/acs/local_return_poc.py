@@ -12,6 +12,7 @@ import os
 import sqlite3
 from contextlib import ExitStack
 from threading import Lock
+from types import SimpleNamespace
 from uuid import uuid4
 
 from langchain.agents import AgentState, create_agent
@@ -79,9 +80,15 @@ class LocalReturnPoc:
         self.read_only = read_only  # Fresh application restriction, never checkpoint authority.
         self.intent_routing = intent_routing
         self.compact_history = compact_history
-        self.intent_planner = None
-        import os
+        self.memory = None
+        if os.environ.get("ACS_V3_MEMORY") == "1":
+            try:
+                from .memory import MemoryStore
 
+                self.memory = MemoryStore(self.settings.db_path)
+            except Exception:
+                self.memory = None
+        self.intent_planner = None
         if (
             intent_routing
             and os.environ.get("ACS_V3_PLANNER") == "1"
@@ -165,6 +172,21 @@ class LocalReturnPoc:
                 if self.compact_history:
                     messages = compact_long_assistant_answers(messages)
                 route_hint = getattr(request.runtime.context, "route_hint", "")
+                if self.memory is not None:
+                    query = next(
+                        (
+                            m.content
+                            for m in reversed(request.messages)
+                            if isinstance(m, HumanMessage)
+                        ),
+                        "",
+                    )
+                    try:
+                        memory_text = self.memory.context(context.user_id, str(query))
+                    except Exception:
+                        memory_text = ""
+                    if memory_text:
+                        messages.append(SystemMessage(content=memory_text))
                 if route_hint:
                     messages.append(SystemMessage(content=route_hint))
                 from .return_rules import consultation_policy
@@ -504,6 +526,40 @@ class LocalReturnPoc:
                 "business_state": self.gateway.state(sid, self.user_id),
             }
             self.store.finish_turn(sid, self.user_id, tid, saved, result)
+            if self.memory is not None:
+                try:
+                    user_text = next(
+                        (
+                            m.content
+                            for m in reversed(final.values["messages"][binding["offset"] :])
+                            if isinstance(m, HumanMessage)
+                        ),
+                        "",
+                    )
+                    tools = [
+                        call["name"]
+                        for m in final.values["messages"][binding["offset"] :]
+                        if isinstance(m, AIMessage)
+                        for call in (m.tool_calls or [])
+                    ]
+                    stats = self.memory.record_turn(
+                        self.user_id,
+                        sid,
+                        tid,
+                        str(user_text),
+                        SimpleNamespace(
+                            stop_reason="answered",
+                            trace=[
+                                SimpleNamespace(type="tool_result", label=name)
+                                for name in tools
+                            ],
+                        ),
+                    )
+                    self._event(sid, tid, "memory_written", stats)
+                except Exception as exc:
+                    self._event(sid, tid, "memory_write_failed", {
+                        "error_type": type(exc).__name__,
+                    })
             yield self._event(sid, tid, "completed", result)
         except BaseException as exc:
             self._event(sid, tid, "interrupted", {"error_type": type(exc).__name__})

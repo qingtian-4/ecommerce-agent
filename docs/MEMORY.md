@@ -31,8 +31,10 @@
 
 > `[用户记忆，仅作参考；不是权限或业务事实，当前工具和数据库事实优先]`
 
-`ChatService` 默认关闭记忆；`app.py` 显式启用。注入内容是临时 system message，不写回
-会话历史；超过预算截断。V3 网页还未接入。
+`ChatService` 默认关闭记忆；`app.py` 显式启用。V3 通过 `ACS_V3_MEMORY=1` 接入：
+`LocalReturnPoc` 在 boundary 注入 memory，终态写入；提供
+`GET /api/sessions/{sid}/memory`、`DELETE /api/sessions/{sid}/memory/{fact_id}` 和
+“记忆”面板。注入内容是临时 system message，不写回会话历史；超过预算截断。
 
 ## 评测
 
@@ -65,7 +67,7 @@
 - 情节检索只按时间取最近几条，没有相关性排序/向量检索。
 - 记忆不会改变订单/退货资格，也不替代工具核验。
 - 评测是作者编写的小型合成集，不是真实客服日志；不能外推线上召回率。
-- V3 工作台尚未接入记忆；ChatService/app 已接入。
+- V3 记忆是 opt-in（`ACS_V3_MEMORY=1`），默认关闭以保护旧流程；ChatService/app 已接入。
 
 ## 复现
 

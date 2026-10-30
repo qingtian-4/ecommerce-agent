@@ -861,3 +861,54 @@ $('resume').onclick = () => business('resume');
     controls();
   }
 })();
+
+// --- Memory panel -------------------------------------------------------
+async function loadMemory() {
+  const list = $('memory-list');
+  list.replaceChildren();
+  if (!sid) {
+    list.append(Object.assign(document.createElement('p'), { className: 'muted', textContent: '请先建立会话。' }));
+    return;
+  }
+  try {
+    const data = await api(endpoint('/memory'));
+    if (!data.facts.length) {
+      list.append(Object.assign(document.createElement('p'), { className: 'muted', textContent: '还没有跨会话记忆。试试说“记住我偏好入耳式”。' }));
+      return;
+    }
+    for (const fact of data.facts) {
+      const row = document.createElement('div');
+      row.className = 'memory-item';
+      const text = document.createElement('p');
+      text.textContent = `[${fact.kind}] ${fact.text}`;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'text-btn';
+      remove.textContent = '删除';
+      remove.addEventListener('click', async () => {
+        const response = await fetch(endpoint('/memory/' + encodeURIComponent(fact.id)), {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-Token': csrf },
+        });
+        if (!response.ok) {
+          error('删除记忆失败，请刷新后重试');
+          return;
+        }
+        await loadMemory();
+      });
+      row.append(text, remove);
+      list.append(row);
+    }
+  } catch (e) {
+    list.append(Object.assign(document.createElement('p'), { className: 'muted', textContent: e.message || '记忆读取失败' }));
+  }
+}
+
+$('memory').addEventListener('click', async () => {
+  const dialog = $('memory-dialog');
+  if (!dialog.open) dialog.showModal();
+  await loadMemory();
+});
+$('close-memory').addEventListener('click', () => $('memory-dialog').close());
+

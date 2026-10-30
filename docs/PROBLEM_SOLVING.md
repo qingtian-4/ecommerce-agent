@@ -1723,11 +1723,11 @@ V3 网页默认保留旧提示级规则 route，设置 ACS_V3_PLANNER=1 后启�
 `user_id` 隔离；只从显式偏好/画像语句抽取事实，带 source session/turn、confidence、
 TTL 和软删除；明显 PII 跳过；终态 turn 写摘要/情节；`MemoryStore.context()` 以
 “[用户记忆，仅作参考…]”注入，当前工具/数据库事实优先。ChatService 默认关闭，app 显式
-启用。
+启用；V3 通过 `ACS_V3_MEMORY=1` 接入，新增记忆 API 和面板。
 
 评测：`data/eval/memory_v1/cases.json` 12 条确定性场景（偏好/否定/画像/预算/颜色/
 退货偏好/PII/过期/跨用户/情节），expected hit 11/11、forbidden hit 0、抽取失败 0、
 模型调用 0、LLM judge 0，费用 0。逐条结果在 results/memory_eval_20261030。
 
 限制：规则抽取只覆盖显式表达；摘要是确定性拼接；情节只按时间取最近几条；没有向量
-检索/冲突消解；V3 尚未接入；评测是作者编写的合成集，不是真实日志。
+检索/冲突消解；V3 记忆是 opt-in；评测是作者编写的合成集，不是真实日志。

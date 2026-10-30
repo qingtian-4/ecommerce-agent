@@ -1000,6 +1000,34 @@ def create_app(
         auth(request, sid)
         return engine.return_card(sid)
 
+    @app.get("/api/sessions/{sid}/memory")
+    def session_memory(request: Request, sid: str):
+        auth(request, sid)
+        from .memory import MemoryStore
+
+        store = MemoryStore(engine.settings.db_path)
+        return {
+            "facts": [
+                {
+                    "id": fact.fact_id,
+                    "kind": fact.kind,
+                    "text": fact.text,
+                    "created_at": fact.created_at,
+                    "expires_at": fact.expires_at,
+                }
+                for fact in store.list_facts(UID, limit=50)
+            ]
+        }
+
+    @app.delete("/api/sessions/{sid}/memory/{fact_id}")
+    def delete_session_memory(request: Request, sid: str, fact_id: str):
+        auth(request, sid, True)
+        from .memory import MemoryStore
+
+        if not MemoryStore(engine.settings.db_path).delete_fact(UID, fact_id):
+            raise HTTPException(404, "记忆不存在或不属于当前用户")
+        return {"deleted": True, "id": fact_id}
+
     @app.post("/api/sessions/{sid}/messages", status_code=202)
     def message(request: Request, sid: str, body: MessageBody):
         auth(request, sid, True)
