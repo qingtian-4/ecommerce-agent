@@ -653,3 +653,19 @@ def test_memory_api_lists_and_deletes_only_current_user_facts(setup):
         assert deleted.status_code == 200
         assert deleted.json()["deleted"] is True
         assert client.get(f"/api/sessions/{sid}/memory").json()["facts"] == []
+
+def test_v3_memory_is_injected_into_model_context(setup, monkeypatch):
+    from acs.memory import MemoryStore
+
+    monkeypatch.setenv("ACS_V3_MEMORY", "1")
+    root, factory, models = setup
+    app = create_app(root, factory)
+    MemoryStore(app.state.engine.settings.db_path).add_fact(
+        "USER001", "偏好开放式耳机"
+    )
+    with TestClient(app, base_url=ORIGIN) as client:
+        sid, headers = browser(client)
+        post(client, sid, headers, "messages", text="预览")
+        done(client, sid)
+    sent = "\n".join(str(getattr(message, "content", "")) for message in models[-1].seen[0])
+    assert "偏好开放式耳机" in sent
