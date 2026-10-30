@@ -22,12 +22,14 @@ CHALLENGE = ROOT / "data/eval/intent_semantic_v1/challenge.json"
 
 def _metrics(rows, key):
     per = defaultdict(lambda: {"support": 0, "predicted": 0, "tp": 0})
-    exact = coverage = multi_total = multi_exact = multi_cover = 0
-    write_false = clarify_false = 0
+    exact = acceptable = coverage = multi_total = multi_exact = multi_cover = 0
+    write_false = clarify_false = optional_hits = unnecessary_labels = 0
     for row in rows:
         expected = set(row["required"])
         predicted = set(row[key])
+        optional = set(row.get("optional") or [])
         exact += predicted == expected
+        acceptable += expected <= predicted <= (expected | optional)
         coverage += expected <= predicted
         if len(expected) > 1:
             multi_total += 1
@@ -39,11 +41,9 @@ def _metrics(rows, key):
             per[label]["predicted"] += 1
         for label in expected & predicted:
             per[label]["tp"] += 1
-        if (
-            "return" in predicted
-            and "return" not in expected
-            and not row.get("planned_clarify")
-        ):
+        optional_hits += len(predicted & optional)
+        unnecessary_labels += len(predicted - expected - optional)
+        if "return" in predicted and "return" not in expected and not row.get("planned_clarify"):
             write_false += 1
         if row.get("clarify") is False and row.get("planned_clarify"):
             clarify_false += 1
@@ -66,10 +66,14 @@ def _metrics(rows, key):
         "cases": total,
         "exact_match": exact,
         "exact_rate": round(exact / total, 4) if total else 0.0,
+        "acceptable_match": acceptable,
+        "acceptable_rate": round(acceptable / total, 4) if total else 0.0,
         "coverage": coverage,
         "coverage_rate": round(coverage / total, 4) if total else 0.0,
         "missing_labels": sum(len(set(r["required"]) - set(r[key])) for r in rows),
         "extra_labels": sum(len(set(r[key]) - set(r["required"])) for r in rows),
+        "optional_predictions": optional_hits,
+        "unnecessary_labels": unnecessary_labels,
         "multi_intent_cases": multi_total,
         "multi_intent_exact": multi_exact,
         "multi_intent_coverage": multi_cover,
@@ -114,6 +118,7 @@ def main():
                 "query": case["query"],
                 "history": history,
                 "required": case["expected"],
+                "optional": [],
                 "rule": router.route(case["query"]).names,
                 "planner": plan.names,
                 "planned_confidences": [goal.confidence for goal in plan.goals],
@@ -138,6 +143,7 @@ def main():
                 "query": case["query"],
                 "history": [],
                 "required": case["required"],
+                "optional": case.get("optional", []),
                 "rule": router.route(case["query"]).names,
                 "planner": plan.names,
                 "planned_confidences": [goal.confidence for goal in plan.goals],

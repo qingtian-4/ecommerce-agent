@@ -17,7 +17,7 @@ Gradio、SQLite 和 RAG，将订单查询、退货草稿、明确确认、申请
   逐次 usage 和可观察 Trace；ChatService 统一服务页面与评测，同一会话串行、最多两个活动轮次。
 - **RAG 与工具**：BM25、Dense、RRF、可选 API 重排和证据核验；小知识库支持全文及整篇文档
   对照。订单、SKU、数量和物流来自 SQLite，政策与规格来自版本化知识文档。
-- **意图规划**：版本化 Intent Registry + BM25 边界示例检索 + 一次 JSON 多目标规划；所有工具始终可见，route 只做优先级提示，低置信度/歧义走澄清。ChatService/app 已切到 planner，旧的规则硬过滤已删除；170 条覆盖集 99.4% coverage、96.3% 多意图 coverage，30 条最终验收集 100% coverage、86.7% exact、100% 多意图 coverage、未澄清 return 误触发 0。V3 网页默认保留旧提示级 route，设置 ACS_V3_PLANNER=1 后启用 planner。
+- **意图规划**：版本化 Intent Registry + BM25 边界示例检索 + 一次 JSON 多目标规划；所有工具始终可见，route 只做优先级提示，低置信度/歧义走澄清。ChatService/app 已切到 planner，旧的规则硬过滤已删除；170 条覆盖集 99.4% coverage、96.3% 多意图 coverage，30 条最终验收集 100% coverage、strict exact 86.7%、optional-aware exact 93.3%、100% 多意图 coverage、未澄清 return 误触发 0。V3 网页默认保留旧提示级 route，设置 ACS_V3_PLANNER=1 后启用 planner。
 - **状态化售后**：SQLite 持久会话、带来源的草稿及修订、更正与恢复；预览后由页面明确确认
   创建待审申请，管理员独立认证审核，用户只查询本人记录。事务、幂等和剩余数量约束在服务端。
 - **有限可靠性保护**：补存遗漏的订单草稿、绑定订单商品事实、执行明确历史颜色限制、区分

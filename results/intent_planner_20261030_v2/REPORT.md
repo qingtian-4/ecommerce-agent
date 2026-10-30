@@ -23,4 +23,5 @@ Planner on 30 challenge (before the final return guard):
 Cost: 200 calls, 0.174398 CNY.
 
 The 170 expected labels are minimum required tool families; exact is depressed by extra
-soft-hint labels. Coverage is the primary metric. See `docs/INTENT_PLANNER.md`.
+soft-hint labels. Coverage is the primary metric. No LLM-as-judge was used. See
+`docs/INTENT_PLANNER.md`.

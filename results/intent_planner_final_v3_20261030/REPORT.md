@@ -4,7 +4,9 @@
 the run.
 
 - cases: 30
-- exact: 26/30 = 86.7%
+- strict exact: 26/30 = 86.7%
+- acceptable exact (required ⊆ predicted ⊆ required ∪ optional): 28/30 = **93.3%**
+- optional predictions: 2 (H02/H06 product); unnecessary labels: 3
 - required coverage: 30/30 = 100%
 - multi-intent exact/coverage: 16/16 = 100%
 - unclarified return false route: 0
@@ -26,4 +28,6 @@ The set is author-created synthetic semantic data, not real customer traffic. Ex
 an online accuracy estimate. Write false is a route-level metric; actual writes still go
 through ReturnService draft/preview/confirmation/review.
 
-Raw rows and usage: `scorecard.json`.
+Grading used deterministic set comparison; **no LLM-as-judge**. The planner was the
+system under test, not the judge. Optional-aware rescore (no new model calls):
+`rescore.json`.

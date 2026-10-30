@@ -29,27 +29,46 @@
 - **30 条最终验收集**：作者编写、在首次运行前冻结；运行后没有按结果调 prompt。
 - 指标：
   - `coverage`：required ⊆ predicted，是否有漏必需 route；
-  - `exact`：严格集合相等（extra 会扣分，作为噪声指标）；
+  - `strict exact`：严格集合相等；
+  - `acceptable exact`：`required ⊆ predicted ⊆ required ∪ optional`，允许数据集声明的
+    可接受 optional route；
   - `multi_intent_coverage`：多意图用例的 coverage；
   - `write_false_positive`：预测 return 但非 return 需求，且 **未触发澄清** 的用例；
   - `clarification_accuracy`：挑战集的 clarify 判断准确率。
 
+## 评分与 judge
+
+本轮**没有使用 LLM-as-judge**。意图是离散标签，评分在
+[`_metrics`](../scripts/eval_intent_planner.py) 中用集合比较完成：
+
+- strict exact：`predicted == required`；
+- acceptable exact：`required ⊆ predicted ⊆ required ∪ optional`；
+- coverage：`required ⊆ predicted`；
+- 多意图、per-route P/R/F1、clarification、return 误触发均为确定性计算。
+
+planner 模型只负责产生预测，不参与打分；没有 judge prompt、judge 模型调用或 judge 费用。
+如果以后评“额外 route 是否真的可接受”“澄清是否自然”或最终答案覆盖，才需要 judge；那时
+应先用人工标签校准，并报告 judge-human 一致率，不能直接拿 judge 当唯一判据。
+
 ## 结果
 
-| 数据集 | 方法 | exact | coverage | 多意图 coverage | 写误触发 |
-|---|---|---:|---:|---:|---:|
-| 170 开发 | 规则硬路由 | 21.8% | 62.4% | 48.1% | 20 |
-| 170 开发 | RAG planner | 42.4% | **99.4%** | **96.3%** | 17（旧口径，含澄清） |
-| 30 挑战 | 规则硬路由 | 56.7% | 80.0% | 62.5% | 0 |
-| 30 挑战 | RAG planner | 80.0% | 90.0% | 81.3% | 1 |
-| 30 最终 | 规则硬路由 | 56.7% | 70.0% | 62.5% | 2 |
-| 30 最终 | RAG planner | **86.7%** | **100%** | **100%** | **0** |
+| 数据集 | 方法 | strict exact | acceptable exact | coverage | 多意图 coverage | 未澄清 return |
+|---|---|---:|---:|---:|---:|---:|
+| 170 开发 | 规则硬路由 | 21.8% | 21.8% | 62.4% | 48.1% | 20 |
+| 170 开发 | RAG planner | 42.4% | 42.4% | **99.4%** | **96.3%** | 17（旧口径，含澄清） |
+| 30 最终 | 规则硬路由 | 56.7% | 56.7% | 70.0% | 62.5% | 2 |
+| 30 最终 | RAG planner | 86.7% | **93.3%** | **100%** | **100%** | **0** |
 
 最终验收集代价：30 次 planner 调用，32,459 prompt / 1,216 completion tokens，31.7 秒，
 0.023989 元（按 usage 估算）。170 开发集：200 次调用，0.174398 元。
 
-最终验收集仍有 1 个不必要澄清、5 个额外 route；exact 86.7%，不是 100%。额外 route 在
-软提示下是噪声，在硬过滤下会变成风险，因此**不恢复硬过滤**。
+最终验收集仍有 1 个不必要澄清、5 个额外 route：其中 2 个是数据声明的 optional
+（H02/H06 的 product），3 个是不必要的；因此 strict exact 86.7%、acceptable exact
+93.3%。早期评分没有使用 optional，strict-only 口径会误判这 2 条。额外 route 在软
+提示下是噪声，在硬过滤下会变成风险，因此**不恢复硬过滤**。
+
+评测代码已增加 `acceptable_match`、`optional_predictions`、`unnecessary_labels`；
+重打分见 `results/intent_planner_final_v3_20261030/rescore.json`，不需要重新调用模型。
 
 ## 验收
 
@@ -59,12 +78,16 @@
 | 多意图 coverage ≥90% | 16/16 = 100% |
 | 未澄清的 return 误触发 = 0 | 0 |
 | 澄清准确率 | 28/30 = 93.3% |
+| strict exact（参考） | 26/30 = 86.7% |
+| acceptable exact（参考） | 28/30 = 93.3% |
 | 规则路由不可用 | 规则 coverage 70%，已被 planner 替代 |
 | 端到端不回归 | 相关单测/应用测试通过；未声明生产端到端成功率 |
 
 ## 限制
 
-- 挑战/最终集是作者编写的合成语义集，不是真实客服日志；不能外推“线上准确率 86.7%”。
+- 挑战/最终集是作者编写的合成语义集，不是真实客服日志；不能外推“线上准确率 93.3%”。
+- optional 是作者声明的可接受 route，不是“任何额外 route 都合法”；未声明 optional 的
+  额外 route 仍计入 unnecessary_labels。
 - 170 的 expected 是工具族最小集合，exact 会低估/高估；coverage 才是主指标。
 - `write_false_positive` 是“未澄清的 return route”，不是实际写数据库；实际写仍由
   ReturnService 确认/审核链路控制。没有声称真实退款/安装/维修。
@@ -81,4 +104,9 @@ uv run python scripts/eval_intent_planner.py \
 uv run python scripts/eval_intent_planner.py \
   --out results/intent_planner_final_v3_20261030 \
   --skip-validation --challenge-path data/eval/intent_semantic_v1/final_validation_v3.json
+# 已保存预测的重打分（不调用模型）
+uv run python scripts/rescore_intent_planner.py \
+  --scorecard results/intent_planner_final_v3_20261030/scorecard.json \
+  --dataset data/eval/intent_semantic_v1/final_validation_v3.json \
+  --out results/intent_planner_final_v3_20261030/rescore.json
 ```
