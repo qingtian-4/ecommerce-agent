@@ -13,7 +13,7 @@ from acs.sessions import SessionStore
 
 @pytest.fixture()
 def store(settings):
-    SessionStore(settings.db_path)  # apply migration 6
+    SessionStore(settings.db_path)  # apply current migrations
     return MemoryStore(settings.db_path)
 
 
@@ -75,7 +75,9 @@ def test_record_turn_writes_explicit_fact_summary_and_episode(store):
     stats = store.record_turn("USER001", "s1", "t1", "记住我偏好入耳式", result)
     assert stats == {"facts": 1, "episodes": 1, "summary": 1}
     assert [fact.text for fact in store.list_facts("USER001")] == ["我偏好入耳式"]
-    assert "记住我偏好入耳式" in store.get_summary("s1", "USER001")
+    summary = store.get_summary("s1", "USER001")
+    assert "get_order" in summary and "answered" in summary
+    assert "入耳式" not in summary  # fact deletion/TTL must govern the only copy
     assert len(store.list_episodes("USER001")) == 1
 
 

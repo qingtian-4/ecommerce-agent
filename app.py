@@ -134,7 +134,8 @@ def ensure_agent(state_dict: dict, user_key: str) -> CustomerServiceAgent:
     user_id = user_id_from_key(user_key)
     agent = state_dict.get("agent")
     if agent is None or state_dict.get("user_id") != user_id:
-        agent = CustomerServiceAgent(settings=SETTINGS, current_user_id=user_id)
+        agent = CustomerServiceAgent(settings=SETTINGS, current_user_id=user_id,
+                                     goal_check=True, intent_planning=True)
         state_dict["agent"] = agent
         state_dict["user_id"] = user_id
     else:
@@ -354,6 +355,10 @@ def render_trace(result: AgentResult | None, error: str | None = None) -> str:
             title = f"Step {step_no} · 输出核验（原答仅供诊断） <code>{html.escape(event.label)}</code>"
         elif event.type == "fact_render":
             label = "订单统计事实" if event.label == "order_aggregation" else "订单候选事实"
+            title = f"Step {step_no} · {label} <code>{html.escape(event.label)}</code>"
+        elif event.type in {"intent_plan", "goal_check", "memory_write"}:
+            label = {"intent_plan": "意图规划", "goal_check": "目标证据检查",
+                     "memory_write": "记忆写入"}[event.type]
             title = f"Step {step_no} · {label} <code>{html.escape(event.label)}</code>"
         else:
             title = f"Step {step_no} · 最终回答"

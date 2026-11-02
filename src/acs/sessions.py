@@ -13,6 +13,8 @@ from uuid import uuid4
 from .database import item_sku
 from .runtime import RunBudget
 
+SCHEMA_VERSION = 7
+
 
 class ConversationBusy(RuntimeError):
     pass
@@ -73,7 +75,7 @@ class SessionStore:
             conn.execute("CREATE TABLE IF NOT EXISTS acs_migrations "
                          "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
             version = conn.execute("SELECT MAX(version) FROM acs_migrations").fetchone()[0] or 0
-            if version > 6:
+            if version > SCHEMA_VERSION:
                 raise RuntimeError("数据库迁移版本比当前程序新，不能自动降级")
             conn.execute("CREATE TABLE IF NOT EXISTS conversations ("
                          "session_id TEXT PRIMARY KEY,"
@@ -190,6 +192,14 @@ class SessionStore:
             conn.execute("CREATE INDEX IF NOT EXISTS memory_episodes_user "
                          "ON memory_episodes(user_id, created_at)")
             conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(6, ?)", (_now(),))
+            # Legacy derived memories copied user text without fact lifecycle links.
+            # Retain them for audit, but only serve the new non-copying format.
+            for table in ("memory_summaries", "memory_episodes"):
+                columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+                if "format_version" not in columns:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN format_version "
+                                 "INTEGER NOT NULL DEFAULT 0")
+            conn.execute("INSERT OR IGNORE INTO acs_migrations VALUES(7, ?)", (_now(),))
 
     @staticmethod
     def _require_owner(conn, sid: str, user_id: str) -> sqlite3.Row:

@@ -7,6 +7,7 @@ import fcntl
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
 import sqlite3
@@ -240,11 +241,13 @@ class AnswerStreamCallback(BaseCallbackHandler):
 
 class WebEngine:
     def __init__(
-        self, root, model_factory, *, fault=None, secret_values=(), answer_streaming=False
+        self, root, model_factory, *, fault=None, secret_values=(), answer_streaming=False,
+        intent_planning=False,
     ):
         self.root, self.model_factory = root.resolve(), model_factory
         self.fault, self.secret_values = fault, secret_values
         self.answer_streaming = answer_streaming
+        self.intent_planning = intent_planning
         self.settings = fixture_settings(root, kind=KIND)
         self.gateway = LocalReturnGateway(self.settings)
         self.store = self.gateway.store
@@ -430,7 +433,9 @@ class WebEngine:
                 factory() as model,
                 FormalReturnPoc(self.root, UID, model=model, fault=self.fault,
                                 stream_callback=stream, read_only=read_only,
-                                intent_routing=True) as poc,
+                                intent_routing=True,
+                                intent_planner=self.planner(model)
+                                if kind in {"message", "resume"} else None) as poc,
             ):
                 if kind in {"message", "resume"}:
                     self.emit(sid, jid, "turn_started", status="running")
@@ -552,6 +557,13 @@ class WebEngine:
                     status=status,
                     reason=reason,
                 )
+
+    def planner(self, model):
+        if not self.intent_planning:
+            return None
+        from .intent_planner import IntentPlanner
+
+        return IntentPlanner.for_chat_model(model)
 
     def events(self, sid, after):
         with self.read() as conn:
@@ -879,7 +891,9 @@ def create_app(
     if parsed.scheme != "http" or parsed.hostname != "127.0.0.1" or parsed.path:
         raise ValueError("Demo requires a loopback HTTP origin")
     engine = WebEngine(Path(root), model_factory, fault=fault, secret_values=secret_values,
-                       answer_streaming=answer_streaming)
+                       answer_streaming=answer_streaming,
+                       intent_planning=runtime_mode == "deepseek"
+                       and os.environ.get("ACS_V3_PLANNER") == "1")
 
     @asynccontextmanager
     async def lifespan(app):

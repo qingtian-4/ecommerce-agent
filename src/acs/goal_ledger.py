@@ -11,8 +11,12 @@ first sub-request and stops, leaving the second one unaddressed.
 
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass, field
 from typing import Any
+
+from .cs_tools import CATALOG_CONTRACT, catalog_progress
 
 ORDER_WORDS = ("订单", "买了", "购买记录", "下单")
 CATALOG_WORDS = ("商品", "产品", "目录", "SKU", "型号")
@@ -48,6 +52,7 @@ class GoalSpec:
     label: str
     require_complete_catalog: bool = False
     require_all_orders: bool = False
+    return_tool: str | None = None
 
 
 def _has(text: str, words: tuple[str, ...]) -> bool:
@@ -89,10 +94,18 @@ def detect_goals(text: str) -> list[GoalSpec]:
     return specs
 
 
+def _read_result(payload: dict[str, Any], id_key: str) -> bool:
+    # A well-formed, tool-scoped absence is an answer to a read query, not
+    # evidence of business eligibility. Errors/denials are excluded by missing().
+    return (payload.get("found") is True and bool(payload.get(id_key))) or (
+        payload.get("found") is False and bool(payload.get(id_key))
+        and isinstance(payload.get("reason"), str) and bool(payload["reason"]))
+
+
 def _orders_done(spec: GoalSpec, name: str, payload: dict[str, Any]) -> bool:
     if name == "list_orders":
-        return payload.get("orders") is not None
-    return not spec.require_all_orders and name in {"get_order", "get_logistics"} and bool(payload)
+        return isinstance(payload.get("orders"), list) and payload.get("has_more") is not True
+    return not spec.require_all_orders and name == "get_order" and _read_result(payload, "order_id")
 
 
 def _catalog_done(spec: GoalSpec, name: str, payload: dict[str, Any]) -> bool:
@@ -108,27 +121,55 @@ def _policy_done(name: str, payload: dict[str, Any]) -> bool:
 
 
 def _logistics_done(name: str, payload: dict[str, Any]) -> bool:
-    return name in {"get_logistics", "get_order"} and bool(payload)
+    return name == "get_logistics" and _read_result(payload, "order_id")
 
 
-def _product_done(name: str, payload: dict[str, Any]) -> bool:
+def _product_done(spec: GoalSpec, name: str, payload: dict[str, Any]) -> bool:
+    if spec.require_complete_catalog:
+        return _catalog_done(spec, name, payload)
     if name == "list_products":
-        return payload.get("products") is not None
-    return name in {"get_product", "get_price_history"} and bool(payload)
+        return (isinstance(payload.get("products"), list)
+                and payload.get("has_more") is not True
+                and payload.get("query_complete") is not False)
+    return name == "get_product" and _read_result(payload, "product_id")
 
 
-def _return_done(name: str, payload: dict[str, Any]) -> bool:
-    return name in {
-        "get_return_task",
-        "update_return_task",
-        "cancel_return_task",
-        "preview_return",
-        "get_return_requests",
-    } and bool(payload)
+def _return_done(spec: GoalSpec, name: str, payload: dict[str, Any]) -> bool:
+    if spec.return_tool and name != spec.return_tool:
+        return False
+    if name == "preview_return":
+        return payload.get("ready") is True
+    if name == "get_return_requests":
+        return isinstance(payload.get("requests"), list)
+    if name == "update_return_task":
+        return isinstance(payload.get("task"), dict) and payload["task"].get("status") == "draft"
+    if name in {"get_return_task", "cancel_return_task"}:
+        return "task" in payload and payload.get("success") is not False
+    return False
 
 
 def _price_done(name: str, payload: dict[str, Any]) -> bool:
-    return name in {"get_price_history", "get_order"} and bool(payload)
+    return name == "get_price_history" and _read_result(payload, "product_id")
+
+
+def _paged_catalog_done(spec: GoalSpec, receipts: list[dict]) -> bool:
+    pages = []
+    for receipt in receipts:
+        payload = receipt["payload"]
+        if (receipt["name"] != "list_products" or receipt["error"]
+                or payload.get("contract") != CATALOG_CONTRACT or payload.get("error_type")):
+            continue
+        if (spec.require_complete_catalog
+                and payload.get("catalog_count") != payload.get("total_count")):
+            continue
+        pages.append({"name": "list_products", "arguments": receipt["arguments"],
+                      "result": json.dumps(payload), "error": None})
+    try:
+        progress = catalog_progress(pages)
+    except (TypeError, ValueError, KeyError):
+        return False  # malformed receipts cannot become proof of completion
+    return any(p["complete"] and (not spec.require_complete_catalog or not p["query"])
+               for p in progress)
 
 
 @dataclass
@@ -143,10 +184,24 @@ class GoalLedger:
         self.specs = detect_goals(self.user_text)
 
     @classmethod
-    def from_plan(cls, plan: Any) -> GoalLedger:
-        ledger = cls(user_text="")
+    def from_plan(cls, plan: Any, *, user_text: str = "") -> GoalLedger:
+        ledger = cls(user_text=user_text)
+        complete_catalog = any(s.require_complete_catalog for s in ledger.specs)
+        all_orders = _has(user_text, ALL_WORDS)
+        # These constrain evidence only; they never authorize an action.
+        return_tool = None
+        if not re.search(r"不要|先别|先不|不用|只读|只查|如果|假如", user_text):
+            if "预览" in user_text:
+                return_tool = "preview_return"
+            elif re.search(r"取消|中止|清空", user_text):
+                return_tool = "cancel_return_task"
+            elif re.search(r"帮我退|我要退|修改|改成|保存|存草稿|记录|办理", user_text):
+                return_tool = "update_return_task"
         ledger.specs = [
-            GoalSpec(name, LABELS[name])
+            GoalSpec(name, LABELS[name],
+                     require_complete_catalog=name == "product" and complete_catalog,
+                     require_all_orders=name == "orders" and all_orders,
+                     return_tool=return_tool if name == "return" else None)
             for name in plan.names
             if name in LABELS
         ]
@@ -156,12 +211,15 @@ class GoalLedger:
     def active(self) -> bool:
         return bool(self.specs)
 
-    def record(self, name: str, payload: Any, error: str | None = None) -> None:
+    def record(self, name: str, payload: Any, error: str | None = None, *,
+               arguments: str | dict | None = None) -> None:
         self.receipts.append(
             {
                 "name": name,
                 "payload": payload if isinstance(payload, dict) else {},
                 "error": error,
+                "arguments": (arguments if isinstance(arguments, str)
+                              else json.dumps(arguments or {})),
             }
         )
 
@@ -172,6 +230,8 @@ class GoalLedger:
                 continue
             name = receipt["name"]
             payload = receipt["payload"]
+            if payload.get("error_type") or payload.get("error"):
+                continue
             for spec in self.specs:
                 if done[spec.name]:
                     continue
@@ -184,11 +244,14 @@ class GoalLedger:
                 elif spec.name == "logistics":
                     done[spec.name] = _logistics_done(name, payload)
                 elif spec.name == "product":
-                    done[spec.name] = _product_done(name, payload)
+                    done[spec.name] = _product_done(spec, name, payload)
                 elif spec.name == "return":
-                    done[spec.name] = _return_done(name, payload)
+                    done[spec.name] = _return_done(spec, name, payload)
                 elif spec.name == "price":
                     done[spec.name] = _price_done(name, payload)
+        for spec in self.specs:
+            if spec.name in {"product", "catalog"} and not done[spec.name]:
+                done[spec.name] = _paged_catalog_done(spec, self.receipts)
         return [spec.name for spec in self.specs if not done[spec.name]]
 
     def labels(self, missing: list[str] | None = None) -> list[str]:
@@ -223,7 +286,9 @@ class GoalLedger:
             elif spec.name == "logistics":
                 hints.append("调用 get_logistics 获取物流轨迹")
             elif spec.name == "product":
-                hints.append("调用 list_products 或 get_product 获取商品事实")
+                hints.append('调用 list_products(view="overview") 获取完整商品概览'
+                             if spec.require_complete_catalog
+                             else "调用 list_products 或 get_product 获取商品事实")
             elif spec.name == "return":
                 hints.append("调用退货草稿/预览/申请查询工具，确认业务回执")
             elif spec.name == "price":
@@ -233,5 +298,7 @@ class GoalLedger:
             + labels
             + "。请先"
             + "；".join(hints)
-            + "，再分别回答；不要只回答其中一项，也不要用未完成的目录冒充全部。"
+            + "，再给出覆盖全部诉求的完整回答，修正之前的错误，不要只补一句。"
+            "遇到拒绝、无结果或缺项应如实说明，不能猜测或扩大写操作授权；"
+            "不要用未完成的目录冒充全部。"
         )

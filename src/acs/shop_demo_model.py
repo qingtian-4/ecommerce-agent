@@ -95,7 +95,7 @@ def decide(messages):
     return None, "当前为离线SDK交互验收，可以查询订单、商品或按卡片准备退货。"
 
 
-def offline_factory(root):
+def offline_factory(root, *, max_body_bytes=32768):
     ledger = EpisodeLedger(root / "offline-fees.jsonl", cap_cny=5, max_requests=48)
     ledger.begin("shop-offline", EpisodeLimits(requests=48, tools=128, episode_timeout_s=86400))
     ledger.evidence = ResponseEvidence(root / ".private-evidence")
@@ -173,7 +173,7 @@ def offline_factory(root):
                     )
                 ),
                 streaming=True,
-                max_body_bytes=32768,
+                max_body_bytes=max_body_bytes,
             )
         ) as client:
             yield deepseek_model(

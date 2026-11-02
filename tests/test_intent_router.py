@@ -16,6 +16,8 @@ def test_order_plus_product_is_multi_route():
     assert "list_products" in decision.tools
     assert "preview_return" not in decision.tools
     assert "订单查询" in decision.labels and "商品咨询" in decision.labels
+    assert "其他工具仍可" in decision.hint
+    assert "不要调用未列出" not in decision.hint
 
 
 def test_order_plus_policy_does_not_open_a_write_route():

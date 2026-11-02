@@ -28,6 +28,7 @@ def _metrics(rows, key):
         expected = set(row["required"])
         predicted = set(row[key])
         optional = set(row.get("optional") or [])
+        clarified = bool(row.get("planned_clarify" if key == "planner" else f"{key}_clarify"))
         exact += predicted == expected
         acceptable += expected <= predicted <= (expected | optional)
         coverage += expected <= predicted
@@ -43,9 +44,9 @@ def _metrics(rows, key):
             per[label]["tp"] += 1
         optional_hits += len(predicted & optional)
         unnecessary_labels += len(predicted - expected - optional)
-        if "return" in predicted and "return" not in expected and not row.get("planned_clarify"):
+        if "return" in predicted and "return" not in expected and not clarified:
             write_false += 1
-        if row.get("clarify") is False and row.get("planned_clarify"):
+        if row.get("clarify") is False and clarified:
             clarify_false += 1
     per_route = {}
     for label, value in sorted(per.items()):

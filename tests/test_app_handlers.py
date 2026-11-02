@@ -250,6 +250,9 @@ def _stub_agent(monkeypatch, responses: list[ScriptedResponse]) -> ScriptedLLM:
     def patched(state_dict: dict, user_key: str):
         agent = real(state_dict, user_key)
         agent.llm = llm
+        # Handler units isolate planning; dedicated regressions exercise the real
+        # factory/planner path. Never leave a real planner pointing at the old LLM.
+        agent.intent_planner = None
         return agent
 
     monkeypatch.setattr(app_module, "ensure_agent", patched)

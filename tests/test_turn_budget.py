@@ -80,7 +80,7 @@ def test_trickling_stream_stops_with_partial_text_and_no_orphan_messages(setting
 
 @pytest.mark.parametrize("kind", ["chat", "embedding", "rerank"])
 def test_nested_provider_request_uses_same_deadline_and_records_failed_attempt(
-    settings, provider, kind,
+    settings, provider, kind, monkeypatch,
 ):
     base, requests = provider
     settings = settings.model_copy(update={
@@ -88,6 +88,18 @@ def test_nested_provider_request_uses_same_deadline_and_records_failed_attempt(
         "embedding_api_key": "test-key", "embedding_base_url": base,
         "reranker_api_key": "test-key", "reranker_base_url": base,
     })
+    if kind == "embedding":
+        import httpx
+        import openai
+
+        original = openai.AsyncOpenAI
+
+        def local_client(**kwargs):
+            # The provider is plain loopback HTTP. TLS/proxy setup on a busy
+            # host can consume this test's 350ms before any request is sent.
+            return original(**kwargs, http_client=httpx.AsyncClient(verify=False, trust_env=False))
+
+        monkeypatch.setattr(openai, "AsyncOpenAI", local_client)
     client = LLMClient(settings)
     client.budget = RunBudget(0.35, 2)
     started = time.monotonic()

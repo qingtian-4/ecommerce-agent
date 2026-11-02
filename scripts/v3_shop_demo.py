@@ -80,7 +80,7 @@ def main():
     else:
         app = create_shop_app(
             root,
-            offline_factory(root),
+            offline_factory(root, max_body_bytes=args.max_body_bytes),
             origin=origin,
             runtime_mode="fixed_script",
             answer_streaming=True,

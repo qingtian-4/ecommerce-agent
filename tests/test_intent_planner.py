@@ -126,9 +126,10 @@ def test_goal_ledger_from_plan_tracks_six_goal_types():
     )
     ledger = GoalLedger.from_plan(plan)
     ledger.record("list_orders", {"orders": [{"order_id": "O1"}]})
-    ledger.record("get_logistics", {"events": [{"status": "in_transit"}]})
-    ledger.record("get_product", {"product": {"product_id": "B1"}})
+    ledger.record("get_logistics", {"found": True, "order_id": "O1", "trace": []})
+    ledger.record("get_product", {"found": True, "product_id": "B1"})
     ledger.record("search_knowledge", {"found": True, "documents": [{"id": "d"}]})
     ledger.record("get_return_task", {"task": {"task_id": "t"}})
-    ledger.record("get_price_history", {"history": [{"price": 1}]})
+    ledger.record("get_price_history", {"found": True, "product_id": "B1",
+                                       "records": [{"price": 1}]})
     assert ledger.missing() == []

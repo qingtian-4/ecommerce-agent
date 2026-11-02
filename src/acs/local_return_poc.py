@@ -68,7 +68,8 @@ class LocalReturnPoc:
     preview_description = "核查当前草稿、政策与数量并生成隔离预览；没有提交、审核或退款入口。"
 
     def __init__(self, root, user_id, *, model, registry=None, fault=None, stream_callback=None,
-                 read_only=False, intent_routing=False, compact_history=False):
+                 read_only=False, intent_routing=False, compact_history=False,
+                 intent_planner=None):
         self.settings = fixture_settings(root, kind=self.fixture_kind)
         self.root = root.resolve()
         self.user_id, self.model = user_id, model
@@ -88,19 +89,8 @@ class LocalReturnPoc:
                 self.memory = MemoryStore(self.settings.db_path)
             except Exception:
                 self.memory = None
-        self.intent_planner = None
-        if (
-            intent_routing
-            and os.environ.get("ACS_V3_PLANNER") == "1"
-            and getattr(self.settings, "llm_api_key", None)
-        ):
-            try:
-                from .intent_planner import IntentPlanner
-                from .llm import LLMClient
-
-                self.intent_planner = IntentPlanner(LLMClient(settings=self.settings))
-            except Exception:
-                self.intent_planner = None
+        # Only the host can supply a planner using its authorized model boundary.
+        self.intent_planner = intent_planner
 
     def __enter__(self):
         self.stack = ExitStack()
@@ -240,7 +230,8 @@ class LocalReturnPoc:
                 middleware=[
                     refresh,
                     boundary,
-                    ModelCallLimitMiddleware(run_limit=8, exit_behavior="error"),
+                    ModelCallLimitMiddleware(run_limit=7 if self.intent_planner else 8,
+                                             exit_behavior="error"),
                     ToolCallLimitMiddleware(run_limit=16, exit_behavior="error"),
                 ],
             )
@@ -438,11 +429,14 @@ class LocalReturnPoc:
                 if self.intent_planner is not None:
                     try:
                         plan = self.intent_planner.plan(text)
-                        if plan.goals and not plan.needs_clarification:
-                            route_hint = plan.to_hint()
+                        route_hint = plan.to_hint()
+                        yield self._event(sid, tid, "intent_plan", {
+                            "goals": plan.names, "clarify": plan.needs_clarification,
+                            "source": plan.source,
+                        })
                     except Exception:
-                        route_hint = ""
-                if not route_hint:
+                        route_hint = "意图规划不可用，请按完整用户请求逐项核实。"
+                else:
                     from .intent_router import IntentRouter
 
                     route_hint = IntentRouter().route(text).hint

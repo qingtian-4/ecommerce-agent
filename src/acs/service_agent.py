@@ -272,10 +272,11 @@ class CustomerServiceAgent:
         route_hint = plan.to_hint() if plan else ""
         self.messages.append({"role": "user", "content": user_message})
         if plan and plan.goals and not plan.needs_clarification:
-            goals = GoalLedger.from_plan(plan) if self.goal_check else None
+            goals = GoalLedger.from_plan(plan, user_text=user_message) if self.goal_check else None
         else:
-            goals = GoalLedger(user_message) if self.goal_check and plan is None else None
-        partial_answers: list[str] = []
+            goals = (GoalLedger(user_message)
+                     if self.goal_check and (plan is None or plan.failed) else None)
+        retry_hint = ""
 
         result = AgentResult(answer="", stop_reason="running", totals={"model_input_chars": []})
         schemas = self.registry.schemas()
@@ -302,15 +303,15 @@ class CustomerServiceAgent:
             try:
                 if budget:
                     budget.remaining()
+                hint = "\n".join(part for part in (route_hint, retry_hint) if part)
+                projected = self.messages
+                if hint:
+                    projected = (self.messages[:1] + [{"role": "system", "content": hint}]
+                                 + self.messages[1:])
                 model_messages = model_context(
-                    self.messages, current_start, schemas, self.settings.context_max_chars,
+                    projected, current_start + bool(hint), schemas,
+                    self.settings.context_max_chars,
                 )
-                if route_hint:
-                    model_messages = (
-                        model_messages[:1]
-                        + [{"role": "system", "content": route_hint}]
-                        + model_messages[1:]
-                    )
                 result.totals["model_input_chars"].append(input_chars(model_messages, schemas))
                 if stream_text:
                     response = None
@@ -373,16 +374,12 @@ class CustomerServiceAgent:
                     ))
                     if answer:
                         self.messages.append({"role": "assistant", "content": answer})
-                        partial_answers.append(answer)
-                    self.messages.append(
-                        {"role": "system", "content": goals.retry_prompt(missing)}
-                    )
+                    # Model-only feedback: persisted turns allow user/assistant/tool,
+                    # never internal system messages.
+                    retry_hint = goals.retry_prompt(missing)
                     result.answer = ""
                     continue
                 result.answer = answer
-                for part in dict.fromkeys(partial_answers):
-                    if part and part not in result.answer:
-                        result.answer = part + "\n\n" + result.answer
                 if goals and goals.active and missing:
                     result.trace.append(TraceEvent(
                         type="goal_check", label="missing_goals_exhausted",
@@ -445,7 +442,7 @@ class CustomerServiceAgent:
                                                           detail=payload)]
                     error = limit_reason
                 if goals:
-                    goals.record(call.name, payload, error)
+                    goals.record(call.name, payload, error, arguments=call.arguments)
                 # The registry's first event is the call already published above.
                 result.trace.extend(events[1:])
                 if error:

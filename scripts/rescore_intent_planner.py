@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -25,11 +26,17 @@ def main() -> None:
     data = json.loads(args.dataset.read_text(encoding="utf-8"))
     optional = {case["id"]: case.get("optional", []) for case in data["cases"]}
     result = {
-        "measurement_revision": "optional-aware-exact-v1",
+        "measurement_revision": "intent-metrics-v2-method-specific-clarification",
+        "model_calls": 0,
+        "dataset_sha256": hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
+        "source_scorecard_sha256": hashlib.sha256(args.scorecard.read_bytes()).hexdigest(),
+        "scoring_source_sha256": hashlib.sha256(
+            (ROOT / "scripts/eval_intent_planner.py").read_bytes()).hexdigest(),
         "source_scorecard": str(args.scorecard.resolve().relative_to(ROOT)),
         "dataset": str(args.dataset.resolve().relative_to(ROOT)),
         "model": scorecard.get("model"),
         "usage": scorecard.get("usage"),
+        "usage_scope": "historical prediction calls, not this rescore",
         "challenge": None,
         "challenge_rule": None,
         "validation": None,

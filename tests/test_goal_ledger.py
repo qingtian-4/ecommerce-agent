@@ -59,7 +59,7 @@ def test_agent_retries_once_and_answers_both_goals(settings, registry):
                 wants_tools=True,
                 tool_calls=[ScriptedToolCall("products", "list_products", '{"view": "overview"}')],
             ),
-            ScriptedResponse(text="本店目前有 4 件商品。"),
+            ScriptedResponse(text="您目前有 25 笔订单；本店目前有 4 件商品。"),
         ]
     )
     agent = CustomerServiceAgent(

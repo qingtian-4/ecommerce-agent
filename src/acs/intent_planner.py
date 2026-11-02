@@ -9,6 +9,7 @@ write.  Low confidence or conflicting wording asks the user to clarify.
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -89,7 +90,13 @@ class IntentPlan:
     def confidence(self) -> float:
         return min((goal.confidence for goal in self.goals), default=0.0)
 
+    @property
+    def failed(self) -> bool:
+        return self.source in {"planner_error", "planner_invalid"}
+
     def to_hint(self) -> str:
+        if self.failed:
+            return "意图规划不可用；请根据完整用户请求逐项核实，不得推断规划已完成。"
         if self.needs_clarification:
             question = self.clarify_question or "请先确认您具体要处理哪一笔订单或哪一件商品。"
             return (
@@ -194,6 +201,8 @@ def _examples_block(hits: list[dict[str, str]]) -> str:
 
 
 def _parse(text: str) -> dict[str, Any] | None:
+    if not isinstance(text, str):
+        return None
     match = re.search(r"\{.*\}", text or "", re.DOTALL)
     if not match:
         return None
@@ -219,6 +228,23 @@ class IntentPlanner:
         self.max_tokens = max_tokens
         for name, item in self.registry.definitions.items():
             REGISTRY_TOOLS[name] = item.tools
+
+    @classmethod
+    def for_chat_model(cls, model: Any) -> IntentPlanner:
+        """Reuse the host's LangChain transport/callbacks; never create an SDK client."""
+        from types import SimpleNamespace
+
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        def complete(prompt, *, system, temperature, max_tokens, **kwargs):
+            response = model.bind(
+                temperature=temperature, max_tokens=max_tokens, stream=False,
+                response_format={"type": "json_object"},
+            ).invoke([SystemMessage(content=system), HumanMessage(content=prompt)],
+                     config={"tags": ["intent_plan"]})
+            return SimpleNamespace(text=response.content)
+
+        return cls(SimpleNamespace(complete=complete))
 
     def plan(self, text: str, *, history: list[str] | None = None) -> IntentPlan:
         hits = self.registry.retrieve(text, k=8)
@@ -248,29 +274,28 @@ class IntentPlanner:
         except Exception:
             return IntentPlan([], source="planner_error", retrieved=hits)
         value = _parse(raw)
-        if value is None:
+        if (value is None or not isinstance(value.get("goals"), list)
+                or type(value.get("needs_clarification", False)) is not bool):
             return IntentPlan([], source="planner_invalid", retrieved=hits)
         raw_goals = value.get("goals")
         goals: list[PlannedGoal] = []
         if isinstance(raw_goals, list):
             seen = set()
             for item in raw_goals:
-                if isinstance(item, str):
-                    name, confidence, slots = item, 1.0, {}
-                elif isinstance(item, dict):
+                if isinstance(item, dict):
                     name = item.get("intent")
-                    confidence = item.get("confidence", 1.0)
+                    confidence = item.get("confidence")
                     slots = item.get("slots") if isinstance(item.get("slots"), dict) else {}
                 else:
+                    return IntentPlan([], source="planner_invalid", retrieved=hits)
+                if (not isinstance(name, str) or name not in ALLOWED
+                        or type(confidence) not in {int, float}
+                        or not math.isfinite(confidence) or not 0 <= confidence <= 1):
+                    return IntentPlan([], source="planner_invalid", retrieved=hits)
+                if name in seen:
                     continue
-                if name not in ALLOWED or name in seen:
-                    continue
-                try:
-                    confidence = float(confidence)
-                except (TypeError, ValueError):
-                    confidence = 0.0
                 seen.add(name)
-                goals.append(PlannedGoal(name, max(0.0, min(1.0, confidence)), slots))
+                goals.append(PlannedGoal(name, float(confidence), slots))
         question = None
         # Normalise a common split: a delivery exception needs order facts too,
         # even when the model only labels the logistics family.

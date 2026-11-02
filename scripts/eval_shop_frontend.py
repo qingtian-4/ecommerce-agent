@@ -39,6 +39,8 @@ def run(out, port):
                 str(runtime),
                 "--port",
                 str(port),
+                "--max-body-bytes",
+                "65536",
                 *(["--init"] if init else []),
             ],
             cwd=ROOT,
@@ -531,6 +533,8 @@ def run(out, port):
                 ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
             ).strip(),
             "kind": "real_chromium_native_graph_mock_sdk",
+            "profile": "interactive_ui",
+            "request_body_limit_bytes": 65536,
             "paid_requests": 0,
             "mock_sdk_requests": requests(),
             "checks": checks,
