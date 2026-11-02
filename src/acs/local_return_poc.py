@@ -56,6 +56,11 @@ PROMPT = """你是电商客服。本实验仅支持本人商品、订单、物�
 知识、商品或政策查询不会自动建立、修改或取消草稿。当前应用事实优先于历史消息。
 """
 
+PENDING_ROUTE_HINT = (
+    "本轮意图规划未完成或缺少可恢复记录，请先澄清；"
+    "澄清前不要创建、修改或取消任何退货草稿。"
+)
+
 
 class LocalState(AgentState):
     turn_id: str
@@ -411,7 +416,7 @@ class LocalReturnPoc:
                         "Completed business Turn has inconsistent Graph image"
                     )
                 self._reconcile(sid, binding, state)
-        route_hint = ""
+        route_hint = PENDING_ROUTE_HINT if self.intent_routing else ""
         if text is not None:
             if not text.strip():
                 raise ValueError("Empty message")
@@ -424,22 +429,39 @@ class LocalReturnPoc:
                     "UPDATE local_threads SET turn_id=?,offset=? WHERE session_id=?",
                     (tid, offset, sid),
                 )
+                # Pending routing is durable with the Turn reservation, including
+                # a crash before the planner or first Graph checkpoint completes.
+                conn.execute(
+                    "UPDATE conversation_turns SET result_json=? WHERE session_id=? AND turn_id=?",
+                    (json.dumps({"local_routing": {"version": 1, "hint": route_hint}},
+                                ensure_ascii=False), sid, tid),
+                )
             binding.update(turn_id=tid, offset=offset)
+            plan_detail = None
             if self.intent_routing:
                 if self.intent_planner is not None:
                     try:
                         plan = self.intent_planner.plan(text)
                         route_hint = plan.to_hint()
-                        yield self._event(sid, tid, "intent_plan", {
+                        plan_detail = {
                             "goals": plan.names, "clarify": plan.needs_clarification,
                             "source": plan.source,
-                        })
+                        }
                     except Exception:
-                        route_hint = "意图规划不可用，请按完整用户请求逐项核实。"
+                        route_hint = PENDING_ROUTE_HINT
                 else:
                     from .intent_router import IntentRouter
 
                     route_hint = IntentRouter().route(text).hint
+            with self.store.transaction() as conn:
+                self.gateway.active(conn, TurnContext(sid, self.user_id, tid))
+                conn.execute(
+                    "UPDATE conversation_turns SET result_json=? WHERE session_id=? AND turn_id=?",
+                    (json.dumps({"local_routing": {"version": 1, "hint": route_hint}},
+                                ensure_ascii=False), sid, tid),
+                )
+            if plan_detail is not None:
+                yield self._event(sid, tid, "intent_plan", plan_detail)
             inputs = {"messages": [HumanMessage(content=text)], "turn_id": tid}
         else:
             tid = binding["turn_id"]
@@ -461,6 +483,11 @@ class LocalReturnPoc:
                 }
                 yield self._event(sid, tid, "completed", result)
                 return
+            # SQL holds application routing context, never submission authority.
+            # A resume reuses this Turn's hint even if the planner opt-in changed.
+            routing = json.loads(row["result_json"] or "{}").get("local_routing", {})
+            if routing.get("version") == 1 and isinstance(routing.get("hint"), str):
+                route_hint = routing["hint"]
             if state.values.get("turn_id") == tid:
                 self._reconcile(sid, binding, state)
                 inputs = None

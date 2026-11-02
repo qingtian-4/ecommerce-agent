@@ -59,6 +59,59 @@ def _has(text: str, words: tuple[str, ...]) -> bool:
     return any(word in text for word in words)
 
 
+def _clauses(text: str) -> list[str]:
+    """Bound evidence cues to a local request, never use them to authorize tools."""
+    return [part for part in re.split(
+        r"[，,。；;！？!?\n]|然后|另外|同时|并且|以及|而且|但是|但|并|和|再", text
+    ) if part.strip()]
+
+
+def _all_orders(text: str) -> bool:
+    for clause in _clauses(text):
+        if not _has(clause, ORDER_WORDS):
+            continue
+        specific = re.search(r"[Oo]\d{5,}|这笔|这单|该订单|指定订单", clause)
+        explicit_all = re.search(r"(?:全部|所有)(?:的)?(?:订单|购买记录)", clause)
+        if _has(clause, ALL_WORDS) and (not specific or explicit_all):
+            return True
+    return False
+
+
+def _return_tool(text: str) -> str | None:
+    actions = set()
+    # Keep coordinated actions together ("不要保存和预览"), but start a
+    # new scope at an explicit negation even without punctuation.
+    clauses = re.split(r"[，,。；;！？!?\n]|然后|另外|但是|但|再|(?=不要|先别|先不|不用)", text)
+    for clause in clauses:
+        if re.search(r"不要|别|先不|不用|只读|只查|如果|假如|不是|不想|不需要", clause):
+            continue
+        read = re.search(r"查询|查看|核对|看看|查一下", clause)
+        action = re.search(r"预览|取消|中止|清空|帮我退|我要退|修改|改成|保存|存草稿|记录|办理",
+                           clause)
+        if read and action and read.start() < action.start():
+            # "查看已保存的草稿" describes evidence; "查询后保存" asks for
+            # another action. Only an explicit following action changes scope.
+            following = re.search(
+                r"(?:后|并)(?=(?:请|先)?(?:保存|修改|改成|生成|预览|取消|中止|清空|记录|办理))",
+                clause[read.end():],
+            )
+            if following is None:
+                continue
+            clause = clause[read.end() + following.end():]
+        if "预览" in clause:
+            actions.add("preview_return")
+        if re.search(r"取消|中止|清空", clause):
+            actions.add("cancel_return_task")
+        # "退货记录" and "已办理申请" name query objects, not write requests.
+        explicit_write = re.search(r"帮我退|我要退|修改|改成|保存|存草稿", clause)
+        record_or_process = re.search(r"(?:^|请|先|帮我|帮忙|给我|麻烦|为我)(?:记录|办理)",
+                                      clause.strip())
+        if explicit_write or record_or_process:
+            actions.add("update_return_task")
+    return next((name for name in ("preview_return", "cancel_return_task", "update_return_task")
+                 if name in actions), None)
+
+
 def detect_goals(text: str) -> list[GoalSpec]:
     """Return explicit goals, or an empty list when this is not a bounded multi-goal case."""
     value = (text or "").strip()
@@ -70,7 +123,7 @@ def detect_goals(text: str) -> list[GoalSpec]:
             GoalSpec(
                 "orders",
                 "订单",
-                require_all_orders=_has(value, ALL_WORDS),
+                require_all_orders=_all_orders(value),
             )
         )
     # "商品明细" belongs to an order line-item question, not the shop catalogue.
@@ -187,16 +240,8 @@ class GoalLedger:
     def from_plan(cls, plan: Any, *, user_text: str = "") -> GoalLedger:
         ledger = cls(user_text=user_text)
         complete_catalog = any(s.require_complete_catalog for s in ledger.specs)
-        all_orders = _has(user_text, ALL_WORDS)
-        # These constrain evidence only; they never authorize an action.
-        return_tool = None
-        if not re.search(r"不要|先别|先不|不用|只读|只查|如果|假如", user_text):
-            if "预览" in user_text:
-                return_tool = "preview_return"
-            elif re.search(r"取消|中止|清空", user_text):
-                return_tool = "cancel_return_task"
-            elif re.search(r"帮我退|我要退|修改|改成|保存|存草稿|记录|办理", user_text):
-                return_tool = "update_return_task"
+        all_orders = _all_orders(user_text)
+        return_tool = _return_tool(user_text)
         ledger.specs = [
             GoalSpec(name, LABELS[name],
                      require_complete_catalog=name == "product" and complete_catalog,

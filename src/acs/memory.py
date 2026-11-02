@@ -28,7 +28,7 @@ EPISODE_TTL_DAYS = 90
 MAX_FACT_CHARS = 300
 MAX_SUMMARY_CHARS = 900
 PII = re.compile(
-    r"(?<!\d)1[3-9]\d(?:[\s\-‐‑–—]?\d){8}(?!\d)"
+    r"(?<!\d)(?:(?:\+86|0086)[\s\-‐‑–—]*)?1[3-9]\d(?:[\s\-‐‑–—]?\d){8}(?!\d)"
     r"|\d{17}[\dXx]|[\w.+-]+@[\w-]+\.[\w.]+"
 )
 DERIVED_FORMAT = 1

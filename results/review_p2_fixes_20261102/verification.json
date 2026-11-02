@@ -1,0 +1,86 @@
+{
+  "base_sha": "013612d4b7807c26ebbe476d46f6804dc0c1ac22",
+  "isolated_snapshot_matches": true,
+  "source_sha256": {
+    "src/acs/goal_ledger.py": "5f01b0498d9434343f4b12c64a96fe7aa58a08ebfae2c2d2bde4fbd8ca5c1450",
+    "src/acs/local_return_poc.py": "8dd8b29cd14228e5ec0a62fa5c554a49be4f9853c6387a451434a25a86368302",
+    "src/acs/memory.py": "2c9ae4aa678e8fd4bba59b16a232cbf062ab1eac855e26c0862034df639ab49b",
+    "tests/test_review_p2_regressions.py": "cd7d424f6deaaa50d8bde2629d4e369127959d7b8e13935042718c102a835f26"
+  },
+  "red_baseline": {
+    "tests": 29,
+    "failures": 11,
+    "errors": 0,
+    "skipped": 0,
+    "time_s": 3.825
+  },
+  "green_regressions": {
+    "tests": 29,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "full_suite": {
+    "tests": 1430,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "time_s": 187.597
+  },
+  "checks": {
+    "ruff": "passed",
+    "diff_check": "passed"
+  },
+  "commands": {
+    "red": "PYTHONDONTWRITEBYTECODE=1 ACS_LLM_API_KEY='' ACS_EMBEDDING_API_KEY='' .venv/bin/python -m pytest -p no:cacheprovider tests/test_review_p2_regressions.py --basetemp=<fresh-tempfs> --junitxml=<local-report> (isolated unmodified 013612d + final new tests)",
+    "full": "PYTHONDONTWRITEBYTECODE=1 ACS_LLM_API_KEY='' ACS_EMBEDDING_API_KEY='' GRADIO_ANALYTICS_ENABLED=False LITELLM_LOCAL_MODEL_COST_MAP=True TAU2_DATA_DIR=<pinned-dd8757d>/data .venv/bin/python -m pytest -vv -p no:cacheprovider --basetemp=<fresh-tempfs> --junitxml=<local-report>"
+  },
+  "review_iteration_red": {
+    "nouns": {
+      "tests": 4,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "time_s": 1.2
+    },
+    "read_scope": {
+      "tests": 8,
+      "failures": 4,
+      "errors": 0,
+      "skipped": 0,
+      "time_s": 1.287
+    }
+  },
+  "log_sha256": {
+    "ecommerce-p2-nouns-red.log": "a5c54fe7eb038d14e97d2906dd973c6fd62c558786a6b8c418707708c47deac6",
+    "ecommerce-p2-green.log": "32723dbbc4dd9b4c9297c54c0043acaef84f14b63f98898cdbfed5f588a3a737",
+    "ecommerce-p2-final-red.log": "86dfeb9ca30882fac025414ffe7d09f2de864d1a315e5d4320416324bb41fe39",
+    "ecommerce-p2-accepted.log": "8841a6ca2eca7a14a7d3674edca282ea870f0cdc1082e4cddf1169bb5dab215a",
+    "ecommerce-p2-read-scope-red.log": "2831a28a439c6eefa4a1e759da0be5b58b68d6e006dceb543262ca065cedde7c",
+    "ecommerce-p2-nouns-red.xml": "1b57f81e30bd72f06d3fa3f822b55bbc4a16677ca2af7733abcea0106eac021a",
+    "ecommerce-p2-read-scope-red.xml": "ef44ae89deb443025aea9d964943b52571944b9bee4c053e6d9103dfe77be487",
+    "ecommerce-p2-green.xml": "6f941d7c0dc02a81844a5be3ee1fcbfe66013293b1355cd7835c46c2c9763e17",
+    "ecommerce-p2-red-final.log": "45b05d3f0c4be6614acb7a5306258a0aac50bdfb89c827a4b705b0a9bd6bb3ca",
+    "ecommerce-p2-full.log": "3bf9af11e7464ecf4733c6ee0555f1f4f58bf837c3b046196f5e041831d80667",
+    "ecommerce-p2-red-final.xml": "10858f58c146913662bad81316e38f151712813ed0bff7cf58c2293799ce3f9b",
+    "ecommerce-p2-accepted.xml": "1c3ee93dc03c14965ccbdc05f0c514f3d4ddd6a5a3ab7688813bd7216b8beb3f",
+    "ecommerce-p2-final-red.xml": "df202c735bf3230c7983745c876ffccb08fdc2185a5715d3d1eb3ddcf3e6a602",
+    "ecommerce-p2-full.xml": "42d1d2bdff59185679be5e066d115eb2c38ddd11335d535b342c3e71bf605fab"
+  },
+  "model_api_calls": 0,
+  "llm_judge_calls": 0,
+  "cost_cny": 0,
+  "note": "Known deterministic regressions, not a blind test or model-quality score. User worktree changes excluded.",
+  "post_checks_review": {
+    "standards": {
+      "confirmed_p1_p2_blockers": 0,
+      "focused_read_write_assertions": 7,
+      "focused_phone_assertions": 5
+    },
+    "spec": {
+      "confirmed_p1_p2_blockers": 0,
+      "focused_assertions": 21
+    },
+    "note": "Independent read-only review after final complete checks; no code changes or model API requests."
+  }
+}
