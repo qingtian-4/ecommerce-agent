@@ -220,3 +220,93 @@ def test_saved_routing_cannot_be_read_through_another_users_session(tmp_path):
     with LocalReturnPoc(root, "USER002", model=other) as poc, pytest.raises(PermissionError):
         list(poc.stream(sid, None))
     assert other.seen == []
+
+
+@pytest.mark.parametrize("query", [
+    "不要再修改草稿，只读核对当前草稿",
+    "先别再生成预览，只查草稿",
+    "不要再保存和预览，只查草稿",
+    "不用再取消草稿，查看已保存的草稿",
+])
+def test_repeated_action_keeps_its_negation_scope(query):
+    plan = IntentPlan([PlannedGoal("return")])
+    ledger = GoalLedger.from_plan(plan, user_text=query)
+    ledger.record("get_return_task", {"task": None})
+    assert ledger.specs[0].return_tool is None
+    assert ledger.missing() == []
+    # The same action words must still require evidence without the negation.
+    positive = GoalLedger.from_plan(plan, user_text="再修改退货草稿")
+    positive.record("get_return_task", {"task": None})
+    assert positive.missing() == ["return"]
+
+
+@pytest.mark.parametrize("action,tool", [
+    ("帮我退货", "update_return_task"),
+    ("我要退货", "update_return_task"),
+    ("帮我保存草稿", "update_return_task"),
+    ("请先存草稿", "update_return_task"),
+    ("帮忙记录退货草稿", "update_return_task"),
+    ("请办理退货草稿", "update_return_task"),
+    ("记录退货草稿", "update_return_task"),
+    ("办理退货草稿", "update_return_task"),
+    ("生成预览", "preview_return"),
+    ("帮我取消草稿", "cancel_return_task"),
+])
+@pytest.mark.parametrize("connector", ["并", "后", "再"])
+def test_read_then_write_uses_the_same_action_vocabulary(action, tool, connector):
+    ledger = GoalLedger.from_plan(IntentPlan([PlannedGoal("return")]),
+                                  user_text="查看订单O10024" + connector + action)
+    ledger.record("get_return_task", {"task": None})
+    assert ledger.specs[0].return_tool == tool
+    assert ledger.missing() == ["return"]
+
+
+@pytest.mark.parametrize("query", [
+    "不要再修改草稿，只读核对当前草稿",
+    "先别再生成预览，只查草稿",
+])
+def test_read_only_repetition_finishes_without_spurious_retry(settings, query):
+    llm = ScriptedLLM([
+        ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall("read", "get_return_task", "{}")]),
+        ScriptedResponse(text="当前没有退货草稿，本轮只读核对。"),
+    ])
+    agent = CustomerServiceAgent(
+        settings=settings, llm=llm, registry=ToolRegistry(settings), goal_check=True,
+        intent_planner=SimpleNamespace(plan=lambda *a, **k:
+                                       IntentPlan([PlannedGoal("return", .9)])),
+    )
+    service = ChatService(settings)
+    final = list(service.run_turn(query, "USER001", agent=agent))[-1]
+    assert len(llm.calls) == 2
+    assert not final.result.errors
+    assert [e.label for e in final.result.trace if e.type == "tool_call"] == ["get_return_task"]
+    assert service.store.get_return_task(final.session_id, "USER001")["task"] is None
+
+
+@pytest.mark.parametrize("action", ["帮我退货", "我要退货", "帮我保存退货草稿",
+                                    "记录退货草稿", "办理退货草稿"])
+def test_mixed_order_read_and_return_cannot_claim_an_unsaved_draft(settings, action):
+    settings = settings.model_copy(update={"return_state_check_enabled": True})
+    llm = ScriptedLLM([
+        ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall("order", "get_order", '{"order_id":"O10024"}'),
+            ScriptedToolCall("read", "get_return_task", "{}")]),
+        ScriptedResponse(text="已查看订单并保存退货草稿。"),
+        ScriptedResponse(wants_tools=True, tool_calls=[
+            ScriptedToolCall("save", "update_return_task", '{"order_id":"O10024"}')]),
+        ScriptedResponse(text="已保存订单，其他退货信息待补。"),
+    ])
+    plan = IntentPlan([PlannedGoal("orders", .9), PlannedGoal("return", .9)])
+    agent = CustomerServiceAgent(
+        settings=settings, llm=llm, registry=ToolRegistry(settings), goal_check=True,
+        intent_planner=SimpleNamespace(plan=lambda *a, **k: plan),
+    )
+    service = ChatService(settings)
+    final = list(service.run_turn("查看订单O10024并" + action, "USER001", agent=agent))[-1]
+    task = service.store.get_return_task(final.session_id, "USER001")["task"]
+    assert task and task["order_id"] == "O10024"
+    assert len(llm.calls) == 4
+    assert any(e.type == "goal_check" for e in final.result.trace)
+    assert "其他退货信息待补" in final.result.answer
+    assert not final.result.errors

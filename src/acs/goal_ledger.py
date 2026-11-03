@@ -77,37 +77,45 @@ def _all_orders(text: str) -> bool:
     return False
 
 
+_RETURN_ACTION = re.compile(
+    r"(?P<preview>(?:生成)?预览)|(?P<cancel>取消|中止|清空)|"
+    r"(?P<write>帮我退|我要退|修改|改成|保存|存草稿|"
+    r"(?:^|请|先|帮我|帮忙|给我|麻烦|为我)(?:记录|办理))"
+)
+_RETURN_FOLLOWING_ACTION = re.compile(
+    r"(?:请|先|再|帮我|帮忙|给我|麻烦|为我)*(?:" + _RETURN_ACTION.pattern + r")"
+)
+_RETURN_TOOLS = {
+    "preview": "preview_return",
+    "cancel": "cancel_return_task",
+    "write": "update_return_task",
+}
+
+
 def _return_tool(text: str) -> str | None:
     actions = set()
-    # Keep coordinated actions together ("不要保存和预览"), but start a
-    # new scope at an explicit negation even without punctuation.
-    clauses = re.split(r"[，,。；;！？!?\n]|然后|另外|但是|但|再|(?=不要|先别|先不|不用)", text)
+    # Keep coordinated and repeated actions in their negation scope
+    # ("不要保存和预览", "先别再生成预览").
+    clauses = re.split(r"[，,。；;！？!?\n]|然后|另外|但是|但|(?=不要|先别|先不|不用)", text)
     for clause in clauses:
+        clause = clause.strip()
         if re.search(r"不要|别|先不|不用|只读|只查|如果|假如|不是|不想|不需要", clause):
             continue
         read = re.search(r"查询|查看|核对|看看|查一下", clause)
-        action = re.search(r"预览|取消|中止|清空|帮我退|我要退|修改|改成|保存|存草稿|记录|办理",
-                           clause)
-        if read and action and read.start() < action.start():
-            # "查看已保存的草稿" describes evidence; "查询后保存" asks for
-            # another action. Only an explicit following action changes scope.
-            following = re.search(
-                r"(?:后|并)(?=(?:请|先)?(?:保存|修改|改成|生成|预览|取消|中止|清空|记录|办理))",
-                clause[read.end():],
-            )
-            if following is None:
+        action = _RETURN_ACTION.search(clause)
+        if read and (action is None or read.start() < action.start()):
+            # Query objects ("查看已保存的草稿") are not new actions. A
+            # following request must start with the same supported vocabulary
+            # used below, including polite prefixes and "帮我退/我要退".
+            for boundary in re.finditer(r"后|并且|并|再", clause[read.end():]):
+                following = clause[read.end() + boundary.end():].strip()
+                if _RETURN_FOLLOWING_ACTION.match(following):
+                    clause = following
+                    break
+            else:
                 continue
-            clause = clause[read.end() + following.end():]
-        if "预览" in clause:
-            actions.add("preview_return")
-        if re.search(r"取消|中止|清空", clause):
-            actions.add("cancel_return_task")
-        # "退货记录" and "已办理申请" name query objects, not write requests.
-        explicit_write = re.search(r"帮我退|我要退|修改|改成|保存|存草稿", clause)
-        record_or_process = re.search(r"(?:^|请|先|帮我|帮忙|给我|麻烦|为我)(?:记录|办理)",
-                                      clause.strip())
-        if explicit_write or record_or_process:
-            actions.add("update_return_task")
+        actions.update(_RETURN_TOOLS[match.lastgroup]
+                       for match in _RETURN_ACTION.finditer(clause))
     return next((name for name in ("preview_return", "cancel_return_task", "update_return_task")
                  if name in actions), None)
 

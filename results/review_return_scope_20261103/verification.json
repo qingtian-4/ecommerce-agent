@@ -1,0 +1,150 @@
+{
+  "date": "2026-11-03",
+  "base_sha": "01ef45f38d3e7c59276548886ee6b705469168cd",
+  "tested_source_snapshot_matches": true,
+  "tested_source_sha256": {
+    "src/acs/goal_ledger.py": "b5a50a2c24bfde6d2be9cae7f29ebfcb69af7a2ed001fba6b4e11773cd756f0a",
+    "tests/test_review_p2_regressions.py": "7a6550c179c6cc89cc70968a194a903def24a432787a559fa0894288eebd0a87"
+  },
+  "red_baseline": {
+    "tests": 41,
+    "failures": 21,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 20,
+    "time_s": 11.269
+  },
+  "review_iteration_red": {
+    "tests": 30,
+    "failures": 6,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 24,
+    "time_s": 2.87
+  },
+  "green_new_regressions": {
+    "tests": 41,
+    "passed": 41,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "full_suite": {
+    "tests": 1471,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 1471,
+    "time_s": 314.232
+  },
+  "checks": {
+    "ruff": "passed",
+    "secrets_all_tracked": "passed",
+    "diff_check": "passed"
+  },
+  "browser": {
+    "source_base_sha": "01ef45f38d3e7c59276548886ee6b705469168cd",
+    "kind": "real_chromium_native_graph_mock_sdk",
+    "profile": "interactive_ui",
+    "request_body_limit_bytes": 65536,
+    "paid_requests": 0,
+    "mock_sdk_requests": 32,
+    "checks": {
+      "jump_latest_hidden_without_history": true,
+      "shift_enter_newline_no_post": true,
+      "ime_enter_no_post": true,
+      "recent_three": true,
+      "no_default_order_selection": true,
+      "order_table_collapsed": true,
+      "mixed_reply_preserved": true,
+      "real_sse_deltas": true,
+      "stream_visible_during_execution": true,
+      "navigation_no_model_replay": true,
+      "pagination": true,
+      "logistics_from_sql": true,
+      "feedback_persisted": true,
+      "feedback_reason": true,
+      "human_unavailable": true,
+      "product_grid_matches_sql": true,
+      "product_images_labeled_illustrations": true,
+      "feedback_each_completed_answer": true,
+      "history_not_moved_below_outgoing": true,
+      "historical_progress_retained": true,
+      "jump_latest_mouse_and_keyboard": true,
+      "jump_latest_above_composer": true,
+      "jump_latest_no_model_replay": true,
+      "responsive": true,
+      "fixed_input": true,
+      "mobile_drawer": true,
+      "mobile_drawer_action_closes_drawer": true,
+      "return_card_stays_at_business_turn": true,
+      "single_return_card_after_consultation": true,
+      "return_anchor_restored_after_refresh": true,
+      "correction_invalidates_old_wait": true,
+      "stale_accept_absent": true,
+      "new_preview": true,
+      "explicit_4xx_keeps_ready": true,
+      "unknown_no_accept": true,
+      "legacy_pending_key_reused": true,
+      "single_submission_and_confirmation": true,
+      "double_click_one_post": true,
+      "authoritative_request_id": true,
+      "verified_transport_error_cleared": true,
+      "refresh_restores_feedback": true,
+      "refresh_no_replay": true,
+      "sse_disconnect_keeps_sql": true,
+      "sse_reconnect_no_replay": true,
+      "sse_reconnect_keeps_receipt": true,
+      "sql_receipt_survives_graph_corruption": true,
+      "server_restart": true,
+      "cross_session_rejected": true,
+      "csrf_rejected": true,
+      "reject_no_application": true,
+      "cancel_no_application": true,
+      "expired_no_accept": true,
+      "sse_running_overrides_stale_snapshot": true,
+      "protocol_error_visible": true,
+      "failed_draft_withdrawn": true,
+      "script_errors_absent": true
+    },
+    "passed": true,
+    "sql_counts": {
+      "return_requests": 1,
+      "return_confirmations": 1,
+      "return_audit": 1,
+      "local_submission_receipts": 1
+    }
+  },
+  "browser_scorecard_sha256": "f65f53c8ba3f2ca68750403428ad116d3a666cf4156bdee431cd888bb281c9c4",
+  "final_review": {
+    "standards_findings": 0,
+    "spec_findings": 0,
+    "spec_offline_probes_passed": 45
+  },
+  "sibling_sweep": {
+    "sites": [
+      "src/acs/goal_ledger.py",
+      "src/acs/intent_router.py",
+      "src/acs/return_state_check.py"
+    ],
+    "result": "Only GoalLedger derives these evidence requirements. Router is a soft hint; narrow state repair does not cover mixed clauses and is not a substitute."
+  },
+  "commands": {
+    "setup": "uv sync --offline --frozen --extra dev --extra v3 --extra tau",
+    "red": "PYTHONDONTWRITEBYTECODE=1 ACS_LLM_API_KEY='' ACS_EMBEDDING_API_KEY='' .venv/bin/python -m pytest -p no:cacheprovider tests/test_review_p2_regressions.py -k 'repeated_action or same_action_vocabulary or repetition_finishes or mixed_order_read' --junitxml=<local-report> (unmodified 01ef45f implementation in isolated checkout + final tests)",
+    "full": "PYTHONDONTWRITEBYTECODE=1 ACS_LLM_API_KEY='' ACS_EMBEDDING_API_KEY='' GRADIO_ANALYTICS_ENABLED=False LITELLM_LOCAL_MODEL_COST_MAP=True TAU2_DATA_DIR=<pinned-dd8757d>/data .venv/bin/python -m pytest -p no:cacheprovider --basetemp=<fresh-owned-tempfs> --junitxml=<local-report>",
+    "browser": "<playwright-1.64.1-python> scripts/eval_shop_frontend.py --out <fresh-output> --port <unused-loopback-port>"
+  },
+  "log_sha256": {
+    "return-scope-final-red.log": "c1c54fcac60e76f84e117ddb0173a065f310b5078371be814931353e83130ff0",
+    "return-scope-final-red.xml": "36d9a3dc223d15552fcf1c9039f00a0ebc58eea5ffbce323e15711b9ed622cd4",
+    "return-scope-review-red.log": "fe2e041e5b38af22a7c1974825a0fd71c2abbf26db27f8a0824f663ee6f08177",
+    "return-scope-review-red.xml": "1a7110c7f88c4f8df55f6a852e4aedd37b43ec847b1f88d893064d03ba538de3",
+    "return-scope-final-full.log": "ba9c4b74bdd2e3835a35a584f4d9f783d56063540ecbeb72143c0eefb5d04726",
+    "return-scope-final-full.xml": "d7538ff428bab653f9085e64f824ef2c62490ed674ce01987e94a5189a307b40"
+  },
+  "external_model_api_calls": 0,
+  "llm_judge_calls": 0,
+  "cost_cny": 0,
+  "note": "Known deterministic regressions, not a blind test or model-quality score. Intermediate full run interrupted after review finding; only final complete run counted. User work excluded."
+}
